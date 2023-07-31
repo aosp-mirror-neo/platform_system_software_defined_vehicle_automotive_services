@@ -1,0 +1,17 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+aidl_interface {
+    name: "android.sdv.vpm-aidl",
+    // Path must match the name
+    srcs: ["android/sdv/vpm/*.aidl"],
+    // This AIDL stays unstable until approved by the API Council
+    unstable: true,
+    backend: {
+        rust: {
+            // Uses `libbinder_rs` which uses `libbinder_ndk`
+            enabled: true,
+        },
+    },
+}
