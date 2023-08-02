@@ -1,0 +1,54 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+aidl_interface {
+    name: "android.sdv.diagnostics",
+    srcs: [
+        "android/sdv/diagnostics/ResponseCode.aidl",
+        "android/sdv/diagnostics/Format.aidl",
+        "android/sdv/diagnostics/IDiagnosticsManager.aidl",
+        "android/sdv/diagnostics/io_control/*.aidl",
+        "android/sdv/diagnostics/routine_control/*.aidl",
+        "android/sdv/diagnostics/data_item/*.aidl",
+        "android/sdv/diagnostics/monitoring/*.aidl",
+        "android/sdv/diagnostics/common/*.aidl",
+        "android/sdv/diagnostics/event/*.aidl",
+    ],
+    unstable: true,
+    backend: {
+        ndk: {
+            enabled: true,
+        },
+        java: {
+            enabled: false,
+        },
+        rust: {
+            enabled: true,
+        },
+    },
+}
+
+aidl_interface {
+    name: "android.sdv.diagnostics.platform",
+    srcs: [
+        "android/sdv/diagnostics/ResponseCode.aidl",
+        "android/sdv/diagnostics/IDiagnosticsManagerPlatform.aidl",
+        "android/sdv/diagnostics/common/*.aidl",
+        "android/sdv/diagnostics/ecu_reset/*.aidl",
+        "android/sdv/diagnostics/file_transfer/*.aidl",
+        "android/sdv/diagnostics/metadata/*.aidl",
+    ],
+    unstable: true,
+    backend: {
+        ndk: {
+            enabled: true,
+        },
+        java: {
+            enabled: false,
+        },
+        rust: {
+            enabled: true,
+        },
+    },
+}
