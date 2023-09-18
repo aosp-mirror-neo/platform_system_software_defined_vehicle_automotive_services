@@ -1,0 +1,26 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+aidl_interface {
+    name: "android.sdv.config",
+    srcs: [
+        "android/sdv/config/*.aidl",
+    ],
+    unstable: true,
+    vendor_available: true,
+    host_supported: true,
+    backend: {
+        java: {
+            enabled: false,
+        },
+        rust: {
+            enabled: true,
+        },
+        cpp: {
+            enabled: true,
+        },
+    },
+}
