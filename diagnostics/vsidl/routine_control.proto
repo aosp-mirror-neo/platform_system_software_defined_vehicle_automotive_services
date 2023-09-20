@@ -1,0 +1,40 @@
+// Copyright 2023 Google LLC
+
+syntax = "proto3";
+
+package sdv.diagnostics.routine;
+
+// Diagnostics interface for RoutineControl (UDS 0x31) service.
+//
+// See ISO 14229-1:2020, section 14.2.
+//
+// ** Common error codes **
+// See ISO 14229-1:2020, section 14.2.4.
+service RoutineControlService {
+  // Start the routine specified in the request.
+  rpc Start(RoutineControlRequest) returns (RoutineControlResponse) {}
+
+  // Stop the routine specified in the request.
+  rpc Stop(RoutineControlRequest) returns (RoutineControlResponse) {}
+
+  // Retrieve result of the routine specified in the request.
+  rpc RequestResult(RoutineControlRequest) returns (RoutineControlResponse) {}
+}
+
+message RoutineControlRequest {
+  // Routine identifier.
+  string id = 1;
+
+  // Routine-specific parameters of the request.
+  bytes request = 2;
+}
+
+message RoutineControlResponse {
+  // Routine-specific response to the request:
+  // - Start(): information about the state of the service following the start of the
+  // routine.
+  // - Stop(): information about the state of the service following the start of the
+  // routine.
+  // - RequestResult(): results of the routine (available after it has been stopped).
+  bytes response = 1;
+}

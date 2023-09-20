@@ -1,0 +1,46 @@
+// Copyright 2023 Google LLC
+
+syntax = "proto3";
+
+package sdv.diagnostics.ecu_reset;
+
+import "connection.proto";
+import "google/protobuf/empty.proto";
+
+// Diagnostic interface for ECUReset (UDS 0x11) service.
+//
+// See ISO 14229-1:2020, section 10.3.
+//
+// ** Common error codes **
+// See ISO 14229-1:2020, section 10.3.4.
+service ECUResetService {
+  // Perform "hard reset", which simulates the power-on/start-up sequence.
+  rpc HardReset(connection.ConnectionId) returns (google.protobuf.Empty) {}
+
+  // Perform reset similar to the driver turning the ignition key off and back on.
+  rpc KeyOnOffReset(connection.ConnectionId) returns (google.protobuf.Empty) {}
+
+  // Perform "soft reset", which causes the server to immediately restart the application
+  // program if applicable.
+  rpc SoftReset(connection.ConnectionId) returns (google.protobuf.Empty) {}
+
+  // Performs shutdown to a sleep mode rather that a power off.
+  //
+  // Applies to ECUs which a not ignition powered but battery powered only.
+  rpc EnableRapidPowerShutdown(connection.ConnectionId) returns (RapidPowerShutdownResponse) {}
+
+  // Request to disable the previously enabled "rapid power shutdown".
+  rpc DisableRapidPowerShutdown(connection.ConnectionId) returns (google.protobuf.Empty) {}
+
+  // Perform vehicle manufacturer / system supplier specific reset.
+  rpc CustomReset(connection.ConnectionId) returns (google.protobuf.Empty) {}
+}
+
+message RapidPowerShutdownResponse {
+  // The minimum time of the stand-by sequence the server will remain in the power down.
+  //
+  // The resolution of this parameter is one second per count.
+  // 0x00 to 0xFE: 0 to 254 seconds power down time.
+  // 0xFF: indicates a failure or time not available.
+  int32 powerDownTime = 1;
+}
