@@ -8,6 +8,7 @@ aidl_interface {
     srcs: ["android/sdv/vpm/*.aidl"],
     // This AIDL stays unstable until approved by the API Council
     unstable: true,
+    host_supported: true,
     backend: {
         rust: {
             // Uses `libbinder_rs` which uses `libbinder_ndk`
