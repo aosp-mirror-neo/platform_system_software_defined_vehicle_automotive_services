@@ -1,0 +1,23 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+filegroup {
+    name: "sdvconfigservice-proto-srcs",
+    srcs: ["*.proto"],
+}
+
+rust_protobuf {
+    name: "libsdvconfig_proto_rust",
+    host_supported: true,
+    crate_name: "sdvconfig_proto_rust",
+    protos: ["configuration.proto"],
+    proto_flags: [
+        "-I external/protobuf/src",
+        "-I .",
+    ],
+    source_stem: "sdvconfig_proto_rust_source",
+    use_protobuf3: true,
+}

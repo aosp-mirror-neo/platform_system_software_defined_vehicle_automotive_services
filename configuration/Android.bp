@@ -1,0 +1,20 @@
+// build target for distribution of AIDL definitions
+// generates zip archive at [repo root]/out/sdv/sdv-config.zip
+genrule {
+    name: "android.sdv.config-dist",
+    srcs: [
+        "aidl/**/*",
+        "Android.bp",
+        "README.md",
+    ],
+    tools: ["soong_zip"],
+    out: ["sdv-config.zip"],
+    cmd: "echo $(in) > $(genDir)/list && " +
+        "$(location soong_zip) -sha256 -o $(out) -l $(genDir)/list",
+    dists: [
+        {
+            targets: ["android.sdv.config-dist"],
+            dir: "sdv",
+        },
+    ],
+}
