@@ -1,0 +1,47 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+// This is a PoC version for the API for the discussions.
+// It is unstable until API council approval.
+
+syntax = "proto3";
+
+package android.sdv.config;
+
+message ConfigOverrideKeyValue {
+  // Required.
+  // The name of the key (configuration parameter).
+  string name = 1;
+
+  // Required.
+  // New value of the key.
+  oneof trigger_type {
+    bool value_bool = 2;
+    float value_float = 3;
+    uint64 value_int = 4;
+    string value_str = 5;
+    bytes blob_str = 6;
+  }
+}
+
+message ConfigId {
+  string company_domain = 1;
+  string domain = 2;
+  string apex = 3;
+  string instance = 4;
+  string config = 5;
+}
+
+message ConfigOverride {
+  // Optional.
+  // Operator string in the form (factor=value) AND/OR (option!=value)
+  // If rule is not provided, true is used.
+  string rule = 1;
+
+  // Required.
+  // Config identifier.
+  ConfigId config_id = 2;
+
+  // Required.
+  // Key-value pairs for keys to be updated in the config.
+  repeated ConfigOverrideKeyValue pair = 3;
+}
