@@ -35,7 +35,7 @@ async fn main() -> anyhow::Result<()> {
 
     binder::ProcessState::start_thread_pool();
 
-    create_system_api_binder_in_nascar(system_service)?;
+    create_system_api_binder_in_service_discovery(system_service)?;
 
     create_system_api_binder_service(system_service)?;
 
@@ -48,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-// This is another example where we use binder::addService which currently does not use NASCAR.
+// This is another example where we use binder::addService which currently does not use SD.
 fn create_system_api_binder_service(
     system_service_reference: &'static VPMSystemService,
 ) -> anyhow::Result<()> {
@@ -60,12 +60,12 @@ fn create_system_api_binder_service(
     Ok(())
 }
 
-// This is an example if we need to use NASCAR and then use binder-rpc.
+// This is an example if we need to use SD and then use binder-rpc.
 // It uses binder-rpc/vsock
-fn create_system_api_binder_in_nascar(
+fn create_system_api_binder_in_service_discovery(
     system_service_reference: &'static VPMSystemService,
 ) -> anyhow::Result<()> {
-    info!("VPM system service starting on NASCAR!");
+    info!("VPM system service starting on SD!");
     RpcServer::new_vsock(
         vpm_system_service_api::create_system_binder(system_service_reference)?,
         libc::VMADDR_CID_LOCAL,
@@ -78,7 +78,7 @@ fn create_system_api_binder_in_nascar(
         .build();
     let sm = ServiceManager::default_service_manager();
     sm.add_service(&service_definition)?;
-    info!("VPM registered to NASCAR service discovery.");
+    info!("VPM registered to service discovery.");
     Ok(())
 }
 
