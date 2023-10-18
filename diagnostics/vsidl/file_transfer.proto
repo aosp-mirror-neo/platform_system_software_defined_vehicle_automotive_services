@@ -1,0 +1,93 @@
+// Copyright 2023 Google LLC
+
+syntax = "proto3";
+
+package sdv.diagnostics.file_transfer;
+
+import "connection.proto";
+import "google/protobuf/empty.proto";
+
+// Diagnostic interface for file transfer related services:
+// - RequestDownload (UDS 0x34)
+// - RequestUpload (UDS 0x35)
+// - TransferData (UDS 0x36)
+// - RequestTransferExit (UDS 0x37)
+// - RequestFileTransfer (UDS 0x38)
+//
+// See ISO 14229-1:2020, sections 15.2, 15.3, 15.4, 15.5, 15.6.
+//
+// ** Common error codes **
+// See ISO 14229-1:2020, section 15.6.4.
+service FileTransferService {
+  // Add the file (download) defined by the file id in the request.
+  //
+  // Responds with a file path to use to write file data for transfer to service.
+  rpc AddFile(FileWriteRequest) returns (FilePath) {}
+
+  // Replace the file (download) defined by the file id in the request.
+  //
+  // If the file does not exist it's simply added.
+  //
+  // Responds with a file path to use to write file data for transfer to service.
+  rpc ReplaceFile(FileWriteRequest) returns (FilePath) {}
+
+  // Resume writing the file (download) defined by the file id in the request.
+  //
+  // The file specified by the file id must already exist.
+  rpc ResumeFile(FileWriteRequest) returns (ResumeFileResponse) {}
+
+  // Read the file (upload) from the location defined by the file id in the request.
+  //
+  // Responds with a file path to use to read file data and file size.
+  rpc ReadFile(FileRequest) returns (FileReadResponse) {}
+
+  // Delete the file defined by the file id in the request.
+  rpc DeleteFile(FileRequest) returns (google.protobuf.Empty) {}
+
+  // Finish file transfer operation.
+  //
+  // Called to indicate the finish of the file read/write operation initiated by one of
+  // the other RPCs (`AddFile`/`ReplaceFile`/`ReadFile`/`ResumeFile`).
+  rpc ExitFileTransfer(FileRequest) returns (google.protobuf.Empty) {}
+}
+
+message FileRequest {
+  // Diagnostic connection id.
+  connection.ConnectionId connection_id = 1;
+
+  // Id of the file.
+  string id = 2;
+}
+
+// Message that represents path to the file.
+message FilePath {
+  // Path to the file.
+  string path = 1;
+}
+
+message FileWriteRequest {
+  // Diagnostic connection id.
+  connection.ConnectionId connection_id = 1;
+
+  // Id of the file to be written.
+  string file_id = 2;
+
+  // Size of the file.
+  int64 file_size = 3;
+}
+
+message ResumeFileResponse {
+  // Path to the file to be written.
+  string file_path = 1;
+
+  // Position in the file to resume writing from.
+  int64 file_position = 2;
+}
+
+message FileReadResponse {
+  // Path to the file to be read.
+  string file_path = 1;
+
+  // Size of the file.
+  int64 file_size = 2;
+}

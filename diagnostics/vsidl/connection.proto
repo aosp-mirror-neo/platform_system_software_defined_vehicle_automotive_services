@@ -1,0 +1,10 @@
+// Copyright 2023 Google LLC
+
+syntax = "proto3";
+
+package sdv.diagnostics.connection;
+
+// Unique id of diagnostic connection.
+message ConnectionId {
+  int32 id = 1;
+}

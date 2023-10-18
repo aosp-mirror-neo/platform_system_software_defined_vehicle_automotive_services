@@ -1,0 +1,16 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_protobuf {
+    name: "libdiagnostics_api",
+    crate_name: "diagnostics_api",
+    protos: [
+        "*.proto",
+    ],
+    source_stem: "diagnostics_api",
+    use_protobuf3: true,
+    proto_flags: [
+        "-I external/protobuf/src",
+    ],
+}
