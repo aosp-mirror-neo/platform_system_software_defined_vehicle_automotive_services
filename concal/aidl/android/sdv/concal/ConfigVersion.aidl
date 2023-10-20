@@ -1,4 +1,4 @@
-package android.sdv.config;
+package android.sdv.concal;
 
 /**
  * Config version.

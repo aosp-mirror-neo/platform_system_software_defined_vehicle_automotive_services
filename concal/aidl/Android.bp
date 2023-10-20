@@ -5,9 +5,9 @@ package {
 }
 
 aidl_interface {
-    name: "android.sdv.config",
+    name: "android.sdv.concal",
     srcs: [
-        "android/sdv/config/*.aidl",
+        "android/sdv/concal/*.aidl",
     ],
     unstable: true,
     vendor_available: true,

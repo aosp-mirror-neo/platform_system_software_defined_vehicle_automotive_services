@@ -1,11 +1,11 @@
 // Copyright 2023 Google LLC. All Rights Reserved.
 
-package android.sdv.config;
+package android.sdv.concal;
 
-import android.sdv.config.Config;
-import android.sdv.config.ConfigId;
-import android.sdv.config.ConfigOverride;
-import android.sdv.config.ICalibrationCallback;
+import android.sdv.concal.Config;
+import android.sdv.concal.ConfigId;
+import android.sdv.concal.ConfigOverride;
+import android.sdv.concal.ConfigVersion;
 
 /**
  * Generally available Configuration/Calibration Service APIs for use by SDV-Services.
@@ -20,7 +20,6 @@ interface IConfigurationService {
 
     /**
      * Retrieves service configuration.
-     * The service can decide on its own, if it wants to add instance id or not.
      *
      * @param[in] configId is a unique config identifier.
      *
@@ -29,25 +28,27 @@ interface IConfigurationService {
     Config getConfig(in ConfigId configId);
 
     /**
-     * Registers default service configuration.
-     * TODO: consider renaming to getDefaultConfig.
-     *
+     * Registers configuration schema with default config.
+     * If the metadata for this version already exists the metadata is not
+     * rewritten.
      * @param[in] configId is a unique config identifier.
      * @param[in] config is a default configuration in the form of a serialized protobuf message,
-     * where the parameters are assigned with default values.
-     * @param[in] version is a version identifier for the service.
-     * If the metadata for this version already exists the metadata is not rewritten.     *
+     * where the parameters are assigned with default values and its schema.
+     * This parameter is not fully aligned with the VSIDL version.
+     * @param[in] configVersion is a version identifier for the service.
+     * If the metadata for this version already exists the metadata is not rewritten.
      */
-    void registerConfigMetadata(in ConfigId configId, in byte[] config, in String version);
+    void registerConfigMetadata(in ConfigId configId, in byte[] metadata, in String configVersion);
 
     /**
      * Returns the config metadata for the service.
      *
      * @param[in] configId is a unique config identifier.
+     * @param[in] configVersion is a version identifier for the service.
      *
-     * @return default configuration.
+     * @return config schema and default message.
      */
-    Config getConfigMetadata(in ConfigId configId);
+    Config getConfigMetadata(in ConfigId configId, in ConfigVersion configVersion);
 
     /**
      * Starts a configuration update.
@@ -56,38 +57,43 @@ interface IConfigurationService {
      * Each update can include multiple overrides.
      * This API should be only available to the privileged services like UpdateManager.
      *
-     * @return identifier of the configuration update.
+     * @return identifier of the configuration update which is a random number existing only during
+     *         the update transaction.
      */
     int startConfigUpdate();
 
     /**
-     * Adds a config override for a specific config.
+     * Adds or updates a config override for a specific config.
      * Dependent on the sender of the message, configuration service should assign a priority to it.
      * Executed before StartUpdate() and StopUpdate().
      * This API should be only available to the privileged services like UpdateManager.
      *
-     * @param[in] updateId is an identifier of the configuration update.
+     * @param[in] updateId is an identifier of the configuration update existing only during the
+     * update transaction..
      * @param[in] configId is a unique config identifier.
      * @param[in] configOverride is a serialized ConfigOverride protobuf message.
      */
-    void addConfigOverride(
+    void addOrUpdateConfigOverride(
             in int updateId, in ConfigId configId, in ConfigOverride[] configOverride);
 
     /**
      * Removes a config override for specific config.
      * This API should be only available to the privileged services like UpdateManager.
      *
-     * @param[in] updateId is an identifier of the configuration update.
+     * @param[in] updateId is an identifier of the configuration update existing only during the
+     * update transaction.
+     * @param[in] overrideId is a unique override identifier.
      * @param[in] configId is a unique config identifier.
      */
-    void removeConfigOverride(in int updateId, in ConfigId configId);
+    void removeConfigOverride(in int updateId, in String overrideId, in ConfigId configId);
 
     /**
      * Cancels the current update. All ConfigOverrides sent after the last StartUpdate() and now()
      * This API should be only available to the privileged services like UpdateManager.
      * are reverted.
      *
-     * @param[in] updateId is an identifier of the configuration update.
+     * @param[in] updateId is an identifier of the configuration update existing only during the
+     * update transaction.
      */
     void cancelConfigUpdate(in int updateId);
 
@@ -96,71 +102,58 @@ interface IConfigurationService {
      * A new configuration snapshot is calculated and stored persistently.
      * This API should be only available to the privileged services like UpdateManager.
      *
-     * @param[in] updateId is an identifier of the configuration update.
+     * @param[in] updateId is an identifier of the configuration update existing only during the
+     * update transaction.
      */
-    void stopConfigUpdate(in int updateId);
+    void finishConfigUpdate(in int updateId);
 
     /**
-     * Rollbacks the last update or update with id.
-     * If updateId is provided, rollback all update till updateId.
+     * Rollbacks the last update to the previous configuration snapshot.
      * This API should be only available to the privileged services like UpdateManager.
      * Can't be performed while another update is in progress.
      *
      * @param[in] updateId is a unique identifier for update, until which the rollback
      * should be performed.
-     *
-     * @return update identifier which is valid and current after the rollback is performed.
-     * If there was no previous update, 0 is returned.
      */
-    int rollback(in int updateId);
+    void rollback(in int updateId);
 
     /**
      * Removes all configuration updates and default configurations.
      * This API should be only available to the privileged services like UpdateManager.
      * Cleans all services up to the factory state.
      * Can't be performed while another update is in progress.
+     *
+     * @param[in] configId is a unique config identifier.
      */
-    void reset();
+    void reset(in ConfigId configId);
 
     /**
-     * Removes all configurations for service.
+     * Removes a configuration.
      * Called when a service is deinstalled.
      * This API should be only available to the privileged services like UpdateManager.
      * Can't be performed while another update is in progress.
      *
-     * @param[in] serviceId is a unique service identifier.
+     * @param[in] configId is a unique config identifier.
      */
-    void deinstallConfig(in String serviceId);
-
-    /**
-     * Adds a new factor or option.
-     * It might be required if new hardware or software options are available.
-     * This API should be only available to the privileged services like UpdateManager.
-     *
-     * Can't be performed while another update is in progress.
-     * @param[in] id is a unique identifier for factor or option.
-     * @param[in] values is an array of enums which the factor or option can take.
-     */
-    void addFactorOrOption(in String keyId, in String[] values);
+    void deinstallConfig(in ConfigId configId);
 
     // Calibration functionality.
     // Should be disabled for the user builds.
 
     /**
-     * Registers calibration callback.
+     * Start calibration for a specified config.
      *
      * @param[in] configId is a unique identifier for config whose service is calibrated.
-     * @param[in] cb is a callback function.
+     * @param[in] config is a configuration in the form of a serialized protobuf message.
      *
      * @return calibration callback identifier.
      */
-    String registerCalibCallback(in ConfigId configId, in ICalibrationCallback cb);
+    void startCalibration(in ConfigId configId, in byte[] config);
 
     /**
      * Removes a previously registered calibration callback.
      *
      * @param[in] configId is a unique config identifier.
-     * @param[in] callbackId is a unique identifier for calibration callback.
      */
-    void unregisterCallback(in ConfigId configId, in String callbackId);
+    void stopCalibration(in ConfigId configId);
 }
