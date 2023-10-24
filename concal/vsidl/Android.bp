@@ -1,0 +1,18 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_protobuf {
+    name: "libconcal_api",
+    crate_name: "concal_api",
+    protos: [
+        "*.proto",
+    ],
+    source_stem: "concal_api",
+    use_protobuf3: true,
+    proto_flags: [
+        "-I external/protobuf/src",
+    ],
+}

@@ -5,12 +5,11 @@ package {
 }
 
 // build target for distribution of AIDL definitions
-// generates zip archive at [repo root]/out/sdv/sdv-concal.zip
+// generates zip archive at [repo root]/out/dist/sdv/sdv-concal.zip
 genrule {
     name: "android.sdv.concal-dist",
     srcs: [
         "aidl/**/*",
-        "Android.bp",
         "README.md",
     ],
     tools: ["soong_zip"],
@@ -25,15 +24,22 @@ genrule {
     ],
 }
 
-rust_protobuf {
-    name: "libconcal_api",
-    crate_name: "concal_api",
-    protos: [
-        "*.proto",
+// build target for distribution of VSIDL definitions
+// generates zip archive at [repo root]/out/dist/sdv/libconcal_api.zip
+genrule {
+    name: "libconcal_api-dist",
+    srcs: [
+        "vsidl/**/*",
+        "README.md",
     ],
-    source_stem: "concal_api",
-    use_protobuf3: true,
-    proto_flags: [
-        "-I external/protobuf/src",
+    tools: ["soong_zip"],
+    out: ["libconcal_api.zip"],
+    cmd: "echo $(in) > $(genDir)/list && " +
+        "$(location soong_zip) -sha256 -o $(out) -l $(genDir)/list",
+    dists: [
+        {
+            targets: ["libconcal_api-dist"],
+            dir: "sdv",
+        },
     ],
 }
