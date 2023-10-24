@@ -1,0 +1,66 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+// This is a PoC version for the API for the discussions.
+// It is unstable until API council approval.
+
+syntax = "proto3";
+
+package sdv.concal;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/descriptor.proto";
+
+message ConfigMetadata {
+  // Proto types and their dependencies.
+  google.protobuf.FileDescriptorSet descriptor_set = 1;
+
+  // The default config and its type, encoded as an Any message.
+  google.protobuf.Any default_config = 2;
+}
+
+// Key-value pair to update configuration.
+message ConfigOverrideKeyValue {
+  // Required.
+  // The name of the key (configuration parameter).
+  string key = 1;
+
+  // Required.
+  // New value of the key.
+  oneof value {
+    bool value_bool = 2;
+    float value_float = 3;
+    uint64 value_int = 4;
+    string value_str = 5;
+    bytes value_blob = 6;
+  }
+}
+
+// Unique identifier for the config.
+// <full package name like com.company.domain.apex>.<service name like
+// SomeService>/(<instance_name>?)/<config_name>.
+// It does not include VM name, but it can be introduced if
+// required. If a field is not defined, this field matches any characters.
+// Undefined fields allow to match multiple configs.
+message ConfigId {
+  // com.company_name
+  string company_domain = 1;
+  string domain = 2;
+  string apex = 3;
+  string service = 4;
+  string instance = 5;
+  string config = 6;
+}
+
+message ConfigOverride {
+  // Override identifier defined by the caller.
+  // Unique per caller.
+  string override_id = 1;
+
+  // Config identifier.
+  // If config override should be applied to multiple configs, some fields in the config_id might be
+  // undefined.
+  ConfigId config_id = 2;
+
+  // Key-value pairs for keys to be updated in the config.
+  repeated ConfigOverrideKeyValue pairs = 3;
+}

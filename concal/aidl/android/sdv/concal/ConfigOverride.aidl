@@ -1,7 +1,7 @@
-package android.sdv.config;
+package android.sdv.concal;
 
-import android.sdv.config.ConfigId;
-import android.sdv.config.ConfigOverrideKeyValue;
+import android.sdv.concal.ConfigId;
+import android.sdv.concal.ConfigOverrideKeyValue;
 
 /**
  * Format for ConfigOverride messages.
@@ -12,18 +12,20 @@ import android.sdv.config.ConfigOverrideKeyValue;
  */
 parcelable ConfigOverride {
     /**
-     * Operator string in the form (factor=value) AND/OR (option!=value).
-     * If rule is not provided, true is used.
+     * Override identifier defined by the caller.
+     * Unique per caller.
      */
-    @nullable String rule;
+    String overrideId;
 
     /**
      * Unique config identifier.
+     * If config override should be applied to multiple configs, some fields in the config_id might
+     * be undefined.
      */
     ConfigId configId;
 
     /**
      * Key-value pairs for keys to be updated in the config.
      */
-    ConfigOverrideKeyValue[] pair;
+    ConfigOverrideKeyValue[] pairs;
 }
