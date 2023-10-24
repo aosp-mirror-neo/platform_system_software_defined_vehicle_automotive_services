@@ -5,6 +5,7 @@ use log::{info, warn};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use tokio::sync::broadcast;
+use tracing::instrument;
 
 pub const NUMBER_OF_MESSAGES_TO_QUEUE: usize = 32;
 
@@ -34,11 +35,13 @@ impl VPMSystemService {
         }
     }
 
+    #[instrument(skip(self))]
     pub(super) fn get_power_state(&self) -> PowerState {
         info!("Getting Power state");
         *self.power_state.lock().unwrap()
     }
 
+    #[instrument(skip(self))]
     pub(super) fn set_custom_state(
         &self,
         state_machine_name: String,
@@ -72,6 +75,7 @@ impl VPMSystemService {
         }
     }
 
+    #[instrument(skip(self))]
     pub(super) fn set_power_state(&self, in_power_state: PowerState) -> PowerState {
         let mut state = self.power_state.lock().unwrap();
         *state = in_power_state;
@@ -88,10 +92,12 @@ impl VPMSystemService {
         }
     }
 
+    #[instrument(skip(self))]
     pub(crate) fn subscribe_to_power_updates(&self) -> broadcast::Receiver<PowerState> {
         self.update_sender.subscribe()
     }
 
+    #[instrument(skip(self))]
     pub(crate) fn subscribe_to_custom_updates(
         &self,
         state_machine_name: &str,
