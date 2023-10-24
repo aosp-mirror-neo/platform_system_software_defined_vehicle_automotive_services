@@ -1,6 +1,6 @@
-package android.sdv.config;
+package android.sdv.concal;
 
-import android.sdv.config.ConfigVersion;
+import android.sdv.concal.ConfigVersion;
 
 /**
  * Return value for `IConfigurationService#getConfig`, `IConfigurationService#getConfigMetadata`.

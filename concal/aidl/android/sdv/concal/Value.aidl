@@ -1,4 +1,4 @@
-package android.sdv.config;
+package android.sdv.concal;
 
 /**
  * Format for the parameter value.
@@ -8,10 +8,10 @@ package android.sdv.config;
  * This is a PoC version for the API for the discussions.
  * It is unstable until API council approval.
  */
-parcelable ConfigValue {
+parcelable Value {
     boolean valueBool;
     float valueFloat;
     int valueInt;
     @nullable String valueStr;
-    @nullable byte[] blobStr;
+    @nullable byte[] valueBlob;
 }

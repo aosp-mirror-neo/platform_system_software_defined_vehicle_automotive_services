@@ -1,0 +1,39 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+// build target for distribution of AIDL definitions
+// generates zip archive at [repo root]/out/sdv/sdv-concal.zip
+genrule {
+    name: "android.sdv.concal-dist",
+    srcs: [
+        "aidl/**/*",
+        "Android.bp",
+        "README.md",
+    ],
+    tools: ["soong_zip"],
+    out: ["sdv-concal.zip"],
+    cmd: "echo $(in) > $(genDir)/list && " +
+        "$(location soong_zip) -sha256 -o $(out) -l $(genDir)/list",
+    dists: [
+        {
+            targets: ["android.sdv.concal-dist"],
+            dir: "sdv",
+        },
+    ],
+}
+
+rust_protobuf {
+    name: "libconcal_api",
+    crate_name: "concal_api",
+    protos: [
+        "*.proto",
+    ],
+    source_stem: "concal_api",
+    use_protobuf3: true,
+    proto_flags: [
+        "-I external/protobuf/src",
+    ],
+}

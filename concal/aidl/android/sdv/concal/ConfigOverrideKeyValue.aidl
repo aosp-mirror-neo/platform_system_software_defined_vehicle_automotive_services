@@ -1,6 +1,6 @@
-package android.sdv.config;
+package android.sdv.concal;
 
-import android.sdv.config.ConfigValue;
+import android.sdv.concal.Value;
 
 /**
  * Format for parameter-value pair for ConfigOverride messages.
@@ -18,5 +18,5 @@ parcelable ConfigOverrideKeyValue {
     /**
      * New value of the key.
      */
-    ConfigValue value;
+    Value value;
 }

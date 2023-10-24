@@ -1,0 +1,215 @@
+// Copyright 2023 Google LLC
+
+// Generally available Configuration/Calibration Service APIs for use by
+// SDV-Services.
+//
+// Allows SDV-Services to deliver customized configuration based on the vehicle
+// options and factors.
+//
+// This is a PoC version for the API for the discussions.
+// It is unstable until API council approval.
+
+syntax = "proto3";
+
+package sdv.concal;
+
+import "configuration.proto";
+
+service ConCalService {
+  // Configuration functionality.
+
+  // Retrieves service configuration.
+  // Returns an error if multiple configs matching the request.
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse) {}
+
+  // Registers configuration schema with default config.
+  // If the metadata for this version already exists the metadata is not
+  // rewritten.
+  rpc RegisterConfigMetadata(RegisterConfigMetadataRequest)
+      returns (RegisterConfigMetadataResponse) {}
+
+  // Returns the config metadata for the service.
+  rpc GetConfigMetadata(GetConfigMetadataRequest) returns (GetConfigMetadataResponse) {}
+
+  // Starts a configuration update.
+  // No updates can run in parallel.
+  // The method will return error if another update session is in progress.
+  // Each update can include multiple overrides.
+  // This API should be only available to the privileged services like
+  // UpdateManager.
+  rpc StartConfigUpdate(StartConfigUpdateRequest) returns (StartConfigUpdateResponse) {}
+
+  // Adds or updates a config override.
+  // Dependent on the sender of the message, configuration service should assign
+  // a priority to it. Executed before StartUpdate() and FinishUpdate(). This API
+  // should be only available to the privileged services like UpdateManager.
+  rpc AddOrUpdateConfigOverride(AddOrUpdateConfigOverrideRequest)
+      returns (AddOrUpdateConfigOverrideResponse) {}
+
+  // Removes a config override.
+  // This API should be only available to the privileged services like
+  // UpdateManager.
+  rpc RemoveConfigOverride(RemoveConfigOverrideRequest) returns (RemoveConfigOverrideResponse) {}
+
+  // Cancels an update. All ConfigOverrides sent after the last
+  // StartUpdate() and now() are reverted.
+  // This API should be only available to the privileged
+  // services like UpdateManager.
+  rpc CancelConfigUpdate(CancelConfigUpdateRequest) returns (CancelConfigUpdateResponse) {}
+
+  // Marks the end of configuration update.
+  // A new configuration snapshot is calculated and stored persistently.
+  // This API should be only available to the privileged services like
+  // UpdateManager.
+  rpc FinishConfigUpdate(FinishConfigUpdateRequest) returns (FinishConfigUpdateResponse) {}
+
+  // Rollbacks the last update to the previous configuration snapshot.
+  // This API should be only available to the privileged services like
+  // UpdateManager. Can't be performed while another update is in progress.
+  rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
+
+  // Removes all configuration updates and default configurations.
+  // This API should be only available to the privileged services like
+  // UpdateManager. Cleans all services up to the factory state. Can't be
+  // performed while another update is in progress.
+  rpc Reset(ResetRequest) returns (ResetResponse) {}
+
+  // Removes a configuration.
+  // Called when a service is deinstalled.
+  // This API should be only available to the privileged services like
+  // UpdateManager. Can't be performed while another update is in progress.
+  rpc DeinstallConfig(DeinstallConfigRequest) returns (DeinstallConfigResponse) {}
+
+  // Calibration functionality.
+  // Should be disabled for the user builds.
+
+  // Start calibration for a specified config.
+  rpc StartCalibration(StartCalibrationRequest) returns (StartCalibrationResponse) {}
+
+  // Stops calibration for a specified config
+  // and resets config to the original values.
+  rpc StopCalibration(StopCalibrationRequest) returns (StopCalibrationResponse) {}
+}
+
+message GetConfigRequest {
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message GetConfigResponse {
+  // Serialized config.
+  repeated bytes config = 1;
+
+  // Version identifier for the config.
+  string config_version = 2;
+}
+
+message RegisterConfigMetadataRequest {
+  // Unique config identifier.
+  ConfigId config_id = 1;
+
+  // Config schema and default message.
+  ConfigMetadata metadata = 2;
+
+  // Version identifier for the service package.
+  // Required to support binary updates.
+  string config_version = 3;
+}
+
+message RegisterConfigMetadataResponse {}
+
+message GetConfigMetadataRequest {
+  // Unique config identifier.
+  ConfigId config_id = 1;
+
+  // Version identifier for the config.
+  // If not provided, the current config schema is returned.
+  string config_version = 2;
+}
+
+message GetConfigMetadataResponse {
+  // Service config schema and default message.
+  ConfigMetadata metadata = 1;
+}
+
+message StartConfigUpdateRequest {}
+
+message StartConfigUpdateResponse {
+  // Random number which exists only during the update transaction.
+  int64 update_id = 1;
+}
+
+message AddOrUpdateConfigOverrideRequest {
+  // Random number which exists only during the update transaction.
+  int64 update_id = 1;
+
+  // Unique config identifier.
+  ConfigId config_id = 2;
+
+  // At least one.
+  repeated ConfigOverride configOverride = 3;
+}
+
+message AddOrUpdateConfigOverrideResponse {}
+
+message RemoveConfigOverrideRequest {
+  // Random number which exists only during the update transaction.
+  int64 update_id = 1;
+
+  // Override identifier defined by the caller.
+  // Unique per caller.
+  string override_id = 2;
+
+  // Unique config identifier.
+  ConfigId config_id = 3;
+}
+
+message RemoveConfigOverrideResponse {}
+
+message CancelConfigUpdateRequest {
+  // Random number which exists only during the update transaction.
+  int64 update_id = 1;
+}
+
+message CancelConfigUpdateResponse {}
+
+message FinishConfigUpdateRequest {
+  // Random number which exists only during the update transaction.
+  int64 update_id = 1;
+}
+
+message FinishConfigUpdateResponse {}
+
+message RollbackRequest {}
+
+message RollbackResponse {}
+
+message ResetRequest {
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+message ResetResponse {}
+
+message DeinstallConfigRequest {
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message DeinstallConfigResponse {}
+
+message StartCalibrationRequest {
+  // Unique config identifier.
+  ConfigId config_id = 1;
+
+  // Serialized config.
+  repeated bytes config = 2;
+}
+
+message StartCalibrationResponse {}
+
+message StopCalibrationRequest {
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message StopCalibrationResponse {}
