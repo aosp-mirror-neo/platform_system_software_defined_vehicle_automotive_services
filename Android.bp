@@ -1,0 +1,3 @@
+build = [
+    "sdv-binary-pdk.bp",
+]
