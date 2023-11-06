@@ -27,10 +27,10 @@ impl<'a> VpmClientServiceApi<'a> {
     }
 }
 
-impl Interface for VpmClientServiceApi<'_> {}
+impl Interface for VpmClientServiceApi<'static> {}
 
 #[async_trait]
-impl IVpmClientApiAsyncServer for VpmClientServiceApi<'_> {
+impl IVpmClientApiAsyncServer for VpmClientServiceApi<'static> {
     async fn getPowerState(&self) -> BinderResult<PowerState> {
         Ok(self.system_service.get_power_state())
     }

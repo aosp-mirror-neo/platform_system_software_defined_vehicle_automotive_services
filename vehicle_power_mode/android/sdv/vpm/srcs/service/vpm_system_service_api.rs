@@ -17,9 +17,9 @@ impl<'a> VPMSystemServiceApi<'a> {
     }
 }
 
-impl binder::Interface for VPMSystemServiceApi<'_> {}
+impl binder::Interface for VPMSystemServiceApi<'static> {}
 
-impl IVpmSystemApi for VPMSystemServiceApi<'_> {
+impl IVpmSystemApi for VPMSystemServiceApi<'static> {
     fn setPowerState(&self, in_power_state: PowerState) -> binder::Result<PowerState> {
         info!("Updating vehicle state to new power state {:?}", in_power_state);
         Ok(self.vpm_system_service.set_power_state(in_power_state))
