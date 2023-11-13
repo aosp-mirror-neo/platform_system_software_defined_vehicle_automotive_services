@@ -15,6 +15,7 @@ use async_trait::async_trait;
 use binder_tokio::Tokio;
 use log::{error, info, warn};
 use tokio::sync::broadcast::error::RecvError;
+use tracing::instrument;
 
 #[derive(Clone)]
 pub struct VpmClientServiceApi<'a> {
@@ -35,6 +36,7 @@ impl IVpmClientApiAsyncServer for VpmClientServiceApi<'static> {
         Ok(self.system_service.get_power_state())
     }
 
+    #[instrument(skip(self, power_state_listener))]
     async fn subscribeToPowerStateChange(
         &self,
         power_state_listener: &Strong<dyn IPowerStateListener>,
@@ -66,6 +68,7 @@ impl IVpmClientApiAsyncServer for VpmClientServiceApi<'static> {
         Ok(())
     }
 
+    #[instrument(skip(self, callback))]
     async fn subscribeToCustomStateChange(
         &self,
         state_machine_name: &str,

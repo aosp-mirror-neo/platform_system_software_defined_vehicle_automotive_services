@@ -6,6 +6,7 @@ use android_sdv_vpm_aidl::aidl::android::sdv::vpm::IVpmSystemApi::{BnVpmSystemAp
 use android_sdv_vpm_aidl::aidl::android::sdv::vpm::PowerState::PowerState;
 use android_sdv_vpm_aidl::binder;
 use log::info;
+use tracing::instrument;
 
 pub struct VPMSystemServiceApi<'a> {
     vpm_system_service: &'a VPMSystemService,
@@ -20,11 +21,13 @@ impl<'a> VPMSystemServiceApi<'a> {
 impl binder::Interface for VPMSystemServiceApi<'static> {}
 
 impl IVpmSystemApi for VPMSystemServiceApi<'static> {
+    #[instrument(skip(self))]
     fn setPowerState(&self, in_power_state: PowerState) -> binder::Result<PowerState> {
         info!("Updating vehicle state to new power state {:?}", in_power_state);
         Ok(self.vpm_system_service.set_power_state(in_power_state))
     }
 
+    #[instrument(skip(self))]
     fn setCustomState(
         &self,
         state_machine_name: &str,
@@ -40,6 +43,7 @@ impl IVpmSystemApi for VPMSystemServiceApi<'static> {
     }
 }
 
+#[instrument(skip(vpm_system_service))]
 pub(crate) fn create_system_binder(
     vpm_system_service: &'static VPMSystemService,
 ) -> anyhow::Result<SpIBinder> {

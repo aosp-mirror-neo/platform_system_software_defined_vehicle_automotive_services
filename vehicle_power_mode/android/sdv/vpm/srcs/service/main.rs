@@ -21,6 +21,7 @@ use sdv_sd::{ServiceDefinitionBuilder, ServiceManager};
 use std::sync::OnceLock;
 use tokio::runtime::Handle;
 use tokio::task;
+use tracing::instrument;
 
 static LOG_TAG: &str = "sdv_vpm_agent";
 static CELL: OnceLock<VPMSystemService> = OnceLock::new();
@@ -28,6 +29,7 @@ static CELL: OnceLock<VPMSystemService> = OnceLock::new();
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() -> anyhow::Result<()> {
     sdv_log::init_logger(LOG_TAG)?;
+    sdv_tracing::init_tracing();
 
     info!("VPM Agent starting!");
 
@@ -49,6 +51,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 // This is another example where we use binder::addService which currently does not use SD.
+#[instrument(skip(system_service_reference))]
 fn create_system_api_binder_service(
     system_service_reference: &'static VPMSystemService,
 ) -> anyhow::Result<()> {
@@ -62,6 +65,7 @@ fn create_system_api_binder_service(
 
 // This is an example if we need to use SD and then use binder-rpc.
 // It uses binder-rpc/vsock
+#[instrument(skip(system_service_reference))]
 fn create_system_api_binder_in_service_discovery(
     system_service_reference: &'static VPMSystemService,
 ) -> anyhow::Result<()> {
@@ -83,6 +87,7 @@ fn create_system_api_binder_in_service_discovery(
 }
 
 // Create the client api service that allows clients to subscribe to power state machines and custom state machine updates.
+#[instrument(skip(system_service))]
 fn create_client_api_binder_service(
     system_service: &'static VPMSystemService,
 ) -> anyhow::Result<()> {

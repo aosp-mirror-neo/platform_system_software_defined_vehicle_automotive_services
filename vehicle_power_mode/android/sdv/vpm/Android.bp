@@ -5,7 +5,10 @@ package {
 rust_binary {
     name: "sdv_vpm_agent",
     srcs: ["srcs/service/main.rs"],
-    defaults: ["sdv@rust_defaults"],
+    defaults: [
+        "sdv@rust_defaults",
+        "sdv_tracing@rust_defaults",
+    ],
     prefer_rlib: true,
     rustlibs: [
         "android.sdv.vpm-aidl-rust",
