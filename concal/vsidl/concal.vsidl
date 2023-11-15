@@ -1,0 +1,9 @@
+# proto-file: //system/software_defined_vehicle/core_services/vsidl/syntax/vsidl.proto
+# proto-message: VsidlEntry
+
+package: "sdv.concal"
+
+sdv_service_bundle {
+    name: "ConCalService"
+    server: "ConCalService"
+}

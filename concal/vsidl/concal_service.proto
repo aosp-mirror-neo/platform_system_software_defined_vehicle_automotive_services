@@ -98,7 +98,7 @@ message GetConfigRequest {
 
 message GetConfigResponse {
   // Serialized config.
-  repeated bytes config = 1;
+  bytes config = 1;
 
   // Version identifier for the config.
   string config_version = 2;
@@ -202,7 +202,7 @@ message StartCalibrationRequest {
   ConfigId config_id = 1;
 
   // Serialized config.
-  repeated bytes config = 2;
+  bytes config = 2;
 }
 
 message StartCalibrationResponse {}
