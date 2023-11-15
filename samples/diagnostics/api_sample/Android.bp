@@ -23,9 +23,7 @@ rust_binary {
         "libasync_trait",
         "libclap_derive",
     ],
-    apex_available: [
-        "//apex_available:platform",
-    ],
+    apex_available: ["//apex_available:platform"],
 }
 
 rust_binary {
@@ -51,5 +49,4 @@ rust_binary {
     apex_available: [
         "//apex_available:platform",
     ],
-
 }
