@@ -10,7 +10,7 @@ package sdv.diagnostics.io_control;
 //
 // ** Common error codes **
 // See ISO 14229-1:2020, section 13.2.4.
-service IOControlService {
+service IOControl {
   // Request that indicates that the client no longer has control of the input signals,
   // internal parameters and/or output signals referenced by the identifier.
   rpc ReturnControlToECU(IOControlRequest) returns (IOControlResponse) {}

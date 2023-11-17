@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 
-package sdv.diagnostics.routine;
+package sdv.diagnostics.routine_control;
 
 // Diagnostics interface for RoutineControl (UDS 0x31) service.
 //
@@ -10,7 +10,7 @@ package sdv.diagnostics.routine;
 //
 // ** Common error codes **
 // See ISO 14229-1:2020, section 14.2.4.
-service RoutineControlService {
+service RoutineControl {
   // Start the routine specified in the request.
   rpc Start(RoutineControlRequest) returns (RoutineControlResponse) {}
 
