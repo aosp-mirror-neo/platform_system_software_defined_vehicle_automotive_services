@@ -1,0 +1,15 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+// This is a temporary version of the service bundle ID who would like to subscribe to changes of a
+// specific config. This ID mocks a Fully Qualified Name of the identified Service Bundle. It
+// will be removed after FQN is introduced in SDV. It is unstable experimental API.
+
+syntax = "proto3";
+
+package sdv.concal;
+
+message ServiceBundleId {
+  string vm = 1;
+  string package = 2;
+  string bundle = 3;
+}
