@@ -105,6 +105,19 @@ service ConCalService {
   // Service should unregister from updates at shutdown.
   rpc UnregisterFromConfigUpdate(UnregisterFromConfigUpdateRequest)
       returns (UnregisterFromConfigUpdateResponse) {}
+
+  // Allows to register for calibration config update.
+  // Returns an error:
+  // - if this service does not have rights to read the calibration config,
+  // - if the calibration config is not stored in the ConCal,
+  // - if multiple calibration config match the request.
+  // The caller should implement CalibratableService interface.
+  rpc RegisterForCalibrationUpdate(RegisterForCalibrationUpdateRequest)
+      returns (RegisterForCalibrationUpdateResponse) {}
+
+  // Allows to unregister from config calibration.
+  rpc UnregisterFromCalibrationUpdate(UnregisterFromCalibrationUpdateRequest)
+      returns (UnregisterFromCalibrationUpdateResponse) {}
 }
 
 message GetConfigRequest {
@@ -258,3 +271,23 @@ message UnregisterFromConfigUpdateRequest {
 }
 
 message UnregisterFromConfigUpdateResponse {}
+
+message RegisterForCalibrationUpdateRequest {
+  // Unique config identifier.
+  ConfigId config_id = 1;
+
+  // Unique caller identifier.
+  ServiceBundleId caller_id = 2;
+}
+
+message RegisterForCalibrationUpdateResponse {}
+
+message UnregisterFromCalibrationUpdateRequest {
+  // Unique config identifier.
+  ConfigId config_id = 1;
+
+  // Unique caller identifier.
+  ServiceBundleId caller_id = 2;
+}
+
+message UnregisterFromCalibrationUpdateResponse {}
