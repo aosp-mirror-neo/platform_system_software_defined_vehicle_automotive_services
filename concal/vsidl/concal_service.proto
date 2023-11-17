@@ -14,6 +14,7 @@ syntax = "proto3";
 package sdv.concal;
 
 import "configuration.proto";
+import "google/protobuf/descriptor.proto";
 
 service ConCalService {
   // Configuration functionality.
@@ -89,6 +90,20 @@ service ConCalService {
   // Stops calibration for a specified config
   // and resets config to the original values.
   rpc StopCalibration(StopCalibrationRequest) returns (StopCalibrationResponse) {}
+
+  // Allows to register for config update and retrieve the current version of the config.
+  // Returns an error:
+  // - if this service does not have rights to read the config,
+  // - if the config is not stored in the ConCal,
+  // - if multiple configs match the request.
+  // The caller should implement ConfigSubscriber interface.
+  rpc GetConfigAndRegisterForConfigUpdate(GetConfigAndRegisterForConfigUpdateRequest)
+      returns (GetConfigAndRegisterForConfigUpdateResponse) {}
+
+  // Allows to unregister from config update.
+  // Service should unregister from updates at shutdown.
+  rpc UnregisterFromConfigUpdate(UnregisterFromConfigUpdateRequest)
+      returns (UnregisterFromConfigUpdateResponse) {}
 }
 
 message GetConfigRequest {
@@ -213,3 +228,26 @@ message StopCalibrationRequest {
 }
 
 message StopCalibrationResponse {}
+
+message GetConfigAndRegisterForConfigUpdateRequest {
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message GetConfigAndRegisterForConfigUpdateResponse {
+  // Serialized config.
+  bytes config = 1;
+
+  // Config schema as proto types and their dependencies.
+  google.protobuf.FileDescriptorSet descriptor_set = 2;
+
+  // Version identifier for the service package.
+  string config_version = 3;
+}
+
+message UnregisterFromConfigUpdateRequest {
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message UnregisterFromConfigUpdateResponse {}
