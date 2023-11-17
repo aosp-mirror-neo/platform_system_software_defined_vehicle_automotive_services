@@ -14,7 +14,9 @@ syntax = "proto3";
 package sdv.concal;
 
 import "configuration.proto";
+import "error.proto";
 import "service_bundle_id.proto";
+
 import "google/protobuf/descriptor.proto";
 
 service ConCalService {
@@ -131,6 +133,9 @@ message GetConfigResponse {
 
   // Version identifier for the config.
   string config_version = 2;
+
+  // Error message if request fails.
+  Error error = 3;
 }
 
 message RegisterConfigMetadataRequest {
@@ -145,7 +150,10 @@ message RegisterConfigMetadataRequest {
   string config_version = 3;
 }
 
-message RegisterConfigMetadataResponse {}
+message RegisterConfigMetadataResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
 
 message GetConfigMetadataRequest {
   // Unique config identifier.
@@ -159,6 +167,9 @@ message GetConfigMetadataRequest {
 message GetConfigMetadataResponse {
   // Service config schema and default message.
   ConfigMetadata metadata = 1;
+
+  // Error message if request fails.
+  Error error = 2;
 }
 
 message StartConfigUpdateRequest {}
@@ -166,6 +177,9 @@ message StartConfigUpdateRequest {}
 message StartConfigUpdateResponse {
   // Random number which exists only during the update transaction.
   int64 update_id = 1;
+
+  // Error message if request fails.
+  Error error = 2;
 }
 
 message AddOrUpdateConfigOverrideRequest {
@@ -179,7 +193,10 @@ message AddOrUpdateConfigOverrideRequest {
   repeated ConfigOverride configOverride = 3;
 }
 
-message AddOrUpdateConfigOverrideResponse {}
+message AddOrUpdateConfigOverrideResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
 
 message RemoveConfigOverrideRequest {
   // Random number which exists only during the update transaction.
@@ -193,21 +210,30 @@ message RemoveConfigOverrideRequest {
   ConfigId config_id = 3;
 }
 
-message RemoveConfigOverrideResponse {}
+message RemoveConfigOverrideResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
 
 message CancelConfigUpdateRequest {
   // Random number which exists only during the update transaction.
   int64 update_id = 1;
 }
 
-message CancelConfigUpdateResponse {}
+message CancelConfigUpdateResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
 
 message FinishConfigUpdateRequest {
   // Random number which exists only during the update transaction.
   int64 update_id = 1;
 }
 
-message FinishConfigUpdateResponse {}
+message FinishConfigUpdateResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
 
 message RollbackRequest {}
 
@@ -217,14 +243,20 @@ message ResetRequest {
   // Unique config identifier.
   ConfigId config_id = 1;
 }
-message ResetResponse {}
+message ResetResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
 
 message DeinstallConfigRequest {
   // Unique config identifier.
   ConfigId config_id = 1;
 }
 
-message DeinstallConfigResponse {}
+message DeinstallConfigResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
 
 message StartCalibrationRequest {
   // Unique config identifier.
@@ -234,14 +266,20 @@ message StartCalibrationRequest {
   bytes config = 2;
 }
 
-message StartCalibrationResponse {}
+message StartCalibrationResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
 
 message StopCalibrationRequest {
   // Unique config identifier.
   ConfigId config_id = 1;
 }
 
-message StopCalibrationResponse {}
+message StopCalibrationResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
 
 message GetConfigAndRegisterForConfigUpdateRequest {
   // Unique config identifier.
@@ -260,6 +298,9 @@ message GetConfigAndRegisterForConfigUpdateResponse {
 
   // Version identifier for the service package.
   string config_version = 3;
+
+  // Error message if request fails.
+  Error error = 4;
 }
 
 message UnregisterFromConfigUpdateRequest {
@@ -270,7 +311,10 @@ message UnregisterFromConfigUpdateRequest {
   ServiceBundleId caller_id = 2;
 }
 
-message UnregisterFromConfigUpdateResponse {}
+message UnregisterFromConfigUpdateResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
 
 message RegisterForCalibrationUpdateRequest {
   // Unique config identifier.
@@ -280,7 +324,10 @@ message RegisterForCalibrationUpdateRequest {
   ServiceBundleId caller_id = 2;
 }
 
-message RegisterForCalibrationUpdateResponse {}
+message RegisterForCalibrationUpdateResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
 
 message UnregisterFromCalibrationUpdateRequest {
   // Unique config identifier.
@@ -290,4 +337,7 @@ message UnregisterFromCalibrationUpdateRequest {
   ServiceBundleId caller_id = 2;
 }
 
-message UnregisterFromCalibrationUpdateResponse {}
+message UnregisterFromCalibrationUpdateResponse {
+  // Error message if request fails.
+  Error error = 1;
+}

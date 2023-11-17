@@ -1,0 +1,24 @@
+// Copyright 2023 Google LLC
+
+// Error messages for ConCal.
+//
+// This is a PoC version for the API for the discussions.
+// It is unstable until API council approval.
+
+syntax = "proto3";
+
+package sdv.concal;
+
+enum ResponseCode {
+  SUCCESS = 0x00;
+  INTERNAL_ERROR = 0x01;
+  NOT_FOUND_ERROR = 0x02;
+  MULTIPLE_CONFIGS = 0x03;
+  SESSION_IN_PROGRESS = 0x04;
+  ACCESS_DENIED = 0x05;
+}
+
+message Error {
+  ResponseCode error_code = 1;
+  string message = 2;
+}
