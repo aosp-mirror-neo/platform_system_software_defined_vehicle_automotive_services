@@ -16,3 +16,8 @@ rust_protobuf {
         "-I external/protobuf/src",
     ],
 }
+
+filegroup {
+    name: "libconcal_protos",
+    srcs: ["*.proto"],
+}
