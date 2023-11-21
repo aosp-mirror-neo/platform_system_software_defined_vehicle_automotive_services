@@ -1,0 +1,38 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_library {
+    name: "liboverride",
+    srcs: ["src/override_lib.rs"],
+    crate_name: "override",
+    rustlibs: [
+        "libconcal_api",
+        "libprotobuf",
+        "liblog_rust",
+        "libsdv_log_rust",
+        "libsdvtestconcal_proto_rust",
+    ],
+    prefer_rlib: true,
+    apex_available: [
+        "//apex_available:platform",
+    ],
+    system_ext_specific: true,
+}
+
+rust_test_host {
+    name: "lib_override_tests",
+    srcs: [
+        "src/override_lib.rs",
+    ],
+    rustlibs: [
+        "liblog_rust",
+        "libprotobuf",
+        "libtempfile",
+        "libsdvtestconcal_proto_rust",
+        "libprotobuf_parse",
+    ],
+    test_options: {
+        unit_test: true,
+    },
+}

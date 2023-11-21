@@ -1,0 +1,22 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_protobuf {
+    name: "libsdvtestconcal_proto_rust",
+    host_supported: true,
+    crate_name: "sdvtestconcal_proto_rust",
+    protos: [
+        "test_configuration.proto",
+        "inner_test_configuration.proto",
+        "inner_test_configuration_different_package.proto",
+    ],
+    proto_flags: [
+        "-I external/protobuf/src",
+        "-I .",
+    ],
+    source_stem: "sdvconfig_proto_rust_source",
+    use_protobuf3: true,
+}

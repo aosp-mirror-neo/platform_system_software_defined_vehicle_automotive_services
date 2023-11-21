@@ -1,0 +1,23 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+syntax = "proto3";
+
+package android.sdv.config.testconfig;
+import "inner_test_configuration.proto";
+import "inner_test_configuration_different_package.proto";
+
+message ComplexParameterInFile {
+  string str_parameter = 1;
+}
+
+message TestConfiguration {
+  bool bool_parameter = 1;
+  int64 int_parameter = 2;
+  float float_parameter = 3;
+  string str_parameter = 4;
+  repeated string list_parameter = 5;
+  map<string, int32> map_parameter = 6;
+  InnerTestConfigurationDifferentFile nested_parameter = 7;
+  ComplexParameterInFile complex_parameter = 8;
+  android.sdv.config.diffpackage.InnerTestConfigurationDifferentPackage nested_package = 9;
+}
