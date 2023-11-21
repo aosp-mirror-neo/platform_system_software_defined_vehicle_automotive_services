@@ -4,6 +4,11 @@
 package: "sdv.concal"
 
 sdv_service_bundle {
-    name: "ConCalService"
+    name: "ConCalServer"
     server: "ConCalService"
+}
+
+sdv_service_bundle {
+    name: "ConCalClient"
+    client: "ConCalService"
 }
