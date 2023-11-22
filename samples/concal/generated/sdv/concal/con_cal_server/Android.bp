@@ -12,11 +12,11 @@ rust_library {
     ],
     rustlibs: [
         "libprotobuf",
-        "liboem_vehicle_messages_catalog",
+        "libconcal_api",
         "liblog_rust",
         "libsdv_log_rust",
         "libsdvgenerated_rpc_con_cal_service",
-        "libsdvmiddleware_rpc_ibinder_transport",
+        "libsdvmiddleware_rpc_grpc_transport",
         "libsdv_middleware_dt",
     ],
     apex_available: [

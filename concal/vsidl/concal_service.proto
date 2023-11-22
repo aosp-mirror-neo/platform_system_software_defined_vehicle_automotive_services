@@ -14,6 +14,7 @@ syntax = "proto3";
 package sdv.concal;
 
 import "configuration.proto";
+import "calibration.proto";
 import "error.proto";
 import "service_bundle_id.proto";
 
@@ -254,29 +255,6 @@ message DeinstallConfigRequest {
 }
 
 message DeinstallConfigResponse {
-  // Error message if request fails.
-  Error error = 1;
-}
-
-message StartCalibrationRequest {
-  // Unique config identifier.
-  ConfigId config_id = 1;
-
-  // Serialized config.
-  bytes config = 2;
-}
-
-message StartCalibrationResponse {
-  // Error message if request fails.
-  Error error = 1;
-}
-
-message StopCalibrationRequest {
-  // Unique config identifier.
-  ConfigId config_id = 1;
-}
-
-message StopCalibrationResponse {
   // Error message if request fails.
   Error error = 1;
 }
