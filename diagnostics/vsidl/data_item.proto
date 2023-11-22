@@ -15,7 +15,7 @@ import "google/protobuf/empty.proto";
 //
 // ** Common error codes **
 // See ISO 14229-1:2020, section 11.2.4, 11.2.7.
-service DataItemService {
+service DataItem {
   // Read data item by identifier.
   //
   // Corresponds to ReadDataByIdentifier UDS service.

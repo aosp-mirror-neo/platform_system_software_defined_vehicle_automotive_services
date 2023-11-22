@@ -18,7 +18,7 @@ import "google/protobuf/empty.proto";
 //
 // ** Common error codes **
 // See ISO 14229-1:2020, section 15.6.4.
-service FileTransferService {
+service FileTransfer {
   // Add the file (download) defined by the file id in the request.
   //
   // Responds with a file path to use to write file data for transfer to service.

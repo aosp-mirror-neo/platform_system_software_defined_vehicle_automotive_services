@@ -12,7 +12,7 @@ import "connection.proto";
 //
 // ** Common error codes **
 // See ISO 14229-1:2020, section 10.6.4.
-service AuthenticationService {
+service Authentication {
   // Request to leave the authenticated state.
   rpc DeAuthenticate(connection.ConnectionId) returns (AuthenticationResponse) {}
 
