@@ -7,7 +7,8 @@ import "inner_test_configuration.proto";
 import "inner_test_configuration_different_package.proto";
 
 message ComplexParameterInFile {
-  string str_parameter = 1;
+  string first_parameter = 1;
+  string second_parameter = 2;
 }
 
 message TestConfiguration {

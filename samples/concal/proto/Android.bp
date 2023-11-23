@@ -17,6 +17,6 @@ rust_protobuf {
         "-I external/protobuf/src",
         "-I .",
     ],
-    source_stem: "sdvconfig_proto_rust_source",
+    source_stem: "sdvtestconcal_proto_rust",
     use_protobuf3: true,
 }

@@ -1,6 +1,15 @@
 // Copyright 2023 Google LLC. All Rights Reserved.
 
 //! ProtoManager maintains schema of protobuf messages with their dependencies.
+#![allow(
+    unused_imports,
+    dead_code,
+    missing_docs,
+    unused_variables,
+    clippy::extra_unused_lifetimes,
+    clippy::derivable_impls,
+    clippy::new_without_default
+)]
 
 use protobuf::descriptor::{FileDescriptorProto as FdProto, FileDescriptorSet as FdSet};
 use protobuf::reflect::FileDescriptor as Fd;
@@ -59,7 +68,25 @@ impl ProtoManager {
 
 #[cfg(test)]
 mod tests {
+    #![allow(unused_imports)]
     use super::*;
+    use concal_api::configuration::{
+        ConfigId as ConfigIdProto, ConfigMetadata as ConfigMetadataProto,
+        ConfigOverride as ConfigOverrideProto, ConfigOverrideKeyValue as CoPair,
+    };
+    use protobuf::reflect::MessageDescriptor;
+    use protobuf::text_format::merge_from_str;
+    use protobuf::text_format::parse_from_str;
+    use protobuf::text_format::print_to_string;
+    use protobuf::well_known_types::any::Any;
+    use protobuf::MessageDyn;
+    use protobuf::{MessageField, SpecialFields};
+    use sdvtestconcal_proto_rust::inner_test_configuration::InnerTestConfigurationDifferentFile as InnerTestConfigurationProto;
+    use sdvtestconcal_proto_rust::inner_test_configuration_different_package::InnerTestConfigurationDifferentPackage as DifferentPackageProto;
+    use sdvtestconcal_proto_rust::test_configuration::{
+        ComplexParameterInFile as ComplexProto, TestConfiguration as TestConfigurationProto,
+    };
+    use std::collections::HashMap;
     use std::fs;
 
     #[test]
@@ -97,6 +124,122 @@ mod tests {
             .is_some());
     }
 
+    #[test]
+    fn override_textproto_bool_succeeds() {
+        let default = register_config("bool_parameter: true int_parameter: 5");
+        let config_override =
+            get_config_override_key_value("bool_parameter", "bool_parameter: false");
+        let new_config = override_config(default, config_override);
+        assert_eq!(print_to_string(&*new_config), "bool_parameter: false int_parameter: 5");
+    }
+
+    #[test]
+    fn override_textproto_int_succeeds() {
+        let default = register_config("bool_parameter: true int_parameter: 5");
+        let config_override = get_config_override_key_value("int_parameter", "int_parameter: 10");
+        let new_config = override_config(default, config_override);
+        assert_eq!(print_to_string(&*new_config), "bool_parameter: true int_parameter: 10");
+    }
+
+    #[test]
+    fn override_textproto_float_succeeds() {
+        let default = register_config("int_parameter: 5 float_parameter: 5.5");
+        let config_override =
+            get_config_override_key_value("float_parameter", "float_parameter: 10.7");
+        let new_config = override_config(default, config_override);
+        assert_eq!(print_to_string(&*new_config), "int_parameter: 5 float_parameter: 10.7");
+    }
+
+    #[test]
+    fn override_textproto_string_succeeds() {
+        let default = register_config("float_parameter: 3.4 str_parameter: \"string parameter\"");
+        let config_override =
+            get_config_override_key_value("str_parameter", "str_parameter: \"updated\"");
+        let new_config = override_config(default, config_override);
+        assert_eq!(
+            print_to_string(&*new_config),
+            "float_parameter: 3.4 str_parameter: \"updated\""
+        );
+    }
+
+    #[test]
+    fn override_textproto_complex_add_new_field_succeeds() {
+        let default = register_config("str_parameter: \"string parameter\" complex_parameter {}");
+        // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
+        let config_override = get_config_override_key_value(
+            "complex_parameter",
+            "complex_parameter {first_parameter: \"updated\"}",
+        );
+        let new_config = override_config(default, config_override);
+        assert_eq!(
+            print_to_string(&*new_config),
+            "str_parameter: \"string parameter\" complex_parameter {first_parameter: \"updated\"}"
+        );
+    }
+
+    #[test]
+    fn override_textproto_complex_full_rewrite_succeeds() {
+        // See that the complex parameter is rewritten completely.
+        let default = register_config(
+            "str_parameter: \"string parameter\" complex_parameter {first_parameter: \"initial\"}",
+        );
+        let config_override = get_config_override_key_value(
+            "complex_parameter",
+            "complex_parameter {second_parameter: \"updated\"}",
+        );
+        let new_config = override_config(default, config_override);
+        assert_eq!(
+            print_to_string(&*new_config),
+            "str_parameter: \"string parameter\" complex_parameter {second_parameter: \"updated\"}"
+        );
+    }
+
+    #[test]
+    fn override_textproto_config_succeeds() {
+        let default = register_config("bool_parameter: true int_parameter: 5 float_parameter: 3.4 str_parameter: \"string parameter\" nested_parameter {} complex_parameter {} nested_package {}");
+        // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
+        let config_override = get_config_override_key_value(
+            "",
+            "bool_parameter: false int_parameter: 0 float_parameter: 0 str_parameter: \"\"",
+        );
+        let new_config = override_config(default, config_override);
+        assert_eq!(
+            print_to_string(&*new_config),
+            "bool_parameter: false int_parameter: 0 float_parameter: 0 str_parameter: \"\" nested_parameter {} complex_parameter {} nested_package {}"
+        );
+    }
+
+    fn get_default_config(textproto: &str) -> TestConfigurationProto {
+        let res = parse_from_str::<TestConfigurationProto>(textproto);
+        assert!(res.is_ok());
+        res.unwrap()
+    }
+
+    fn register_config(config_txtpb: &str) -> Any {
+        Any::pack(&get_default_config(config_txtpb)).unwrap()
+    }
+
+    fn override_config(config: Any, config_override: CoPair) -> Box<dyn MessageDyn> {
+        let pm = get_test_proto_manager();
+        let fd_dyn = pm
+            .find_schema(".android.sdv.config.testconfig.TestConfiguration")
+            .expect("Message description has not been found");
+        let new_desc: MessageDescriptor = fd_dyn
+            .message_by_package_relative_name("TestConfiguration")
+            .expect("Message was not found");
+        let mut config_dyn = config.unpack_dyn(&new_desc).unwrap().unwrap();
+        let result = merge_from_str(&mut *config_dyn, &config_override.value_txtproto);
+        assert!(result.is_ok());
+        config_dyn
+    }
+
+    fn get_config_override_key_value(key: &str, value: &str) -> CoPair {
+        let mut copair = CoPair::new();
+        copair.key = key.to_string();
+        copair.value_txtproto = value.to_string();
+        copair
+    }
+
     fn get_test_proto_manager() -> ProtoManager {
         let temp_dir = tempfile::tempdir().unwrap();
         let test_config_file = temp_dir.path().join("test_configuration.proto");
@@ -108,7 +251,8 @@ mod tests {
         import "inner_test_configuration_different_package.proto";
 
         message ComplexParameterInFile{
-          string str_parameter = 1;
+          string first_parameter = 1;
+          string second_parameter = 2;
         }
 
         message TestConfiguration {

@@ -13,11 +13,9 @@ rust_library {
         "libsdv_log_rust",
         "libsdvtestconcal_proto_rust",
     ],
-    prefer_rlib: true,
     apex_available: [
         "//apex_available:platform",
     ],
-    system_ext_specific: true,
 }
 
 rust_test_host {
@@ -26,6 +24,7 @@ rust_test_host {
         "src/override_lib.rs",
     ],
     rustlibs: [
+        "libconcal_api",
         "liblog_rust",
         "libprotobuf",
         "libtempfile",
@@ -35,4 +34,5 @@ rust_test_host {
     test_options: {
         unit_test: true,
     },
+    vendor: true,
 }
