@@ -87,6 +87,11 @@ service ConCalService {
   // Calibration functionality.
   // Should be disabled for the user builds.
 
+  // Before starting calibration, the calibrator needs to get the list of config IDs available for
+  // calibration.
+  rpc GetCalibrationConfigIds(GetCalibrationConfigIdsRequest)
+      returns (GetCalibrationConfigIdsResponse) {}
+
   // Start calibration for a specified config.
   rpc StartCalibration(StartCalibrationRequest) returns (StartCalibrationResponse) {}
 
@@ -305,4 +310,14 @@ message UnregisterFromCalibrationUpdateRequest {
 message UnregisterFromCalibrationUpdateResponse {
   // Error message if request fails.
   Error error = 1;
+}
+
+message GetCalibrationConfigIdsRequest {}
+
+message GetCalibrationConfigIdsResponse {
+  // List of unique config identifiers for calibratable configs.
+  repeated ConfigId config_ids = 1;
+
+  // Error message if request fails.
+  Error error = 2;
 }
