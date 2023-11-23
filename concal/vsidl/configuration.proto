@@ -1,6 +1,6 @@
 // Copyright 2023 Google LLC. All Rights Reserved.
 
-// This is a PoC version for the API for the discussions.
+// This is a PoC version for the API for the discussions (API v0).
 // It is unstable until API council approval.
 
 syntax = "proto3";
@@ -26,6 +26,7 @@ message ConfigOverrideKeyValue {
 
   // Required.
   // New value of the key.
+  // Please, do not use this API for now (API v1).
   oneof value {
     bool value_bool = 2;
     float value_float = 3;
@@ -33,6 +34,12 @@ message ConfigOverrideKeyValue {
     string value_str = 5;
     bytes value_blob = 6;
   }
+
+  // New value in the TextProto format (API v0).
+  // This API might be removed from the final API version.
+  // To change the value completely, all fields should be redefined.
+  // Defined values will be merged into existing default value for the key.
+  string value_txtproto = 7;
 }
 
 // Unique identifier for the config.
