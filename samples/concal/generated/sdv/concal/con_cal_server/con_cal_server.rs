@@ -17,7 +17,7 @@ use log::{error, info, warn};
 use sdv_middleware_dt::publisher::DataTunnelPublisher;
 use sdv_middleware_dt::subscriber::DataTunnelSubscriber;
 use sdvgenerated_rpc_con_cal_service::server::ConCalServiceServer;
-use sdvmiddleware_rpc_ibinder::ibinder_server_transport::IBinderServerTransport;
+use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
@@ -34,7 +34,7 @@ impl ConCalServer {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         ConCalServer {
-            con_cal_service_server: ConCalServiceServer::new(IBinderServerTransport::new(
+            con_cal_service_server: ConCalServiceServer::new(GrpcServerTransport::new(
                 "ConCalServer",
             )),
         }
