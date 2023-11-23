@@ -8,4 +8,6 @@ Each sample contains a `README.md` file that explains the behavior, usage and kn
 
 Below are the automotive isolated samples:
 
-* [Diagnostics](./diagnostics/README.md)
+* [Diagnostics sample for AIDL](./diagnostics/api_sample/README.md)
+* [Diagnostics sample for VSIDL](./diagnostics/vsidl_api_sample/README.md)
+* [Concal sample for VSIDL](./concal/)

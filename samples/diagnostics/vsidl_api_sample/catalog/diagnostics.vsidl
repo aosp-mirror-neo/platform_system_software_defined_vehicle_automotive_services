@@ -1,0 +1,14 @@
+# proto-file: //system/software_defined_vehicle/core_services/vsidl/syntax/vsidl.proto
+# proto-message: VsidlEntry
+
+package: "sdv.diagnostics"
+
+sdv_service_bundle {
+    name: "DiagnosticsManagerService"
+    client: "sdv.diagnostics.data_item.DataItem"
+}
+
+sdv_service_bundle {
+    name: "DiagnosticsProviderService"
+    server: "sdv.diagnostics.data_item.DataItem"
+}
