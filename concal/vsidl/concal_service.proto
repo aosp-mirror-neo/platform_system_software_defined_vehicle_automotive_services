@@ -16,7 +16,6 @@ package sdv.concal;
 import "configuration.proto";
 import "calibration.proto";
 import "error.proto";
-import "service_bundle_id.proto";
 
 import "google/protobuf/descriptor.proto";
 
@@ -262,9 +261,6 @@ message DeinstallConfigResponse {
 message GetConfigAndRegisterForConfigUpdateRequest {
   // Unique config identifier.
   ConfigId config_id = 1;
-
-  // Unique caller identifier.
-  ServiceBundleId caller_id = 2;
 }
 
 message GetConfigAndRegisterForConfigUpdateResponse {
@@ -284,9 +280,6 @@ message GetConfigAndRegisterForConfigUpdateResponse {
 message UnregisterFromConfigUpdateRequest {
   // Unique config identifier.
   ConfigId config_id = 1;
-
-  // Unique caller identifier.
-  ServiceBundleId caller_id = 2;
 }
 
 message UnregisterFromConfigUpdateResponse {
@@ -297,9 +290,6 @@ message UnregisterFromConfigUpdateResponse {
 message RegisterForCalibrationUpdateRequest {
   // Unique config identifier.
   ConfigId config_id = 1;
-
-  // Unique caller identifier.
-  ServiceBundleId caller_id = 2;
 }
 
 message RegisterForCalibrationUpdateResponse {
@@ -310,9 +300,6 @@ message RegisterForCalibrationUpdateResponse {
 message UnregisterFromCalibrationUpdateRequest {
   // Unique config identifier.
   ConfigId config_id = 1;
-
-  // Unique caller identifier.
-  ServiceBundleId caller_id = 2;
 }
 
 message UnregisterFromCalibrationUpdateResponse {
