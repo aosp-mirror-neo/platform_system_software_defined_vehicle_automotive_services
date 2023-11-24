@@ -1,0 +1,14 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+syntax = "proto3";
+
+package android.sdv.config.testconfig;
+
+message InnerTestConfigurationDifferentFile {
+  bool bool_parameter = 1;
+  int64 int_parameter = 2;
+  float float_parameter = 3;
+  string str_parameter = 4;
+  repeated string list_parameter = 5;
+  map<string, int32> map_parameter = 6;
+}

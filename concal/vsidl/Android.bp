@@ -15,7 +15,8 @@ rust_protobuf {
     proto_flags: [
         "-I external/protobuf/src",
     ],
-    vendor: true,
+    vendor_available: true,
+    host_supported: true,
 }
 
 filegroup {
