@@ -87,7 +87,9 @@ mod tests {
         ComplexParameterInFile as ComplexProto, TestConfiguration as TestConfigurationProto,
     };
     use std::collections::HashMap;
+    use std::env;
     use std::fs;
+    use std::path::PathBuf;
 
     #[test]
     fn find_schema_full_name_succeeds() {
@@ -241,74 +243,33 @@ mod tests {
     }
 
     fn get_test_proto_manager() -> ProtoManager {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let test_config_file = temp_dir.path().join("test_configuration.proto");
-        let test_config = r#"
-        syntax = "proto3";
+        let proto_dir: PathBuf = PathBuf::from("./proto");
+        let test_config_file = proto_dir.join("test_configuration.proto");
+        assert!(test_config_file.exists(), "Unable to find proto file {:?}.", test_config_file);
 
-        package android.sdv.config.testconfig;
-        import "inner_test_configuration.proto";
-        import "inner_test_configuration_different_package.proto";
-
-        message ComplexParameterInFile{
-          string first_parameter = 1;
-          string second_parameter = 2;
-        }
-
-        message TestConfiguration {
-          bool bool_parameter = 1;
-          int64 int_parameter = 2;
-          float float_parameter = 3;
-          string str_parameter = 4;
-          repeated string list_parameter = 5;
-          map<string, int32> map_parameter = 6;
-          InnerTestConfigurationDifferentFile nested_parameter = 7;
-          ComplexParameterInFile complex_parameter = 8;
-          android.sdv.config.diffpackage.InnerTestConfigurationDifferentPackage nested_package = 9;
-        }
-        "#;
-        fs::write(&test_config_file, test_config).unwrap();
-
-        let inner_test_config_file = temp_dir.path().join("inner_test_configuration.proto");
-        let inner_test_config = r#"syntax = "proto3";
-
-        package android.sdv.config.testconfig;
-
-        message InnerTestConfigurationDifferentFile{
-            bool bool_parameter = 1;
-            int64 int_parameter = 2;
-            float float_parameter = 3;
-            string str_parameter = 4;
-            repeated string list_parameter = 5;
-            map<string, int32> map_parameter = 6;
-        }"#;
-        fs::write(&inner_test_config_file, inner_test_config).unwrap();
+        let inner_test_config_file = proto_dir.join("inner_test_configuration.proto");
+        assert!(
+            inner_test_config_file.exists(),
+            "Unable to find proto file {:?}.",
+            inner_test_config_file
+        );
 
         let inner_test_config_file_diff_pack =
-            temp_dir.path().join("inner_test_configuration_different_package.proto");
-        let inner_test_config_diff_pack = r#"syntax = "proto3";
-
-        package android.sdv.config.diffpackage;
-
-        message InnerTestConfigurationDifferentPackage{
-            bool bool_parameter = 1;
-            int64 int_parameter = 2;
-            float float_parameter = 3;
-            string str_parameter = 4;
-            repeated string list_parameter = 5;
-            map<string, int32> map_parameter = 6;
-        }"#;
-        fs::write(&inner_test_config_file_diff_pack, inner_test_config_diff_pack).unwrap();
+            proto_dir.join("inner_test_configuration_different_package.proto");
+        assert!(
+            inner_test_config_file_diff_pack.exists(),
+            "Unable to find proto file {:?}.",
+            inner_test_config_file_diff_pack
+        );
 
         let fd_set = protobuf_parse::Parser::new()
             .pure()
-            .include(&temp_dir)
+            .include(&proto_dir)
             .input(&test_config_file)
             .input(&inner_test_config_file)
             .input(&inner_test_config_file_diff_pack)
-            .file_descriptor_set()
-            .unwrap();
-
-        ProtoManager::new(fd_set)
+            .file_descriptor_set();
+        assert!(fd_set.is_ok(), "Could not parse protobuf files {:?}", fd_set);
+        ProtoManager::new(fd_set.unwrap())
     }
 }
