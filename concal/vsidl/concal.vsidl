@@ -12,3 +12,23 @@ sdv_service_bundle {
     name: "ConCalClient"
     client: "ConCalService"
 }
+
+sdv_service_bundle {
+    name: "CalibratableServer"
+    server: "CalibratableService"
+}
+
+sdv_service_bundle {
+    name: "CalibratableClient"
+    client: "CalibratableService"
+}
+
+sdv_service_bundle {
+    name: "ConfigSubscriberServer"
+    server: "ConfigSubscriberService"
+}
+
+sdv_service_bundle {
+    name: "ConfigSubscribeClient"
+    client: "ConfigSubscriberService"
+}
