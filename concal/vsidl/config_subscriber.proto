@@ -13,7 +13,7 @@ package sdv.concal;
 import "configuration.proto";
 import "google/protobuf/descriptor.proto";
 
-service ConfigSubscriber {
+service ConfigSubscriberService {
   // Service which subscribes to ConCal to receive updates on a specific-config change before the
   // update becomes active.
 
