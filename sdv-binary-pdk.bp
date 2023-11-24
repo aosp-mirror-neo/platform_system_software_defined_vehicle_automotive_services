@@ -29,3 +29,14 @@ genrule {
     ],
     out: ["automotive_services_concal_api.zip"],
 }
+
+// build target to archive sample code to be shared with Renault's partners
+// with access only to the binary PDK.
+genrule {
+    name: "automotive_services_samples-dist",
+    defaults: ["sdv@binary_pdk_dist"],
+    srcs: [
+        "samples/**/*",
+    ],
+    out: ["automotive_services_samples.zip"],
+}
