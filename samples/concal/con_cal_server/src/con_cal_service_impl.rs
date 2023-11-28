@@ -1,0 +1,243 @@
+use concal_api::calibration::*;
+use concal_api::concal_service::*;
+use concal_api::configuration::ConfigOverride;
+use concal_api::configuration::{ConfigId, ConfigMetadata};
+use concal_api::error::{Error, ResponseCode};
+use protobuf::EnumOrUnknown;
+use protobuf::{Message, MessageField};
+use rand::Rng;
+use sdvgenerated::con_cal_service_interface::ConCalService;
+use sdvmiddleware_rpc::error::RpcError;
+use sdvmiddleware_rpc::RpcResult;
+use std::cmp::{Ordering, PartialOrd};
+use std::collections::HashMap;
+use std::hash::Hash;
+use std::option::Option;
+use std::sync::Mutex;
+
+use crate::configuration::*;
+use crate::hashable_config_id::HashableConfigId;
+
+#[derive(Default)]
+struct ConCalServiceData {
+    base_configs: HashMap<HashableConfigId, Configuration>,
+}
+
+#[derive(Default)]
+pub struct ConCalServiceImpl {
+    data: Mutex<ConCalServiceData>,
+}
+
+impl ConCalServiceImpl {
+    pub fn new() -> Self {
+        ConCalServiceImpl { ..Default::default() }
+    }
+
+    fn error(error_code: ResponseCode, message: String) -> MessageField<Error> {
+        MessageField::some(Error {
+            error_code: EnumOrUnknown::from(error_code),
+            message,
+            ..Default::default()
+        })
+    }
+}
+
+impl ConCalService for ConCalServiceImpl {
+    /// RPC method declared in the interface.
+    fn get_config(&self, request: GetConfigRequest) -> RpcResult<GetConfigResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn register_config_metadata(
+        &self,
+        request: RegisterConfigMetadataRequest,
+    ) -> RpcResult<RegisterConfigMetadataResponse> {
+        let mut mlock = match self.data.lock() {
+            Ok(x) => x,
+            Err(e) => {
+                return Ok(RegisterConfigMetadataResponse {
+                    error: ConCalServiceImpl::error(
+                        ResponseCode::INTERNAL_ERROR,
+                        String::from("Unable to obtain mutex"),
+                    ),
+                    ..Default::default()
+                })
+            }
+        };
+
+        let config_id = match request.config_id.is_some() {
+            true => HashableConfigId::from(request.config_id.unwrap()),
+            false => {
+                return Ok(RegisterConfigMetadataResponse {
+                    error: ConCalServiceImpl::error(
+                        ResponseCode::INVALID_REQUEST,
+                        String::from("ConfigId is empty"),
+                    ),
+                    ..Default::default()
+                })
+            }
+        };
+        if config_id.contains_empty_fields() {
+            return Ok(RegisterConfigMetadataResponse {
+                error: ConCalServiceImpl::error(
+                    ResponseCode::INVALID_REQUEST,
+                    String::from("ConfigId fields contains an empty string"),
+                ),
+                ..Default::default()
+            });
+        }
+        if mlock.base_configs.contains_key(&config_id)
+            && mlock.base_configs.get(&config_id).unwrap().version() == &request.config_version
+        {
+            return Ok(RegisterConfigMetadataResponse::new());
+        }
+
+        let metadata: ConfigMetadata = match request.metadata.is_some() {
+            true => request.metadata.unwrap(),
+            false => {
+                return Ok(RegisterConfigMetadataResponse {
+                    error: ConCalServiceImpl::error(
+                        ResponseCode::INVALID_REQUEST,
+                        String::from("Metadata is not initialized"),
+                    ),
+                    ..Default::default()
+                })
+            }
+        };
+        if metadata.default_config.is_none() {
+            return Ok(RegisterConfigMetadataResponse {
+                error: ConCalServiceImpl::error(
+                    ResponseCode::INVALID_REQUEST,
+                    String::from("Default configuration is not provided"),
+                ),
+                ..Default::default()
+            });
+        }
+
+        if metadata.descriptor_set.is_none() {
+            return Ok(RegisterConfigMetadataResponse {
+                error: ConCalServiceImpl::error(
+                    ResponseCode::INVALID_REQUEST,
+                    String::from("Descriptor set is not provided"),
+                ),
+                ..Default::default()
+            });
+        }
+
+        let config = Configuration::new(
+            metadata.default_config.unwrap().clone(),
+            metadata.descriptor_set.unwrap().clone(),
+            request.config_version,
+        );
+
+        mlock.base_configs.insert(config_id, config);
+
+        return Ok(RegisterConfigMetadataResponse::new());
+    }
+    /// RPC method declared in the interface.
+    fn get_config_metadata(
+        &self,
+        request: GetConfigMetadataRequest,
+    ) -> RpcResult<GetConfigMetadataResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn start_config_update(
+        &self,
+        request: StartConfigUpdateRequest,
+    ) -> RpcResult<StartConfigUpdateResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn add_or_update_config_override(
+        &self,
+        request: AddOrUpdateConfigOverrideRequest,
+    ) -> RpcResult<AddOrUpdateConfigOverrideResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn remove_config_override(
+        &self,
+        request: RemoveConfigOverrideRequest,
+    ) -> RpcResult<RemoveConfigOverrideResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn cancel_config_update(
+        &self,
+        request: CancelConfigUpdateRequest,
+    ) -> RpcResult<CancelConfigUpdateResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn finish_config_update(
+        &self,
+        request: FinishConfigUpdateRequest,
+    ) -> RpcResult<FinishConfigUpdateResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn rollback(&self, request: RollbackRequest) -> RpcResult<RollbackResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn reset(&self, request: ResetRequest) -> RpcResult<ResetResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn deinstall_config(
+        &self,
+        request: DeinstallConfigRequest,
+    ) -> RpcResult<DeinstallConfigResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn get_calibration_config_ids(
+        &self,
+        request: GetCalibrationConfigIdsRequest,
+    ) -> RpcResult<GetCalibrationConfigIdsResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn start_calibration(
+        &self,
+        request: StartCalibrationRequest,
+    ) -> RpcResult<StartCalibrationResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn stop_calibration(
+        &self,
+        request: StopCalibrationRequest,
+    ) -> RpcResult<StopCalibrationResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn get_config_and_register_for_config_update(
+        &self,
+        request: GetConfigAndRegisterForConfigUpdateRequest,
+    ) -> RpcResult<GetConfigAndRegisterForConfigUpdateResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn unregister_from_config_update(
+        &self,
+        request: UnregisterFromConfigUpdateRequest,
+    ) -> RpcResult<UnregisterFromConfigUpdateResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn register_for_calibration_update(
+        &self,
+        request: RegisterForCalibrationUpdateRequest,
+    ) -> RpcResult<RegisterForCalibrationUpdateResponse> {
+        todo!();
+    }
+    /// RPC method declared in the interface.
+    fn unregister_from_calibration_update(
+        &self,
+        request: UnregisterFromCalibrationUpdateRequest,
+    ) -> RpcResult<UnregisterFromCalibrationUpdateResponse> {
+        todo!();
+    }
+}
