@@ -139,7 +139,46 @@ impl ConCalService for ConCalServiceImpl {
         &self,
         request: GetConfigMetadataRequest,
     ) -> RpcResult<GetConfigMetadataResponse> {
-        todo!();
+        let mut mlock = match self.data.lock() {
+            Ok(x) => x,
+            //TODO: return error here
+            Err(e) => return Ok(GetConfigMetadataResponse::new()),
+        };
+        let config_id = match request.config_id.is_some() {
+            true => HashableConfigId::from(request.config_id.unwrap()),
+            false => {
+                return Ok(GetConfigMetadataResponse {
+                    error: ConCalServiceImpl::error(
+                        ResponseCode::INVALID_REQUEST,
+                        String::from("ConfigId is empty"),
+                    ),
+                    ..Default::default()
+                })
+            }
+        };
+        if config_id.contains_empty_fields() {
+            return Ok(GetConfigMetadataResponse {
+                error: ConCalServiceImpl::error(
+                    ResponseCode::INVALID_REQUEST,
+                    String::from("ConfigId fields contains an empty string"),
+                ),
+                ..Default::default()
+            });
+        }
+
+        let config = match mlock.base_configs.get(&config_id) {
+            Some(x) => x,
+            None => return Ok(GetConfigMetadataResponse::new()),
+        };
+
+        let mut response = GetConfigMetadataResponse::new();
+        response.metadata = MessageField::some(ConfigMetadata {
+            default_config: MessageField::some(config.data().clone()),
+            descriptor_set: MessageField::some(config.descriptor().clone()),
+            ..Default::default()
+        });
+
+        return Ok(response);
     }
     /// RPC method declared in the interface.
     fn start_config_update(

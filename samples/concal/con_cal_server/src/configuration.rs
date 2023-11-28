@@ -26,7 +26,7 @@ impl Configuration {
         &self.version
     }
 
-    pub fn base_config(&self) -> &Any {
+    pub fn data(&self) -> &Any {
         &self.data
     }
 
