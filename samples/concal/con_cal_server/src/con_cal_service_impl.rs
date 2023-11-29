@@ -18,9 +18,17 @@ use std::sync::Mutex;
 use crate::configuration::*;
 use crate::hashable_config_id::HashableConfigId;
 
+#[derive(Debug, Hash, Eq, PartialEq)]
+struct OverrideKey {
+    config_id: HashableConfigId,
+    override_id: String,
+}
+
 #[derive(Default)]
 struct ConCalServiceData {
     base_configs: HashMap<HashableConfigId, Configuration>,
+    overrides: HashMap<OverrideKey, ConfigOverride>,
+    current_update_id: Option<i64>,
 }
 
 #[derive(Default)]
@@ -192,7 +200,55 @@ impl ConCalService for ConCalServiceImpl {
         &self,
         request: AddOrUpdateConfigOverrideRequest,
     ) -> RpcResult<AddOrUpdateConfigOverrideResponse> {
-        todo!();
+        let mut mlock = match self.data.lock() {
+            Ok(x) => x,
+            Err(e) => {
+                return Ok(AddOrUpdateConfigOverrideResponse {
+                    error: ConCalServiceImpl::error(
+                        ResponseCode::INTERNAL_ERROR,
+                        String::from("Unable to obtain mutex"),
+                    ),
+                    ..Default::default()
+                })
+            }
+        };
+
+        if request.config_id.is_none() {
+            return Ok(AddOrUpdateConfigOverrideResponse {
+                error: ConCalServiceImpl::error(
+                    ResponseCode::INVALID_REQUEST,
+                    String::from("ConfigId is empty"),
+                ),
+                ..Default::default()
+            });
+        }
+
+        if mlock.current_update_id.is_none()
+            || request.update_id != mlock.current_update_id.unwrap()
+        {
+            return Ok(AddOrUpdateConfigOverrideResponse {
+                error: ConCalServiceImpl::error(
+                    ResponseCode::INVALID_REQUEST,
+                    format!(
+                        "Invalid update request, current update has id {:?}, request has id {}",
+                        mlock.current_update_id, request.update_id
+                    ),
+                ),
+                ..Default::default()
+            });
+        }
+
+        for config_override in request.configOverride.iter() {
+            mlock.overrides.insert(
+                OverrideKey {
+                    config_id: HashableConfigId::from(request.config_id.clone().unwrap()),
+                    override_id: config_override.override_id.clone(),
+                },
+                config_override.clone(),
+            );
+        }
+
+        return Ok(AddOrUpdateConfigOverrideResponse::new());
     }
     /// RPC method declared in the interface.
     fn remove_config_override(
