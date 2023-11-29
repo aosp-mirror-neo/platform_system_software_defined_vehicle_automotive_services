@@ -193,7 +193,36 @@ impl ConCalService for ConCalServiceImpl {
         &self,
         request: StartConfigUpdateRequest,
     ) -> RpcResult<StartConfigUpdateResponse> {
-        todo!();
+        let mut mlock = match self.data.lock() {
+            Ok(x) => x,
+            Err(x) => {
+                return Ok(StartConfigUpdateResponse {
+                    error: ConCalServiceImpl::error(
+                        ResponseCode::INTERNAL_ERROR,
+                        String::from("Unable to obtain mutex"),
+                    ),
+                    ..Default::default()
+                });
+            }
+        };
+
+        mlock.current_update_id = match mlock.current_update_id {
+            Some(x) => {
+                return Ok(StartConfigUpdateResponse {
+                    error: ConCalServiceImpl::error(
+                        ResponseCode::SESSION_IN_PROGRESS,
+                        format!("Update with ID {:?} already in progress", x),
+                    ),
+                    ..Default::default()
+                });
+            }
+            None => Some(rand::thread_rng().gen::<i64>()),
+        };
+
+        Ok(StartConfigUpdateResponse {
+            update_id: mlock.current_update_id.unwrap(),
+            ..Default::default()
+        })
     }
     /// RPC method declared in the interface.
     fn add_or_update_config_override(
