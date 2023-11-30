@@ -1,0 +1,18 @@
+rust_binary {
+    name: "sdv_con_cal_service",
+    crate_name: "sdv_con_cal_service",
+    srcs: [
+        "src/main.rs",
+    ],
+    prefer_rlib: true,
+    rustlibs: [
+        "libprotobuf",
+        "libsdvgenerated_con_cal_server",
+        "libconcal_api",
+        "libbinder_rs",
+        "libsdvmiddleware_rpc",
+        "libitertools",
+        "librand",
+    ],
+    vendor: true,
+}
