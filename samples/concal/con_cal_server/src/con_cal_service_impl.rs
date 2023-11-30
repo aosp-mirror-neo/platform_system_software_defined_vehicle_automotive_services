@@ -16,6 +16,7 @@ use std::sync::Mutex;
 use crate::configuration::*;
 use crate::hashable_config_id::HashableConfigId;
 use crate::trie::*;
+use crate::versioned_object::VersionedObject;
 
 macro_rules! acquire_lock_or_return_err {
     ($mutex:expr,$return_type:ident) => {{
@@ -46,28 +47,39 @@ macro_rules! error_response {
     }};
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
 struct OverrideKey {
     config_id: HashableConfigId,
     override_id: String,
 }
 
-#[derive(Default)]
 struct ConCalServiceData {
     base_configs: HashMap<HashableConfigId, Configuration>,
-    derived_configs: HashMap<HashableConfigId, Configuration>,
-    overrides: HashMap<OverrideKey, ConfigOverride>,
+    derived_configs: VersionedObject<HashMap<HashableConfigId, Configuration>>,
+    overrides: VersionedObject<HashMap<OverrideKey, ConfigOverride>>,
     current_update_id: Option<i64>,
 }
 
-#[derive(Default)]
 pub struct ConCalServiceImpl {
     data: Mutex<ConCalServiceData>,
 }
 
 impl ConCalServiceImpl {
     pub fn new() -> Self {
-        ConCalServiceImpl { ..Default::default() }
+        ConCalServiceImpl {
+            data: Mutex::new(ConCalServiceData {
+                base_configs: HashMap::new(),
+                // We would like to keep 3 versions of the hashmap stored in versionedObject.
+                // we need 3 since during an update we can have the following
+                // { Configuration to rollback too, Current Configuration, New configuration being computed which might fail
+                // and therefore we should remain at the current config and keep the older version to be able to rollback }.
+                // same logic for overrides since we can cancel an ongoing update
+                // and therefore need to discard all overrides added during this update
+                derived_configs: VersionedObject::new(HashMap::new(), 3),
+                overrides: VersionedObject::new(HashMap::new(), 3),
+                current_update_id: None,
+            }),
+        }
     }
 
     fn error(error_code: ResponseCode, message: String) -> MessageField<Error> {
@@ -254,6 +266,8 @@ impl ConCalService for ConCalServiceImpl {
             None => Some(rand::thread_rng().gen::<i64>()),
         };
 
+        mlock.overrides.snapshot();
+
         Ok(StartConfigUpdateResponse {
             update_id: mlock.current_update_id.unwrap(),
             ..Default::default()
@@ -310,8 +324,40 @@ impl ConCalService for ConCalServiceImpl {
         &self,
         request: CancelConfigUpdateRequest,
     ) -> RpcResult<CancelConfigUpdateResponse> {
-        todo!();
+        let mut mlock = match self.data.lock() {
+            Ok(x) => x,
+            Err(e) => {
+                return Ok(CancelConfigUpdateResponse {
+                    error: ConCalServiceImpl::error(
+                        ResponseCode::INTERNAL_ERROR,
+                        String::from("Unable to obtain mutex"),
+                    ),
+                    ..Default::default()
+                })
+            }
+        };
+
+        if mlock.current_update_id.is_none()
+            || request.update_id != mlock.current_update_id.unwrap()
+        {
+            return Ok(CancelConfigUpdateResponse {
+                error: ConCalServiceImpl::error(
+                    ResponseCode::INVALID_REQUEST,
+                    format!(
+                        "Invalid update request, current update has id {:?}, request has id {}",
+                        mlock.current_update_id, request.update_id
+                    ),
+                ),
+                ..Default::default()
+            });
+        }
+
+        mlock.current_update_id = None;
+        mlock.overrides.rollback();
+
+        Ok(CancelConfigUpdateResponse::new())
     }
+
     /// RPC method declared in the interface.
     fn finish_config_update(
         &self,
@@ -336,25 +382,57 @@ impl ConCalService for ConCalServiceImpl {
         let overrides_for_each_config: HashMap<HashableConfigId, Vec<ConfigOverride>> =
             self.group_overrides_by_config_id(&mlock);
         let new_configurations =
-            self.compute_new_configs(&mlock.base_configs, &overrides_for_each_config);
+            match self.compute_new_configs(&mlock.base_configs, &overrides_for_each_config) {
+                Ok(x) => x,
+                Err(err) => {
+                    return error_response!(
+                        FinishConfigUpdateResponse,
+                        ResponseCode::INTERNAL_ERROR,
+                        "Update {:?} failed due to {:?}",
+                        mlock.current_update_id,
+                        err
+                    )
+                }
+            };
 
-        if let Err(err) = new_configurations {
-            return error_response!(
-                FinishConfigUpdateResponse,
-                ResponseCode::INTERNAL_ERROR,
-                "Update {:?} failed due to {:?}",
-                mlock.current_update_id,
-                err
-            );
-        }
-
-        mlock.derived_configs = new_configurations.unwrap();
+        // save existing configuration
+        mlock.derived_configs.snapshot();
+        *mlock.derived_configs = new_configurations;
 
         Ok(FinishConfigUpdateResponse::new())
     }
     /// RPC method declared in the interface.
     fn rollback(&self, request: RollbackRequest) -> RpcResult<RollbackResponse> {
-        todo!();
+        let mut mlock = match self.data.lock() {
+            Ok(x) => x,
+            Err(e) => {
+                return Ok(RollbackResponse {
+                    error: ConCalServiceImpl::error(
+                        ResponseCode::INTERNAL_ERROR,
+                        String::from("Unable to obtain mutex"),
+                    ),
+                    ..Default::default()
+                })
+            }
+        };
+
+        if mlock.current_update_id.is_some() {
+            return Ok(RollbackResponse {
+                error: ConCalServiceImpl::error(
+                    ResponseCode::INVALID_REQUEST,
+                    format!(
+                        "Cannot rollback while update {:?} is in progress",
+                        mlock.current_update_id
+                    ),
+                ),
+                ..Default::default()
+            });
+        }
+
+        mlock.overrides.rollback();
+        mlock.derived_configs.rollback();
+
+        Ok(RollbackResponse::new())
     }
     /// RPC method declared in the interface.
     fn reset(&self, request: ResetRequest) -> RpcResult<ResetResponse> {
