@@ -13,6 +13,7 @@
 mod con_cal_service_impl;
 mod configuration;
 mod hashable_config_id;
+mod message_editor;
 
 use std::sync::Arc;
 
