@@ -133,39 +133,25 @@ impl ConCalService for ConCalServiceImpl {
         &self,
         request: RegisterConfigMetadataRequest,
     ) -> RpcResult<RegisterConfigMetadataResponse> {
-        let mut mlock = match self.data.lock() {
-            Ok(x) => x,
-            Err(e) => {
-                return Ok(RegisterConfigMetadataResponse {
-                    error: ConCalServiceImpl::error(
-                        ResponseCode::INTERNAL_ERROR,
-                        String::from("Unable to obtain mutex"),
-                    ),
-                    ..Default::default()
-                })
-            }
-        };
+        let mut mlock = acquire_lock_or_return_err!(self.data, RegisterConfigMetadataResponse);
 
         let config_id = match request.config_id.is_some() {
             true => HashableConfigId::from(request.config_id.unwrap()),
             false => {
-                return Ok(RegisterConfigMetadataResponse {
-                    error: ConCalServiceImpl::error(
-                        ResponseCode::INVALID_REQUEST,
-                        String::from("ConfigId is empty"),
-                    ),
-                    ..Default::default()
-                })
+                return error_response!(
+                    RegisterConfigMetadataResponse,
+                    ResponseCode::INVALID_REQUEST,
+                    "ConfigId is empty",
+                )
             }
         };
         if config_id.contains_empty_fields() {
-            return Ok(RegisterConfigMetadataResponse {
-                error: ConCalServiceImpl::error(
-                    ResponseCode::INVALID_REQUEST,
-                    String::from("ConfigId fields contains an empty string"),
-                ),
-                ..Default::default()
-            });
+            return error_response!(
+                RegisterConfigMetadataResponse,
+                ResponseCode::INVALID_REQUEST,
+                "ConfigId fields contains an empty string: {:?}",
+                config_id,
+            );
         }
         if mlock.base_configs.contains_key(&config_id)
             && mlock.base_configs.get(&config_id).unwrap().version() == &request.config_version
@@ -176,33 +162,28 @@ impl ConCalService for ConCalServiceImpl {
         let metadata: ConfigMetadata = match request.metadata.is_some() {
             true => request.metadata.unwrap(),
             false => {
-                return Ok(RegisterConfigMetadataResponse {
-                    error: ConCalServiceImpl::error(
-                        ResponseCode::INVALID_REQUEST,
-                        String::from("Metadata is not initialized"),
-                    ),
-                    ..Default::default()
-                })
+                return error_response!(
+                    RegisterConfigMetadataResponse,
+                    ResponseCode::INVALID_REQUEST,
+                    "Metadata is not initialized",
+                )
             }
         };
+
         if metadata.default_config.is_none() {
-            return Ok(RegisterConfigMetadataResponse {
-                error: ConCalServiceImpl::error(
-                    ResponseCode::INVALID_REQUEST,
-                    String::from("Default configuration is not provided"),
-                ),
-                ..Default::default()
-            });
+            return error_response!(
+                RegisterConfigMetadataResponse,
+                ResponseCode::INVALID_REQUEST,
+                "Default configuration is not provided",
+            );
         }
 
         if metadata.descriptor_set.is_none() {
-            return Ok(RegisterConfigMetadataResponse {
-                error: ConCalServiceImpl::error(
-                    ResponseCode::INVALID_REQUEST,
-                    String::from("Descriptor set is not provided"),
-                ),
-                ..Default::default()
-            });
+            return error_response!(
+                RegisterConfigMetadataResponse,
+                ResponseCode::INVALID_REQUEST,
+                "Descriptor set is not provided",
+            );
         }
 
         let config = Configuration::new(
@@ -220,31 +201,24 @@ impl ConCalService for ConCalServiceImpl {
         &self,
         request: GetConfigMetadataRequest,
     ) -> RpcResult<GetConfigMetadataResponse> {
-        let mut mlock = match self.data.lock() {
-            Ok(x) => x,
-            //TODO: return error here
-            Err(e) => return Ok(GetConfigMetadataResponse::new()),
-        };
+        let mut mlock = acquire_lock_or_return_err!(self.data, GetConfigMetadataResponse);
+
         let config_id = match request.config_id.is_some() {
             true => HashableConfigId::from(request.config_id.unwrap()),
             false => {
-                return Ok(GetConfigMetadataResponse {
-                    error: ConCalServiceImpl::error(
-                        ResponseCode::INVALID_REQUEST,
-                        String::from("ConfigId is empty"),
-                    ),
-                    ..Default::default()
-                })
+                return error_response!(
+                    GetConfigMetadataResponse,
+                    ResponseCode::INVALID_REQUEST,
+                    "ConfigId is empty",
+                );
             }
         };
         if config_id.contains_empty_fields() {
-            return Ok(GetConfigMetadataResponse {
-                error: ConCalServiceImpl::error(
-                    ResponseCode::INVALID_REQUEST,
-                    String::from("ConfigId fields contains an empty string"),
-                ),
-                ..Default::default()
-            });
+            return error_response!(
+                GetConfigMetadataResponse,
+                ResponseCode::INVALID_REQUEST,
+                "ConfigId fields contains an empty string",
+            );
         }
 
         let config = match mlock.base_configs.get(&config_id) {
@@ -266,28 +240,16 @@ impl ConCalService for ConCalServiceImpl {
         &self,
         request: StartConfigUpdateRequest,
     ) -> RpcResult<StartConfigUpdateResponse> {
-        let mut mlock = match self.data.lock() {
-            Ok(x) => x,
-            Err(x) => {
-                return Ok(StartConfigUpdateResponse {
-                    error: ConCalServiceImpl::error(
-                        ResponseCode::INTERNAL_ERROR,
-                        String::from("Unable to obtain mutex"),
-                    ),
-                    ..Default::default()
-                });
-            }
-        };
+        let mut mlock = acquire_lock_or_return_err!(self.data, StartConfigUpdateResponse);
 
         mlock.current_update_id = match mlock.current_update_id {
-            Some(x) => {
-                return Ok(StartConfigUpdateResponse {
-                    error: ConCalServiceImpl::error(
-                        ResponseCode::SESSION_IN_PROGRESS,
-                        format!("Update with ID {:?} already in progress", x),
-                    ),
-                    ..Default::default()
-                });
+            Some(id) => {
+                return error_response!(
+                    StartConfigUpdateResponse,
+                    ResponseCode::SESSION_IN_PROGRESS,
+                    "Update with ID {:?} already in progress",
+                    id,
+                );
             }
             None => Some(rand::thread_rng().gen::<i64>()),
         };
@@ -302,42 +264,26 @@ impl ConCalService for ConCalServiceImpl {
         &self,
         request: AddOrUpdateConfigOverrideRequest,
     ) -> RpcResult<AddOrUpdateConfigOverrideResponse> {
-        let mut mlock = match self.data.lock() {
-            Ok(x) => x,
-            Err(e) => {
-                return Ok(AddOrUpdateConfigOverrideResponse {
-                    error: ConCalServiceImpl::error(
-                        ResponseCode::INTERNAL_ERROR,
-                        String::from("Unable to obtain mutex"),
-                    ),
-                    ..Default::default()
-                })
-            }
-        };
+        let mut mlock = acquire_lock_or_return_err!(self.data, AddOrUpdateConfigOverrideResponse);
 
         if request.config_id.is_none() {
-            return Ok(AddOrUpdateConfigOverrideResponse {
-                error: ConCalServiceImpl::error(
-                    ResponseCode::INVALID_REQUEST,
-                    String::from("ConfigId is empty"),
-                ),
-                ..Default::default()
-            });
+            return error_response!(
+                AddOrUpdateConfigOverrideResponse,
+                ResponseCode::INVALID_REQUEST,
+                "ConfigId is empty",
+            );
         }
 
         if mlock.current_update_id.is_none()
             || request.update_id != mlock.current_update_id.unwrap()
         {
-            return Ok(AddOrUpdateConfigOverrideResponse {
-                error: ConCalServiceImpl::error(
-                    ResponseCode::INVALID_REQUEST,
-                    format!(
-                        "Invalid update request, current update has id {:?}, request has id {}",
-                        mlock.current_update_id, request.update_id
-                    ),
-                ),
-                ..Default::default()
-            });
+            return error_response!(
+                AddOrUpdateConfigOverrideResponse,
+                ResponseCode::INVALID_REQUEST,
+                "Invalid update request, current update has id {:?}, request has id {}",
+                mlock.current_update_id,
+                request.update_id
+            );
         }
 
         for config_override in request.configOverride.iter() {
