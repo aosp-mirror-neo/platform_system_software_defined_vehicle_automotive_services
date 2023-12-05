@@ -1,6 +1,6 @@
-use concal_api::configuration::{ConfigId, ConfigMetadata};
+use concal_api::configuration::ConfigId;
 
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::string::String;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
