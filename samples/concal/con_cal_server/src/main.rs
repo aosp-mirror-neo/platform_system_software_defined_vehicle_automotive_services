@@ -1,5 +1,4 @@
 #![allow(
-    unused_imports,
     dead_code,
     missing_docs,
     unused_variables,
@@ -14,6 +13,7 @@ mod con_cal_service_impl;
 mod configuration;
 mod hashable_config_id;
 mod message_editor;
+mod trie;
 
 use std::sync::Arc;
 

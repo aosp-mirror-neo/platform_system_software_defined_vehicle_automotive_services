@@ -1,15 +1,13 @@
 use concal_api::calibration::*;
 use concal_api::concal_service::*;
+use concal_api::configuration::ConfigMetadata;
 use concal_api::configuration::ConfigOverride;
-use concal_api::configuration::{ConfigId, ConfigMetadata};
 use concal_api::error::{Error, ResponseCode};
 use protobuf::EnumOrUnknown;
-use protobuf::{Message, MessageField};
+use protobuf::MessageField;
 use rand::Rng;
 use sdvgenerated::con_cal_service_interface::ConCalService;
-use sdvmiddleware_rpc::error::RpcError;
 use sdvmiddleware_rpc::RpcResult;
-use std::cmp::{Ordering, PartialOrd};
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::option::Option;
@@ -17,6 +15,36 @@ use std::sync::Mutex;
 
 use crate::configuration::*;
 use crate::hashable_config_id::HashableConfigId;
+use crate::trie::*;
+
+macro_rules! acquire_lock_or_return_err {
+    ($mutex:expr,$return_type:ident) => {{
+        match $mutex.lock() {
+            Ok(x) => x,
+            Err(e) => {
+                return Ok($return_type {
+                    error: ConCalServiceImpl::error(
+                        ResponseCode::RUNTIME_ERROR,
+                        String::from("Unable to obtain mutex"),
+                    ),
+                    ..Default::default()
+                })
+            }
+        }
+    }};
+}
+
+macro_rules! error_response {
+    ($return_type:ident, $response_code:expr, $error_message:literal, $($error_message_format_arg: tt)*) => {{
+        Ok($return_type {
+            error: ConCalServiceImpl::error(
+                $response_code,
+                format!($error_message, $($error_message_format_arg)*),
+            ),
+            ..Default::default()
+        })
+    }};
+}
 
 #[derive(Debug, Hash, Eq, PartialEq)]
 struct OverrideKey {
@@ -27,6 +55,7 @@ struct OverrideKey {
 #[derive(Default)]
 struct ConCalServiceData {
     base_configs: HashMap<HashableConfigId, Configuration>,
+    derived_configs: HashMap<HashableConfigId, Configuration>,
     overrides: HashMap<OverrideKey, ConfigOverride>,
     current_update_id: Option<i64>,
 }
@@ -47,6 +76,50 @@ impl ConCalServiceImpl {
             message,
             ..Default::default()
         })
+    }
+
+    fn group_overrides_by_config_id(
+        &self,
+        mlock: &std::sync::MutexGuard<'_, ConCalServiceData>,
+    ) -> HashMap<HashableConfigId, Vec<ConfigOverride>> {
+        let mut trie: Trie<HashableConfigId> = Trie::new();
+        mlock.base_configs.keys().for_each(|x| {
+            trie.add(x.fields(), x.clone());
+        });
+
+        let mut result: HashMap<HashableConfigId, Vec<ConfigOverride>> = HashMap::new();
+
+        for (key, value) in mlock.overrides.iter() {
+            let matching_config_ids = trie.get(&key.config_id.fields());
+            for config_id in matching_config_ids.iter() {
+                result
+                    .entry(config_id.clone())
+                    .and_modify(|v| v.push(value.clone()))
+                    .or_insert(vec![value.clone()]);
+            }
+        }
+
+        result
+    }
+
+    fn compute_new_configs(
+        &self,
+        base_configs: &HashMap<HashableConfigId, Configuration>,
+        overrides_for_each_config: &HashMap<HashableConfigId, Vec<ConfigOverride>>,
+    ) -> Result<HashMap<HashableConfigId, Configuration>, String> {
+        let mut new_configurations: HashMap<HashableConfigId, Configuration> = HashMap::new();
+        for (config_id, base_config) in base_configs.iter() {
+            let overrides = overrides_for_each_config.get(config_id);
+
+            if let Some(overrides) = overrides {
+                let updated_config = base_config.with_overrides(overrides)?;
+                new_configurations.insert(config_id.clone(), updated_config);
+            } else {
+                new_configurations.insert(config_id.clone(), base_config.clone());
+            }
+        }
+
+        Ok(new_configurations)
     }
 }
 
@@ -298,7 +371,40 @@ impl ConCalService for ConCalServiceImpl {
         &self,
         request: FinishConfigUpdateRequest,
     ) -> RpcResult<FinishConfigUpdateResponse> {
-        todo!();
+        let mut mlock = acquire_lock_or_return_err!(self.data, FinishConfigUpdateResponse);
+
+        if mlock.current_update_id.is_none()
+            || request.update_id != mlock.current_update_id.unwrap()
+        {
+            return error_response!(
+                FinishConfigUpdateResponse,
+                ResponseCode::INVALID_REQUEST,
+                "Current update has ID {:?} and requested update has id {:?}",
+                mlock.current_update_id,
+                request.update_id
+            );
+        }
+
+        mlock.current_update_id = None;
+
+        let overrides_for_each_config: HashMap<HashableConfigId, Vec<ConfigOverride>> =
+            self.group_overrides_by_config_id(&mlock);
+        let new_configurations =
+            self.compute_new_configs(&mlock.base_configs, &overrides_for_each_config);
+
+        if let Err(err) = new_configurations {
+            return error_response!(
+                FinishConfigUpdateResponse,
+                ResponseCode::INTERNAL_ERROR,
+                "Update {:?} failed due to {:?}",
+                mlock.current_update_id,
+                err
+            );
+        }
+
+        mlock.derived_configs = new_configurations.unwrap();
+
+        Ok(FinishConfigUpdateResponse::new())
     }
     /// RPC method declared in the interface.
     fn rollback(&self, request: RollbackRequest) -> RpcResult<RollbackResponse> {
