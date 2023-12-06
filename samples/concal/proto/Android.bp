@@ -6,7 +6,6 @@ package {
 
 rust_protobuf {
     name: "libsdvtestconcal_proto_rust",
-    host_supported: true,
     crate_name: "sdvtestconcal_proto_rust",
     protos: [
         "test_configuration.proto",
@@ -19,4 +18,10 @@ rust_protobuf {
     ],
     source_stem: "sdvtestconcal_proto_rust",
     use_protobuf3: true,
+    vendor: true,
+}
+
+filegroup {
+    name: "libsdvtestconcal_proto_files",
+    srcs: ["*.proto"],
 }

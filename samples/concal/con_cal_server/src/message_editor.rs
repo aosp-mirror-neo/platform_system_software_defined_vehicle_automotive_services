@@ -38,7 +38,7 @@ impl MessageEditor {
 
         match field.runtime_field_type() {
             RuntimeFieldType::Singular(_) => field.set_singular_field(self.dyn_msg.as_mut(), value),
-            _ => return Err(format!("Could not set field {:?}", key)),
+            _ => return Err(format!("Unsupported runtime field type {:?}", key)),
         }
 
         Ok(())
