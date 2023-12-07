@@ -156,7 +156,7 @@ impl ConCalService for ConCalServiceImpl {
                 None => {
                     return error_response!(
                         GetConfigResponse,
-                        ResponseCode::INVALID_REQUEST,
+                        ResponseCode::NOT_FOUND_ERROR,
                         "Config with ID {:?} does not exist",
                         config_id
                     )
@@ -494,5 +494,221 @@ impl ConCalService for ConCalServiceImpl {
         _request: UnregisterFromCalibrationUpdateRequest,
     ) -> RpcResult<UnregisterFromCalibrationUpdateResponse> {
         todo!();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(unused_imports)]
+    use super::*;
+    use concal_api::configuration::config_override_key_value::Value;
+    use concal_api::configuration::ConfigId;
+    use concal_api::configuration::ConfigOverrideKeyValue;
+    use protobuf::descriptor::FileDescriptorSet;
+    use protobuf::well_known_types::any::Any;
+    use sdvtestconcal_proto_rust::test_configuration::TestConfiguration;
+
+    use std::path::PathBuf;
+
+    use crate::tests::utilities::*;
+
+    #[test]
+    fn get_config_returns_error_when_request_contains_none_config_id() {
+        let service = ConCalServiceImpl::new();
+
+        let result = service
+            .get_config(GetConfigRequest { ..Default::default() })
+            .expect("Expected get_config to succeed");
+
+        assert!(result.error.is_some());
+        assert_eq!(
+            result.error.unwrap().error_code,
+            EnumOrUnknown::from(ResponseCode::INVALID_REQUEST)
+        );
+    }
+
+    #[test]
+    fn get_config_returns_error_when_config_doesnt_exist() {
+        let config_id = test_config_id();
+
+        let service = ConCalServiceImpl::new();
+
+        let result = service
+            .get_config(GetConfigRequest {
+                config_id: MessageField::some(config_id),
+                ..Default::default()
+            })
+            .expect("Expected get_config to succeed");
+
+        assert!(result.error.is_some());
+        assert_eq!(
+            result.error.unwrap().error_code,
+            EnumOrUnknown::from(ResponseCode::NOT_FOUND_ERROR)
+        );
+    }
+
+    #[test]
+    fn get_config_can_return_default_config() {
+        let config = test_config();
+        let config_id = test_config_id();
+
+        let service = ConCalServiceImpl::new();
+
+        let resp = register_config_metadata(&service, &config_id, &config);
+        assert!(resp.error.is_none());
+
+        let resp = get_config(&service, &config_id);
+        assert!(resp.error.is_none());
+
+        assert_eq!(&resp.config_version, config.version());
+        assert_eq!(resp.config, config.data().write_to_bytes().unwrap());
+    }
+
+    #[test]
+    fn calculates_derived_config_correctly() {
+        let service = ConCalServiceImpl::new();
+        let config = test_config();
+        let config_id = test_config_id();
+
+        let resp = register_config_metadata(&service, &config_id, &config);
+        assert!(resp.error.is_none());
+
+        let overrides = create_sample_overrides(String::from("1"), true, String::from("new_value"));
+
+        let resp = start_config_update(&service);
+        assert!(resp.error.is_none());
+
+        let update_id = resp.update_id;
+
+        let resp = add_or_update_config_override(&service, update_id, &config_id, &overrides);
+        assert!(resp.error.is_none());
+
+        let resp = finish_config_update(&service, update_id);
+        assert!(resp.error.is_none());
+
+        let resp = get_config(&service, &config_id);
+        assert!(resp.error.is_none());
+        assert_eq!(&resp.config_version, config.version());
+
+        let any = Any::parse_from_bytes(&resp.config).expect("to convert bytes to any");
+        let derived_config = TestConfiguration::parse_from_bytes(&any.value)
+            .expect("to unmarshal TestConfiguration from bytes");
+
+        assert!(derived_config.bool_parameter);
+        assert_eq!(derived_config.str_parameter, String::from("new_value"));
+    }
+
+    #[test]
+    fn can_rollback_to_previous_config() {
+        let service = ConCalServiceImpl::new();
+        let config = test_config();
+        let config_id = test_config_id();
+
+        let resp = register_config_metadata(&service, &config_id, &config);
+        assert!(resp.error.is_none());
+
+        let overrides = create_sample_overrides(String::from("1"), true, String::from("new_value"));
+
+        let resp = start_config_update(&service);
+        assert!(resp.error.is_none());
+
+        let update_id = resp.update_id;
+
+        let resp = add_or_update_config_override(&service, update_id, &config_id, &overrides);
+        assert!(resp.error.is_none());
+
+        let resp = finish_config_update(&service, update_id);
+        assert!(resp.error.is_none());
+
+        let resp = service.rollback(RollbackRequest::new()).expect("rollback to succeed");
+        assert!(resp.error.is_none());
+
+        let resp = get_config(&service, &config_id);
+        assert!(resp.error.is_none());
+
+        assert_eq!(&resp.config_version, config.version());
+        assert_eq!(resp.config, config.data().write_to_bytes().unwrap());
+    }
+
+    fn start_config_update(service: &ConCalServiceImpl) -> StartConfigUpdateResponse {
+        service
+            .start_config_update(StartConfigUpdateRequest { ..Default::default() })
+            .expect("start_config_update to to succeed")
+    }
+
+    fn add_or_update_config_override(
+        service: &ConCalServiceImpl,
+        update_id: i64,
+        config_id: &ConfigId,
+        overrides: &[ConfigOverride],
+    ) -> AddOrUpdateConfigOverrideResponse {
+        service
+            .add_or_update_config_override(AddOrUpdateConfigOverrideRequest {
+                update_id,
+                config_id: MessageField::some(config_id.clone()),
+                configOverride: overrides.to_vec(),
+                ..Default::default()
+            })
+            .expect("add_or_update_config_override to succeed")
+    }
+
+    fn finish_config_update(
+        service: &ConCalServiceImpl,
+        update_id: i64,
+    ) -> FinishConfigUpdateResponse {
+        service
+            .finish_config_update(FinishConfigUpdateRequest { update_id, ..Default::default() })
+            .expect("finish_config_update to succeed")
+    }
+
+    fn get_config(service: &ConCalServiceImpl, config_id: &ConfigId) -> GetConfigResponse {
+        service
+            .get_config(GetConfigRequest {
+                config_id: MessageField::some(config_id.clone()),
+                ..Default::default()
+            })
+            .expect("get_config to succeed")
+    }
+
+    fn create_sample_overrides(
+        override_id: String,
+        bool_parameter: bool,
+        str_parameter: String,
+    ) -> Vec<ConfigOverride> {
+        vec![ConfigOverride {
+            override_id,
+            pairs: vec![
+                ConfigOverrideKeyValue {
+                    key: String::from("bool_parameter"),
+                    value: Some(Value::ValueBool(bool_parameter)),
+                    ..Default::default()
+                },
+                ConfigOverrideKeyValue {
+                    key: String::from("str_parameter"),
+                    value: Some(Value::ValueStr(str_parameter)),
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        }]
+    }
+
+    fn register_config_metadata(
+        service: &ConCalServiceImpl,
+        id: &ConfigId,
+        config: &Configuration,
+    ) -> RegisterConfigMetadataResponse {
+        service
+            .register_config_metadata(RegisterConfigMetadataRequest {
+                config_id: MessageField::some(id.clone()),
+                metadata: MessageField::some(ConfigMetadata {
+                    descriptor_set: MessageField::some(config.descriptor().clone()),
+                    default_config: MessageField::some(config.data().clone()),
+                    ..Default::default()
+                }),
+                config_version: config.version().clone(),
+                ..Default::default()
+            })
+            .expect("call to register_config_metadata to succeed")
     }
 }
