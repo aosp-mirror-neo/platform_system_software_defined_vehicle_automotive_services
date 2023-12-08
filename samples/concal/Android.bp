@@ -16,9 +16,10 @@ rust_library {
     apex_available: [
         "//apex_available:platform",
     ],
+    vendor: true,
 }
 
-rust_test_host {
+rust_test {
     name: "lib_override_tests",
     srcs: [
         "src/override_lib.rs",

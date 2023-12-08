@@ -13,6 +13,8 @@ rust_binary {
         "libsdvmiddleware_rpc",
         "libitertools",
         "librand",
+        "libsdvtestconcal_proto_rust",
+        "libprotobuf_parse",
     ],
     vendor: true,
 }
@@ -32,11 +34,13 @@ rust_test {
         "libsdvmiddleware_rpc",
         "libitertools",
         "librand",
+        "libsdvtestconcal_proto_rust",
     ],
     test_options: {
         unit_test: true,
     },
     vendor: true,
     data: [
+        ":libsdvtestconcal_proto_files",
     ],
 }
