@@ -4,6 +4,7 @@ use concal_api::configuration::ConfigMetadata;
 use concal_api::configuration::ConfigOverride;
 use concal_api::error::{Error, ResponseCode};
 use protobuf::EnumOrUnknown;
+use protobuf::Message;
 use protobuf::MessageField;
 use rand::Rng;
 use sdvgenerated::con_cal_service_interface::ConCalService;
@@ -138,7 +139,36 @@ impl ConCalServiceImpl {
 impl ConCalService for ConCalServiceImpl {
     /// RPC method declared in the interface.
     fn get_config(&self, request: GetConfigRequest) -> RpcResult<GetConfigResponse> {
-        todo!();
+        let mut mlock = acquire_lock_or_return_err!(self.data, GetConfigResponse);
+
+        if request.config_id.is_none() {
+            return error_response!(
+                GetConfigResponse,
+                ResponseCode::INVALID_REQUEST,
+                "Request does not provide a config id",
+            );
+        }
+
+        let config_id = HashableConfigId::from(request.config_id.unwrap());
+        let config =
+            match mlock.derived_configs.get(&config_id).or(mlock.base_configs.get(&config_id)) {
+                Some(x) => x,
+                None => {
+                    return error_response!(
+                        GetConfigResponse,
+                        ResponseCode::INVALID_REQUEST,
+                        "Config with ID {:?} does not exist",
+                        config_id
+                    )
+                }
+            };
+
+        let config_bytes = config.data().clone().write_to_bytes().unwrap();
+        return Ok(GetConfigResponse {
+            config: config_bytes,
+            config_version: config.version().clone(),
+            ..Default::default()
+        });
     }
     /// RPC method declared in the interface.
     fn register_config_metadata(
