@@ -1,13 +1,5 @@
-#![allow(
-    dead_code,
-    missing_docs,
-    unused_variables,
-    unused_mut,
-    clippy::extra_unused_lifetimes,
-    clippy::derivable_impls,
-    clippy::new_without_default,
-    clippy::needless_return
-)]
+// Copyright 2023 Google LLC
+#![allow(missing_docs)]
 
 mod con_cal_service_impl;
 mod configuration;

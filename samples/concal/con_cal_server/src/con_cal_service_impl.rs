@@ -27,7 +27,7 @@ macro_rules! acquire_lock_or_return_err {
                 return Ok($return_type {
                     error: ConCalServiceImpl::error(
                         ResponseCode::RUNTIME_ERROR,
-                        String::from("Unable to obtain mutex"),
+                        format!("Unable to obtain mutex: {:?}", e),
                     ),
                     ..Default::default()
                 })
@@ -139,7 +139,7 @@ impl ConCalServiceImpl {
 impl ConCalService for ConCalServiceImpl {
     /// RPC method declared in the interface.
     fn get_config(&self, request: GetConfigRequest) -> RpcResult<GetConfigResponse> {
-        let mut mlock = acquire_lock_or_return_err!(self.data, GetConfigResponse);
+        let mlock = acquire_lock_or_return_err!(self.data, GetConfigResponse);
 
         if request.config_id.is_none() {
             return error_response!(
@@ -236,14 +236,14 @@ impl ConCalService for ConCalServiceImpl {
 
         mlock.base_configs.insert(config_id, config);
 
-        return Ok(RegisterConfigMetadataResponse::new());
+        Ok(RegisterConfigMetadataResponse::new())
     }
     /// RPC method declared in the interface.
     fn get_config_metadata(
         &self,
         request: GetConfigMetadataRequest,
     ) -> RpcResult<GetConfigMetadataResponse> {
-        let mut mlock = acquire_lock_or_return_err!(self.data, GetConfigMetadataResponse);
+        let mlock = acquire_lock_or_return_err!(self.data, GetConfigMetadataResponse);
 
         let config_id = match request.config_id.is_some() {
             true => HashableConfigId::from(request.config_id.unwrap()),
@@ -275,12 +275,12 @@ impl ConCalService for ConCalServiceImpl {
             ..Default::default()
         });
 
-        return Ok(response);
+        Ok(response)
     }
     /// RPC method declared in the interface.
     fn start_config_update(
         &self,
-        request: StartConfigUpdateRequest,
+        _request: StartConfigUpdateRequest,
     ) -> RpcResult<StartConfigUpdateResponse> {
         let mut mlock = acquire_lock_or_return_err!(self.data, StartConfigUpdateResponse);
 
@@ -340,12 +340,12 @@ impl ConCalService for ConCalServiceImpl {
             );
         }
 
-        return Ok(AddOrUpdateConfigOverrideResponse::new());
+        Ok(AddOrUpdateConfigOverrideResponse::new())
     }
     /// RPC method declared in the interface.
     fn remove_config_override(
         &self,
-        request: RemoveConfigOverrideRequest,
+        _request: RemoveConfigOverrideRequest,
     ) -> RpcResult<RemoveConfigOverrideResponse> {
         todo!();
     }
@@ -354,32 +354,18 @@ impl ConCalService for ConCalServiceImpl {
         &self,
         request: CancelConfigUpdateRequest,
     ) -> RpcResult<CancelConfigUpdateResponse> {
-        let mut mlock = match self.data.lock() {
-            Ok(x) => x,
-            Err(e) => {
-                return Ok(CancelConfigUpdateResponse {
-                    error: ConCalServiceImpl::error(
-                        ResponseCode::INTERNAL_ERROR,
-                        String::from("Unable to obtain mutex"),
-                    ),
-                    ..Default::default()
-                })
-            }
-        };
+        let mut mlock = acquire_lock_or_return_err!(self.data, CancelConfigUpdateResponse);
 
         if mlock.current_update_id.is_none()
             || request.update_id != mlock.current_update_id.unwrap()
         {
-            return Ok(CancelConfigUpdateResponse {
-                error: ConCalServiceImpl::error(
-                    ResponseCode::INVALID_REQUEST,
-                    format!(
-                        "Invalid update request, current update has id {:?}, request has id {}",
-                        mlock.current_update_id, request.update_id
-                    ),
-                ),
-                ..Default::default()
-            });
+            return error_response!(
+                CancelConfigUpdateResponse,
+                ResponseCode::INVALID_REQUEST,
+                "Invalid update request, current update has id {:?}, request has id {}",
+                mlock.current_update_id,
+                request.update_id
+            );
         }
 
         mlock.current_update_id = None;
@@ -432,31 +418,16 @@ impl ConCalService for ConCalServiceImpl {
         Ok(FinishConfigUpdateResponse::new())
     }
     /// RPC method declared in the interface.
-    fn rollback(&self, request: RollbackRequest) -> RpcResult<RollbackResponse> {
-        let mut mlock = match self.data.lock() {
-            Ok(x) => x,
-            Err(e) => {
-                return Ok(RollbackResponse {
-                    error: ConCalServiceImpl::error(
-                        ResponseCode::INTERNAL_ERROR,
-                        String::from("Unable to obtain mutex"),
-                    ),
-                    ..Default::default()
-                })
-            }
-        };
+    fn rollback(&self, _request: RollbackRequest) -> RpcResult<RollbackResponse> {
+        let mut mlock = acquire_lock_or_return_err!(self.data, RollbackResponse);
 
         if mlock.current_update_id.is_some() {
-            return Ok(RollbackResponse {
-                error: ConCalServiceImpl::error(
-                    ResponseCode::INVALID_REQUEST,
-                    format!(
-                        "Cannot rollback while update {:?} is in progress",
-                        mlock.current_update_id
-                    ),
-                ),
-                ..Default::default()
-            });
+            return error_response!(
+                RollbackResponse,
+                ResponseCode::INVALID_REQUEST,
+                "Cannot rollback while update {:?} is in progress",
+                mlock.current_update_id
+            );
         }
 
         mlock.overrides.rollback();
@@ -465,62 +436,62 @@ impl ConCalService for ConCalServiceImpl {
         Ok(RollbackResponse::new())
     }
     /// RPC method declared in the interface.
-    fn reset(&self, request: ResetRequest) -> RpcResult<ResetResponse> {
+    fn reset(&self, _request: ResetRequest) -> RpcResult<ResetResponse> {
         todo!();
     }
     /// RPC method declared in the interface.
     fn deinstall_config(
         &self,
-        request: DeinstallConfigRequest,
+        _request: DeinstallConfigRequest,
     ) -> RpcResult<DeinstallConfigResponse> {
         todo!();
     }
     /// RPC method declared in the interface.
     fn get_calibration_config_ids(
         &self,
-        request: GetCalibrationConfigIdsRequest,
+        _request: GetCalibrationConfigIdsRequest,
     ) -> RpcResult<GetCalibrationConfigIdsResponse> {
         todo!();
     }
     /// RPC method declared in the interface.
     fn start_calibration(
         &self,
-        request: StartCalibrationRequest,
+        _request: StartCalibrationRequest,
     ) -> RpcResult<StartCalibrationResponse> {
         todo!();
     }
     /// RPC method declared in the interface.
     fn stop_calibration(
         &self,
-        request: StopCalibrationRequest,
+        _request: StopCalibrationRequest,
     ) -> RpcResult<StopCalibrationResponse> {
         todo!();
     }
     /// RPC method declared in the interface.
     fn get_config_and_register_for_config_update(
         &self,
-        request: GetConfigAndRegisterForConfigUpdateRequest,
+        _request: GetConfigAndRegisterForConfigUpdateRequest,
     ) -> RpcResult<GetConfigAndRegisterForConfigUpdateResponse> {
         todo!();
     }
     /// RPC method declared in the interface.
     fn unregister_from_config_update(
         &self,
-        request: UnregisterFromConfigUpdateRequest,
+        _request: UnregisterFromConfigUpdateRequest,
     ) -> RpcResult<UnregisterFromConfigUpdateResponse> {
         todo!();
     }
     /// RPC method declared in the interface.
     fn register_for_calibration_update(
         &self,
-        request: RegisterForCalibrationUpdateRequest,
+        _request: RegisterForCalibrationUpdateRequest,
     ) -> RpcResult<RegisterForCalibrationUpdateResponse> {
         todo!();
     }
     /// RPC method declared in the interface.
     fn unregister_from_calibration_update(
         &self,
-        request: UnregisterFromCalibrationUpdateRequest,
+        _request: UnregisterFromCalibrationUpdateRequest,
     ) -> RpcResult<UnregisterFromCalibrationUpdateResponse> {
         todo!();
     }
