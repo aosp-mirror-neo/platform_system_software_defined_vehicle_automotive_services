@@ -242,7 +242,10 @@ message FinishConfigUpdateResponse {
 
 message RollbackRequest {}
 
-message RollbackResponse {}
+message RollbackResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
 
 message ResetRequest {
   // Unique config identifier.

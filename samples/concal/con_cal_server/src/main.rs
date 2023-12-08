@@ -14,6 +14,7 @@ mod configuration;
 mod hashable_config_id;
 mod message_editor;
 mod trie;
+mod versioned_object;
 
 use std::sync::Arc;
 

@@ -17,18 +17,21 @@ rust_binary {
     vendor: true,
 }
 
-rust_test_host {
+rust_test {
     name: "sdv_con_cal_service_tests",
     srcs: [
-        "src/trie.rs",
+        "src/main.rs",
     ],
     rustlibs: [
         "libconcal_api",
         "liblog_rust",
         "libprotobuf",
         "libtempfile",
-        "libsdvtestconcal_proto_rust",
         "libprotobuf_parse",
+        "libsdvgenerated_con_cal_server",
+        "libsdvmiddleware_rpc",
+        "libitertools",
+        "librand",
     ],
     test_options: {
         unit_test: true,
