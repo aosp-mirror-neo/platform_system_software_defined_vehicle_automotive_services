@@ -8,7 +8,7 @@ To generate code from the VSIDL definitions, run the following command from this
 
 ```bash
 vsidl_code_generator \
-    --vsidl-path ../../../core_services/vsidl/syntax/ \
+    --vsidl-path ../../../core_services/vsidl/protos/syntax/ \
     --catalog-path ../../concal/vsidl/ \
     --output-path ./
 ```
@@ -40,4 +40,24 @@ mm vsidl_code_generator
 
     ```bash
     atest lib_override_tests
+    ```
+
+## ConCal demo
+
+The samples include a reference implementation of the ConCal server along with a sample client.
+The client registers a configuration in ConCal, updates it via overrides then performs a rollback.
+To run the demo, follow the steps below:
+
+1. Execute steps 1 and 2 from `ConCal Config Override Library` section
+
+2. Start the sample ConCal server
+
+   ```bash
+   adb shell /vendor/bin/sdv_con_cal_service
+   ```
+
+3. Run the sample ConCal client
+
+    ```bash
+    adb shell /vendor/bin/sdv_con_cal_client
     ```
