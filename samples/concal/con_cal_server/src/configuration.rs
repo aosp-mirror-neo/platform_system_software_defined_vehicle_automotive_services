@@ -64,9 +64,11 @@ impl Configuration {
     }
 }
 
+#[cfg(test)]
 mod tests {
     #![allow(unused_imports, dead_code)]
     use super::*;
+    use crate::tests::utilities::{load_file_descriptors, test_config};
     use concal_api::configuration::ConfigOverrideKeyValue;
     use protobuf::Message;
     use sdvtestconcal_proto_rust::inner_test_configuration::InnerTestConfigurationDifferentFile as InnerTestConfigurationProto;
@@ -78,7 +80,7 @@ mod tests {
 
     #[test]
     fn with_overrides_returns_updated_config_when_it_succeeds() {
-        let config = empty_configuration();
+        let config = test_config();
 
         let updated_config = config
             .with_overrides(&vec![ConfigOverride {
@@ -108,7 +110,7 @@ mod tests {
 
     #[test]
     fn with_overrides_returns_an_error_when_it_encounters_none_values() {
-        let config = empty_configuration();
+        let config = test_config();
 
         let updated_config = config.with_overrides(&vec![ConfigOverride {
             pairs: vec![ConfigOverrideKeyValue {
@@ -125,7 +127,7 @@ mod tests {
 
     #[test]
     fn with_overrides_returns_an_error_when_override_key_not_found() {
-        let config = empty_configuration();
+        let config = test_config();
 
         let updated_config = config.with_overrides(&vec![ConfigOverride {
             pairs: vec![ConfigOverrideKeyValue {
@@ -175,43 +177,5 @@ mod tests {
         let result = Configuration::convert_to_reflect_box(float);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), ReflectValueBox::F32(32.0));
-    }
-
-    fn empty_configuration() -> Configuration {
-        let data = Any::pack(&TestConfigurationProto::new())
-            .expect("Unable to pack TestConfigurationProto into Any");
-        Configuration::new(data, load_file_descriptors(), String::from("1.0"))
-    }
-
-    fn load_file_descriptors() -> FileDescriptorSet {
-        let proto_dir: PathBuf = PathBuf::from("./");
-        let test_config_file = proto_dir.join("test_configuration.proto");
-        assert!(test_config_file.exists(), "Unable to find proto file {:?}.", test_config_file);
-
-        let inner_test_config_file = proto_dir.join("inner_test_configuration.proto");
-        assert!(
-            inner_test_config_file.exists(),
-            "Unable to find proto file {:?}.",
-            inner_test_config_file
-        );
-
-        let inner_test_config_file_diff_pack =
-            proto_dir.join("inner_test_configuration_different_package.proto");
-        assert!(
-            inner_test_config_file_diff_pack.exists(),
-            "Unable to find proto file {:?}.",
-            inner_test_config_file_diff_pack
-        );
-
-        let fd_set = protobuf_parse::Parser::new()
-            .pure()
-            .include(&proto_dir)
-            .input(&test_config_file)
-            .input(&inner_test_config_file)
-            .input(&inner_test_config_file_diff_pack)
-            .file_descriptor_set();
-
-        assert!(fd_set.is_ok(), "Could not parse protobuf files {:?}", fd_set);
-        fd_set.unwrap()
     }
 }

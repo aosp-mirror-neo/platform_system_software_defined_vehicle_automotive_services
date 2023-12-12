@@ -1,6 +1,9 @@
 // Copyright 2023 Google LLC
 #![allow(missing_docs)]
 
+#[cfg(test)]
+mod tests;
+
 mod con_cal_service_impl;
 mod configuration;
 mod hashable_config_id;
