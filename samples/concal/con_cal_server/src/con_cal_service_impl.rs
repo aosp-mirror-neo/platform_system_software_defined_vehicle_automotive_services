@@ -61,26 +61,28 @@ struct ConCalServiceData {
     current_update_id: Option<i64>,
 }
 
+impl ConCalServiceData {
+    fn new() -> Self {
+        ConCalServiceData {
+            base_configs: HashMap::new(),
+            // We need 3 versions of the hashmap since during an update we need to have the following:
+            // 1. A stable configuration to rollback too
+            // 2. The Current Configuration
+            // 3. A hashmap to use for computing the new configuration while keeping 1 & 2 since updates can be cancelled or encounter failures
+            derived_configs: VersionedObject::new(HashMap::new(), 3),
+            overrides: VersionedObject::new(HashMap::new(), 3),
+            current_update_id: None,
+        }
+    }
+}
+
 pub struct ConCalServiceImpl {
     data: Mutex<ConCalServiceData>,
 }
 
 impl ConCalServiceImpl {
     pub fn new() -> Self {
-        ConCalServiceImpl {
-            data: Mutex::new(ConCalServiceData {
-                base_configs: HashMap::new(),
-                // We would like to keep 3 versions of the hashmap stored in versionedObject.
-                // we need 3 since during an update we can have the following
-                // { Configuration to rollback too, Current Configuration, New configuration being computed which might fail
-                // and therefore we should remain at the current config and keep the older version to be able to rollback }.
-                // same logic for overrides since we can cancel an ongoing update
-                // and therefore need to discard all overrides added during this update
-                derived_configs: VersionedObject::new(HashMap::new(), 3),
-                overrides: VersionedObject::new(HashMap::new(), 3),
-                current_update_id: None,
-            }),
-        }
+        ConCalServiceImpl { data: Mutex::new(ConCalServiceData::new()) }
     }
 
     fn error(error_code: ResponseCode, message: String) -> MessageField<Error> {
@@ -137,7 +139,6 @@ impl ConCalServiceImpl {
 }
 
 impl ConCalService for ConCalServiceImpl {
-    /// RPC method declared in the interface.
     fn get_config(&self, request: GetConfigRequest) -> RpcResult<GetConfigResponse> {
         let mlock = acquire_lock_or_return_err!(self.data, GetConfigResponse);
 
@@ -170,7 +171,7 @@ impl ConCalService for ConCalServiceImpl {
             ..Default::default()
         });
     }
-    /// RPC method declared in the interface.
+
     fn register_config_metadata(
         &self,
         request: RegisterConfigMetadataRequest,
@@ -241,7 +242,7 @@ impl ConCalService for ConCalServiceImpl {
 
         Ok(RegisterConfigMetadataResponse::new())
     }
-    /// RPC method declared in the interface.
+
     fn get_config_metadata(
         &self,
         request: GetConfigMetadataRequest,
@@ -281,7 +282,7 @@ impl ConCalService for ConCalServiceImpl {
 
         Ok(response)
     }
-    /// RPC method declared in the interface.
+
     fn start_config_update(
         &self,
         _request: StartConfigUpdateRequest,
@@ -307,7 +308,7 @@ impl ConCalService for ConCalServiceImpl {
             ..Default::default()
         })
     }
-    /// RPC method declared in the interface.
+
     fn add_or_update_config_override(
         &self,
         request: AddOrUpdateConfigOverrideRequest,
@@ -346,14 +347,14 @@ impl ConCalService for ConCalServiceImpl {
 
         Ok(AddOrUpdateConfigOverrideResponse::new())
     }
-    /// RPC method declared in the interface.
+
     fn remove_config_override(
         &self,
         _request: RemoveConfigOverrideRequest,
     ) -> RpcResult<RemoveConfigOverrideResponse> {
         todo!();
     }
-    /// RPC method declared in the interface.
+
     fn cancel_config_update(
         &self,
         request: CancelConfigUpdateRequest,
@@ -378,7 +379,6 @@ impl ConCalService for ConCalServiceImpl {
         Ok(CancelConfigUpdateResponse::new())
     }
 
-    /// RPC method declared in the interface.
     fn finish_config_update(
         &self,
         request: FinishConfigUpdateRequest,
@@ -415,13 +415,13 @@ impl ConCalService for ConCalServiceImpl {
                 }
             };
 
-        // save existing configuration
+        // Save existing configuration.
         mlock.derived_configs.snapshot();
         *mlock.derived_configs = new_configurations;
 
         Ok(FinishConfigUpdateResponse::new())
     }
-    /// RPC method declared in the interface.
+
     fn rollback(&self, _request: RollbackRequest) -> RpcResult<RollbackResponse> {
         let mut mlock = acquire_lock_or_return_err!(self.data, RollbackResponse);
 
@@ -429,7 +429,7 @@ impl ConCalService for ConCalServiceImpl {
             return error_response!(
                 RollbackResponse,
                 ResponseCode::INVALID_REQUEST,
-                "Cannot rollback while update {:?} is in progress",
+                "Cannot rollback while an update {:?} is in progress",
                 mlock.current_update_id
             );
         }
@@ -439,60 +439,73 @@ impl ConCalService for ConCalServiceImpl {
 
         Ok(RollbackResponse::new())
     }
-    /// RPC method declared in the interface.
+
     fn reset(&self, _request: ResetRequest) -> RpcResult<ResetResponse> {
-        todo!();
+        let mut mlock = acquire_lock_or_return_err!(self.data, ResetResponse);
+
+        if mlock.current_update_id.is_some() {
+            return error_response!(
+                ResetResponse,
+                ResponseCode::SESSION_IN_PROGRESS,
+                "Cannot perform a reset while an update {:?} is in progress",
+                mlock.current_update_id
+            );
+        }
+
+        *mlock = ConCalServiceData::new();
+
+        Ok(ResetResponse::new())
     }
-    /// RPC method declared in the interface.
+
     fn deinstall_config(
         &self,
         _request: DeinstallConfigRequest,
     ) -> RpcResult<DeinstallConfigResponse> {
         todo!();
     }
-    /// RPC method declared in the interface.
+
     fn get_calibration_config_ids(
         &self,
         _request: GetCalibrationConfigIdsRequest,
     ) -> RpcResult<GetCalibrationConfigIdsResponse> {
         todo!();
     }
-    /// RPC method declared in the interface.
+
     fn start_calibration(
         &self,
         _request: StartCalibrationRequest,
     ) -> RpcResult<StartCalibrationResponse> {
         todo!();
     }
-    /// RPC method declared in the interface.
+
     fn stop_calibration(
         &self,
         _request: StopCalibrationRequest,
     ) -> RpcResult<StopCalibrationResponse> {
         todo!();
     }
-    /// RPC method declared in the interface.
+
     fn get_config_and_register_for_config_update(
         &self,
         _request: GetConfigAndRegisterForConfigUpdateRequest,
     ) -> RpcResult<GetConfigAndRegisterForConfigUpdateResponse> {
         todo!();
     }
-    /// RPC method declared in the interface.
+
     fn unregister_from_config_update(
         &self,
         _request: UnregisterFromConfigUpdateRequest,
     ) -> RpcResult<UnregisterFromConfigUpdateResponse> {
         todo!();
     }
-    /// RPC method declared in the interface.
+
     fn register_for_calibration_update(
         &self,
         _request: RegisterForCalibrationUpdateRequest,
     ) -> RpcResult<RegisterForCalibrationUpdateResponse> {
         todo!();
     }
-    /// RPC method declared in the interface.
+
     fn unregister_from_calibration_update(
         &self,
         _request: UnregisterFromCalibrationUpdateRequest,
@@ -634,10 +647,80 @@ mod tests {
         assert_eq!(resp.config, config.data().write_to_bytes().unwrap());
     }
 
+    #[test]
+    fn reset_fails_during_updates() {
+        let service = ConCalServiceImpl::new();
+        let config = test_config();
+        let config_id = test_config_id();
+
+        let resp = register_config_metadata(&service, &config_id, &config);
+        assert!(resp.error.is_none());
+
+        let resp = start_config_update(&service);
+        assert!(resp.error.is_none());
+
+        let resp = service.reset(ResetRequest::new()).expect("reset failed");
+        assert!(resp.error.is_some());
+        assert_eq!(
+            resp.error.clone().unwrap().error_code,
+            EnumOrUnknown::from(ResponseCode::SESSION_IN_PROGRESS)
+        );
+    }
+
+    #[test]
+    fn reset_removes_all_configs_and_overrides_when_successful() {
+        let service = ConCalServiceImpl::new();
+        let config = test_config();
+        let config_id = test_config_id();
+
+        // Register a config with overrides and reset afterwards to ensure all changes are deleted
+        let resp = register_config_metadata(&service, &config_id, &config);
+        assert!(resp.error.is_none());
+
+        let overrides = create_sample_overrides(String::from("1"), true, String::from("new_value"));
+
+        let resp = start_config_update(&service);
+        assert!(resp.error.is_none());
+
+        let update_id = resp.update_id;
+
+        let resp = add_or_update_config_override(&service, update_id, &config_id, &overrides);
+        assert!(resp.error.is_none());
+
+        let resp = finish_config_update(&service, update_id);
+        assert!(resp.error.is_none());
+
+        let resp = service.reset(ResetRequest::new()).expect("reset failed");
+        assert!(resp.error.is_none());
+
+        let resp = get_config(&service, &config_id);
+        assert!(resp.error.is_some());
+        assert_eq!(
+            resp.error.clone().unwrap().error_code,
+            EnumOrUnknown::from(ResponseCode::NOT_FOUND_ERROR)
+        );
+
+        let resp = register_config_metadata(&service, &config_id, &config);
+        assert!(resp.error.is_none());
+
+        //Ensure that any update doesn't apply overrides that were created before the reset.
+        let resp = start_config_update(&service);
+        assert!(resp.error.is_none());
+
+        let resp = finish_config_update(&service, resp.update_id);
+        assert!(resp.error.is_none());
+
+        let resp = get_config(&service, &config_id);
+        assert!(resp.error.is_none());
+
+        assert_eq!(&resp.config_version, config.version());
+        assert_eq!(resp.config, config.data().write_to_bytes().unwrap());
+    }
+
     fn start_config_update(service: &ConCalServiceImpl) -> StartConfigUpdateResponse {
         service
             .start_config_update(StartConfigUpdateRequest { ..Default::default() })
-            .expect("start_config_update to to succeed")
+            .expect("start_config_update failed")
     }
 
     fn add_or_update_config_override(
@@ -653,7 +736,7 @@ mod tests {
                 configOverride: overrides.to_vec(),
                 ..Default::default()
             })
-            .expect("add_or_update_config_override to succeed")
+            .expect("add_or_update_config_override failed")
     }
 
     fn finish_config_update(
@@ -662,7 +745,7 @@ mod tests {
     ) -> FinishConfigUpdateResponse {
         service
             .finish_config_update(FinishConfigUpdateRequest { update_id, ..Default::default() })
-            .expect("finish_config_update to succeed")
+            .expect("finish_config_update failed")
     }
 
     fn get_config(service: &ConCalServiceImpl, config_id: &ConfigId) -> GetConfigResponse {
@@ -671,7 +754,7 @@ mod tests {
                 config_id: MessageField::some(config_id.clone()),
                 ..Default::default()
             })
-            .expect("get_config to succeed")
+            .expect("get_config failed")
     }
 
     fn create_sample_overrides(
@@ -713,6 +796,6 @@ mod tests {
                 config_version: config.version().clone(),
                 ..Default::default()
             })
-            .expect("call to register_config_metadata to succeed")
+            .expect("register_config_metadata failed")
     }
 }
