@@ -4,9 +4,10 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::ECUReset;
-use diagnostics_api_sample::connection::*;
-use protobuf::Message;
-use sdvmiddleware_rpc::error::RpcError;
+use diagnostics_api_sample::connection::ConnectionId;
+use diagnostics_api_sample::ecu_reset::RapidPowerShutdownResponse;
+use protobuf::well_known_types::empty::Empty;
+use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
 
@@ -25,72 +26,41 @@ impl ECUResetServer {
     /// the underlying RPC transport and calls methods of user provided
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn ECUReset>) {
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = ConnectionId::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.hard_reset(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("ECUReset::hard_reset"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
-        let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = ConnectionId::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .key_on_off_reset(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("ECUReset::key_on_off_reset"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
-        let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = ConnectionId::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.soft_reset(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("ECUReset::soft_reset"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
-        let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = ConnectionId::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .enable_rapid_power_shutdown(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ECUReset::enable_rapid_power_shutdown"),
-            Box::new(typeless_callback),
+        serve_method::<ConnectionId, Empty>(
+            Box::new(move |req| callback.hard_reset(req)),
+            "ECUReset::hard_reset",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = ConnectionId::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .disable_rapid_power_shutdown(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ECUReset::disable_rapid_power_shutdown"),
-            Box::new(typeless_callback),
+        serve_method::<ConnectionId, Empty>(
+            Box::new(move |req| callback.key_on_off_reset(req)),
+            "ECUReset::key_on_off_reset",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = ConnectionId::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.custom_reset(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("ECUReset::custom_reset"), Box::new(typeless_callback));
+        serve_method::<ConnectionId, Empty>(
+            Box::new(move |req| callback.soft_reset(req)),
+            "ECUReset::soft_reset",
+            self.transport.as_ref(),
+        );
+        let callback = service.clone();
+        serve_method::<ConnectionId, RapidPowerShutdownResponse>(
+            Box::new(move |req| callback.enable_rapid_power_shutdown(req)),
+            "ECUReset::enable_rapid_power_shutdown",
+            self.transport.as_ref(),
+        );
+        let callback = service.clone();
+        serve_method::<ConnectionId, Empty>(
+            Box::new(move |req| callback.disable_rapid_power_shutdown(req)),
+            "ECUReset::disable_rapid_power_shutdown",
+            self.transport.as_ref(),
+        );
+        let callback = service.clone();
+        serve_method::<ConnectionId, Empty>(
+            Box::new(move |req| callback.custom_reset(req)),
+            "ECUReset::custom_reset",
+            self.transport.as_ref(),
+        );
     }
 }

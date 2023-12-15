@@ -4,9 +4,9 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::ConfigSubscriberService;
-use concal_api::config_subscriber::*;
-use protobuf::Message;
-use sdvmiddleware_rpc::error::RpcError;
+use concal_api::config_subscriber::OnConfigUpdateRequest;
+use concal_api::config_subscriber::OnConfigUpdateResponse;
+use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
 
@@ -25,19 +25,11 @@ impl ConfigSubscriberServiceServer {
     /// the underlying RPC transport and calls methods of user provided
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn ConfigSubscriberService>) {
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = OnConfigUpdateRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .on_config_update(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConfigSubscriberService::on_config_update"),
-            Box::new(typeless_callback),
+        serve_method::<OnConfigUpdateRequest, OnConfigUpdateResponse>(
+            Box::new(move |req| callback.on_config_update(req)),
+            "ConfigSubscriberService::on_config_update",
+            self.transport.as_ref(),
         );
     }
 }

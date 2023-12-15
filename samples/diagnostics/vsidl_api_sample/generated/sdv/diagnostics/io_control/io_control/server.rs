@@ -4,9 +4,10 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::IOControl;
-use diagnostics_api_sample::io_control::*;
-use protobuf::Message;
-use sdvmiddleware_rpc::error::RpcError;
+use diagnostics_api_sample::io_control::IOControlRequest;
+use diagnostics_api_sample::io_control::IOControlRequestWithAdjustment;
+use diagnostics_api_sample::io_control::IOControlResponse;
+use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
 
@@ -25,59 +26,29 @@ impl IOControlServer {
     /// the underlying RPC transport and calls methods of user provided
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn IOControl>) {
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = IOControlRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .return_control_to_ecu(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("IOControl::return_control_to_ecu"),
-            Box::new(typeless_callback),
+        serve_method::<IOControlRequest, IOControlResponse>(
+            Box::new(move |req| callback.return_control_to_ecu(req)),
+            "IOControl::return_control_to_ecu",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = IOControlRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .reset_to_default(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("IOControl::reset_to_default"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
-        let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = IOControlRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .freeze_current_state(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("IOControl::freeze_current_state"),
-            Box::new(typeless_callback),
+        serve_method::<IOControlRequest, IOControlResponse>(
+            Box::new(move |req| callback.reset_to_default(req)),
+            "IOControl::reset_to_default",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = IOControlRequestWithAdjustment::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .short_term_adjustment(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("IOControl::short_term_adjustment"),
-            Box::new(typeless_callback),
+        serve_method::<IOControlRequest, IOControlResponse>(
+            Box::new(move |req| callback.freeze_current_state(req)),
+            "IOControl::freeze_current_state",
+            self.transport.as_ref(),
+        );
+        let callback = service.clone();
+        serve_method::<IOControlRequestWithAdjustment, IOControlResponse>(
+            Box::new(move |req| callback.short_term_adjustment(req)),
+            "IOControl::short_term_adjustment",
+            self.transport.as_ref(),
         );
     }
 }

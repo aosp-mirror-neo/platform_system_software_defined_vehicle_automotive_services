@@ -4,10 +4,43 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::ConCalService;
-use concal_api::calibration::*;
-use concal_api::concal_service::*;
-use protobuf::Message;
-use sdvmiddleware_rpc::error::RpcError;
+use concal_api::calibration::StartCalibrationRequest;
+use concal_api::calibration::StartCalibrationResponse;
+use concal_api::calibration::StopCalibrationRequest;
+use concal_api::calibration::StopCalibrationResponse;
+use concal_api::concal_service::AddOrUpdateConfigOverrideRequest;
+use concal_api::concal_service::AddOrUpdateConfigOverrideResponse;
+use concal_api::concal_service::CancelConfigUpdateRequest;
+use concal_api::concal_service::CancelConfigUpdateResponse;
+use concal_api::concal_service::DeinstallConfigRequest;
+use concal_api::concal_service::DeinstallConfigResponse;
+use concal_api::concal_service::FinishConfigUpdateRequest;
+use concal_api::concal_service::FinishConfigUpdateResponse;
+use concal_api::concal_service::GetCalibrationConfigIdsRequest;
+use concal_api::concal_service::GetCalibrationConfigIdsResponse;
+use concal_api::concal_service::GetConfigAndRegisterForConfigUpdateRequest;
+use concal_api::concal_service::GetConfigAndRegisterForConfigUpdateResponse;
+use concal_api::concal_service::GetConfigMetadataRequest;
+use concal_api::concal_service::GetConfigMetadataResponse;
+use concal_api::concal_service::GetConfigRequest;
+use concal_api::concal_service::GetConfigResponse;
+use concal_api::concal_service::RegisterConfigMetadataRequest;
+use concal_api::concal_service::RegisterConfigMetadataResponse;
+use concal_api::concal_service::RegisterForCalibrationUpdateRequest;
+use concal_api::concal_service::RegisterForCalibrationUpdateResponse;
+use concal_api::concal_service::RemoveConfigOverrideRequest;
+use concal_api::concal_service::RemoveConfigOverrideResponse;
+use concal_api::concal_service::ResetRequest;
+use concal_api::concal_service::ResetResponse;
+use concal_api::concal_service::RollbackRequest;
+use concal_api::concal_service::RollbackResponse;
+use concal_api::concal_service::StartConfigUpdateRequest;
+use concal_api::concal_service::StartConfigUpdateResponse;
+use concal_api::concal_service::UnregisterFromCalibrationUpdateRequest;
+use concal_api::concal_service::UnregisterFromCalibrationUpdateResponse;
+use concal_api::concal_service::UnregisterFromConfigUpdateRequest;
+use concal_api::concal_service::UnregisterFromConfigUpdateResponse;
+use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
 
@@ -26,243 +59,119 @@ impl ConCalServiceServer {
     /// the underlying RPC transport and calls methods of user provided
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn ConCalService>) {
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = GetConfigRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.get_config(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("ConCalService::get_config"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
-        let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = RegisterConfigMetadataRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .register_config_metadata(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::register_config_metadata"),
-            Box::new(typeless_callback),
+        serve_method::<GetConfigRequest, GetConfigResponse>(
+            Box::new(move |req| callback.get_config(req)),
+            "ConCalService::get_config",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = GetConfigMetadataRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .get_config_metadata(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::get_config_metadata"),
-            Box::new(typeless_callback),
+        serve_method::<RegisterConfigMetadataRequest, RegisterConfigMetadataResponse>(
+            Box::new(move |req| callback.register_config_metadata(req)),
+            "ConCalService::register_config_metadata",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = StartConfigUpdateRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .start_config_update(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::start_config_update"),
-            Box::new(typeless_callback),
+        serve_method::<GetConfigMetadataRequest, GetConfigMetadataResponse>(
+            Box::new(move |req| callback.get_config_metadata(req)),
+            "ConCalService::get_config_metadata",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = AddOrUpdateConfigOverrideRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .add_or_update_config_override(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::add_or_update_config_override"),
-            Box::new(typeless_callback),
+        serve_method::<StartConfigUpdateRequest, StartConfigUpdateResponse>(
+            Box::new(move |req| callback.start_config_update(req)),
+            "ConCalService::start_config_update",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = RemoveConfigOverrideRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .remove_config_override(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::remove_config_override"),
-            Box::new(typeless_callback),
+        serve_method::<AddOrUpdateConfigOverrideRequest, AddOrUpdateConfigOverrideResponse>(
+            Box::new(move |req| callback.add_or_update_config_override(req)),
+            "ConCalService::add_or_update_config_override",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = CancelConfigUpdateRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .cancel_config_update(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::cancel_config_update"),
-            Box::new(typeless_callback),
+        serve_method::<RemoveConfigOverrideRequest, RemoveConfigOverrideResponse>(
+            Box::new(move |req| callback.remove_config_override(req)),
+            "ConCalService::remove_config_override",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = FinishConfigUpdateRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .finish_config_update(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::finish_config_update"),
-            Box::new(typeless_callback),
+        serve_method::<CancelConfigUpdateRequest, CancelConfigUpdateResponse>(
+            Box::new(move |req| callback.cancel_config_update(req)),
+            "ConCalService::cancel_config_update",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = RollbackRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.rollback(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("ConCalService::rollback"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
-        let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = ResetRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.reset(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("ConCalService::reset"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
-        let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = DeinstallConfigRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .deinstall_config(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::deinstall_config"),
-            Box::new(typeless_callback),
+        serve_method::<FinishConfigUpdateRequest, FinishConfigUpdateResponse>(
+            Box::new(move |req| callback.finish_config_update(req)),
+            "ConCalService::finish_config_update",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = GetCalibrationConfigIdsRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .get_calibration_config_ids(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::get_calibration_config_ids"),
-            Box::new(typeless_callback),
+        serve_method::<RollbackRequest, RollbackResponse>(
+            Box::new(move |req| callback.rollback(req)),
+            "ConCalService::rollback",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = StartCalibrationRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .start_calibration(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::start_calibration"),
-            Box::new(typeless_callback),
+        serve_method::<ResetRequest, ResetResponse>(
+            Box::new(move |req| callback.reset(req)),
+            "ConCalService::reset",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = StopCalibrationRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .stop_calibration(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::stop_calibration"),
-            Box::new(typeless_callback),
+        serve_method::<DeinstallConfigRequest, DeinstallConfigResponse>(
+            Box::new(move |req| callback.deinstall_config(req)),
+            "ConCalService::deinstall_config",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request =
-                GetConfigAndRegisterForConfigUpdateRequest::parse_from_bytes(request_bytes)
-                    .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .get_config_and_register_for_config_update(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::get_config_and_register_for_config_update"),
-            Box::new(typeless_callback),
+        serve_method::<GetCalibrationConfigIdsRequest, GetCalibrationConfigIdsResponse>(
+            Box::new(move |req| callback.get_calibration_config_ids(req)),
+            "ConCalService::get_calibration_config_ids",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = UnregisterFromConfigUpdateRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .unregister_from_config_update(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::unregister_from_config_update"),
-            Box::new(typeless_callback),
+        serve_method::<StartCalibrationRequest, StartCalibrationResponse>(
+            Box::new(move |req| callback.start_calibration(req)),
+            "ConCalService::start_calibration",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = RegisterForCalibrationUpdateRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .register_for_calibration_update(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::register_for_calibration_update"),
-            Box::new(typeless_callback),
+        serve_method::<StopCalibrationRequest, StopCalibrationResponse>(
+            Box::new(move |req| callback.stop_calibration(req)),
+            "ConCalService::stop_calibration",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = UnregisterFromCalibrationUpdateRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .unregister_from_calibration_update(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("ConCalService::unregister_from_calibration_update"),
-            Box::new(typeless_callback),
+        serve_method::<
+            GetConfigAndRegisterForConfigUpdateRequest,
+            GetConfigAndRegisterForConfigUpdateResponse,
+        >(
+            Box::new(move |req| callback.get_config_and_register_for_config_update(req)),
+            "ConCalService::get_config_and_register_for_config_update",
+            self.transport.as_ref(),
+        );
+        let callback = service.clone();
+        serve_method::<UnregisterFromConfigUpdateRequest, UnregisterFromConfigUpdateResponse>(
+            Box::new(move |req| callback.unregister_from_config_update(req)),
+            "ConCalService::unregister_from_config_update",
+            self.transport.as_ref(),
+        );
+        let callback = service.clone();
+        serve_method::<RegisterForCalibrationUpdateRequest, RegisterForCalibrationUpdateResponse>(
+            Box::new(move |req| callback.register_for_calibration_update(req)),
+            "ConCalService::register_for_calibration_update",
+            self.transport.as_ref(),
+        );
+        let callback = service.clone();
+        serve_method::<
+            UnregisterFromCalibrationUpdateRequest,
+            UnregisterFromCalibrationUpdateResponse,
+        >(
+            Box::new(move |req| callback.unregister_from_calibration_update(req)),
+            "ConCalService::unregister_from_calibration_update",
+            self.transport.as_ref(),
         );
     }
 }
