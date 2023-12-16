@@ -17,7 +17,6 @@ rust_protobuf {
         "-I .",
     ],
     source_stem: "sdvtestconcal_proto_rust",
-    use_protobuf3: true,
     vendor: true,
 }
 
