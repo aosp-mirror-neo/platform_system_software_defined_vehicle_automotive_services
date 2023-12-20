@@ -69,6 +69,7 @@ mod tests {
     use protobuf::well_known_types::any::Any;
     use protobuf::MessageDyn;
     use sdvtestconcal_proto_rust::test_configuration::TestConfiguration as TestConfigurationProto;
+    use std::collections::VecDeque;
     use std::path::PathBuf;
 
     #[test]
@@ -193,6 +194,14 @@ mod tests {
         );
     }
 
+    #[test]
+    fn override_textproto_clean_map_succeeds() {
+        let default = register_config("map_parameter {key: \"first_element\" value: 1}");
+        let config_override = get_config_override_key_value("map_parameter", "");
+        let new_config = override_config(default, config_override);
+        assert_eq!(print_to_string(&*new_config), "");
+    }
+
     fn get_default_config(textproto: &str) -> TestConfigurationProto {
         let res = parse_from_str::<TestConfigurationProto>(textproto);
         assert!(res.is_ok(), "{:?}", res);
@@ -203,33 +212,57 @@ mod tests {
         Any::pack(&get_default_config(config_txtpb)).unwrap()
     }
 
-    fn override_config(config: Any, config_override: CoPair) -> Box<dyn MessageDyn> {
+    fn override_config_fo_subkey(
+        config: Any,
+        subkeys: &mut VecDeque<String>,
+        value: String,
+    ) -> Box<dyn MessageDyn> {
         let pm = get_test_proto_manager();
         let fd_dyn = pm
             .find_schema(".android.sdv.config.testconfig.TestConfiguration")
             .expect("Message description has not been found");
-        let new_desc: MessageDescriptor = fd_dyn
+        let desc: MessageDescriptor = fd_dyn
             .message_by_package_relative_name("TestConfiguration")
             .expect("Message was not found");
+
         // If the key is undefined the complete config should be rewritten.
-        if config_override.key.is_empty() {
-            let mut new_config = new_desc.new_instance();
-            let result = merge_from_str(&mut *new_config, &config_override.value_txtproto);
+        if subkeys.is_empty() {
+            let mut new_config = desc.new_instance();
+            let result = merge_from_str(&mut *new_config, &value);
             assert!(result.is_ok(), "error: {:?}", result);
             return new_config;
         }
-        let mut config_dyn = config.unpack_dyn(&new_desc).unwrap().unwrap();
-        if let Some(field) = new_desc.field_by_name(&config_override.key) {
-            let mut override_str: String = config_override.key;
+        let key = subkeys
+            .pop_front()
+            .expect("This should never happen because the empty case is already handled");
+
+        let mut config_dyn = config.unpack_dyn(&desc).unwrap().unwrap();
+        if let Some(field) = desc.field_by_name(&key) {
+            if value.is_empty() {
+                field.clear_field(&mut *config_dyn);
+                return config_dyn;
+            }
+            let mut override_str: String = key;
             match field.singular_runtime_type() {
                 RuntimeType::Message(_) => {}
                 _ => override_str.push(':'),
             }
-            override_str.push_str(&config_override.value_txtproto);
+            override_str.push_str(&value);
             let result = merge_from_str(&mut *config_dyn, &override_str);
             assert!(result.is_ok(), "override: {:?}, error: {:?}", override_str, result);
         }
         config_dyn
+    }
+
+    fn override_config(config: Any, config_override: CoPair) -> Box<dyn MessageDyn> {
+        let mut subkeys: VecDeque<String> = config_override
+            .key
+            .split('.')
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_string())
+            .collect();
+
+        override_config_fo_subkey(config, &mut subkeys, config_override.value_txtproto)
     }
 
     fn get_config_override_key_value(key: &str, value: &str) -> CoPair {
