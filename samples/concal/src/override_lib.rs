@@ -144,7 +144,7 @@ mod tests {
     }
 
     #[test]
-    fn override_textproto_complex_add_new_field_succeeds() {
+    fn override_textproto_add_new_field_succeeds() {
         let default = register_config("str_parameter: \"string parameter\"");
         // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
         let config_override =
@@ -203,7 +203,6 @@ mod tests {
         assert_eq!(print_to_string(&*new_config), "");
     }
 
-    // my_map { key: "entry1" value: 1 }
     #[test]
     fn override_textproto_add_newkey_to_map_succeeds() {
         let default = register_config("map_parameter {key: \"initial key\" value: 1}");
@@ -230,9 +229,31 @@ mod tests {
         );
     }
 
+    #[test]
+    fn override_textproto_clean_repeated_succeeds() {
+        let default = register_config("list_parameter: \"first\" list_parameter: \"second\"");
+        let config_override = get_config_override_key_value("list_parameter", "");
+        let new_config = override_config(default, config_override);
+        assert_eq!(print_to_string(&*new_config), "");
+    }
+
+    #[test]
+    fn override_textproto_assign_new_value_repeated_succeeds() {
+        let default = register_config("list_parameter: \"first\" list_parameter: \"second\"");
+        let config_override = get_config_override_key_value(
+            "list_parameter",
+            "\"first updated\", \"second updated\", \"third updated\"",
+        );
+        let new_config = override_config(default, config_override);
+        assert_eq!(
+            print_to_string(&*new_config),
+            "list_parameter: \"first updated\" list_parameter: \"second updated\" list_parameter: \"third updated\""
+        );
+    }
+
     fn get_default_config(textproto: &str) -> TestConfigurationProto {
         let res = parse_from_str::<TestConfigurationProto>(textproto);
-        assert!(res.is_ok(), "{:?}", res);
+        assert!(res.is_ok(), "String: {}, error: {:?}", textproto, res);
         res.unwrap()
     }
 
@@ -300,16 +321,36 @@ mod tests {
                 return config_dyn;
             }
 
-            let mut override_str: String = key;
-            match field.singular_runtime_type() {
-                RuntimeType::Message(_) => {}
-                _ => override_str.push(':'),
+            let mut override_str: String = "".to_string();
+            if field.is_singular() {
+                override_str = construct_singular_textproto(key, value, &field);
+            } else if field.is_repeated() {
+                field.clear_field(&mut *config_dyn);
+                override_str = construct_repeated_textproto(key, value);
             }
-            override_str.push_str(&value);
             let result = merge_from_str(&mut *config_dyn, &override_str);
             assert!(result.is_ok(), "override: {:?}, error: {:?}", override_str, result);
         }
         config_dyn
+    }
+
+    fn construct_singular_textproto(key: String, value: String, field: &FieldDescriptor) -> String {
+        let mut override_str: String = key;
+        match field.singular_runtime_type() {
+            RuntimeType::Message(_) => {}
+            _ => override_str.push(':'),
+        }
+        override_str.push_str(&value);
+        override_str
+    }
+
+    fn construct_repeated_textproto(key: String, value: String) -> String {
+        value
+            .split(',')
+            .filter(|s| !s.is_empty())
+            .map(|s| key.clone() + ": " + s)
+            .collect::<Vec<_>>()
+            .join(" ")
     }
 
     fn merge(key: String, field: &FieldDescriptor, value: String, config_dyn: &mut dyn MessageDyn) {
