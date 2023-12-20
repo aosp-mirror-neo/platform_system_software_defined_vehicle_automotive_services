@@ -62,7 +62,8 @@ impl ProtoManager {
 mod tests {
     use super::*;
     use concal_api::configuration::ConfigOverrideKeyValue as CoPair;
-    use protobuf::reflect::{MessageDescriptor, RuntimeType};
+    use protobuf::reflect::ReflectMapRef;
+    use protobuf::reflect::{FieldDescriptor, MessageDescriptor, RuntimeType};
     use protobuf::text_format::merge_from_str;
     use protobuf::text_format::parse_from_str;
     use protobuf::text_format::print_to_string;
@@ -185,12 +186,12 @@ mod tests {
         // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
         let config_override = get_config_override_key_value(
             "",
-            "int_parameter: 10 complex_parameter {first_parameter: \"initial\"}",
+            "int_parameter: 10 complex_parameter {first_parameter: \"initial\"} map_parameter {key: \"first_element\" value: 1}",
         );
         let new_config = override_config(default, config_override);
         assert_eq!(
             print_to_string(&*new_config),
-            "int_parameter: 10 complex_parameter {first_parameter: \"initial\"}",
+            "int_parameter: 10 map_parameter {key: \"first_element\" value: 1} complex_parameter {first_parameter: \"initial\"}",
         );
     }
 
@@ -200,6 +201,33 @@ mod tests {
         let config_override = get_config_override_key_value("map_parameter", "");
         let new_config = override_config(default, config_override);
         assert_eq!(print_to_string(&*new_config), "");
+    }
+
+    // my_map { key: "entry1" value: 1 }
+    #[test]
+    fn override_textproto_add_newkey_to_map_succeeds() {
+        let default = register_config("map_parameter {key: \"initial key\" value: 1}");
+        // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
+        let config_override = get_config_override_key_value("map_parameter.new key", "2");
+        let new_config = override_config(default, config_override);
+
+        // We cannot compare maps as strings with multiple keys, as the order of elements is not guaranteed.
+        // Therefore, we need to sort the entries first.
+        let map_desc = new_config.descriptor_dyn().field_by_name("map_parameter").unwrap();
+        let map = map_desc.get_map(&*new_config);
+        assert_eq!(print_pretty_map(map), "map_parameter {key: \"initial key\" value: 1} map_parameter {key: \"new key\" value: 2}");
+    }
+
+    #[test]
+    fn override_textproto_assign_new_value_to_key_in_map_succeeds() {
+        let default = register_config("map_parameter {key: \"first_element\" value: 1}");
+        // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
+        let config_override = get_config_override_key_value("map_parameter.first_element", "2");
+        let new_config = override_config(default, config_override);
+        assert_eq!(
+            print_to_string(&*new_config),
+            "map_parameter {key: \"first_element\" value: 2}"
+        );
     }
 
     fn get_default_config(textproto: &str) -> TestConfigurationProto {
@@ -217,6 +245,7 @@ mod tests {
         subkeys: &mut VecDeque<String>,
         value: String,
     ) -> Box<dyn MessageDyn> {
+        // Does not consider nested rewritings, only for maps.
         let pm = get_test_proto_manager();
         let fd_dyn = pm
             .find_schema(".android.sdv.config.testconfig.TestConfiguration")
@@ -242,6 +271,35 @@ mod tests {
                 field.clear_field(&mut *config_dyn);
                 return config_dyn;
             }
+
+            if field.is_map() {
+                // If there is no next subkey => complete map is rewritten
+                if subkeys.is_empty() {
+                    field.clear_field(&mut *config_dyn);
+                    merge(key, &field, value, &mut *config_dyn);
+                    return config_dyn;
+                }
+                // Extract the key for the map.
+                let map_key = subkeys
+                    .pop_front()
+                    .expect("This should never happen because the empty case is already handled");
+
+                // Construct an override string as <map_name> {key: <key_name> value: <value>}.
+                let mut override_str: String = key.clone();
+                override_str.push_str(" {");
+                // ToDo: Adjust to different types. Currently, it assumes a string as a key.
+                override_str.push_str("key: \"");
+                override_str.push_str(&map_key);
+                // ToDo: Adjust to different types. Currently, it assumes a string as a key.
+                override_str.push_str("\" ");
+                override_str.push_str("value:");
+                override_str.push_str(&value);
+                override_str.push('}');
+                let result = merge_from_str(&mut *config_dyn, &override_str);
+                assert!(result.is_ok(), "override: {:?}, error: {:?}", override_str, result);
+                return config_dyn;
+            }
+
             let mut override_str: String = key;
             match field.singular_runtime_type() {
                 RuntimeType::Message(_) => {}
@@ -252,6 +310,26 @@ mod tests {
             assert!(result.is_ok(), "override: {:?}, error: {:?}", override_str, result);
         }
         config_dyn
+    }
+
+    fn merge(key: String, field: &FieldDescriptor, value: String, config_dyn: &mut dyn MessageDyn) {
+        let mut override_str: String = key;
+        match field.singular_runtime_type() {
+            RuntimeType::Message(_) => {}
+            _ => override_str.push(':'),
+        }
+        override_str.push_str(&value);
+        let result = merge_from_str(&mut *config_dyn, &override_str);
+        assert!(result.is_ok(), "override: {:?}, error: {:?}", override_str, result);
+    }
+
+    fn print_pretty_map(map: ReflectMapRef) -> String {
+        let mut pairs = map
+            .into_iter()
+            .map(|(k, v)| format!("map_parameter {{key: \"{}\" value: {}}}", k, v))
+            .collect::<Vec<_>>();
+        pairs.sort();
+        pairs.join(" ")
     }
 
     fn override_config(config: Any, config_override: CoPair) -> Box<dyn MessageDyn> {
