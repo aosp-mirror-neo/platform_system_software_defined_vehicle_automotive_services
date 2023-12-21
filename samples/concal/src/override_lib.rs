@@ -69,6 +69,7 @@ mod tests {
     use protobuf::text_format::print_to_string;
     use protobuf::well_known_types::any::Any;
     use protobuf::MessageDyn;
+    use regex::Regex;
     use sdvtestconcal_proto_rust::test_configuration::TestConfiguration as TestConfigurationProto;
     use std::collections::VecDeque;
     use std::path::PathBuf;
@@ -204,6 +205,22 @@ mod tests {
     }
 
     #[test]
+    fn override_textproto_assign_new_value_map_succeeds() {
+        let default = register_config("map_parameter {key: \"first_element\" value: 1}");
+        let config_override = get_config_override_key_value(
+            "map_parameter",
+            "[{key: \"second_element\" value: 2}, {key: \"third_element\" value: 3}]",
+        );
+        let new_config = override_config(default, config_override);
+
+        // We cannot compare maps as strings with multiple keys, as the order of elements is not guaranteed.
+        // Therefore, we need to sort the entries first.
+        let map_desc = new_config.descriptor_dyn().field_by_name("map_parameter").unwrap();
+        let map = map_desc.get_map(&*new_config);
+        assert_eq!(print_pretty_map(map), "map_parameter {key: \"second_element\" value: 2} map_parameter {key: \"third_element\" value: 3}");
+    }
+
+    #[test]
     fn override_textproto_add_newkey_to_map_succeeds() {
         let default = register_config("map_parameter {key: \"initial key\" value: 1}");
         // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
@@ -231,10 +248,12 @@ mod tests {
 
     #[test]
     fn override_textproto_clean_repeated_succeeds() {
-        let default = register_config("list_parameter: \"first\" list_parameter: \"second\"");
+        let default = register_config(
+            "int_parameter: 1 list_parameter: \"first\" list_parameter: \"second\"",
+        );
         let config_override = get_config_override_key_value("list_parameter", "");
         let new_config = override_config(default, config_override);
-        assert_eq!(print_to_string(&*new_config), "");
+        assert_eq!(print_to_string(&*new_config), "int_parameter: 1");
     }
 
     #[test]
@@ -353,13 +372,40 @@ mod tests {
             .join(" ")
     }
 
-    fn merge(key: String, field: &FieldDescriptor, value: String, config_dyn: &mut dyn MessageDyn) {
-        let mut override_str: String = key;
-        match field.singular_runtime_type() {
-            RuntimeType::Message(_) => {}
-            _ => override_str.push(':'),
+    fn merge(
+        key: String,
+        field: &FieldDescriptor,
+        mut value: String,
+        config_dyn: &mut dyn MessageDyn,
+    ) {
+        let mut override_str: String = "".to_string();
+        if field.is_singular() {
+            override_str = key.clone();
+            match field.singular_runtime_type() {
+                RuntimeType::Message(_) => {}
+                _ => override_str.push(':'),
+            }
+            override_str.push_str(&value);
         }
-        override_str.push_str(&value);
+        // As the merge_from_str does not understand [] syntax, transform into map{} map{}.
+        if field.is_map() {
+            override_str.clear();
+            if value.starts_with('[') & value.ends_with(']') {
+                value.remove(0);
+                value.pop();
+            }
+            override_str = Regex::new(r"\{.*\}")
+                .unwrap()
+                .find_iter(&value)
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join(" ")
+                .split(',')
+                .filter(|s| !s.is_empty())
+                .map(|s| key.clone() + " " + s)
+                .collect::<Vec<_>>()
+                .join(" ")
+        }
         let result = merge_from_str(&mut *config_dyn, &override_str);
         assert!(result.is_ok(), "override: {:?}, error: {:?}", override_str, result);
     }
