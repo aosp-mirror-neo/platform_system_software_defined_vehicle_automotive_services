@@ -134,6 +134,14 @@ mod tests {
     }
 
     #[test]
+    fn override_textproto_clean_float_succeeds() {
+        let default = register_config("int_parameter: 5 float_parameter: 5.5");
+        let config_override = get_config_override_key_value("float_parameter", "");
+        let new_config = override_config(default, config_override);
+        assert_eq!(print_to_string(&*new_config), "int_parameter: 5");
+    }
+
+    #[test]
     fn override_textproto_string_succeeds() {
         let default = register_config("float_parameter: 3.4 str_parameter: \"string parameter\"");
         let config_override = get_config_override_key_value("str_parameter", "\"updated\"");
@@ -142,6 +150,15 @@ mod tests {
             print_to_string(&*new_config),
             "float_parameter: 3.4 str_parameter: \"updated\""
         );
+    }
+
+    #[test]
+    fn override_textproto_clean_field_succeeds() {
+        let default = register_config("str_parameter: \"string parameter\" complex_parameter {first_parameter: \"new_parameter\"}");
+        // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
+        let config_override = get_config_override_key_value("complex_parameter", "");
+        let new_config = override_config(default, config_override);
+        assert_eq!(print_to_string(&*new_config), "str_parameter: \"string parameter\"");
     }
 
     #[test]
