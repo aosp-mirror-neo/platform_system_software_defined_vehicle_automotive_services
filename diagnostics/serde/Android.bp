@@ -1,0 +1,43 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_defaults {
+    name: "sdv_uds_serde@rust_defaults",
+    srcs: ["lib.rs"],
+    defaults: ["sdv@rust_defaults"],
+    rustlibs: [
+        "libbytes",
+        "libthiserror",
+        "libprotobuf",
+        "libserde",
+    ],
+    edition: "2021",
+    lints: "android",
+    clippy_lints: "android",
+    vendor_available: true,
+}
+
+rust_library {
+    name: "libsdv_uds_serde",
+    crate_name: "sdv_uds_serde",
+    defaults: [
+        "sdv_uds_serde@rust_defaults",
+    ],
+    host_supported: true,
+}
+
+rust_test {
+    name: "libsdv_uds_serde_tests",
+    defaults: [
+        "sdv_uds_serde@rust_defaults",
+    ],
+    rustlibs: [
+        "libtempfile",
+        "libprotobuf_parse",
+        "libvsidl_syntax",
+    ],
+    test_options: {
+        unit_test: true,
+    },
+}
