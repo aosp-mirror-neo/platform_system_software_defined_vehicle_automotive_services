@@ -4,9 +4,9 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::DiagnosticsManager;
-use diagnostics_api_sample::diagnostics_manager::*;
-use protobuf::Message;
-use sdvmiddleware_rpc::error::RpcError;
+use diagnostics_api_sample::diagnostics_manager::GetConnectionMetadataRequest;
+use diagnostics_api_sample::diagnostics_manager::GetConnectionMetadataResponse;
+use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
 
@@ -25,19 +25,11 @@ impl DiagnosticsManagerServer {
     /// the underlying RPC transport and calls methods of user provided
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn DiagnosticsManager>) {
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = GetConnectionMetadataRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .get_connection_metadata(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("DiagnosticsManager::get_connection_metadata"),
-            Box::new(typeless_callback),
+        serve_method::<GetConnectionMetadataRequest, GetConnectionMetadataResponse>(
+            Box::new(move |req| callback.get_connection_metadata(req)),
+            "DiagnosticsManager::get_connection_metadata",
+            self.transport.as_ref(),
         );
     }
 }

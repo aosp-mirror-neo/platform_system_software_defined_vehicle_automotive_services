@@ -4,9 +4,13 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::FileTransfer;
-use diagnostics_api_sample::file_transfer::*;
-use protobuf::Message;
-use sdvmiddleware_rpc::error::RpcError;
+use diagnostics_api_sample::file_transfer::FilePath;
+use diagnostics_api_sample::file_transfer::FileReadResponse;
+use diagnostics_api_sample::file_transfer::FileRequest;
+use diagnostics_api_sample::file_transfer::FileWriteRequest;
+use diagnostics_api_sample::file_transfer::ResumeFileResponse;
+use protobuf::well_known_types::empty::Empty;
+use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
 
@@ -25,64 +29,41 @@ impl FileTransferServer {
     /// the underlying RPC transport and calls methods of user provided
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn FileTransfer>) {
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = FileWriteRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.add_file(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("FileTransfer::add_file"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
+        serve_method::<FileWriteRequest, FilePath>(
+            Box::new(move |req| callback.add_file(req)),
+            "FileTransfer::add_file",
+            self.transport.as_ref(),
+        );
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = FileWriteRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.replace_file(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("FileTransfer::replace_file"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
+        serve_method::<FileWriteRequest, FilePath>(
+            Box::new(move |req| callback.replace_file(req)),
+            "FileTransfer::replace_file",
+            self.transport.as_ref(),
+        );
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = FileWriteRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.resume_file(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("FileTransfer::resume_file"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
+        serve_method::<FileWriteRequest, ResumeFileResponse>(
+            Box::new(move |req| callback.resume_file(req)),
+            "FileTransfer::resume_file",
+            self.transport.as_ref(),
+        );
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = FileRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.read_file(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("FileTransfer::read_file"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
+        serve_method::<FileRequest, FileReadResponse>(
+            Box::new(move |req| callback.read_file(req)),
+            "FileTransfer::read_file",
+            self.transport.as_ref(),
+        );
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = FileRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.delete_file(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("FileTransfer::delete_file"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
+        serve_method::<FileRequest, Empty>(
+            Box::new(move |req| callback.delete_file(req)),
+            "FileTransfer::delete_file",
+            self.transport.as_ref(),
+        );
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = FileRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .exit_file_transfer(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("FileTransfer::exit_file_transfer"),
-            Box::new(typeless_callback),
+        serve_method::<FileRequest, Empty>(
+            Box::new(move |req| callback.exit_file_transfer(req)),
+            "FileTransfer::exit_file_transfer",
+            self.transport.as_ref(),
         );
     }
 }

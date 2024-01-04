@@ -4,10 +4,13 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::CalibratableService;
-use concal_api::calibratable_service::*;
-use concal_api::calibration::*;
-use protobuf::Message;
-use sdvmiddleware_rpc::error::RpcError;
+use concal_api::calibratable_service::FinishCalibrationRequest;
+use concal_api::calibratable_service::FinishCalibrationResponse;
+use concal_api::calibratable_service::UpdateConfigRequest;
+use concal_api::calibratable_service::UpdateConfigResponse;
+use concal_api::calibration::StartCalibrationRequest;
+use concal_api::calibration::StartCalibrationResponse;
+use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
 
@@ -26,44 +29,23 @@ impl CalibratableServiceServer {
     /// the underlying RPC transport and calls methods of user provided
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn CalibratableService>) {
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = StartCalibrationRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .start_calibration(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("CalibratableService::start_calibration"),
-            Box::new(typeless_callback),
+        serve_method::<StartCalibrationRequest, StartCalibrationResponse>(
+            Box::new(move |req| callback.start_calibration(req)),
+            "CalibratableService::start_calibration",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = UpdateConfigRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.update_config(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("CalibratableService::update_config"),
-            Box::new(typeless_callback),
+        serve_method::<UpdateConfigRequest, UpdateConfigResponse>(
+            Box::new(move |req| callback.update_config(req)),
+            "CalibratableService::update_config",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = FinishCalibrationRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .finish_calibration(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("CalibratableService::finish_calibration"),
-            Box::new(typeless_callback),
+        serve_method::<FinishCalibrationRequest, FinishCalibrationResponse>(
+            Box::new(move |req| callback.finish_calibration(req)),
+            "CalibratableService::finish_calibration",
+            self.transport.as_ref(),
         );
     }
 }

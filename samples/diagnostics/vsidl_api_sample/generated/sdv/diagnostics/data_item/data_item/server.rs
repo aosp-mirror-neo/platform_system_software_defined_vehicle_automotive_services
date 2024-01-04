@@ -4,9 +4,11 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::DataItem;
-use diagnostics_api_sample::data_item::*;
-use protobuf::Message;
-use sdvmiddleware_rpc::error::RpcError;
+use diagnostics_api_sample::data_item::ReadRequest;
+use diagnostics_api_sample::data_item::ReadResponse;
+use diagnostics_api_sample::data_item::WriteRequest;
+use protobuf::well_known_types::empty::Empty;
+use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
 
@@ -25,21 +27,17 @@ impl DataItemServer {
     /// the underlying RPC transport and calls methods of user provided
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn DataItem>) {
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = ReadRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.read(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(String::from("DataItem::read"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
+        serve_method::<ReadRequest, ReadResponse>(
+            Box::new(move |req| callback.read(req)),
+            "DataItem::read",
+            self.transport.as_ref(),
+        );
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = WriteRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.write(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(String::from("DataItem::write"), Box::new(typeless_callback));
+        serve_method::<WriteRequest, Empty>(
+            Box::new(move |req| callback.write(req)),
+            "DataItem::write",
+            self.transport.as_ref(),
+        );
     }
 }

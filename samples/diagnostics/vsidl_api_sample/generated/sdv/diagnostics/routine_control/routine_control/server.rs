@@ -4,9 +4,9 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::RoutineControl;
-use diagnostics_api_sample::routine_control::*;
-use protobuf::Message;
-use sdvmiddleware_rpc::error::RpcError;
+use diagnostics_api_sample::routine_control::RoutineControlRequest;
+use diagnostics_api_sample::routine_control::RoutineControlResponse;
+use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
 
@@ -25,37 +25,23 @@ impl RoutineControlServer {
     /// the underlying RPC transport and calls methods of user provided
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn RoutineControl>) {
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = RoutineControlRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.start(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("RoutineControl::start"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
+        serve_method::<RoutineControlRequest, RoutineControlResponse>(
+            Box::new(move |req| callback.start(req)),
+            "RoutineControl::start",
+            self.transport.as_ref(),
+        );
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = RoutineControlRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.stop(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("RoutineControl::stop"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
+        serve_method::<RoutineControlRequest, RoutineControlResponse>(
+            Box::new(move |req| callback.stop(req)),
+            "RoutineControl::stop",
+            self.transport.as_ref(),
+        );
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = RoutineControlRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .request_result(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("RoutineControl::request_result"),
-            Box::new(typeless_callback),
+        serve_method::<RoutineControlRequest, RoutineControlResponse>(
+            Box::new(move |req| callback.request_result(req)),
+            "RoutineControl::request_result",
+            self.transport.as_ref(),
         );
     }
 }
