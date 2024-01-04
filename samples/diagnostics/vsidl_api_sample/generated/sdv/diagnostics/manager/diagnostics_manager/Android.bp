@@ -12,6 +12,7 @@ rust_library {
         "mod.rs",
     ],
     rustlibs: [
+        "libsdvmiddleware_common",
         "libsdvmiddleware_rpc",
         "libprotobuf",
         "libdiagnostics_api_sample",

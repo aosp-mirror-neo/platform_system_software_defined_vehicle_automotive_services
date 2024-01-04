@@ -4,9 +4,11 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::SecurityAccess;
-use diagnostics_api_sample::security_access::*;
-use protobuf::Message;
-use sdvmiddleware_rpc::error::RpcError;
+use diagnostics_api_sample::security_access::SeedRequest;
+use diagnostics_api_sample::security_access::SeedResponse;
+use diagnostics_api_sample::security_access::SendKeyRequest;
+use protobuf::well_known_types::empty::Empty;
+use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
 
@@ -25,23 +27,17 @@ impl SecurityAccessServer {
     /// the underlying RPC transport and calls methods of user provided
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn SecurityAccess>) {
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = SeedRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.request_seed(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("SecurityAccess::request_seed"), Box::new(typeless_callback));
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
+        serve_method::<SeedRequest, SeedResponse>(
+            Box::new(move |req| callback.request_seed(req)),
+            "SecurityAccess::request_seed",
+            self.transport.as_ref(),
+        );
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = SendKeyRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback.send_key(request)?.write_to_bytes().map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport
-            .set_method(String::from("SecurityAccess::send_key"), Box::new(typeless_callback));
+        serve_method::<SendKeyRequest, Empty>(
+            Box::new(move |req| callback.send_key(req)),
+            "SecurityAccess::send_key",
+            self.transport.as_ref(),
+        );
     }
 }

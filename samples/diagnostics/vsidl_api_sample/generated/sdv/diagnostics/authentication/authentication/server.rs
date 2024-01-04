@@ -4,10 +4,20 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::Authentication;
-use diagnostics_api_sample::authentication::*;
-use diagnostics_api_sample::connection::*;
-use protobuf::Message;
-use sdvmiddleware_rpc::error::RpcError;
+use diagnostics_api_sample::authentication::AuthenticationResponse;
+use diagnostics_api_sample::authentication::ProofOfOwnershipRequest;
+use diagnostics_api_sample::authentication::ProofOfOwnershipResponse;
+use diagnostics_api_sample::authentication::RequestChallengeRequest;
+use diagnostics_api_sample::authentication::RequestChallengeResponse;
+use diagnostics_api_sample::authentication::TransmitCertificateRequest;
+use diagnostics_api_sample::authentication::VerifyCertificateBidirectionalResponse;
+use diagnostics_api_sample::authentication::VerifyCertificateRequest;
+use diagnostics_api_sample::authentication::VerifyCertificateResponse;
+use diagnostics_api_sample::authentication::VerifyProofOfOwnershipBidirectionalResponse;
+use diagnostics_api_sample::authentication::VerifyProofOfOwnershipRequest;
+use diagnostics_api_sample::authentication::VerifyProofOfOwnershipResponse;
+use diagnostics_api_sample::connection::ConnectionId;
+use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
 
@@ -26,131 +36,59 @@ impl AuthenticationServer {
     /// the underlying RPC transport and calls methods of user provided
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn Authentication>) {
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = ConnectionId::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .de_authenticate(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("Authentication::de_authenticate"),
-            Box::new(typeless_callback),
+        serve_method::<ConnectionId, AuthenticationResponse>(
+            Box::new(move |req| callback.de_authenticate(req)),
+            "Authentication::de_authenticate",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = VerifyCertificateRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .verify_certificate(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("Authentication::verify_certificate"),
-            Box::new(typeless_callback),
+        serve_method::<VerifyCertificateRequest, VerifyCertificateResponse>(
+            Box::new(move |req| callback.verify_certificate(req)),
+            "Authentication::verify_certificate",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = VerifyCertificateRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .verify_certificate_bidirectional(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("Authentication::verify_certificate_bidirectional"),
-            Box::new(typeless_callback),
+        serve_method::<VerifyCertificateRequest, VerifyCertificateBidirectionalResponse>(
+            Box::new(move |req| callback.verify_certificate_bidirectional(req)),
+            "Authentication::verify_certificate_bidirectional",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = ProofOfOwnershipRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .proof_of_ownership(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("Authentication::proof_of_ownership"),
-            Box::new(typeless_callback),
+        serve_method::<ProofOfOwnershipRequest, ProofOfOwnershipResponse>(
+            Box::new(move |req| callback.proof_of_ownership(req)),
+            "Authentication::proof_of_ownership",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = TransmitCertificateRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .transmit_certificate(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("Authentication::transmit_certificate"),
-            Box::new(typeless_callback),
+        serve_method::<TransmitCertificateRequest, AuthenticationResponse>(
+            Box::new(move |req| callback.transmit_certificate(req)),
+            "Authentication::transmit_certificate",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = RequestChallengeRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .request_challenge_for_authentication(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("Authentication::request_challenge_for_authentication"),
-            Box::new(typeless_callback),
+        serve_method::<RequestChallengeRequest, RequestChallengeResponse>(
+            Box::new(move |req| callback.request_challenge_for_authentication(req)),
+            "Authentication::request_challenge_for_authentication",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = VerifyProofOfOwnershipRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .verify_proof_of_ownership(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("Authentication::verify_proof_of_ownership"),
-            Box::new(typeless_callback),
+        serve_method::<VerifyProofOfOwnershipRequest, VerifyProofOfOwnershipResponse>(
+            Box::new(move |req| callback.verify_proof_of_ownership(req)),
+            "Authentication::verify_proof_of_ownership",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = VerifyProofOfOwnershipRequest::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .verify_proof_of_ownership_bidirectional(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("Authentication::verify_proof_of_ownership_bidirectional"),
-            Box::new(typeless_callback),
+        serve_method::<VerifyProofOfOwnershipRequest, VerifyProofOfOwnershipBidirectionalResponse>(
+            Box::new(move |req| callback.verify_proof_of_ownership_bidirectional(req)),
+            "Authentication::verify_proof_of_ownership_bidirectional",
+            self.transport.as_ref(),
         );
-        // Converts the proto-typed callback to a callback processing byte arrays. Generic callback is expected in the transport traits because IBinder transport doesn't support proto types.
         let callback = service.clone();
-        let typeless_callback = move |request_bytes: &[u8]| {
-            let request = ConnectionId::parse_from_bytes(request_bytes)
-                .map_err(|_| RpcError::InvalidRequest)?;
-            callback
-                .authentication_configuration(request)?
-                .write_to_bytes()
-                .map_err(|_| RpcError::InvalidResponse)
-        };
-        self.transport.set_method(
-            String::from("Authentication::authentication_configuration"),
-            Box::new(typeless_callback),
+        serve_method::<ConnectionId, AuthenticationResponse>(
+            Box::new(move |req| callback.authentication_configuration(req)),
+            "Authentication::authentication_configuration",
+            self.transport.as_ref(),
         );
     }
 }
