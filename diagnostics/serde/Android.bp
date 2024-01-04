@@ -36,6 +36,7 @@ rust_test {
         "libtempfile",
         "libprotobuf_parse",
         "libvsidl_syntax",
+        "libserde_test",
     ],
     test_options: {
         unit_test: true,

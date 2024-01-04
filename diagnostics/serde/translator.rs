@@ -4,7 +4,7 @@ use crate::protobuf_serialize::MessageSerialize;
 use crate::uds_deserializer::{UdsDeserializer, UdsDeserializerError};
 use crate::uds_serializer::{UdsSerializer, UdsSerializerError};
 use bytes::BytesMut;
-use protobuf::reflect::MessageDescriptor;
+use protobuf::reflect::{MessageDescriptor, MessageRef};
 use serde::de::DeserializeSeed;
 use serde::Serialize;
 
@@ -30,7 +30,8 @@ impl Translator {
         let mut buffer = BytesMut::new();
         let mut serializer = UdsSerializer::new(&mut buffer);
 
-        MessageSerialize::new(message_descriptor, message).serialize(&mut serializer)?;
+        MessageSerialize::new(message_descriptor, &MessageRef::new(&*message))
+            .serialize(&mut serializer)?;
         Ok(buffer.to_vec())
     }
 
@@ -75,10 +76,8 @@ pub enum TranslationError {
 
 #[cfg(test)]
 mod tests {
+    use crate::translator::runtime_message_descriptor::get_message_descriptor;
     use crate::translator::Translator;
-    use protobuf::reflect::{FileDescriptor, MessageDescriptor};
-    use std::fs;
-    use vsidl_syntax::vsidl;
 
     #[test]
     #[should_panic]
@@ -115,8 +114,15 @@ mod tests {
 
         let _ = translator.translate_from_uds_to_protobuf(&uds_bytes, &message_descriptor);
     }
+}
 
-    fn get_message_descriptor(proto_text: &str, message_name: &str) -> MessageDescriptor {
+#[cfg(test)]
+pub mod runtime_message_descriptor {
+    use protobuf::reflect::{FileDescriptor, MessageDescriptor};
+    use std::fs;
+    use vsidl_syntax::vsidl;
+
+    pub fn get_file_descriptor(proto_text: &str) -> FileDescriptor {
         let temp_dir = tempfile::tempdir().unwrap();
         let tempfile = temp_dir.path().join("test_proto.proto");
         fs::write(&tempfile, proto_text).unwrap();
@@ -130,16 +136,14 @@ mod tests {
             .file[0]
             .clone();
 
-        let file_descriptor = FileDescriptor::new_dynamic(
+        FileDescriptor::new_dynamic(
             file_descriptor_proto.clone(),
             &[vsidl::file_descriptor().clone()],
         )
-        .unwrap();
+        .unwrap()
+    }
 
-        if let Some(message_descriptor) = file_descriptor.message_by_full_name(message_name) {
-            message_descriptor
-        } else {
-            panic!();
-        }
+    pub fn get_message_descriptor(proto_text: &str, message_name: &str) -> MessageDescriptor {
+        get_file_descriptor(proto_text).message_by_full_name(message_name).unwrap()
     }
 }
