@@ -15,8 +15,8 @@
 use crate::topics::publisher;
 use crate::topics::subscriber;
 use log::{error, info, warn};
-use sdv_middleware_dt::publisher::DataTunnelPublisher;
-use sdv_middleware_dt::subscriber::DataTunnelSubscriber;
+use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
+use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
 use sdvgenerated_rpc_calibratable_service::server::CalibratableServiceServer;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
@@ -43,14 +43,14 @@ impl CalibratableServer {
 
     /// Triggers publishing and subscription to all the topics defined
     /// in the vehicle catalog for this service bundle
-    pub fn start(&mut self) -> sdv_middleware_dt::Result<()> {
+    pub fn start(&mut self) -> sdv_middleware_pubsub::Result<()> {
         self.register_all_topics()?;
 
         info!("Service `CalibratableServer` has been started.");
         Ok(())
     }
 
-    fn register_all_topics(&mut self) -> sdv_middleware_dt::Result<()> {
+    fn register_all_topics(&mut self) -> sdv_middleware_pubsub::Result<()> {
         Ok(())
     }
 }
