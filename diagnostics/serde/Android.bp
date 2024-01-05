@@ -33,10 +33,12 @@ rust_test {
         "sdv_uds_serde@rust_defaults",
     ],
     rustlibs: [
+        "liblazy_static",
         "libtempfile",
         "libprotobuf_parse",
         "libvsidl_syntax",
         "libserde_test",
+        "libserde_json",
     ],
     test_options: {
         unit_test: true,
