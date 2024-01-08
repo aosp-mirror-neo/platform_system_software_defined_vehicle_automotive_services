@@ -115,7 +115,7 @@ impl ConCalServiceImpl {
         result
     }
 
-    fn compute_new_configs(
+    fn calculate_snapshot(
         &self,
         base_configs: &HashMap<HashableConfigId, Configuration>,
         overrides_for_each_config: &HashMap<HashableConfigId, Vec<ConfigOverride>>,
@@ -398,7 +398,7 @@ impl ConCalService for ConCalServiceImpl {
         let overrides_for_each_config: HashMap<HashableConfigId, Vec<ConfigOverride>> =
             self.group_overrides_by_config_id(&mlock);
         let new_configurations =
-            match self.compute_new_configs(&mlock.base_configs, &overrides_for_each_config) {
+            match self.calculate_snapshot(&mlock.base_configs, &overrides_for_each_config) {
                 Ok(x) => x,
                 Err(err) => {
                     return error_response!(
