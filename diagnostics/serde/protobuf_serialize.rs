@@ -2,9 +2,10 @@
 use protobuf::reflect::{
     FieldDescriptor, MessageDescriptor, MessageRef,
     ReflectFieldRef::{self, *},
+    ReflectRepeatedRef,
     ReflectValueRef::{self, *},
 };
-use serde::ser::SerializeTuple;
+use serde::ser::{SerializeSeq, SerializeTuple};
 use serde::{Serialize, Serializer};
 use std::ops::Deref;
 
@@ -58,7 +59,9 @@ impl<'lt> Serialize for FieldSerialize<'lt> {
                 }
                 _ => serializer.serialize_none(),
             },
-            Repeated(_) => todo!("repeated fields are not supported yet"),
+            Repeated(repeated_field) => {
+                RepeatedValueSerialize::new(&self.descriptor, repeated_field).serialize(serializer)
+            }
             Map(_) => todo!("map fields are not supported yet"),
         }
     }
@@ -95,6 +98,31 @@ impl<'lt> Serialize for ValueSerialize<'lt> {
                 MessageSerialize::new(&value.descriptor_dyn(), value).serialize(serializer)
             }
         }
+    }
+}
+struct RepeatedValueSerialize<'lt> {
+    descriptor: &'lt FieldDescriptor,
+    value: &'lt ReflectRepeatedRef<'lt>,
+}
+
+impl<'lt> RepeatedValueSerialize<'lt> {
+    fn new(descriptor: &'lt FieldDescriptor, value: &'lt ReflectRepeatedRef<'lt>) -> Self {
+        Self { descriptor, value }
+    }
+}
+
+impl<'lt> Serialize for RepeatedValueSerialize<'lt> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.value.len()))?;
+
+        for element_value in self.value {
+            seq.serialize_element(&ValueSerialize::new(self.descriptor, element_value))?;
+        }
+
+        seq.end()
     }
 }
 
@@ -296,6 +324,69 @@ mod tests {
                 Token::Some,
                 Token::I64(10064),
                 Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_repeated_fields() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            message TestProto {
+                repeated int64 my_i64 = 1;
+                repeated TestEnum my_enum = 2;
+                repeated double my_f64 = 3;
+            }
+
+            enum TestEnum {
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+        let enum_descriptor = file_descriptor.enum_by_full_name(".TestEnum").unwrap();
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let values = match index {
+                0 => {
+                    vec![]
+                }
+                1 => {
+                    vec![Enum(enum_descriptor.clone(), 1)]
+                }
+                2 => {
+                    vec![F64(-6.4), F64(-64.0), F64(-0.001)]
+                }
+                _ => unreachable!(),
+            };
+
+            for value in values {
+                field.mut_repeated(&mut *message).push(value);
+            }
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 3 },
+                Token::Seq { len: Some(0) },
+                Token::SeqEnd,
+                Token::Seq { len: Some(1) },
+                Token::I32(1),
+                Token::SeqEnd,
+                Token::Seq { len: Some(3) },
+                Token::F64(-6.4),
+                Token::F64(-64.0),
+                Token::F64(-0.001),
+                Token::SeqEnd,
                 Token::TupleEnd,
             ],
         )
