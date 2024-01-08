@@ -83,10 +83,9 @@ impl<'de, 'lt> DeserializeSeed<'de> for MessageDeserializeSeed<'lt> {
 //
 // Field value is deserialized directly into `self.message`.
 //
-// Responsible only for delegating to the proper field type specific deserializer:
-// - ValueDeserializeSeed for optional fields
-// - <todo> for repeated fields
-// - <todo> for map fields
+// Responsible for figuring out how many values of what type has to be deserialized
+// depending on type of field (optional / repeated / map) and delegating to
+// ValueDeserializeSeed.
 struct FieldDeserializeSeed<'lt> {
     field_descriptor: &'lt FieldDescriptor,
     message: &'lt mut Box<dyn MessageDyn>,
@@ -132,7 +131,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for FieldDeserializeSeed<'lt> {
                 D: Deserializer<'de>,
             {
                 Ok(Some(
-                    ValueDeserializeSeed::new(self.descriptor, self.runtime_type)
+                    ValueDeserializeSeed::new(self.descriptor, &self.runtime_type)
                         .deserialize(deserializer)?,
                 ))
             }
@@ -142,6 +141,46 @@ impl<'de, 'lt> DeserializeSeed<'de> for FieldDeserializeSeed<'lt> {
                 E: Error,
             {
                 Ok(None)
+            }
+        }
+
+        struct RepeatedFieldVisitor<'lt> {
+            message: &'lt mut Box<dyn MessageDyn>,
+            descriptor: &'lt FieldDescriptor,
+            runtime_type: RuntimeType,
+        }
+
+        impl<'lt> RepeatedFieldVisitor<'lt> {
+            fn new(
+                message: &'lt mut Box<dyn MessageDyn>,
+                descriptor: &'lt FieldDescriptor,
+                runtime_type: RuntimeType,
+            ) -> Self {
+                Self { message, descriptor, runtime_type }
+            }
+        }
+
+        impl<'de, 'lt> Visitor<'de> for RepeatedFieldVisitor<'lt> {
+            type Value = ();
+
+            fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                write!(fmt, "Repeated value")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let mut repeated_field = self.descriptor.mut_repeated(&mut **self.message);
+
+                while let Some(element_value) = seq.next_element_seed(ValueDeserializeSeed::new(
+                    self.descriptor,
+                    &self.runtime_type,
+                ))? {
+                    repeated_field.push(element_value)
+                }
+
+                Ok(())
             }
         }
 
@@ -156,7 +195,13 @@ impl<'de, 'lt> DeserializeSeed<'de> for FieldDeserializeSeed<'lt> {
                     self.field_descriptor.set_singular_field(&mut **self.message, field_value);
                 }
             }
-            Repeated(_) => todo!("repeated fields are not supported yet"),
+            Repeated(runtime_type) => {
+                deserializer.deserialize_seq(RepeatedFieldVisitor::new(
+                    self.message,
+                    self.field_descriptor,
+                    runtime_type,
+                ))?;
+            }
             Map(_, _) => todo!("map fields are not supported yet"),
         };
         Ok(())
@@ -171,11 +216,11 @@ impl<'de, 'lt> DeserializeSeed<'de> for FieldDeserializeSeed<'lt> {
 // - single key or value within a map field
 struct ValueDeserializeSeed<'lt> {
     _descriptor: &'lt FieldDescriptor,
-    runtime_type: RuntimeType,
+    runtime_type: &'lt RuntimeType,
 }
 
 impl<'lt> ValueDeserializeSeed<'lt> {
-    fn new(_descriptor: &'lt FieldDescriptor, runtime_type: RuntimeType) -> Self {
+    fn new(_descriptor: &'lt FieldDescriptor, runtime_type: &'lt RuntimeType) -> Self {
         Self { _descriptor, runtime_type }
     }
 }
@@ -399,9 +444,9 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                 deserializer.deserialize_byte_buf(VecU8ValueVisitor)
             }
             RuntimeType::Enum(enum_descriptor) => {
-                struct EnumValueVisitor(EnumDescriptor);
+                struct EnumValueVisitor<'lt>(&'lt EnumDescriptor);
 
-                impl<'de> Visitor<'de> for EnumValueVisitor {
+                impl<'de, 'lt> Visitor<'de> for EnumValueVisitor<'lt> {
                     type Value = ReflectValueBox;
 
                     fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -413,7 +458,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                         E: Error,
                     {
                         if (variant_index as usize) < self.0.proto().value.len() {
-                            Ok(Enum(self.0, variant_index))
+                            Ok(Enum(self.0.clone(), variant_index))
                         } else {
                             Err(E::custom("enum variant index is out of bounds"))
                         }
@@ -435,7 +480,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
             }
             RuntimeType::Message(message_descriptor) => {
                 let message =
-                    MessageDeserializeSeed::new(&message_descriptor).deserialize(deserializer)?;
+                    MessageDeserializeSeed::new(message_descriptor).deserialize(deserializer)?;
                 Ok(Message(message))
             }
         }
@@ -1025,6 +1070,70 @@ mod tests {
                 Token::TupleEnd,
             ],
             "enum variant index is out of bounds",
+        )
+    }
+
+    #[test]
+    fn deserialize_proto_with_repeated_fields() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            message TestProto {
+                repeated int64 my_i64 = 1;
+                repeated TestEnum my_enum = 2;
+                repeated double my_f64 = 3;
+            }
+
+            enum TestEnum {
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+            "#,
+            ".TestProto",
+            file_descriptor,
+            message_descriptor
+        );
+
+        let enum_descriptor = file_descriptor.enum_by_full_name(".TestEnum").unwrap();
+        let mut expected_message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let values = match index {
+                0 => {
+                    vec![]
+                }
+                1 => {
+                    vec![Enum(enum_descriptor.clone(), 1)]
+                }
+                2 => {
+                    vec![F64(-6.4), F64(-64.0), F64(-0.001)]
+                }
+                _ => unreachable!(),
+            };
+
+            for value in values {
+                field.mut_repeated(&mut *expected_message).push(value);
+            }
+        }
+
+        let message_serialize = DeserializeSeedWrapper { message: expected_message };
+
+        assert_de_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 3 },
+                Token::Seq { len: Some(0) },
+                Token::SeqEnd,
+                Token::Seq { len: None },
+                Token::I32(1),
+                Token::SeqEnd,
+                Token::Seq { len: Some(3) },
+                Token::F64(-6.4),
+                Token::F64(-64.0),
+                Token::F64(-0.001),
+                Token::SeqEnd,
+                Token::TupleEnd,
+            ],
         )
     }
 }
