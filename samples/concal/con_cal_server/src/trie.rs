@@ -88,6 +88,16 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     #[test]
+    fn returns_no_objects_when_structure_is_empty() {
+        let trie: Trie<i32> = Trie::new();
+
+        let search_path: Vec<String> = [""].iter().map(|s| s.to_string()).collect();
+        let result = trie.get(&search_path);
+
+        assert!(result.is_empty());
+    }
+
+    #[test]
     fn can_get_item() {
         let root_node: Arc<Mutex<Node<i32>>> = Arc::new(Mutex::new(Node::new()));
         let level_0_node: Arc<Mutex<Node<i32>>> = Arc::new(Mutex::new(Node::new()));
@@ -134,6 +144,39 @@ mod tests {
         trie.add(path3, value3);
 
         let search_path: Vec<String> = ["A", "", "A"].iter().map(|s| s.to_string()).collect();
+        let mut result = trie.get(&search_path);
+        result.sort();
+
+        assert_eq!(result.len(), 2);
+        assert_eq!(result, [value1, value2]);
+    }
+
+    #[test]
+    fn returns_nothing_when_path_doesnt_match_any_object() {
+        let mut trie: Trie<i32> = Trie::new();
+
+        let path1: Vec<String> = ["A"].iter().map(|s| s.to_string()).collect();
+        trie.add(path1, 1);
+
+        let search_path: Vec<String> = ["B"].iter().map(|s| s.to_string()).collect();
+        let result = trie.get(&search_path);
+
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn returns_all_objects_when_path_is_empty() {
+        let mut trie: Trie<i32> = Trie::new();
+
+        let path1: Vec<String> = ["A"].iter().map(|s| s.to_string()).collect();
+        let value1 = 1;
+        trie.add(path1, value1);
+
+        let path2: Vec<String> = ["X"].iter().map(|s| s.to_string()).collect();
+        let value2 = 2;
+        trie.add(path2, value2);
+
+        let search_path: Vec<String> = [""].iter().map(|s| s.to_string()).collect();
         let mut result = trie.get(&search_path);
         result.sort();
 
