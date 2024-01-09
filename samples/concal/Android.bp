@@ -27,6 +27,7 @@ rust_test {
     rustlibs: [
         "libconcal_api",
         "liblog_rust",
+        "libregex",
         "libprotobuf",
         "libtempfile",
         "libsdvtestconcal_proto_rust",
