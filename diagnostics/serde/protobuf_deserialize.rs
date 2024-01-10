@@ -259,6 +259,16 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
 
                         self.visit_i32(value)
                     }
+
+                    // Deserializer implementations might ignore `deserialize_i32` hint.
+                    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+                    where
+                        E: Error,
+                    {
+                        let value = value.try_into().map_err(|_| E::custom("i32 overflow"))?;
+
+                        self.visit_i32(value)
+                    }
                 }
 
                 deserializer.deserialize_i32(I32ValueVisitor)
@@ -278,6 +288,16 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                         E: Error,
                     {
                         Ok(I64(value))
+                    }
+
+                    // Deserializer implementations might ignore `deserialize_i32` hint.
+                    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+                    where
+                        E: Error,
+                    {
+                        let value = value.try_into().map_err(|_| E::custom("i64 overflow"))?;
+
+                        self.visit_i64(value)
                     }
                 }
 
@@ -309,6 +329,16 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
 
                         self.visit_u32(value)
                     }
+
+                    // Deserializer implementations might ignore `deserialize_u32` hint.
+                    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+                    where
+                        E: Error,
+                    {
+                        let value = value.try_into().map_err(|_| E::custom("u32 overflow"))?;
+
+                        self.visit_u32(value)
+                    }
                 }
 
                 deserializer.deserialize_u32(U32ValueVisitor)
@@ -328,6 +358,16 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                         E: Error,
                     {
                         Ok(U64(value))
+                    }
+
+                    // Deserializer implementations might ignore `deserialize_u32` hint.
+                    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+                    where
+                        E: Error,
+                    {
+                        let value = value.try_into().map_err(|_| E::custom("u64 overflow"))?;
+
+                        self.visit_u64(value)
                     }
                 }
 
@@ -1038,6 +1078,124 @@ mod tests {
                 Token::F64((f32::MIN as f64) * 1000.0),
                 Token::TupleEnd,
             ],
+        )
+    }
+
+    #[test]
+    fn deserialize_numeric_fields_unsigned_as_signed() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            message TestProto {
+                int32 my_i32_from_u32 = 1;
+                int64 my_i64_from_u32 = 2;
+                int32 my_i32_from_u64 = 3;
+                int64 my_i64_from_u64 = 4;
+            }
+            "#,
+            ".TestProto",
+            _file_descriptor,
+            message_descriptor
+        );
+
+        let mut expected_message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => I32(100),
+                1 => I64(100),
+                2 => I32(100),
+                3 => I64(100),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *expected_message, value);
+        }
+
+        let message_deserialize = DeserializeSeedWrapper { message: expected_message };
+
+        assert_de_tokens(
+            &message_deserialize,
+            &[
+                Token::Tuple { len: 4 },
+                Token::Some,
+                Token::U32(100),
+                Token::Some,
+                Token::U32(100),
+                Token::Some,
+                Token::U64(100),
+                Token::Some,
+                Token::U64(100),
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn deserialize_numeric_fields_signed_as_unsigned() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            message TestProto {
+                uint32 my_u32_from_i32 = 1;
+                uint64 my_u64_from_i32 = 2;
+                uint32 my_u32_from_i64 = 3;
+                uint64 my_u64_from_i64 = 4;
+            }
+            "#,
+            ".TestProto",
+            _file_descriptor,
+            message_descriptor
+        );
+
+        let mut expected_message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => U32(1000),
+                1 => U64(1000),
+                2 => U32(1000),
+                3 => U64(1000),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *expected_message, value);
+        }
+
+        let message_deserialize = DeserializeSeedWrapper { message: expected_message };
+
+        assert_de_tokens::<DeserializeSeedWrapper>(
+            &message_deserialize,
+            &[
+                Token::Tuple { len: 4 },
+                Token::Some,
+                Token::I32(1000),
+                Token::Some,
+                Token::I32(1000),
+                Token::Some,
+                Token::I64(1000),
+                Token::Some,
+                Token::I64(1000),
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn deserialize_numeric_fields_signed_as_unsigned_negative_value() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            message TestProto {
+                uint64 my_u_64 = 1;
+            }
+            "#,
+            ".TestProto",
+            _file_descriptor,
+            _message_descriptor
+        );
+
+        assert_de_tokens_error::<DeserializeSeedWrapper>(
+            &[Token::Tuple { len: 1 }, Token::Some, Token::I32(-1000), Token::TupleEnd],
+            "u64 overflow",
         )
     }
 
