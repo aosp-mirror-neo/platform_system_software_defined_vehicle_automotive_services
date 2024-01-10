@@ -1,4 +1,5 @@
 // Copyright 2024 Google LLC
+use crate::field_options::FieldOptions;
 use protobuf::reflect::{
     EnumDescriptor, FieldDescriptor, MessageDescriptor,
     ReflectValueBox::{self, *},
@@ -104,17 +105,155 @@ impl<'de, 'lt> DeserializeSeed<'de> for FieldDeserializeSeed<'lt> {
     where
         D: Deserializer<'de>,
     {
+        struct RepeatedFieldVisitor<'lt> {
+            message: &'lt mut Box<dyn MessageDyn>,
+            descriptor: &'lt FieldDescriptor,
+            runtime_type: RuntimeType,
+        }
+
+        impl<'lt> RepeatedFieldVisitor<'lt> {
+            fn new(
+                message: &'lt mut Box<dyn MessageDyn>,
+                descriptor: &'lt FieldDescriptor,
+                runtime_type: RuntimeType,
+            ) -> Self {
+                Self { message, descriptor, runtime_type }
+            }
+
+            fn visit_variable_size_seq<'de, A>(
+                self,
+                mut seq: A,
+            ) -> Result<<Self as Visitor<'de>>::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let mut repeated_field = self.descriptor.mut_repeated(&mut **self.message);
+
+                while let Some(element_value) = seq.next_element_seed(ValueDeserializeSeed::new(
+                    self.descriptor,
+                    &self.runtime_type,
+                ))? {
+                    repeated_field.push(element_value);
+                }
+
+                Ok(())
+            }
+
+            fn visit_fixed_size_seq<'de, A>(
+                self,
+                mut seq: A,
+                count: usize,
+            ) -> Result<<Self as Visitor<'de>>::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                if let Some(seq_size) = seq.size_hint() {
+                    if seq_size != count {
+                        return Err(A::Error::custom(format!(
+                            "Fixed-size repeated field size mismatch: expected {}, actual {}",
+                            count, seq_size
+                        )));
+                    }
+                }
+
+                let mut repeated_field = self.descriptor.mut_repeated(&mut **self.message);
+
+                for _ in 0..count {
+                    if let Some(element_value) = seq.next_element_seed(
+                        ValueDeserializeSeed::new(self.descriptor, &self.runtime_type),
+                    )? {
+                        repeated_field.push(element_value);
+                    } else {
+                        return Err(A::Error::custom(format!(
+                            "Fixed-size repeated field size mismatch: expected {}, actual {}",
+                            count,
+                            repeated_field.len()
+                        )));
+                    }
+                }
+
+                Ok(())
+            }
+        }
+
+        impl<'de, 'lt> Visitor<'de> for RepeatedFieldVisitor<'lt> {
+            type Value = ();
+
+            fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                write!(fmt, "Repeated value")
+            }
+
+            fn visit_seq<A>(self, seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                if let Some(count) =
+                    self.descriptor.repeated_field_count().map_err(A::Error::custom)?
+                {
+                    self.visit_fixed_size_seq(seq, count)
+                } else {
+                    self.visit_variable_size_seq(seq)
+                }
+            }
+        }
+
+        match self.field_descriptor.runtime_field_type() {
+            Singular(runtime_type) => {
+                let field_value =
+                    SingularFieldDeserializeSeed::new(self.field_descriptor, &runtime_type)
+                        .deserialize(deserializer)?;
+
+                if let Some(field_value) = field_value {
+                    self.field_descriptor.set_singular_field(&mut **self.message, field_value);
+                }
+            }
+            Repeated(runtime_type) => {
+                let visitor =
+                    RepeatedFieldVisitor::new(self.message, self.field_descriptor, runtime_type);
+
+                if let Some(size) =
+                    self.field_descriptor.repeated_field_count().map_err(D::Error::custom)?
+                {
+                    deserializer.deserialize_tuple(size, visitor)?;
+                } else {
+                    deserializer.deserialize_seq(visitor)?;
+                }
+            }
+            Map(_, _) => todo!("map fields are not supported yet"),
+        };
+        Ok(())
+    }
+}
+
+struct SingularFieldDeserializeSeed<'lt> {
+    descriptor: &'lt FieldDescriptor,
+    runtime_type: &'lt RuntimeType,
+}
+
+impl<'lt> SingularFieldDeserializeSeed<'lt> {
+    fn new(descriptor: &'lt FieldDescriptor, runtime_type: &'lt RuntimeType) -> Self {
+        Self { descriptor, runtime_type }
+    }
+}
+
+impl<'de, 'lt> DeserializeSeed<'de> for SingularFieldDeserializeSeed<'lt> {
+    type Value = Option<ReflectValueBox>;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
         /// Singular protobuf field visitor.
         ///
         /// Forwards to `ValueDeserializeSeed` if the field is present (Some(_)),
         /// or skips the field if it's empty (None).
         struct OptionVisitor<'lt> {
             descriptor: &'lt FieldDescriptor,
-            runtime_type: RuntimeType,
+            runtime_type: &'lt RuntimeType,
         }
 
         impl<'lt> OptionVisitor<'lt> {
-            fn new(descriptor: &'lt FieldDescriptor, runtime_type: RuntimeType) -> Self {
+            fn new(descriptor: &'lt FieldDescriptor, runtime_type: &'lt RuntimeType) -> Self {
                 Self { descriptor, runtime_type }
             }
         }
@@ -131,7 +270,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for FieldDeserializeSeed<'lt> {
                 D: Deserializer<'de>,
             {
                 Ok(Some(
-                    ValueDeserializeSeed::new(self.descriptor, &self.runtime_type)
+                    ValueDeserializeSeed::new(self.descriptor, self.runtime_type)
                         .deserialize(deserializer)?,
                 ))
             }
@@ -144,67 +283,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for FieldDeserializeSeed<'lt> {
             }
         }
 
-        struct RepeatedFieldVisitor<'lt> {
-            message: &'lt mut Box<dyn MessageDyn>,
-            descriptor: &'lt FieldDescriptor,
-            runtime_type: RuntimeType,
-        }
-
-        impl<'lt> RepeatedFieldVisitor<'lt> {
-            fn new(
-                message: &'lt mut Box<dyn MessageDyn>,
-                descriptor: &'lt FieldDescriptor,
-                runtime_type: RuntimeType,
-            ) -> Self {
-                Self { message, descriptor, runtime_type }
-            }
-        }
-
-        impl<'de, 'lt> Visitor<'de> for RepeatedFieldVisitor<'lt> {
-            type Value = ();
-
-            fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-                write!(fmt, "Repeated value")
-            }
-
-            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-            where
-                A: SeqAccess<'de>,
-            {
-                let mut repeated_field = self.descriptor.mut_repeated(&mut **self.message);
-
-                while let Some(element_value) = seq.next_element_seed(ValueDeserializeSeed::new(
-                    self.descriptor,
-                    &self.runtime_type,
-                ))? {
-                    repeated_field.push(element_value)
-                }
-
-                Ok(())
-            }
-        }
-
-        match self.field_descriptor.runtime_field_type() {
-            Singular(runtime_type) => {
-                // Singular protobuf fields are optional, thus we deserialize using
-                // `OptionVisitor`.
-                let field_value = deserializer
-                    .deserialize_option(OptionVisitor::new(self.field_descriptor, runtime_type))?;
-
-                if let Some(field_value) = field_value {
-                    self.field_descriptor.set_singular_field(&mut **self.message, field_value);
-                }
-            }
-            Repeated(runtime_type) => {
-                deserializer.deserialize_seq(RepeatedFieldVisitor::new(
-                    self.message,
-                    self.field_descriptor,
-                    runtime_type,
-                ))?;
-            }
-            Map(_, _) => todo!("map fields are not supported yet"),
-        };
-        Ok(())
+        deserializer.deserialize_option(OptionVisitor::new(self.descriptor, self.runtime_type))
     }
 }
 
@@ -215,13 +294,13 @@ impl<'de, 'lt> DeserializeSeed<'de> for FieldDeserializeSeed<'lt> {
 // - single element within a repeated field
 // - single key or value within a map field
 struct ValueDeserializeSeed<'lt> {
-    _descriptor: &'lt FieldDescriptor,
+    options: &'lt dyn FieldOptions,
     runtime_type: &'lt RuntimeType,
 }
 
 impl<'lt> ValueDeserializeSeed<'lt> {
-    fn new(_descriptor: &'lt FieldDescriptor, runtime_type: &'lt RuntimeType) -> Self {
-        Self { _descriptor, runtime_type }
+    fn new(options: &'lt dyn FieldOptions, runtime_type: &'lt RuntimeType) -> Self {
+        Self { options, runtime_type }
     }
 }
 
@@ -459,7 +538,52 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                     }
                 }
 
-                deserializer.deserialize_string(StringValueVisitor)
+                struct FixedSizeStringValueVisitor {
+                    size: usize,
+                }
+
+                impl<'de> Visitor<'de> for FixedSizeStringValueVisitor {
+                    type Value = ReflectValueBox;
+
+                    fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                        write!(fmt, "single fixed-size (size: {}) String value", self.size)
+                    }
+
+                    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+                    where
+                        A: SeqAccess<'de>,
+                    {
+                        if let Some(seq_size) = seq.size_hint() {
+                            if seq_size != self.size {
+                                return Err(A::Error::custom(format!(
+                                    "Fixed-size string field size mismatch: expected {}, actual {}",
+                                    self.size, seq_size
+                                )));
+                            }
+                        }
+
+                        let mut characters = Vec::with_capacity(self.size);
+
+                        for index in 0..self.size {
+                            if let Some(char) = seq.next_element::<char>()? {
+                                characters.push(char)
+                            } else {
+                                return Err(A::Error::custom(format!(
+                                    "Fixed-size string field size mismatch: expected {}, actual {}",
+                                    self.size, index
+                                )));
+                            }
+                        }
+
+                        Ok(String(characters.iter().collect()))
+                    }
+                }
+
+                if let Some(size) = self.options.variable_type_size().map_err(D::Error::custom)? {
+                    deserializer.deserialize_tuple(size, FixedSizeStringValueVisitor { size })
+                } else {
+                    deserializer.deserialize_string(StringValueVisitor)
+                }
             }
             RuntimeType::VecU8 => {
                 struct VecU8ValueVisitor;
@@ -481,7 +605,52 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                     }
                 }
 
-                deserializer.deserialize_byte_buf(VecU8ValueVisitor)
+                struct FixedSizeVecU8ValueVisitor {
+                    size: usize,
+                }
+
+                impl<'de> Visitor<'de> for FixedSizeVecU8ValueVisitor {
+                    type Value = ReflectValueBox;
+
+                    fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                        write!(fmt, "single variable-size Bytes value")
+                    }
+
+                    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+                    where
+                        A: SeqAccess<'de>,
+                    {
+                        if let Some(seq_size) = seq.size_hint() {
+                            if seq_size != self.size {
+                                return Err(A::Error::custom(format!(
+                                    "Fixed-size bytes field size mismatch: expected {}, actual {}",
+                                    self.size, seq_size
+                                )));
+                            }
+                        }
+
+                        let mut bytes = Vec::with_capacity(self.size);
+
+                        for index in 0..self.size {
+                            if let Some(byte) = seq.next_element::<u8>()? {
+                                bytes.push(byte)
+                            } else {
+                                return Err(A::Error::custom(format!(
+                                    "Fixed-size bytes field size mismatch: expected {}, actual {}",
+                                    self.size, index
+                                )));
+                            }
+                        }
+
+                        Ok(Bytes(bytes))
+                    }
+                }
+
+                if let Some(size) = self.options.variable_type_size().map_err(D::Error::custom)? {
+                    deserializer.deserialize_tuple(size, FixedSizeVecU8ValueVisitor { size })
+                } else {
+                    deserializer.deserialize_byte_buf(VecU8ValueVisitor)
+                }
             }
             RuntimeType::Enum(enum_descriptor) => {
                 struct EnumValueVisitor<'lt>(&'lt EnumDescriptor);
@@ -710,7 +879,7 @@ mod tests {
     }
 
     #[test]
-    fn deserialize_proto_with_variable_size_fields() {
+    fn deserialize_proto_with_variable_type_fields() {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
@@ -763,6 +932,219 @@ mod tests {
                 Token::BorrowedStr("!"),
                 Token::TupleEnd,
             ],
+        )
+    }
+
+    #[test]
+    fn deserialize_proto_with_fixed_size_variable_type_fields() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+
+            message TestProto {
+                bytes my_bytes = 1 [(sdv.vsidl.variable_type_max_size) = 2];
+                bytes my_owned_bytes = 2 [(sdv.vsidl.variable_type_max_size) = 4];
+                bytes my_borrowed_bytes = 3 [(sdv.vsidl.variable_type_max_size) = 6];
+                string my_string = 4 [(sdv.vsidl.variable_type_max_size) = 2];
+                string my_owned_string = 5 [(sdv.vsidl.variable_type_max_size) = 5];
+                string my_borrowed_string = 6 [(sdv.vsidl.variable_type_max_size) = 1];
+            }
+            "#,
+            ".TestProto",
+            _file_descriptor,
+            message_descriptor
+        );
+
+        let mut expected_message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => Bytes(vec![1, 2]),
+                1 => Bytes(vec![1, 2, 3, 4]),
+                2 => Bytes(vec![1, 2, 3, 4, 5, 6]),
+                3 => String("hi".to_string()),
+                4 => String("world".to_string()),
+                5 => String("!".to_string()),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *expected_message, value);
+        }
+
+        let message_deserialize = DeserializeSeedWrapper { message: expected_message };
+
+        assert_de_tokens(
+            &message_deserialize,
+            &[
+                Token::Tuple { len: 6 },
+                Token::Some,
+                Token::Tuple { len: 2 },
+                Token::U8(1),
+                Token::U8(2),
+                Token::TupleEnd,
+                Token::Some,
+                Token::Tuple { len: 4 },
+                Token::U8(1),
+                Token::U8(2),
+                Token::U8(3),
+                Token::U8(4),
+                Token::TupleEnd,
+                Token::Some,
+                Token::Tuple { len: 6 },
+                Token::U8(1),
+                Token::U8(2),
+                Token::U8(3),
+                Token::U8(4),
+                Token::U8(5),
+                Token::U8(6),
+                Token::TupleEnd,
+                Token::Some,
+                Token::Tuple { len: 2 },
+                Token::Char('h'),
+                Token::Char('i'),
+                Token::TupleEnd,
+                Token::Some,
+                Token::Tuple { len: 5 },
+                Token::Char('w'),
+                Token::Char('o'),
+                Token::Char('r'),
+                Token::Char('l'),
+                Token::Char('d'),
+                Token::TupleEnd,
+                Token::Some,
+                Token::Tuple { len: 1 },
+                Token::Char('!'),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn deserialize_proto_with_fixed_size_string_field_too_short() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+
+            message TestProto {
+                string my_string = 1 [(sdv.vsidl.variable_type_max_size) = 2];
+            }
+            "#,
+            ".TestProto",
+            _file_descriptor,
+            _message_descriptor
+        );
+
+        assert_de_tokens_error::<DeserializeSeedWrapper>(
+            &[
+                Token::Tuple { len: 1 },
+                Token::Some,
+                Token::Tuple { len: 2 },
+                Token::Char('!'),
+                Token::TupleEnd,
+                // Deserialization should failed by this point
+                // Token::TupleEnd
+            ],
+            "Fixed-size string field size mismatch: expected 2, actual 1",
+        )
+    }
+
+    #[test]
+    #[should_panic(
+        expected = "expected Token::Char('l') but deserialization wants Token::TupleEnd"
+    )]
+    fn deserialize_proto_with_fixed_size_string_field_too_long() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+
+            message TestProto {
+                string my_string = 1 [(sdv.vsidl.variable_type_max_size) = 2];
+            }
+            "#,
+            ".TestProto",
+            _file_descriptor,
+            _message_descriptor
+        );
+
+        assert_de_tokens_error::<DeserializeSeedWrapper>(
+            &[
+                Token::Tuple { len: 1 },
+                Token::Some,
+                Token::Tuple { len: 5 },
+                Token::Char('h'),
+                Token::Char('e'),
+                Token::Char('l'),
+                Token::Char('l'),
+                Token::Char('o'),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+            "Fixed-size string field size mismatch: expected 2, actual 5",
+        )
+    }
+
+    #[test]
+    fn deserialize_proto_with_fixed_size_bytes_field_too_short() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+
+            message TestProto {
+                bytes my_bytes = 1 [(sdv.vsidl.variable_type_max_size) = 2];
+            }
+            "#,
+            ".TestProto",
+            _file_descriptor,
+            _message_descriptor
+        );
+
+        assert_de_tokens_error::<DeserializeSeedWrapper>(
+            &[
+                Token::Tuple { len: 1 },
+                Token::Some,
+                Token::Tuple { len: 2 },
+                Token::U8(1),
+                Token::TupleEnd,
+                // Deserialization should fail by this point
+                // Token::TupleEnd,
+            ],
+            "Fixed-size bytes field size mismatch: expected 2, actual 1",
+        )
+    }
+
+    #[test]
+    #[should_panic(expected = "expected Token::U8(3) but deserialization wants Token::TupleEnd")]
+    fn deserialize_proto_with_fixed_size_bytes_field_too_long() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+
+            message TestProto {
+                bytes my_bytes = 1 [(sdv.vsidl.variable_type_max_size) = 2];
+            }
+            "#,
+            ".TestProto",
+            _file_descriptor,
+            _message_descriptor
+        );
+
+        assert_de_tokens_error::<DeserializeSeedWrapper>(
+            &[
+                Token::Tuple { len: 1 },
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(1),
+                Token::U8(2),
+                Token::U8(3),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+            "Fixed-size bytes field size mismatch: expected 2, actual 3",
         )
     }
 
@@ -1274,10 +1656,10 @@ mod tests {
             }
         }
 
-        let message_serialize = DeserializeSeedWrapper { message: expected_message };
+        let message_deserialize = DeserializeSeedWrapper { message: expected_message };
 
         assert_de_tokens(
-            &message_serialize,
+            &message_deserialize,
             &[
                 Token::Tuple { len: 3 },
                 Token::Seq { len: Some(0) },
@@ -1292,6 +1674,168 @@ mod tests {
                 Token::SeqEnd,
                 Token::TupleEnd,
             ],
+        )
+    }
+
+    #[test]
+    fn deserialize_proto_with_fixed_size_repeated_fields() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+
+            message TestProto {
+                repeated int64 my_i64 = 1 [(sdv.vsidl.repeated_field_max_count) = 0];
+                repeated TestEnum my_enum = 2 [(sdv.vsidl.repeated_field_max_count) = 2];
+                repeated double my_f64 = 3  [(sdv.vsidl.repeated_field_max_count) = 4];
+            }
+
+            enum TestEnum {
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+            "#,
+            ".TestProto",
+            file_descriptor,
+            message_descriptor
+        );
+
+        let enum_descriptor = file_descriptor.enum_by_full_name(".TestEnum").unwrap();
+        let mut expected_message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let values = match index {
+                0 => {
+                    vec![]
+                }
+                1 => {
+                    vec![Enum(enum_descriptor.clone(), 1), Enum(enum_descriptor.clone(), 2)]
+                }
+                2 => {
+                    vec![F64(-6.4), F64(-64.0), F64(-0.001), F64(0.0)]
+                }
+                _ => unreachable!(),
+            };
+
+            for value in values {
+                field.mut_repeated(&mut *expected_message).push(value);
+            }
+        }
+
+        let message_deserialize = DeserializeSeedWrapper { message: expected_message };
+
+        assert_de_tokens(
+            &message_deserialize,
+            &[
+                Token::Tuple { len: 3 },
+                Token::Tuple { len: 0 },
+                Token::TupleEnd,
+                Token::Tuple { len: 2 },
+                Token::I32(1),
+                Token::I32(2),
+                Token::TupleEnd,
+                Token::Tuple { len: 4 },
+                Token::F64(-6.4),
+                Token::F64(-64.0),
+                Token::F64(-0.001),
+                Token::F64(0.0),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    #[should_panic(expected = "expected Token::I32(3) but deserialization wants Token::TupleEnd")]
+    fn deserialize_proto_with_fixed_size_repeated_field_too_long() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+
+            message TestProto {
+                repeated int64 my_i64 = 1 [(sdv.vsidl.repeated_field_max_count) = 2];
+            }
+            "#,
+            ".TestProto",
+            _file_descriptor,
+            _message_descriptor
+        );
+
+        assert_de_tokens_error::<DeserializeSeedWrapper>(
+            &[
+                Token::Tuple { len: 1 },
+                Token::Tuple { len: 3 },
+                Token::I32(1),
+                Token::I32(2),
+                Token::I32(3),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+            "Fixed-size repeated field size mismatch: expected 2, actual 3",
+        )
+    }
+
+    #[test]
+    fn deserialize_proto_with_fixed_size_repeated_field_too_short() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+
+            message TestProto {
+                repeated int64 my_i64 = 1 [(sdv.vsidl.repeated_field_max_count) = 2];
+            }
+            "#,
+            ".TestProto",
+            _file_descriptor,
+            _message_descriptor
+        );
+
+        assert_de_tokens_error::<DeserializeSeedWrapper>(
+            &[Token::Tuple { len: 1 }, Token::Tuple { len: 1 }, Token::I64(64), Token::TupleEnd],
+            "Fixed-size repeated field size mismatch: expected 2, actual 1",
+        )
+    }
+
+    // Verify that variable type size checks are propagated to elements of repeated field.
+    #[test]
+    fn deserialize_proto_with_fixed_size_repeated_field_of_variable_type() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+
+            message TestProto {
+                repeated string my_repeated_strings = 1
+                    [(sdv.vsidl.repeated_field_max_count) = 2, (sdv.vsidl.variable_type_max_size) = 5];
+            }
+            "#,
+            ".TestProto",
+            _file_descriptor,
+            _message_descriptor
+        );
+
+        assert_de_tokens_error::<DeserializeSeedWrapper>(
+            &[
+                Token::Tuple { len: 1 },
+                Token::Tuple { len: 2 },
+                Token::Tuple { len: 5 },
+                Token::Char('h'),
+                Token::Char('e'),
+                Token::Char('l'),
+                Token::Char('l'),
+                Token::Char('o'),
+                Token::TupleEnd,
+                Token::Tuple { len: 2 },
+                Token::Char('h'),
+                Token::Char('i'),
+                Token::TupleEnd,
+                // Deserialization should fail by this point
+                // Token::TupleEnd,
+                // Token::TupleEnd,
+            ],
+            "Fixed-size string field size mismatch: expected 5, actual 2",
         )
     }
 }
