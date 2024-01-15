@@ -40,6 +40,9 @@ rust_test {
         "libserde_test",
         "libserde_json",
     ],
+    data: [
+        ":sdv_vsidl_protos",
+    ],
     test_options: {
         unit_test: true,
     },

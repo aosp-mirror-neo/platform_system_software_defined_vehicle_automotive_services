@@ -15,3 +15,7 @@ mod protobuf_serialize;
 mod uds_deserializer;
 /// serde::Serializer implementation for UDS format
 mod uds_serializer;
+
+/// Utilities for retrieving proto fields options that affect
+/// serialization/deserialization.
+mod field_options;
