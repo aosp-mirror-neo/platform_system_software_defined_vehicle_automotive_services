@@ -39,6 +39,11 @@ rust_test {
     test_options: {
         unit_test: true,
     },
+    test_suites: [
+        "general-tests",
+        "automotive-sdv-tests",
+    ],
+    auto_gen_config: true,
     vendor: true,
     data: [
         ":libsdvtestconcal_proto_files",
