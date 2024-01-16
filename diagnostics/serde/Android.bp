@@ -7,6 +7,7 @@ rust_defaults {
     srcs: ["lib.rs"],
     defaults: ["sdv@rust_defaults"],
     rustlibs: [
+        "libnom",
         "libbytes",
         "libthiserror",
         "libprotobuf",
@@ -39,6 +40,7 @@ rust_test {
         "libvsidl_syntax",
         "libserde_test",
         "libserde_json",
+        "libgoogletest_rust",
     ],
     data: [
         ":sdv_vsidl_protos",
