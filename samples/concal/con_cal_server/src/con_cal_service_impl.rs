@@ -115,7 +115,7 @@ impl ConCalServiceImpl {
         result
     }
 
-    fn compute_new_configs(
+    fn calculate_snapshot(
         &self,
         base_configs: &HashMap<HashableConfigId, Configuration>,
         overrides_for_each_config: &HashMap<HashableConfigId, Vec<ConfigOverride>>,
@@ -191,7 +191,7 @@ impl ConCalService for ConCalServiceImpl {
             return error_response!(
                 RegisterConfigMetadataResponse,
                 ResponseCode::INVALID_REQUEST,
-                "ConfigId fields contains an empty string: {:?}",
+                "ConfigId fields contain an empty string: {:?}",
                 config_id,
             );
         }
@@ -207,7 +207,8 @@ impl ConCalService for ConCalServiceImpl {
                 return error_response!(
                     RegisterConfigMetadataResponse,
                     ResponseCode::INVALID_REQUEST,
-                    "Metadata is not initialized",
+                    "Metadata for config {:?} is not initialized",
+                    config_id,
                 )
             }
         };
@@ -216,7 +217,8 @@ impl ConCalService for ConCalServiceImpl {
             return error_response!(
                 RegisterConfigMetadataResponse,
                 ResponseCode::INVALID_REQUEST,
-                "Default configuration is not provided",
+                "Default configuration for config {:?} is not provided",
+                config_id
             );
         }
 
@@ -224,7 +226,8 @@ impl ConCalService for ConCalServiceImpl {
             return error_response!(
                 RegisterConfigMetadataResponse,
                 ResponseCode::INVALID_REQUEST,
-                "Descriptor set is not provided",
+                "Descriptor set for config {:?} is not provided",
+                config_id
             );
         }
 
@@ -259,7 +262,8 @@ impl ConCalService for ConCalServiceImpl {
             return error_response!(
                 GetConfigMetadataResponse,
                 ResponseCode::INVALID_REQUEST,
-                "ConfigId fields contains an empty string",
+                "ConfigId fields contain an empty string: {:?}",
+                config_id,
             );
         }
 
@@ -398,7 +402,7 @@ impl ConCalService for ConCalServiceImpl {
         let overrides_for_each_config: HashMap<HashableConfigId, Vec<ConfigOverride>> =
             self.group_overrides_by_config_id(&mlock);
         let new_configurations =
-            match self.compute_new_configs(&mlock.base_configs, &overrides_for_each_config) {
+            match self.calculate_snapshot(&mlock.base_configs, &overrides_for_each_config) {
                 Ok(x) => x,
                 Err(err) => {
                     return error_response!(
