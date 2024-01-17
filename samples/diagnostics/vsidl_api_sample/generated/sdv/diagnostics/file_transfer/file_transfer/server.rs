@@ -4,11 +4,11 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::FileTransfer;
-use diagnostics_api_sample::file_transfer::FilePath;
-use diagnostics_api_sample::file_transfer::FileReadResponse;
-use diagnostics_api_sample::file_transfer::FileRequest;
-use diagnostics_api_sample::file_transfer::FileWriteRequest;
-use diagnostics_api_sample::file_transfer::ResumeFileResponse;
+use diagnostics_api::file_transfer::FilePath;
+use diagnostics_api::file_transfer::FileReadResponse;
+use diagnostics_api::file_transfer::FileRequest;
+use diagnostics_api::file_transfer::FileWriteRequest;
+use diagnostics_api::file_transfer::ResumeFileResponse;
 use protobuf::well_known_types::empty::Empty;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;

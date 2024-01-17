@@ -4,7 +4,7 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::FaultListener;
-use diagnostics_api_sample::fault::OnFaultStatusChangeRequest;
+use diagnostics_api::fault::OnFaultStatusChangeRequest;
 use protobuf::well_known_types::empty::Empty;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;

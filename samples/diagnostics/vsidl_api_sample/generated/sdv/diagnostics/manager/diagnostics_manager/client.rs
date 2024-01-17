@@ -4,8 +4,8 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::DiagnosticsManager;
-use diagnostics_api_sample::diagnostics_manager::GetConnectionMetadataRequest;
-use diagnostics_api_sample::diagnostics_manager::GetConnectionMetadataResponse;
+use diagnostics_api::diagnostics_manager::GetConnectionMetadataRequest;
+use diagnostics_api::diagnostics_manager::GetConnectionMetadataResponse;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;
 use sdvmiddleware_rpc::RpcResult;
