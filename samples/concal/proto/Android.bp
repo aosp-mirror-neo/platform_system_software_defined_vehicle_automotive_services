@@ -11,6 +11,7 @@ rust_protobuf {
         "test_configuration.proto",
         "inner_test_configuration.proto",
         "inner_test_configuration_different_package.proto",
+        "rear_view_camera.proto",
     ],
     proto_flags: [
         "-I external/protobuf/src",
@@ -23,4 +24,10 @@ rust_protobuf {
 filegroup {
     name: "libsdvtestconcal_proto_files",
     srcs: ["*.proto"],
+}
+
+prebuilt_etc {
+    name: "rear_view_camera.proto",
+    sub_dir: "protos",
+    src: "rear_view_camera.proto",
 }
