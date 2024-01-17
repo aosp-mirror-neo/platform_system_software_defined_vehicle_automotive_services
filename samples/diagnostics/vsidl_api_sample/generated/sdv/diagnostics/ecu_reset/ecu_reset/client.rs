@@ -4,8 +4,8 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::ECUReset;
-use diagnostics_api_sample::connection::ConnectionId;
-use diagnostics_api_sample::ecu_reset::RapidPowerShutdownResponse;
+use diagnostics_api::connection::ConnectionId;
+use diagnostics_api::ecu_reset::RapidPowerShutdownResponse;
 use protobuf::well_known_types::empty::Empty;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;

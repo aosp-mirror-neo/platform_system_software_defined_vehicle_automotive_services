@@ -4,9 +4,9 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::SecurityAccess;
-use diagnostics_api_sample::security_access::SeedRequest;
-use diagnostics_api_sample::security_access::SeedResponse;
-use diagnostics_api_sample::security_access::SendKeyRequest;
+use diagnostics_api::security_access::SeedRequest;
+use diagnostics_api::security_access::SeedResponse;
+use diagnostics_api::security_access::SendKeyRequest;
 use protobuf::well_known_types::empty::Empty;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;

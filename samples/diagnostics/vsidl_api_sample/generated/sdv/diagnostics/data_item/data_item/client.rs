@@ -4,9 +4,9 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::DataItem;
-use diagnostics_api_sample::data_item::ReadRequest;
-use diagnostics_api_sample::data_item::ReadResponse;
-use diagnostics_api_sample::data_item::WriteRequest;
+use diagnostics_api::data_item::ReadRequest;
+use diagnostics_api::data_item::ReadResponse;
+use diagnostics_api::data_item::WriteRequest;
 use protobuf::well_known_types::empty::Empty;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;

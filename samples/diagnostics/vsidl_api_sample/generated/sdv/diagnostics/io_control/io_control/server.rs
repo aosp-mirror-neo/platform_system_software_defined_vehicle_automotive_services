@@ -4,9 +4,9 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::IOControl;
-use diagnostics_api_sample::io_control::IOControlRequest;
-use diagnostics_api_sample::io_control::IOControlRequestWithAdjustment;
-use diagnostics_api_sample::io_control::IOControlResponse;
+use diagnostics_api::io_control::IOControlRequest;
+use diagnostics_api::io_control::IOControlRequestWithAdjustment;
+use diagnostics_api::io_control::IOControlResponse;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;

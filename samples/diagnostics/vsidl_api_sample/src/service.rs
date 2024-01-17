@@ -1,7 +1,7 @@
 #![allow(missing_docs)]
 // Copyright 2023 Google LLC
 
-use diagnostics_api_sample::data_item::{ReadRequest, ReadResponse, WriteRequest};
+use diagnostics_api::data_item::{ReadRequest, ReadResponse, WriteRequest};
 use protobuf::well_known_types::empty::Empty;
 use sdvgenerated::data_item_interface::DataItem;
 use sdvgenerated::diagnostics_provider_service::DiagnosticsProviderService;

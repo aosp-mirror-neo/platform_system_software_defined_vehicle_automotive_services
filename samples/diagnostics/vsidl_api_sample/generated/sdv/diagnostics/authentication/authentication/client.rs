@@ -4,19 +4,19 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::Authentication;
-use diagnostics_api_sample::authentication::AuthenticationResponse;
-use diagnostics_api_sample::authentication::ProofOfOwnershipRequest;
-use diagnostics_api_sample::authentication::ProofOfOwnershipResponse;
-use diagnostics_api_sample::authentication::RequestChallengeRequest;
-use diagnostics_api_sample::authentication::RequestChallengeResponse;
-use diagnostics_api_sample::authentication::TransmitCertificateRequest;
-use diagnostics_api_sample::authentication::VerifyCertificateBidirectionalResponse;
-use diagnostics_api_sample::authentication::VerifyCertificateRequest;
-use diagnostics_api_sample::authentication::VerifyCertificateResponse;
-use diagnostics_api_sample::authentication::VerifyProofOfOwnershipBidirectionalResponse;
-use diagnostics_api_sample::authentication::VerifyProofOfOwnershipRequest;
-use diagnostics_api_sample::authentication::VerifyProofOfOwnershipResponse;
-use diagnostics_api_sample::connection::ConnectionId;
+use diagnostics_api::authentication::AuthenticationResponse;
+use diagnostics_api::authentication::ProofOfOwnershipRequest;
+use diagnostics_api::authentication::ProofOfOwnershipResponse;
+use diagnostics_api::authentication::RequestChallengeRequest;
+use diagnostics_api::authentication::RequestChallengeResponse;
+use diagnostics_api::authentication::TransmitCertificateRequest;
+use diagnostics_api::authentication::VerifyCertificateBidirectionalResponse;
+use diagnostics_api::authentication::VerifyCertificateRequest;
+use diagnostics_api::authentication::VerifyCertificateResponse;
+use diagnostics_api::authentication::VerifyProofOfOwnershipBidirectionalResponse;
+use diagnostics_api::authentication::VerifyProofOfOwnershipRequest;
+use diagnostics_api::authentication::VerifyProofOfOwnershipResponse;
+use diagnostics_api::connection::ConnectionId;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;
 use sdvmiddleware_rpc::RpcResult;

@@ -15,7 +15,7 @@ rust_library {
         "libsdvmiddleware_common",
         "libsdvmiddleware_rpc",
         "libprotobuf",
-        "libdiagnostics_api_sample",
+        "libdiagnostics_api",
     ],
     apex_available: [
         "//apex_available:platform",

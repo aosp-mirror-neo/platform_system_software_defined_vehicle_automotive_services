@@ -15,10 +15,10 @@ Reads / writes data items provided by diagnostics provider via RPC
 ## Sample code generation
 
 Middleware code is already generated and placed in generated/ folder. However, if you want to see that the code generation works,
-run the following command from the repo root folder:
+run the following command from the `$REPO_ROOT/system/software_defined_vehicle` folder:
 
 ```bash
-vsidl_code_generator --vsidl-path core_services/vsidl/syntax/ --catalog-path automotive_services/samples/diagnostics/vsidl_api_sample/catalog --output-path automotive_services/samples/diagnostics/vsidl_api_sample/
+vsidl_code_generator --vsidl-path core_services/vsidl/protos/syntax/ --catalog-path automotive_services/samples/diagnostics/vsidl_api_sample/catalog --output-path automotive_services/samples/diagnostics/vsidl_api_sample/ --dependency-paths automotive_services/diagnostics/vsidl
 ```
 
 If you get an error that *vsidl_code_generator* is not found, build it first:

@@ -4,8 +4,8 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::RoutineControl;
-use diagnostics_api_sample::routine_control::RoutineControlRequest;
-use diagnostics_api_sample::routine_control::RoutineControlResponse;
+use diagnostics_api::routine_control::RoutineControlRequest;
+use diagnostics_api::routine_control::RoutineControlResponse;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
