@@ -6,7 +6,7 @@ package {
 }
 
 rust_library {
-    name: "libsdvgenerated_diagnostics_provider_service",
+    name: "libsdvgenerated_diagnostics_provider_service2",
     crate_name: "sdvgenerated",
     srcs: [
         "mod.rs",

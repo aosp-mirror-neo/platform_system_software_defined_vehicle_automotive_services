@@ -10,6 +10,11 @@ sdv_service_bundle {
 }
 
 sdv_service_bundle {
-    name: "DiagnosticsProviderService"
+    name: "DiagnosticsProviderService1"
+    server: "sdv.diagnostics.data_item.DataItem"
+}
+
+sdv_service_bundle {
+    name: "DiagnosticsProviderService2"
     server: "sdv.diagnostics.data_item.DataItem"
 }

@@ -23,20 +23,20 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 
-pub struct DiagnosticsProviderServiceCallbacks {}
+pub struct DiagnosticsProviderService1Callbacks {}
 
 struct Subscriptions {}
 
-pub struct DiagnosticsProviderService {
+pub struct DiagnosticsProviderService1 {
     pub data_item_server: DataItemServer,
 }
 
-impl DiagnosticsProviderService {
+impl DiagnosticsProviderService1 {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
-        DiagnosticsProviderService {
+        DiagnosticsProviderService1 {
             data_item_server: DataItemServer::new(GrpcServerTransport::new(
-                "DiagnosticsProviderService",
+                "DiagnosticsProviderService1",
             )),
         }
     }
@@ -46,7 +46,7 @@ impl DiagnosticsProviderService {
     pub fn start(&mut self) -> sdv_middleware_pubsub::Result<()> {
         self.register_all_topics()?;
 
-        info!("Service `DiagnosticsProviderService` has been started.");
+        info!("Service `DiagnosticsProviderService1` has been started.");
         Ok(())
     }
 
