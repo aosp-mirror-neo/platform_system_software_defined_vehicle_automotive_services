@@ -12,6 +12,7 @@ rust_defaults {
         "libthiserror",
         "libprotobuf",
         "libserde",
+        "libdiag_serde_protos",
     ],
     edition: "2021",
     lints: "android",
@@ -43,6 +44,7 @@ rust_test {
         "libgoogletest_rust",
     ],
     data: [
+        ":sdv_diag_serde_protos",
         ":sdv_vsidl_protos",
     ],
     test_options: {
