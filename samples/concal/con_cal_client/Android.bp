@@ -16,5 +16,8 @@ rust_binary {
         "libsdvtestconcal_proto_rust",
         "libprotobuf_parse",
     ],
+    required: [
+        "rear_view_camera.proto",
+    ],
     vendor: true,
 }
