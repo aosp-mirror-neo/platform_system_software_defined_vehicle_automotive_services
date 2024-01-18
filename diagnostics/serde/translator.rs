@@ -22,6 +22,9 @@ impl Translator {
         message_descriptor: &MessageDescriptor,
     ) -> Result<Vec<u8>, TranslationError> {
         let mut input_stream = protobuf::CodedInputStream::from_bytes(proto_bytes);
+        let size = input_stream.read_raw_varint32().unwrap().into();
+        let _old_limit =
+            input_stream.push_limit(size).map_err(TranslationError::ProtobufParsingError)?;
 
         let message = message_descriptor
             .parse_from(&mut input_stream)
@@ -79,23 +82,86 @@ mod tests {
     use crate::translator::runtime_message_descriptor::get_message_descriptor;
     use crate::translator::Translator;
     use bytes::{BufMut, BytesMut};
+    use std::vec::Vec;
 
-    #[test]
-    #[should_panic]
-    fn translate_from_protobuf_to_uds_not_implemented() {
+    #[googletest::test]
+    fn translate_from_protobuf_to_uds() {
         let translator = Translator {};
 
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
+            import "syntax/vsidl.proto";
+
             message TestProto {
-            }"#,
+                int64 my_i64 = 1;
+                int32 my_i32 = 2;
+                uint64 my_u64 = 3;
+                uint32 my_u32 = 4;
+                double my_f64 = 5;
+                float my_f32 = 6;
+                bool my_bool = 7;
+                InnerProto my_inner_proto = 8;
+            }
+
+            message InnerProto {
+                repeated bool my_fixed_array = 1 [(sdv.vsidl.repeated_field_max_count) = 5];
+                string my_fixed_string = 2 [(sdv.vsidl.variable_type_max_size) = 10];
+                TestEnum my_enum = 3;
+            }
+
+            enum TestEnum {
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+            "#,
             ".TestProto",
         );
 
-        let protobuf_bytes = vec![];
+        let mut proto_bytes: Vec<u8> = vec![];
+        proto_bytes.put_u8(68); // Message length
+        proto_bytes.put_u8(8); // VARINT field with field number '1'
+        proto_bytes.put(&[192, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -64
+        proto_bytes.put_u8(16); // VARINT field with field number '2'
+        proto_bytes.put(&[224, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -32
+        proto_bytes.put_u8(24); // VARINT field with field number '3'
+        proto_bytes.put_u8(64); // +64
+        proto_bytes.put_u8(32); // VARINT field with field number '4'
+        proto_bytes.put_u8(32); // +32
+        proto_bytes.put_u8(41); // I64 field with field number '4'
+        proto_bytes.put(&[154, 153, 153, 153, 153, 153, 25, 64][..]); // 6.4_f64
+        proto_bytes.put_u8(53); // I32 field with field number '5'
+        proto_bytes.put(&[205, 204, 76, 192][..]);
+        proto_bytes.put_u8(56); // VARINT field with field number '6'
+        proto_bytes.put_u8(1); // false
+        proto_bytes.put_u8(66); // LEN field with field number '7'
+        proto_bytes.put_u8(24); // length of embedded message
+        proto_bytes.put(&[8, 1, 8, 0, 8, 1, 8, 0, 8, 1][..]); // Repeated field with field number '1' and values
+        proto_bytes.put_u8(18); // LEN field with field number '2'
+        proto_bytes.put_u8(10); // String length == 10
+        proto_bytes.put(&[104, 101, 108, 108, 111, 0, 0, 0, 0, 0][..]); // String "hello\0\0\0\0\0"
+        proto_bytes.put_u8(24); // VARINT field with field number '3'
+        proto_bytes.put_u8(1); // +1
 
-        let _ = translator.translate_from_protobuf_to_uds(&protobuf_bytes, &message_descriptor);
+        let mut expected_uds_bytes = BytesMut::new();
+        expected_uds_bytes.put_i64(-64);
+        expected_uds_bytes.put_i32(-32);
+        expected_uds_bytes.put_u64(64);
+        expected_uds_bytes.put_u32(32);
+        expected_uds_bytes.put_f64(6.4);
+        expected_uds_bytes.put_f32(-3.2);
+        expected_uds_bytes.put_u8(1);
+        expected_uds_bytes.put(&[1, 0, 1, 0, 1][..]);
+        for char in "hello\0\0\0\0\0".chars() {
+            expected_uds_bytes.put_u8(char.try_into().unwrap())
+        }
+        expected_uds_bytes.put_u32(1);
+        let expected_uds_bytes = expected_uds_bytes.freeze();
+
+        let uds_bytes =
+            translator.translate_from_protobuf_to_uds(&proto_bytes, &message_descriptor).unwrap();
+        assert_eq!(&uds_bytes, &expected_uds_bytes);
     }
 
     #[googletest::test]
