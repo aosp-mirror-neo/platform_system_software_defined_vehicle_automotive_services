@@ -18,7 +18,9 @@ use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
 use sdvgenerated_rpc_data_item::client::DataItemClient;
+use sdvgenerated_rpc_diagnostics_manager::server::DiagnosticsManagerServer;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
+use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
@@ -28,6 +30,8 @@ pub struct DiagnosticsManagerServiceCallbacks {}
 struct Subscriptions {}
 
 pub struct DiagnosticsManagerService {
+    pub diagnostics_manager_server: DiagnosticsManagerServer,
+
     pub data_item_client: DataItemClient,
 }
 
@@ -35,6 +39,10 @@ impl DiagnosticsManagerService {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         DiagnosticsManagerService {
+            diagnostics_manager_server: DiagnosticsManagerServer::new(GrpcServerTransport::new(
+                "DiagnosticsManagerService",
+            )),
+
             data_item_client: DataItemClient::new(Box::new(GrpcClientTransport::new(
                 "DiagnosticsProviderService1",
             ))),

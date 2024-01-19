@@ -4,7 +4,27 @@ syntax = "proto3";
 
 package sdv.diagnostics.connection;
 
+import "session_type.proto";
+
 // Unique id of diagnostic connection.
 message ConnectionId {
   int32 id = 1;
+}
+
+// Connection metadata
+message ConnectionMetadata {
+  // Application layer source address.
+  //
+  // See ISO 14229-1:2020 section 7.4.1.3.
+  int32 source_address = 1;
+
+  // Application layer target address.
+  //
+  // See ISO 14229-1:2020 section 7.4.1.4.
+  int32 target_address = 2;
+
+  // Session type of the diagnostic session.
+  //
+  // See ISO 14229-1:2020 section 10.2.2.2.
+  session_type.SessionType session_type = 3;
 }

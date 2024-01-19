@@ -4,6 +4,9 @@ syntax = "proto3";
 
 package sdv.diagnostics.manager;
 
+import "connection.proto";
+import "negative_response_code.proto";
+
 // Diagnostics RPC API available to SDV services.
 //
 // Based on ISO 14229-1:2020. See README for external links.
@@ -24,20 +27,13 @@ service DiagnosticsManager {
 
 message GetConnectionMetadataRequest {
   // id of the connection which metadata is being queried.
-  int32 id = 1;
+  connection.ConnectionId id = 1;
 }
 
 // Metadata of the underlying diagnostics connection.
 //
 // This data is retrieved from the UDS payload that triggered a service call.
 message GetConnectionMetadataResponse {
-  // Application layer source address.
-  //
-  // See ISO 14229-1:2020 section 7.4.1.3.
-  int32 source_address = 1;
-
-  // Application layer target address.
-  //
-  // See ISO 14229-1:2020 section 7.4.1.4.
-  int32 target_address = 2;
+  connection.ConnectionMetadata metadata = 1;
+  nrc.NegativeResponseCode error_code = 2;
 }

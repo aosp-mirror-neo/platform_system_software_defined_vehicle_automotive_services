@@ -7,6 +7,7 @@ package: "sdv.diagnostics"
 sdv_service_bundle {
     name: "DiagnosticsManagerService"
     client: "sdv.diagnostics.data_item.DataItem"
+    server: "sdv.diagnostics.manager.DiagnosticsManager"
 }
 
 sdv_service_bundle {

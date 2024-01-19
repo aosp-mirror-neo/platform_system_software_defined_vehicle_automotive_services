@@ -8,7 +8,6 @@ rust_protobuf {
     protos: [
         "**/*.proto",
         ":sdv_vsidl_protos",
-
     ],
     source_stem: "diagnostics_api_sample",
     proto_flags: [
