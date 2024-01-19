@@ -8,7 +8,7 @@ The example consist of the simple diagnostics manager and diagnostics providerim
 
 Provides data items via sdv.diagnostics.data_item RPC.
 
-### Diagnostics manager service bundle
+### Diagnostics manager service bundles
 
 Reads / writes data items provided by diagnostics provider via RPC
 
@@ -51,40 +51,57 @@ adb devices
 // Expects "List of devices attached" and two devices below it
 ```
 
-### Run 'Diagnostics provider' service bundle on VM #1 (RPC server)
+### Run 'Diagnostics provider 1' service bundle (RPC server)
 
 ```bash
-adb -s 0.0.0.0:6520 shell ./vendor/bin/diag_vsidl_service_sample
+adb -s <VM address> shell ./vendor/bin/diag_vsidl_service_sample1
 ```
 
 If service started successfully, you should see "Diagnostics provider service bundle started." message printed to the console.
 
-### Run 'Diagnostics manager' service bundle on VM #1 (RPC client)
+### Run 'Diagnostics provider 2' service bundle (RPC server)
 
 ```bash
-adb -s 0.0.0.0:6520 shell ./vendor/bin/diag_vsidl_manager_sample
+adb -s <VM address> shell ./vendor/bin/diag_vsidl_service_sample2
+```
+
+If service started successfully, you should see "Diagnostics provider service bundle started." message printed to the console.
+
+### Run 'Diagnostics manager' service bundle (RPC client)
+
+```bash
+adb -s <VM address> shell ./vendor/bin/diag_vsidl_manager_sample
 ```
 
 If service started successfully, you should see "Diagnostics Manager service bundle started." message printed to the console.
 
 If the RPC communication is working, you should the following output:
 
-#### In 'Diagnostics provider' terminal
+#### In 'Diagnostics provider 1' terminal
 
-Received read request for "data_item_id".
-Received read request for "data_item_id".
+Received read request for "data_item_id1".
+Received write request for "data_item_id1".
+Received read request for "data_item_id1".
+
+#### In 'Diagnostics provider 2' terminal
+
+Received read request for "data_item_id1".
+Received read request for "data_item_id2".
 
 #### In the 'Diagnostics manager' terminal
 
-Fetch "data_item_id": Ok(ReadResponse { value: [1, 2, 3], special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Fetch "data_item_id1": Ok(ReadResponse { value: [1, 2, 3], special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 
-GRPC client got an error: RpcFailure(RpcStatus { code: 7-PERMISSION_DENIED, message: "", details: [], debug_error_string: "UNKNOWN:Error received from peer  {grpc_message:\"\", grpc_status:7, created_time:\"2023-11-22T17:18:35.302319781+00:00\"}" })
-Update "data_item_id" to a new value [2]. Response: Err(PermissionDenied).
+Update "data_item_id1" to a new value [2]. Response: Ok(Empty { special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 
-Fetch "data_item_id" data item after update: Ok(ReadResponse { value: [1, 2, 3], special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Fetch "data_item_id1" data item after update: Ok(ReadResponse { value: [2], special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+
+GRPC client got an error: RpcFailure(RpcStatus { code: 7-PERMISSION_DENIED, message: "", details: [], debug_error_string: "UNKNOWN:Error received from peer fd-client {created_time:\"2024-01-19T11:57:36.301777622+00:00\", grpc_status:7, grpc_message:\"\"}" })
+
+Trying to fetch "data_item_id1" from the second provider, fails with response: Err(PermissionDenied).
+
+Fetch "data_item_id2" from the second provider: Ok(ReadResponse { value: [1, 2, 3], special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 
 ## Known issues
 
 - See general Middleware known issues at REPO_ROOT/core_services/samples/vsidl/implementation_example/README.md
-- Write requests are not handled by 'Diagnostics provider', "PermissionDenied" error issued instead
-- To use additional diagnostics APIs, we need to add symlink to relevant API definition files (see ./catalog/data_item.proto for example)
