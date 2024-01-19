@@ -92,6 +92,7 @@ mod tests {
             r#"syntax = 'proto3';
 
             import "syntax/vsidl.proto";
+            import "syntax/diag_serde.proto";
 
             message TestProto {
                 int64 my_i64 = 1;
@@ -102,6 +103,12 @@ mod tests {
                 float my_f32 = 6;
                 bool my_bool = 7;
                 InnerProto my_inner_proto = 8;
+                int32 my_one_byte_i32 = 9 [(sdv.diag.primitive_byte_size) = ONE];
+                uint32 my_two_bytes_u32 = 10 [(sdv.diag.primitive_byte_size) = TWO];
+                repeated uint32 my_one_byte_u32_array = 11 [
+                    (sdv.diag.primitive_byte_size) = ONE,
+                    (sdv.vsidl.repeated_field_max_count) = 2
+                ];
             }
 
             message InnerProto {
@@ -120,7 +127,7 @@ mod tests {
         );
 
         let mut proto_bytes: Vec<u8> = vec![];
-        proto_bytes.put_u8(68); // Message length
+        proto_bytes.put_u8(86); // Message length
         proto_bytes.put_u8(8); // VARINT field with field number '1'
         proto_bytes.put(&[192, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -64
         proto_bytes.put_u8(16); // VARINT field with field number '2'
@@ -129,13 +136,13 @@ mod tests {
         proto_bytes.put_u8(64); // +64
         proto_bytes.put_u8(32); // VARINT field with field number '4'
         proto_bytes.put_u8(32); // +32
-        proto_bytes.put_u8(41); // I64 field with field number '4'
+        proto_bytes.put_u8(41); // I64 field with field number '5'
         proto_bytes.put(&[154, 153, 153, 153, 153, 153, 25, 64][..]); // 6.4_f64
-        proto_bytes.put_u8(53); // I32 field with field number '5'
+        proto_bytes.put_u8(53); // I32 field with field number '6'
         proto_bytes.put(&[205, 204, 76, 192][..]);
-        proto_bytes.put_u8(56); // VARINT field with field number '6'
+        proto_bytes.put_u8(56); // VARINT field with field number '7'
         proto_bytes.put_u8(1); // false
-        proto_bytes.put_u8(66); // LEN field with field number '7'
+        proto_bytes.put_u8(66); // LEN field with field number '8'
         proto_bytes.put_u8(24); // length of embedded message
         proto_bytes.put(&[8, 1, 8, 0, 8, 1, 8, 0, 8, 1][..]); // Repeated field with field number '1' and values
         proto_bytes.put_u8(18); // LEN field with field number '2'
@@ -143,6 +150,11 @@ mod tests {
         proto_bytes.put(&[104, 101, 108, 108, 111, 0, 0, 0, 0, 0][..]); // String "hello\0\0\0\0\0"
         proto_bytes.put_u8(24); // VARINT field with field number '3'
         proto_bytes.put_u8(1); // +1
+        proto_bytes.put_u8(72); // VARINT field with field number '9'
+        proto_bytes.put(&[136, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -120
+        proto_bytes.put_u8(80); // VARINT field with field number '10'
+        proto_bytes.put(&[128, 8][..]); // +1024
+        proto_bytes.put(&[88, 10, 88, 20][..]); // Repeated VARINT field with field number '11'
 
         let mut expected_uds_bytes = BytesMut::new();
         expected_uds_bytes.put_i64(-64);
@@ -157,6 +169,10 @@ mod tests {
             expected_uds_bytes.put_u8(char.try_into().unwrap())
         }
         expected_uds_bytes.put_u32(1);
+        expected_uds_bytes.put_i8(-120);
+        expected_uds_bytes.put_u16(1024);
+        expected_uds_bytes.put_u8(10);
+        expected_uds_bytes.put_u8(20);
         let expected_uds_bytes = expected_uds_bytes.freeze();
 
         let uds_bytes =
@@ -172,6 +188,7 @@ mod tests {
             r#"syntax = 'proto3';
 
             import "syntax/vsidl.proto";
+            import "syntax/diag_serde.proto";
 
             message TestProto {
                 int64 my_i64 = 1;
@@ -182,6 +199,12 @@ mod tests {
                 float my_f32 = 6;
                 bool my_bool = 7;
                 InnerProto my_inner_proto = 8;
+                int32 my_one_byte_i32 = 9 [(sdv.diag.primitive_byte_size) = ONE];
+                uint32 my_two_bytes_u32 = 10 [(sdv.diag.primitive_byte_size) = TWO];
+                repeated uint32 my_one_byte_u32_array = 11 [
+                    (sdv.diag.primitive_byte_size) = ONE,
+                    (sdv.vsidl.repeated_field_max_count) = 2
+                ];
             }
 
             message InnerProto {
@@ -212,10 +235,14 @@ mod tests {
             uds_bytes.put_u8(char.try_into().unwrap())
         }
         uds_bytes.put_u32(1);
+        uds_bytes.put_i8(-120);
+        uds_bytes.put_u16(1024);
+        uds_bytes.put_u8(10);
+        uds_bytes.put_u8(20);
         let uds_bytes = uds_bytes.freeze();
 
         let mut expected_proto_bytes: Vec<u8> = vec![];
-        expected_proto_bytes.put_u8(68); // Message length
+        expected_proto_bytes.put_u8(86); // Message length
         expected_proto_bytes.put_u8(8); // VARINT field with field number '1'
         expected_proto_bytes.put(&[192, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -64
         expected_proto_bytes.put_u8(16); // VARINT field with field number '2'
@@ -224,13 +251,13 @@ mod tests {
         expected_proto_bytes.put_u8(64); // +64
         expected_proto_bytes.put_u8(32); // VARINT field with field number '4'
         expected_proto_bytes.put_u8(32); // +32
-        expected_proto_bytes.put_u8(41); // I64 field with field number '4'
+        expected_proto_bytes.put_u8(41); // I64 field with field number '5'
         expected_proto_bytes.put(&[154, 153, 153, 153, 153, 153, 25, 64][..]); // 6.4_f64
-        expected_proto_bytes.put_u8(53); // I32 field with field number '5'
+        expected_proto_bytes.put_u8(53); // I32 field with field number '6'
         expected_proto_bytes.put(&[205, 204, 76, 192][..]);
-        expected_proto_bytes.put_u8(56); // VARINT field with field number '6'
+        expected_proto_bytes.put_u8(56); // VARINT field with field number '7'
         expected_proto_bytes.put_u8(1); // false
-        expected_proto_bytes.put_u8(66); // LEN field with field number '7'
+        expected_proto_bytes.put_u8(66); // LEN field with field number '8'
         expected_proto_bytes.put_u8(24); // length of embedded message
         expected_proto_bytes.put(&[8, 1, 8, 0, 8, 1, 8, 0, 8, 1][..]); // Repeated field with field number '1' and values
         expected_proto_bytes.put_u8(18); // LEN field with field number '2'
@@ -238,6 +265,11 @@ mod tests {
         expected_proto_bytes.put(&[104, 101, 108, 108, 111, 0, 0, 0, 0, 0][..]); // String "hello\0\0\0\0\0"
         expected_proto_bytes.put_u8(24); // VARINT field with field number '3'
         expected_proto_bytes.put_u8(1); // +1
+        expected_proto_bytes.put_u8(72); // VARINT field with field number '9'
+        expected_proto_bytes.put(&[136, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -120
+        expected_proto_bytes.put_u8(80); // VARINT field with field number '10'
+        expected_proto_bytes.put(&[128, 8][..]); // +1024
+        expected_proto_bytes.put(&[88, 10, 88, 20][..]); // Repeated VARINT field with field number '11'
 
         let proto_bytes =
             translator.translate_from_uds_to_protobuf(&uds_bytes, &message_descriptor).unwrap();
@@ -247,6 +279,7 @@ mod tests {
 
 #[cfg(test)]
 pub mod runtime_message_descriptor {
+    use diag_serde_protos::diag_serde;
     use protobuf::reflect::{FileDescriptor, MessageDescriptor};
     use std::fs;
     use vsidl_syntax::vsidl;
@@ -271,7 +304,7 @@ pub mod runtime_message_descriptor {
 
         FileDescriptor::new_dynamic(
             file_descriptor_proto.clone(),
-            &[vsidl::file_descriptor().clone()],
+            &[vsidl::file_descriptor().clone(), diag_serde::file_descriptor().clone()],
         )
         .unwrap()
     }

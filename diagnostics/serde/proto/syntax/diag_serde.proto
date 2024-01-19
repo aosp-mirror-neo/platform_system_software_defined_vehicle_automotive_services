@@ -1,0 +1,31 @@
+// Copyright 2024 Google LLC
+// Defines field options for Diagnostics serialization.
+
+// WARNING: This is an experimental API and not expected to be stable or final.
+//          Content of the file might drastically change with further development
+//          iterations.
+
+syntax = "proto3";
+
+import "google/protobuf/descriptor.proto";
+
+package sdv.diag;
+
+enum PrimitiveByteSize {
+  ONE = 0;
+  TWO = 1;
+}
+
+extend google.protobuf.FieldOptions {
+  // Specifies byte size of the primitive field.
+  // Applicable to `int32` and `uint32` fields. Fields annotated with this options are
+  // required to fit into corresponding byte size type and will be encoded as such:
+  //
+  //         |  ONE  |  TWO  |
+  // ________|_______|_______|
+  // uint32  |   u8  |  u16  |
+  // ________|_______|_______|
+  // int32   |   i8  |  i16  |
+  //
+  PrimitiveByteSize primitive_byte_size = 50200;
+}

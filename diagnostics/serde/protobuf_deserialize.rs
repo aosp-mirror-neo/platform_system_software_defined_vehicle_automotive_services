@@ -1,5 +1,6 @@
 // Copyright 2024 Google LLC
 use crate::field_options::FieldOptions;
+use diag_serde_protos::diag_serde::PrimitiveByteSize;
 use protobuf::reflect::{
     EnumDescriptor, FieldDescriptor, MessageDescriptor,
     ReflectValueBox::{self, *},
@@ -350,7 +351,13 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                     }
                 }
 
-                deserializer.deserialize_i32(I32ValueVisitor)
+                let visitor = I32ValueVisitor;
+
+                match self.options.primitive_byte_size() {
+                    Some(PrimitiveByteSize::ONE) => deserializer.deserialize_i8(visitor),
+                    Some(PrimitiveByteSize::TWO) => deserializer.deserialize_i16(visitor),
+                    _ => deserializer.deserialize_i32(visitor),
+                }
             }
             RuntimeType::I64 => {
                 struct I64ValueVisitor;
@@ -420,7 +427,13 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                     }
                 }
 
-                deserializer.deserialize_u32(U32ValueVisitor)
+                let visitor = U32ValueVisitor;
+
+                match self.options.primitive_byte_size() {
+                    Some(PrimitiveByteSize::ONE) => deserializer.deserialize_u8(visitor),
+                    Some(PrimitiveByteSize::TWO) => deserializer.deserialize_u16(visitor),
+                    _ => deserializer.deserialize_u32(visitor),
+                }
             }
             RuntimeType::U64 => {
                 struct U64ValueVisitor;
@@ -1836,6 +1849,57 @@ mod tests {
                 // Token::TupleEnd,
             ],
             "Fixed-size string field size mismatch: expected 5, actual 2",
+        )
+    }
+
+    #[test]
+    fn deserialize_int_fields_with_byte_size_options() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/diag_serde.proto";
+
+            message TestProto {
+                uint32 one_byte_u32 = 1 [(sdv.diag.primitive_byte_size) = ONE];
+                uint32 two_bytes_u32 = 2 [(sdv.diag.primitive_byte_size) = TWO];
+                int32 one_byte_i32 = 3 [(sdv.diag.primitive_byte_size) = ONE];
+                int32 two_bytes_i32 = 4 [(sdv.diag.primitive_byte_size) = TWO];
+            }
+            "#,
+            ".TestProto",
+            _file_descriptor,
+            message_descriptor
+        );
+
+        let mut expected_message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => U32(128),
+                1 => U32(1024),
+                2 => I32(-120),
+                3 => I32(-510),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *expected_message, value);
+        }
+
+        let message_deserialize = DeserializeSeedWrapper { message: expected_message };
+
+        assert_de_tokens::<DeserializeSeedWrapper>(
+            &message_deserialize,
+            &[
+                Token::Tuple { len: 4 },
+                Token::Some,
+                Token::U8(128),
+                Token::Some,
+                Token::U16(1024),
+                Token::Some,
+                Token::I8(-120),
+                Token::Some,
+                Token::I16(-510),
+                Token::TupleEnd,
+            ],
         )
     }
 }

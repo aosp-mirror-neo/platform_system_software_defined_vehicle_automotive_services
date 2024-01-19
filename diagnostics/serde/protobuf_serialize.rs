@@ -1,5 +1,6 @@
 // Copyright 2024 Google LLC
 use crate::field_options::FieldOptions;
+use diag_serde_protos::diag_serde::PrimitiveByteSize;
 use protobuf::reflect::{
     FieldDescriptor, MessageDescriptor, MessageRef,
     ReflectFieldRef::{self, *},
@@ -144,9 +145,25 @@ impl<'lt> Serialize for ValueSerialize<'lt> {
         S: Serializer,
     {
         match &self.value {
-            U32(value) => serializer.serialize_u32(*value),
+            U32(value) => match self.options.primitive_byte_size() {
+                Some(PrimitiveByteSize::ONE) => serializer.serialize_u8(
+                    (*value).try_into().map_err(|_| S::Error::custom("u8 overflow"))?,
+                ),
+                Some(PrimitiveByteSize::TWO) => serializer.serialize_u16(
+                    (*value).try_into().map_err(|_| S::Error::custom("u16 overflow"))?,
+                ),
+                _ => serializer.serialize_u32(*value),
+            },
             U64(value) => serializer.serialize_u64(*value),
-            I32(value) => serializer.serialize_i32(*value),
+            I32(value) => match self.options.primitive_byte_size() {
+                Some(PrimitiveByteSize::ONE) => serializer.serialize_i8(
+                    (*value).try_into().map_err(|_| S::Error::custom("i8 overflow"))?,
+                ),
+                Some(PrimitiveByteSize::TWO) => serializer.serialize_i16(
+                    (*value).try_into().map_err(|_| S::Error::custom("i16 overflow"))?,
+                ),
+                _ => serializer.serialize_i32(*value),
+            },
             I64(value) => serializer.serialize_i64(*value),
             F32(value) => serializer.serialize_f32(*value),
             F64(value) => serializer.serialize_f64(*value),
@@ -855,6 +872,56 @@ mod tests {
                 Token::Char('\0'),
                 Token::TupleEnd,
                 Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_int_fields_with_byte_size_options() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "syntax/diag_serde.proto";
+
+            message TestProto {
+                uint32 one_byte_u32 = 1 [(sdv.diag.primitive_byte_size) = ONE];
+                uint32 two_bytes_u32 = 2 [(sdv.diag.primitive_byte_size) = TWO];
+                int32 one_byte_i32 = 3 [(sdv.diag.primitive_byte_size) = ONE];
+                int32 two_bytes_i32 = 4 [(sdv.diag.primitive_byte_size) = TWO];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => U32(128),
+                1 => U32(1024),
+                2 => I32(-120),
+                3 => I32(-510),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 4 },
+                Token::Some,
+                Token::U8(128),
+                Token::Some,
+                Token::U16(1024),
+                Token::Some,
+                Token::I8(-120),
+                Token::Some,
+                Token::I16(-510),
                 Token::TupleEnd,
             ],
         )
