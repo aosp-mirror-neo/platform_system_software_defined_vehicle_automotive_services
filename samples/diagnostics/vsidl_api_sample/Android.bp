@@ -20,12 +20,23 @@ rust_defaults {
 }
 
 rust_binary {
-    name: "diag_vsidl_service_sample",
+    name: "diag_vsidl_service_sample1",
     defaults: ["diag_samples@rust_defaults"],
-    srcs: ["src/service.rs"],
+    srcs: ["src/service1.rs"],
     prefer_rlib: true,
     rustlibs: [
-        "libsdvgenerated_diagnostics_provider_service",
+        "libsdvgenerated_diagnostics_provider_service1",
+        "libsdvmiddleware_rpc",
+    ],
+}
+
+rust_binary {
+    name: "diag_vsidl_service_sample2",
+    defaults: ["diag_samples@rust_defaults"],
+    srcs: ["src/service2.rs"],
+    prefer_rlib: true,
+    rustlibs: [
+        "libsdvgenerated_diagnostics_provider_service2",
         "libsdvmiddleware_rpc",
     ],
 }
@@ -37,5 +48,6 @@ rust_binary {
     prefer_rlib: true,
     rustlibs: [
         "libsdvgenerated_diagnostics_manager_service",
+        "libsdvmiddleware_rpc_grpc_transport",
     ],
 }

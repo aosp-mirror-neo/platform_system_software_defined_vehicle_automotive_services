@@ -36,7 +36,7 @@ impl DiagnosticsManagerService {
     pub fn new() -> Self {
         DiagnosticsManagerService {
             data_item_client: DataItemClient::new(Box::new(GrpcClientTransport::new(
-                "DiagnosticsProviderService",
+                "DiagnosticsProviderService1",
             ))),
         }
     }
