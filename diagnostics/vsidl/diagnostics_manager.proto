@@ -35,5 +35,9 @@ message GetConnectionMetadataRequest {
 // This data is retrieved from the UDS payload that triggered a service call.
 message GetConnectionMetadataResponse {
   connection.ConnectionMetadata metadata = 1;
+  // Error code.
+  //
+  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
+  // Other parts of response should be ignored in such case.
   nrc.NegativeResponseCode error_code = 2;
 }

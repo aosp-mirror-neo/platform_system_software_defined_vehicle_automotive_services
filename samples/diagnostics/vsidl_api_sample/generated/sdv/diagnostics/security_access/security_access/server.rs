@@ -4,10 +4,10 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::SecurityAccess;
+use diagnostics_api::negative_response_code::EmptyResponse;
 use diagnostics_api::security_access::SeedRequest;
 use diagnostics_api::security_access::SeedResponse;
 use diagnostics_api::security_access::SendKeyRequest;
-use protobuf::well_known_types::empty::Empty;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
@@ -34,7 +34,7 @@ impl SecurityAccessServer {
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<SendKeyRequest, Empty>(
+        serve_method::<SendKeyRequest, EmptyResponse>(
             Box::new(move |req| callback.send_key(req)),
             "SecurityAccess::send_key",
             self.transport.as_ref(),

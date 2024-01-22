@@ -4,6 +4,8 @@ syntax = "proto3";
 
 package sdv.diagnostics.io_control;
 
+import "negative_response_code.proto";
+
 // Diagnostics interface for InputOutputControlByIdentifier (UDS 0x2F) service.
 //
 // See ISO 14229-1:2020, section 13.2.
@@ -53,4 +55,10 @@ message IOControlRequestWithAdjustment {
 message IOControlResponse {
   // State of contols referenced by the identifier provided in request.
   bytes value = 1;
+
+  // Error code.
+  //
+  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
+  // Other parts of response should be ignored in such case.
+  nrc.NegativeResponseCode error_code = 2;
 }

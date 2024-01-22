@@ -5,24 +5,24 @@
 
 use diagnostics_api::connection::ConnectionId;
 use diagnostics_api::ecu_reset::RapidPowerShutdownResponse;
-use protobuf::well_known_types::empty::Empty;
+use diagnostics_api::negative_response_code::EmptyResponse;
 use sdvmiddleware_rpc::RpcResult;
 
 /// An auto-generated RPC interface.
 pub trait ECUReset: Send + Sync {
     /// RPC method declared in the interface.
-    fn hard_reset(&self, request: ConnectionId) -> RpcResult<Empty>;
+    fn hard_reset(&self, request: ConnectionId) -> RpcResult<EmptyResponse>;
     /// RPC method declared in the interface.
-    fn key_on_off_reset(&self, request: ConnectionId) -> RpcResult<Empty>;
+    fn key_on_off_reset(&self, request: ConnectionId) -> RpcResult<EmptyResponse>;
     /// RPC method declared in the interface.
-    fn soft_reset(&self, request: ConnectionId) -> RpcResult<Empty>;
+    fn soft_reset(&self, request: ConnectionId) -> RpcResult<EmptyResponse>;
     /// RPC method declared in the interface.
     fn enable_rapid_power_shutdown(
         &self,
         request: ConnectionId,
     ) -> RpcResult<RapidPowerShutdownResponse>;
     /// RPC method declared in the interface.
-    fn disable_rapid_power_shutdown(&self, request: ConnectionId) -> RpcResult<Empty>;
+    fn disable_rapid_power_shutdown(&self, request: ConnectionId) -> RpcResult<EmptyResponse>;
     /// RPC method declared in the interface.
-    fn custom_reset(&self, request: ConnectionId) -> RpcResult<Empty>;
+    fn custom_reset(&self, request: ConnectionId) -> RpcResult<EmptyResponse>;
 }
