@@ -4,7 +4,7 @@ syntax = "proto3";
 
 package sdv.diagnostics.data_item;
 
-import "google/protobuf/empty.proto";
+import "negative_response_code.proto";
 
 // Diagnostic interface that allows to read and write data item by identifier.
 //
@@ -24,7 +24,7 @@ service DataItem {
   // Write data item by identifier.
   //
   // Corresponds to WriteDataByIdentifier UDS service.
-  rpc Write(WriteRequest) returns (google.protobuf.Empty) {}
+  rpc Write(WriteRequest) returns (nrc.EmptyResponse) {}
 }
 
 message ReadRequest {
@@ -35,6 +35,12 @@ message ReadRequest {
 message ReadResponse {
   // Data item value.
   bytes value = 1;
+
+  // Error code.
+  //
+  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
+  // Other parts of response should be ignored in such case.
+  nrc.NegativeResponseCode error_code = 2;
 }
 
 message WriteRequest {

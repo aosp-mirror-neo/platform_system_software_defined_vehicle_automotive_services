@@ -4,6 +4,8 @@ syntax = "proto3";
 
 package sdv.diagnostics.routine_control;
 
+import "negative_response_code.proto";
+
 // Diagnostics interface for RoutineControl (UDS 0x31) service.
 //
 // See ISO 14229-1:2020, section 14.2.
@@ -37,4 +39,10 @@ message RoutineControlResponse {
   // routine.
   // - RequestResult(): results of the routine (available after it has been stopped).
   bytes response = 1;
+
+  // Error code.
+  //
+  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
+  // Other parts of response should be ignored in such case.
+  nrc.NegativeResponseCode error_code = 2;
 }

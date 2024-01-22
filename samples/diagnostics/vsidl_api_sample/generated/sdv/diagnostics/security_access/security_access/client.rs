@@ -4,10 +4,10 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::SecurityAccess;
+use diagnostics_api::negative_response_code::EmptyResponse;
 use diagnostics_api::security_access::SeedRequest;
 use diagnostics_api::security_access::SeedResponse;
 use diagnostics_api::security_access::SendKeyRequest;
-use protobuf::well_known_types::empty::Empty;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;
 use sdvmiddleware_rpc::RpcResult;
@@ -32,8 +32,8 @@ impl SecurityAccess for SecurityAccessClient {
             &request,
         )
     }
-    fn send_key(&self, request: SendKeyRequest) -> RpcResult<Empty> {
-        call_method::<SendKeyRequest, Empty>(
+    fn send_key(&self, request: SendKeyRequest) -> RpcResult<EmptyResponse> {
+        call_method::<SendKeyRequest, EmptyResponse>(
             self.transport.as_ref(),
             "SecurityAccess::send_key",
             &request,

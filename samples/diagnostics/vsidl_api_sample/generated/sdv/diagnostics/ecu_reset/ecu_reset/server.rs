@@ -6,7 +6,7 @@
 use crate::interface::ECUReset;
 use diagnostics_api::connection::ConnectionId;
 use diagnostics_api::ecu_reset::RapidPowerShutdownResponse;
-use protobuf::well_known_types::empty::Empty;
+use diagnostics_api::negative_response_code::EmptyResponse;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
@@ -27,19 +27,19 @@ impl ECUResetServer {
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn ECUReset>) {
         let callback = service.clone();
-        serve_method::<ConnectionId, Empty>(
+        serve_method::<ConnectionId, EmptyResponse>(
             Box::new(move |req| callback.hard_reset(req)),
             "ECUReset::hard_reset",
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<ConnectionId, Empty>(
+        serve_method::<ConnectionId, EmptyResponse>(
             Box::new(move |req| callback.key_on_off_reset(req)),
             "ECUReset::key_on_off_reset",
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<ConnectionId, Empty>(
+        serve_method::<ConnectionId, EmptyResponse>(
             Box::new(move |req| callback.soft_reset(req)),
             "ECUReset::soft_reset",
             self.transport.as_ref(),
@@ -51,13 +51,13 @@ impl ECUResetServer {
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<ConnectionId, Empty>(
+        serve_method::<ConnectionId, EmptyResponse>(
             Box::new(move |req| callback.disable_rapid_power_shutdown(req)),
             "ECUReset::disable_rapid_power_shutdown",
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<ConnectionId, Empty>(
+        serve_method::<ConnectionId, EmptyResponse>(
             Box::new(move |req| callback.custom_reset(req)),
             "ECUReset::custom_reset",
             self.transport.as_ref(),

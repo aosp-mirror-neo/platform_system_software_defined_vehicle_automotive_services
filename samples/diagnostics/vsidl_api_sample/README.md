@@ -90,17 +90,15 @@ Received read request for "data_item_id2".
 
 #### In the 'Diagnostics manager' terminal
 
-Fetch "data_item_id1": Ok(ReadResponse { value: [1, 2, 3], special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Fetch "data_item_id1": Ok(ReadResponse { value: [1, 2, 3], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 
-Update "data_item_id1" to a new value [2]. Response: Ok(Empty { special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Update "data_item_id1" to a new value [2]. Response: Ok(EmptyResponse { error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 
-Fetch "data_item_id1" data item after update: Ok(ReadResponse { value: [2], special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Fetch "data_item_id1" data item after update: Ok(ReadResponse { value: [2], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 
-GRPC client got an error: RpcFailure(RpcStatus { code: 7-PERMISSION_DENIED, message: "", details: [], debug_error_string: "UNKNOWN:Error received from peer fd-client {created_time:\"2024-01-19T11:57:36.301777622+00:00\", grpc_status:7, grpc_message:\"\"}" })
+Trying to fetch "data_item_id1" from the second provider, fails with response: Ok(ReadResponse { value: [], error_code: REQUEST_OUT_OF_RANGE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 
-Trying to fetch "data_item_id1" from the second provider, fails with response: Err(PermissionDenied).
-
-Fetch "data_item_id2" from the second provider: Ok(ReadResponse { value: [1, 2, 3], special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Fetch "data_item_id2" from the second provider: Ok(ReadResponse { value: [1, 2, 3], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 
 ## Known issues
 

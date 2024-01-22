@@ -4,12 +4,12 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::FileTransfer;
-use diagnostics_api::file_transfer::FilePath;
+use diagnostics_api::file_transfer::FilePathResponse;
 use diagnostics_api::file_transfer::FileReadResponse;
 use diagnostics_api::file_transfer::FileRequest;
 use diagnostics_api::file_transfer::FileWriteRequest;
 use diagnostics_api::file_transfer::ResumeFileResponse;
-use protobuf::well_known_types::empty::Empty;
+use diagnostics_api::negative_response_code::EmptyResponse;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
@@ -30,13 +30,13 @@ impl FileTransferServer {
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn FileTransfer>) {
         let callback = service.clone();
-        serve_method::<FileWriteRequest, FilePath>(
+        serve_method::<FileWriteRequest, FilePathResponse>(
             Box::new(move |req| callback.add_file(req)),
             "FileTransfer::add_file",
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<FileWriteRequest, FilePath>(
+        serve_method::<FileWriteRequest, FilePathResponse>(
             Box::new(move |req| callback.replace_file(req)),
             "FileTransfer::replace_file",
             self.transport.as_ref(),
@@ -54,13 +54,13 @@ impl FileTransferServer {
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<FileRequest, Empty>(
+        serve_method::<FileRequest, EmptyResponse>(
             Box::new(move |req| callback.delete_file(req)),
             "FileTransfer::delete_file",
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<FileRequest, Empty>(
+        serve_method::<FileRequest, EmptyResponse>(
             Box::new(move |req| callback.exit_file_transfer(req)),
             "FileTransfer::exit_file_transfer",
             self.transport.as_ref(),

@@ -2,7 +2,7 @@
 // Copyright 2024 Google LLC
 
 use diagnostics_api::data_item::{ReadRequest, ReadResponse, WriteRequest};
-use protobuf::well_known_types::empty::Empty;
+use diagnostics_api::negative_response_code::{EmptyResponse, NegativeResponseCode::*};
 use sdvgenerated::data_item_interface::DataItem;
 use sdvmiddleware_rpc::{error::RpcError, RpcResult};
 use std::sync::Mutex;
@@ -33,13 +33,17 @@ impl DataItem for DataItemImpl {
         println!("Received read request for {:?}.", &request.id);
 
         if request.id == self.id {
-            Ok(ReadResponse { value: get_lock!(self.data_item).clone(), ..Default::default() })
+            Ok(ReadResponse {
+                value: get_lock!(self.data_item).clone(),
+                error_code: POSITIVE_RESPONSE.into(),
+                ..Default::default()
+            })
         } else {
-            Err(RpcError::PermissionDenied)
+            Ok(ReadResponse { error_code: REQUEST_OUT_OF_RANGE.into(), ..Default::default() })
         }
     }
 
-    fn write(&self, request: WriteRequest) -> RpcResult<Empty> {
+    fn write(&self, request: WriteRequest) -> RpcResult<EmptyResponse> {
         println!("Received write request for {:?}.", &request.id);
 
         if request.id == self.id {
@@ -47,9 +51,9 @@ impl DataItem for DataItemImpl {
             data.clear();
             data.append(&mut request.value.clone());
             drop(data);
-            Ok(Empty { ..Default::default() })
+            Ok(EmptyResponse { error_code: POSITIVE_RESPONSE.into(), ..Default::default() })
         } else {
-            Err(RpcError::PermissionDenied)
+            Ok(EmptyResponse { error_code: REQUEST_OUT_OF_RANGE.into(), ..Default::default() })
         }
     }
 }

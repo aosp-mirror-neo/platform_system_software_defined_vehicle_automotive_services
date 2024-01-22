@@ -6,7 +6,7 @@
 use crate::interface::ECUReset;
 use diagnostics_api::connection::ConnectionId;
 use diagnostics_api::ecu_reset::RapidPowerShutdownResponse;
-use protobuf::well_known_types::empty::Empty;
+use diagnostics_api::negative_response_code::EmptyResponse;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;
 use sdvmiddleware_rpc::RpcResult;
@@ -24,22 +24,22 @@ impl ECUResetClient {
 }
 
 impl ECUReset for ECUResetClient {
-    fn hard_reset(&self, request: ConnectionId) -> RpcResult<Empty> {
-        call_method::<ConnectionId, Empty>(
+    fn hard_reset(&self, request: ConnectionId) -> RpcResult<EmptyResponse> {
+        call_method::<ConnectionId, EmptyResponse>(
             self.transport.as_ref(),
             "ECUReset::hard_reset",
             &request,
         )
     }
-    fn key_on_off_reset(&self, request: ConnectionId) -> RpcResult<Empty> {
-        call_method::<ConnectionId, Empty>(
+    fn key_on_off_reset(&self, request: ConnectionId) -> RpcResult<EmptyResponse> {
+        call_method::<ConnectionId, EmptyResponse>(
             self.transport.as_ref(),
             "ECUReset::key_on_off_reset",
             &request,
         )
     }
-    fn soft_reset(&self, request: ConnectionId) -> RpcResult<Empty> {
-        call_method::<ConnectionId, Empty>(
+    fn soft_reset(&self, request: ConnectionId) -> RpcResult<EmptyResponse> {
+        call_method::<ConnectionId, EmptyResponse>(
             self.transport.as_ref(),
             "ECUReset::soft_reset",
             &request,
@@ -55,15 +55,15 @@ impl ECUReset for ECUResetClient {
             &request,
         )
     }
-    fn disable_rapid_power_shutdown(&self, request: ConnectionId) -> RpcResult<Empty> {
-        call_method::<ConnectionId, Empty>(
+    fn disable_rapid_power_shutdown(&self, request: ConnectionId) -> RpcResult<EmptyResponse> {
+        call_method::<ConnectionId, EmptyResponse>(
             self.transport.as_ref(),
             "ECUReset::disable_rapid_power_shutdown",
             &request,
         )
     }
-    fn custom_reset(&self, request: ConnectionId) -> RpcResult<Empty> {
-        call_method::<ConnectionId, Empty>(
+    fn custom_reset(&self, request: ConnectionId) -> RpcResult<EmptyResponse> {
+        call_method::<ConnectionId, EmptyResponse>(
             self.transport.as_ref(),
             "ECUReset::custom_reset",
             &request,
