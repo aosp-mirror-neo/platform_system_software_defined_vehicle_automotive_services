@@ -17,6 +17,7 @@ rust_library {
         "liblog_rust",
         "libsdv_log_rust",
         "libsdvmiddleware_rpc_grpc_transport",
+        "libsdvgenerated_rpc_diagnostics_manager",
         "libsdvgenerated_rpc_data_item",
         "libsdv_middleware_pubsub",
     ],

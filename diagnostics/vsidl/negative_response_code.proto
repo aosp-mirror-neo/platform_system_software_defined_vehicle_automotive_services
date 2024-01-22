@@ -2,12 +2,15 @@
 
 syntax = "proto3";
 
-package sdv.diagnostics.error;
+package sdv.diagnostics.nrc;
 
 // Response codes for diagnostic requests.
 //
+// Use `EnumOrUnknown::<NegativeResponseCode>::from_i32(...)` to provide a non-standard
+// error value.
+//
 // See ISO 14229-1:2020, table A.1.
-enum ResponseCode {
+enum NegativeResponseCode {
   POSITIVE_RESPONSE = 0x00;
 
   // 0x01 to 0x0F: Reserved.

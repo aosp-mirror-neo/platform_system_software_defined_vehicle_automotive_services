@@ -1,0 +1,25 @@
+// Copyright 2024 Google LLC
+
+syntax = "proto3";
+
+package sdv.diagnostics.session_type;
+
+// Diagnostic session types.
+//
+// Use `EnumOrUnknown::<SessionType>::from_i32(...)` to provide a non-standard
+// session type value.
+//
+// See ISO 14229-1:2020, section 10.2.2.2.
+enum SessionType {
+  RESERVED = 0x00;
+
+  DEFAULT_SESSION = 0x01;
+  PROGRAMMING_SESSION = 0x02;
+  EXTENDED_DIAGNOSTIC_SESSION = 0x03;
+  SAFETY_SYSTEM_DIAGNOSTIC_SESSION = 0x04;
+
+  // 0x05 to 0x3F: Reserved
+  // 0x40 to 0x5F: Vehicle manufacturer specific
+  // 0x60 to 0x7F: System supplier specific
+  // 0x7F: Reserved
+}

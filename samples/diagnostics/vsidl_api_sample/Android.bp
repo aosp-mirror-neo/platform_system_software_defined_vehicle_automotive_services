@@ -48,6 +48,7 @@ rust_binary {
     prefer_rlib: true,
     rustlibs: [
         "libsdvgenerated_diagnostics_manager_service",
+        "libsdvmiddleware_rpc",
         "libsdvmiddleware_rpc_grpc_transport",
     ],
 }
