@@ -50,4 +50,8 @@ rust_test {
     test_options: {
         unit_test: true,
     },
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
 }
