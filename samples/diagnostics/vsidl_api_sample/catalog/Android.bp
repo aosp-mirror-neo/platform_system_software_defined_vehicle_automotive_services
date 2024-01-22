@@ -8,11 +8,13 @@ rust_protobuf {
     protos: [
         "**/*.proto",
         ":sdv_vsidl_protos",
+        ":sdv_diag_serde_protos",
     ],
     source_stem: "diagnostics_api_sample",
     proto_flags: [
         "-I external/protobuf/src",
-        "-I system/software_defined_vehicle/core_services/vsidl/",
+        "-I system/software_defined_vehicle/core_services/vsidl/protos",
+        "-I system/software_defined_vehicle/automotive_services/diagnostics/serde/proto",
     ],
     host_supported: true,
     vendor: true,

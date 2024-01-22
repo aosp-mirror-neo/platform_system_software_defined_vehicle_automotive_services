@@ -8,8 +8,11 @@ use diagnostics_api::diagnostics_manager::{
 };
 use diagnostics_api::negative_response_code::NegativeResponseCode;
 use diagnostics_api::session_type::SessionType;
+use diagnostics_api_sample::data_items::{DataItemOne, DataItemTwo};
 use protobuf::EnumOrUnknown;
 use protobuf::MessageField;
+use protobuf::MessageFull;
+use sdv_uds_serde::translator::Translator;
 use sdvgenerated::data_item_interface::DataItem;
 use sdvgenerated::diagnostics_manager_interface::DiagnosticsManager;
 use sdvgenerated::diagnostics_manager_service::DiagnosticsManagerService;
@@ -80,6 +83,10 @@ fn main() {
     data_item_providers.insert(first_data_item, "DiagnosticsProviderService1");
     data_item_providers.insert(second_data_item, "DiagnosticsProviderService2");
 
+    let mut data_item_descriptors = HashMap::new();
+    data_item_descriptors.insert(first_data_item, DataItemOne::descriptor());
+    data_item_descriptors.insert(second_data_item, DataItemTwo::descriptor());
+
     // Create service instance and register DiagnosticsManagerServer
     let service = DiagnosticsManagerService::new();
     service
@@ -104,7 +111,47 @@ fn main() {
     let response = first_data_item_client.read(read_data_item_request(first_data_item));
     println!("Fetch {:?}: {:?}.", first_data_item, response);
 
-    let new_value = vec![2];
+    let translator = Translator {};
+    let uds_bytes_for_initial_value = translator
+        .translate_from_protobuf_to_uds(
+            &response.unwrap().value,
+            &data_item_descriptors[first_data_item],
+        )
+        .unwrap();
+
+    // Uds bytes are for the following proto definition:
+    //
+    // message DataItemOne {
+    //     int32 code = 1 [(sdv.diag.primitive_byte_size) = ONE];
+    //     string name = 2 [(sdv.vsidl.variable_type_max_size) = 5];
+    // }
+    //
+    // fields:
+    // - `code`: first byte
+    // - `name`: next five bytes, with `\0` padding
+    println!("Fields parsed from UDS bytes: code = '{}'", uds_bytes_for_initial_value[0]);
+    let mut name_value = vec![];
+    for char in uds_bytes_for_initial_value.iter().skip(1) {
+        if *char != b'\0' {
+            name_value.push(*char);
+        }
+    }
+    println!("Fields parsed from UDS bytes: name = '{}'", String::from_utf8(name_value).unwrap());
+
+    // Construct uds bytes for the following proto definition:
+    //
+    // message DataItemOne {
+    //     int32 code = 1 [(sdv.diag.primitive_byte_size) = ONE];
+    //     string name = 2 [(sdv.vsidl.variable_type_max_size) = 5];
+    // }
+    let uds_bytes_for_new_value = vec![15, b'h', b'i', 0, 0, 0];
+    let new_value = translator
+        .translate_from_uds_to_protobuf(
+            &uds_bytes_for_new_value,
+            &data_item_descriptors[first_data_item],
+        )
+        .unwrap();
+
     let response =
         first_data_item_client.write(write_data_item_request(first_data_item, new_value.clone()));
     println!(
@@ -114,6 +161,20 @@ fn main() {
 
     let response = first_data_item_client.read(read_data_item_request(first_data_item));
     println!("Fetch {:?} data item after update: {:?}.", first_data_item, response);
+    let uds_bytes_for_initial_value = translator
+        .translate_from_protobuf_to_uds(
+            &response.unwrap().value,
+            &data_item_descriptors[first_data_item],
+        )
+        .unwrap();
+    println!("Fields parsed from UDS bytes: code = '{}'", uds_bytes_for_initial_value[0]);
+    let mut name_value = vec![];
+    for char in uds_bytes_for_initial_value.iter().skip(1) {
+        if *char != b'\0' {
+            name_value.push(*char);
+        }
+    }
+    println!("Fields parsed from UDS bytes: name = '{}'", String::from_utf8(name_value).unwrap());
 
     let second_data_item_client =
         create_data_item_client(data_item_providers[second_data_item].to_string());
