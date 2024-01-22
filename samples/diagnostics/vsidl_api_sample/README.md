@@ -90,21 +90,19 @@ Received read request for "data_item_id2".
 
 #### In the 'Diagnostics manager' terminal
 
-Fetch "data_item_id1": Ok(ReadResponse { value: [7, 8, 1, 18, 3, 104, 101, 121], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
-
+Fetch "data_item_id1": Ok(ReadResponse { value: [8, 1, 18, 3, 104, 101, 121], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 Fields parsed from UDS bytes: code = '1'
 Fields parsed from UDS bytes: name = 'hey'
 
-Update "data_item_id1" to a new value [9, 8, 15, 18, 5, 104, 105, 0, 0, 0]. Response: Ok(EmptyResponse { error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Update "data_item_id1" to a new value [8, 15, 18, 5, 104, 105, 0, 0, 0]. Response: Ok(EmptyResponse { error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 
-Fetch "data_item_id1" data item after update: Ok(ReadResponse { value: [9, 8, 15, 18, 5, 104, 105, 0, 0, 0], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
-
+Fetch "data_item_id1" data item after update: Ok(ReadResponse { value: [8, 15, 18, 5, 104, 105, 0, 0, 0], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 Fields parsed from UDS bytes: code = '15'
 Fields parsed from UDS bytes: name = 'hi'
 
 Trying to fetch "data_item_id1" from the second provider, fails with response: Ok(ReadResponse { value: [], error_code: REQUEST_OUT_OF_RANGE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 
-Fetch "data_item_id2" from the second provider: Ok(ReadResponse { value: [10, 8, 1, 8, 2, 8, 3, 8, 4, 8, 5], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Fetch "data_item_id2" from the second provider: Ok(ReadResponse { value: [8, 1, 8, 2, 8, 3, 8, 4, 8, 5], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 
 ## Known issues
 
