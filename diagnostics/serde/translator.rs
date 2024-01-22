@@ -16,18 +16,16 @@ impl Translator {
     /// Translates serialized protobuf message `proto_bytes` to UDS message.
     /// Method uses `message_descriptor` to perform reflection-based translation.
     /// Returns serialized UDS message or `TranslationError`.
+    ///
+    /// `proto_bytes` are expected to be in format produced by
+    /// `MessageDyn::write_to_bytes()`.
     pub fn translate_from_protobuf_to_uds(
         &self,
         proto_bytes: &[u8],
         message_descriptor: &MessageDescriptor,
     ) -> Result<Vec<u8>, TranslationError> {
-        let mut input_stream = protobuf::CodedInputStream::from_bytes(proto_bytes);
-        let size = input_stream.read_raw_varint32().unwrap().into();
-        let _old_limit =
-            input_stream.push_limit(size).map_err(TranslationError::ProtobufParsingError)?;
-
         let message = message_descriptor
-            .parse_from(&mut input_stream)
+            .parse_from_bytes(proto_bytes)
             .map_err(TranslationError::ProtobufParsingError)?;
 
         let mut buffer = BytesMut::new();
@@ -41,6 +39,8 @@ impl Translator {
     /// Translates serialized UDS message `proto_bytes` to protobuf message.
     /// Method uses `message_descriptor` to perform reflection-based translation.
     /// Returns serialized protobuf message or `TranslationError`.
+    ///
+    /// Returned proto bytes are in format produced by `MessageDyn::write_to_bytes()`.
     pub fn translate_from_uds_to_protobuf(
         &self,
         uds_bytes: &[u8],
@@ -52,7 +52,7 @@ impl Translator {
 
         MessageDeserializeSeed::new(message_descriptor)
             .deserialize(&mut deserializer)?
-            .write_length_delimited_to_bytes_dyn()
+            .write_to_bytes_dyn()
             .map_err(TranslationError::ProtobufSerializationError)
     }
 }
@@ -127,7 +127,6 @@ mod tests {
         );
 
         let mut proto_bytes: Vec<u8> = vec![];
-        proto_bytes.put_u8(86); // Message length
         proto_bytes.put_u8(8); // VARINT field with field number '1'
         proto_bytes.put(&[192, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -64
         proto_bytes.put_u8(16); // VARINT field with field number '2'
@@ -242,7 +241,6 @@ mod tests {
         let uds_bytes = uds_bytes.freeze();
 
         let mut expected_proto_bytes: Vec<u8> = vec![];
-        expected_proto_bytes.put_u8(86); // Message length
         expected_proto_bytes.put_u8(8); // VARINT field with field number '1'
         expected_proto_bytes.put(&[192, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -64
         expected_proto_bytes.put_u8(16); // VARINT field with field number '2'

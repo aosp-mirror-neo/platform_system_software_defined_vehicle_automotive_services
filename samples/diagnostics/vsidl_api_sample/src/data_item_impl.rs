@@ -39,7 +39,7 @@ impl DataItem for DataItemImpl {
         println!("Received read request for {:?}.", &request.id);
 
         if request.id == self.id {
-            if let Ok(value) = get_lock!(self.data_item).write_length_delimited_to_bytes_dyn() {
+            if let Ok(value) = get_lock!(self.data_item).write_to_bytes_dyn() {
                 Ok(ReadResponse {
                     value,
                     error_code: POSITIVE_RESPONSE.into(),
@@ -60,12 +60,7 @@ impl DataItem for DataItemImpl {
         println!("Received write request for {:?}.", &request.id);
 
         if request.id == self.id {
-            let mut input_stream = protobuf::CodedInputStream::from_bytes(&request.value);
-            // Proto bytes are currently length delimited, ignore size varint32 at the
-            // beginning
-            let _skip_size = input_stream.read_raw_varint32().unwrap();
-
-            if let Ok(new_message) = self.descriptor.parse_from(&mut input_stream) {
+            if let Ok(new_message) = self.descriptor.parse_from_bytes(&request.value) {
                 let mut data = get_lock!(self.data_item);
                 *data = new_message;
                 Ok(EmptyResponse { error_code: POSITIVE_RESPONSE.into(), ..Default::default() })
