@@ -3,7 +3,7 @@ package {
 }
 
 rust_binary {
-    name: "sdv_vpm_agent",
+    name: "sdv_vpm_agent_poc",
     srcs: ["srcs/service/main.rs"],
     defaults: [
         "sdv@rust_defaults",
