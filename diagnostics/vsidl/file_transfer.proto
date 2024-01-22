@@ -5,7 +5,7 @@ syntax = "proto3";
 package sdv.diagnostics.file_transfer;
 
 import "connection.proto";
-import "google/protobuf/empty.proto";
+import "negative_response_code.proto";
 
 // Diagnostic interface for file transfer related services:
 // - RequestDownload (UDS 0x34)
@@ -22,14 +22,14 @@ service FileTransfer {
   // Add the file (download) defined by the file id in the request.
   //
   // Responds with a file path to use to write file data for transfer to service.
-  rpc AddFile(FileWriteRequest) returns (FilePath) {}
+  rpc AddFile(FileWriteRequest) returns (FilePathResponse) {}
 
   // Replace the file (download) defined by the file id in the request.
   //
   // If the file does not exist it's simply added.
   //
   // Responds with a file path to use to write file data for transfer to service.
-  rpc ReplaceFile(FileWriteRequest) returns (FilePath) {}
+  rpc ReplaceFile(FileWriteRequest) returns (FilePathResponse) {}
 
   // Resume writing the file (download) defined by the file id in the request.
   //
@@ -42,13 +42,13 @@ service FileTransfer {
   rpc ReadFile(FileRequest) returns (FileReadResponse) {}
 
   // Delete the file defined by the file id in the request.
-  rpc DeleteFile(FileRequest) returns (google.protobuf.Empty) {}
+  rpc DeleteFile(FileRequest) returns (nrc.EmptyResponse) {}
 
   // Finish file transfer operation.
   //
   // Called to indicate the finish of the file read/write operation initiated by one of
   // the other RPCs (`AddFile`/`ReplaceFile`/`ReadFile`/`ResumeFile`).
-  rpc ExitFileTransfer(FileRequest) returns (google.protobuf.Empty) {}
+  rpc ExitFileTransfer(FileRequest) returns (nrc.EmptyResponse) {}
 }
 
 message FileRequest {
@@ -60,9 +60,15 @@ message FileRequest {
 }
 
 // Message that represents path to the file.
-message FilePath {
+message FilePathResponse {
   // Path to the file.
   string path = 1;
+
+  // Error code.
+  //
+  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
+  // Other parts of response should be ignored in such case.
+  nrc.NegativeResponseCode error_code = 2;
 }
 
 message FileWriteRequest {
@@ -82,6 +88,12 @@ message ResumeFileResponse {
 
   // Position in the file to resume writing from.
   int64 file_position = 2;
+
+  // Error code.
+  //
+  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
+  // Other parts of response should be ignored in such case.
+  nrc.NegativeResponseCode error_code = 3;
 }
 
 message FileReadResponse {
@@ -90,4 +102,10 @@ message FileReadResponse {
 
   // Size of the file.
   int64 file_size = 2;
+
+  // Error code.
+  //
+  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
+  // Other parts of response should be ignored in such case.
+  nrc.NegativeResponseCode error_code = 3;
 }

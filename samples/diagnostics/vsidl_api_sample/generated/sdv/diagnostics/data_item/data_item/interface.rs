@@ -6,7 +6,7 @@
 use diagnostics_api::data_item::ReadRequest;
 use diagnostics_api::data_item::ReadResponse;
 use diagnostics_api::data_item::WriteRequest;
-use protobuf::well_known_types::empty::Empty;
+use diagnostics_api::negative_response_code::EmptyResponse;
 use sdvmiddleware_rpc::RpcResult;
 
 /// An auto-generated RPC interface.
@@ -14,5 +14,5 @@ pub trait DataItem: Send + Sync {
     /// RPC method declared in the interface.
     fn read(&self, request: ReadRequest) -> RpcResult<ReadResponse>;
     /// RPC method declared in the interface.
-    fn write(&self, request: WriteRequest) -> RpcResult<Empty>;
+    fn write(&self, request: WriteRequest) -> RpcResult<EmptyResponse>;
 }

@@ -4,12 +4,12 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::FileTransfer;
-use diagnostics_api::file_transfer::FilePath;
+use diagnostics_api::file_transfer::FilePathResponse;
 use diagnostics_api::file_transfer::FileReadResponse;
 use diagnostics_api::file_transfer::FileRequest;
 use diagnostics_api::file_transfer::FileWriteRequest;
 use diagnostics_api::file_transfer::ResumeFileResponse;
-use protobuf::well_known_types::empty::Empty;
+use diagnostics_api::negative_response_code::EmptyResponse;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;
 use sdvmiddleware_rpc::RpcResult;
@@ -27,15 +27,15 @@ impl FileTransferClient {
 }
 
 impl FileTransfer for FileTransferClient {
-    fn add_file(&self, request: FileWriteRequest) -> RpcResult<FilePath> {
-        call_method::<FileWriteRequest, FilePath>(
+    fn add_file(&self, request: FileWriteRequest) -> RpcResult<FilePathResponse> {
+        call_method::<FileWriteRequest, FilePathResponse>(
             self.transport.as_ref(),
             "FileTransfer::add_file",
             &request,
         )
     }
-    fn replace_file(&self, request: FileWriteRequest) -> RpcResult<FilePath> {
-        call_method::<FileWriteRequest, FilePath>(
+    fn replace_file(&self, request: FileWriteRequest) -> RpcResult<FilePathResponse> {
+        call_method::<FileWriteRequest, FilePathResponse>(
             self.transport.as_ref(),
             "FileTransfer::replace_file",
             &request,
@@ -55,15 +55,15 @@ impl FileTransfer for FileTransferClient {
             &request,
         )
     }
-    fn delete_file(&self, request: FileRequest) -> RpcResult<Empty> {
-        call_method::<FileRequest, Empty>(
+    fn delete_file(&self, request: FileRequest) -> RpcResult<EmptyResponse> {
+        call_method::<FileRequest, EmptyResponse>(
             self.transport.as_ref(),
             "FileTransfer::delete_file",
             &request,
         )
     }
-    fn exit_file_transfer(&self, request: FileRequest) -> RpcResult<Empty> {
-        call_method::<FileRequest, Empty>(
+    fn exit_file_transfer(&self, request: FileRequest) -> RpcResult<EmptyResponse> {
+        call_method::<FileRequest, EmptyResponse>(
             self.transport.as_ref(),
             "FileTransfer::exit_file_transfer",
             &request,

@@ -5,7 +5,7 @@ syntax = "proto3";
 package sdv.diagnostics.ecu_reset;
 
 import "connection.proto";
-import "google/protobuf/empty.proto";
+import "negative_response_code.proto";
 
 // Diagnostic interface for ECUReset (UDS 0x11) service.
 //
@@ -15,14 +15,14 @@ import "google/protobuf/empty.proto";
 // See ISO 14229-1:2020, section 10.3.4.
 service ECUReset {
   // Perform "hard reset", which simulates the power-on/start-up sequence.
-  rpc HardReset(connection.ConnectionId) returns (google.protobuf.Empty) {}
+  rpc HardReset(connection.ConnectionId) returns (nrc.EmptyResponse) {}
 
   // Perform reset similar to the driver turning the ignition key off and back on.
-  rpc KeyOnOffReset(connection.ConnectionId) returns (google.protobuf.Empty) {}
+  rpc KeyOnOffReset(connection.ConnectionId) returns (nrc.EmptyResponse) {}
 
   // Perform "soft reset", which causes the server to immediately restart the application
   // program if applicable.
-  rpc SoftReset(connection.ConnectionId) returns (google.protobuf.Empty) {}
+  rpc SoftReset(connection.ConnectionId) returns (nrc.EmptyResponse) {}
 
   // Performs shutdown to a sleep mode rather that a power off.
   //
@@ -30,10 +30,10 @@ service ECUReset {
   rpc EnableRapidPowerShutdown(connection.ConnectionId) returns (RapidPowerShutdownResponse) {}
 
   // Request to disable the previously enabled "rapid power shutdown".
-  rpc DisableRapidPowerShutdown(connection.ConnectionId) returns (google.protobuf.Empty) {}
+  rpc DisableRapidPowerShutdown(connection.ConnectionId) returns (nrc.EmptyResponse) {}
 
   // Perform vehicle manufacturer / system supplier specific reset.
-  rpc CustomReset(connection.ConnectionId) returns (google.protobuf.Empty) {}
+  rpc CustomReset(connection.ConnectionId) returns (nrc.EmptyResponse) {}
 }
 
 message RapidPowerShutdownResponse {
@@ -43,4 +43,10 @@ message RapidPowerShutdownResponse {
   // 0x00 to 0xFE: 0 to 254 seconds power down time.
   // 0xFF: indicates a failure or time not available.
   int32 powerDownTime = 1;
+
+  // Error code.
+  //
+  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
+  // Other parts of response should be ignored in such case.
+  nrc.NegativeResponseCode error_code = 2;
 }
