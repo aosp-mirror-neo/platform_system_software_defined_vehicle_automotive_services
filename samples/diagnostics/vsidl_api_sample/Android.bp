@@ -14,6 +14,8 @@ rust_defaults {
         "libanyhow",
         "liblog_rust",
         "libsdv_log_rust",
+        "libprotobuf",
+        "libsdvmiddleware_rpc",
     ],
     apex_available: ["//apex_available:platform"],
     vendor: true,
@@ -26,7 +28,6 @@ rust_binary {
     prefer_rlib: true,
     rustlibs: [
         "libsdvgenerated_diagnostics_provider_service1",
-        "libsdvmiddleware_rpc",
     ],
 }
 
@@ -37,7 +38,6 @@ rust_binary {
     prefer_rlib: true,
     rustlibs: [
         "libsdvgenerated_diagnostics_provider_service2",
-        "libsdvmiddleware_rpc",
     ],
 }
 
@@ -47,8 +47,8 @@ rust_binary {
     srcs: ["src/manager.rs"],
     prefer_rlib: true,
     rustlibs: [
+        "libsdv_uds_serde",
         "libsdvgenerated_diagnostics_manager_service",
-        "libsdvmiddleware_rpc",
         "libsdvmiddleware_rpc_grpc_transport",
     ],
 }
