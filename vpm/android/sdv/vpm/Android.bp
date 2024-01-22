@@ -1,0 +1,22 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_binary {
+    name: "sdv_vpm_agent",
+    crate_name: "sdv_vpm",
+    srcs: ["srcs/service/main.rs"],
+    defaults: [
+        "sdv@rust_defaults",
+        "sdv_tracing@rust_defaults",
+    ],
+    prefer_rlib: true,
+    rustlibs: [
+        "libanyhow",
+        "libsdv_log_rust",
+        "liblog_rust",
+        "libtokio",
+
+    ],
+    system_ext_specific: true,
+}

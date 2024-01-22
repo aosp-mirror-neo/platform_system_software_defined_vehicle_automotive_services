@@ -1,5 +1,5 @@
 // Copyright 2023 Google LLC
-//! Vehicle and Power Mode Service.
+//! Vehicle and Power Mode POC.
 
 mod vpm_client_service_api;
 mod vpm_system_service;
@@ -23,7 +23,7 @@ use tokio::runtime::Handle;
 use tokio::task;
 use tracing::instrument;
 
-static LOG_TAG: &str = "sdv_vpm_agent";
+static LOG_TAG: &str = "sdv_vpm_agent_poc";
 static CELL: OnceLock<VPMSystemService> = OnceLock::new();
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
@@ -31,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
     sdv_log::init_logger(LOG_TAG)?;
     sdv_tracing::init_tracing();
 
-    info!("VPM Agent starting!");
+    info!("VPM POC starting!");
 
     let system_service: &VPMSystemService = CELL.get_or_init(VPMSystemService::new);
 
