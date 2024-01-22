@@ -1,0 +1,21 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_protobuf {
+    name: "libsdv_vpm_api",
+    crate_name: "sdv_vpm_api",
+    protos: [
+        "**/*.proto",
+        ":sdv_vsidl_protos",
+    ],
+    source_stem: "sdv_vpm_api",
+    proto_flags: [
+        "-I external/protobuf/src",
+        "-I system/software_defined_vehicle/core_services/vsidl/protos/",
+    ],
+    vendor_available: true,
+    host_supported: true,
+}
