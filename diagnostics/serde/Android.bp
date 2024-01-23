@@ -4,7 +4,7 @@ package {
 
 rust_defaults {
     name: "sdv_uds_serde@rust_defaults",
-    srcs: ["lib.rs"],
+    srcs: ["src/lib.rs"],
     defaults: ["sdv@rust_defaults"],
     rustlibs: [
         "libnom",
