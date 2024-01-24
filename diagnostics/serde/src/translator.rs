@@ -109,6 +109,14 @@ mod tests {
                     (sdv.diag.primitive_byte_size) = ONE,
                     (sdv.vsidl.repeated_field_max_count) = 2
                 ];
+                float my_fixed_f32 = 12 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }];
+                double my_fixed_f64 = 13 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.0001
+                    offset: 0
+                }];
             }
 
             message InnerProto {
@@ -136,9 +144,9 @@ mod tests {
         proto_bytes.put_u8(32); // VARINT field with field number '4'
         proto_bytes.put_u8(32); // +32
         proto_bytes.put_u8(41); // I64 field with field number '5'
-        proto_bytes.put(&[154, 153, 153, 153, 153, 153, 25, 64][..]); // 6.4_f64
+        proto_bytes.put(&6.4f64.to_le_bytes()[..]); // 6.4_f64
         proto_bytes.put_u8(53); // I32 field with field number '6'
-        proto_bytes.put(&[205, 204, 76, 192][..]);
+        proto_bytes.put(&(-3.2f32).to_le_bytes()[..]);
         proto_bytes.put_u8(56); // VARINT field with field number '7'
         proto_bytes.put_u8(1); // false
         proto_bytes.put_u8(66); // LEN field with field number '8'
@@ -154,6 +162,10 @@ mod tests {
         proto_bytes.put_u8(80); // VARINT field with field number '10'
         proto_bytes.put(&[128, 8][..]); // +1024
         proto_bytes.put(&[88, 10, 88, 20][..]); // Repeated VARINT field with field number '11'
+        proto_bytes.put_u8(101); // I32 field with field number '12'
+        proto_bytes.put(&20.101f32.to_le_bytes()[..]);
+        proto_bytes.put_u8(105); // I64 field with field number '13'
+        proto_bytes.put(&(-0.010100000000000001f64).to_le_bytes()[..]);
 
         let mut expected_uds_bytes = BytesMut::new();
         expected_uds_bytes.put_i64(-64);
@@ -172,6 +184,8 @@ mod tests {
         expected_uds_bytes.put_u16(1024);
         expected_uds_bytes.put_u8(10);
         expected_uds_bytes.put_u8(20);
+        expected_uds_bytes.put_i32(101);
+        expected_uds_bytes.put_i64(-101);
         let expected_uds_bytes = expected_uds_bytes.freeze();
 
         let uds_bytes =
@@ -204,6 +218,14 @@ mod tests {
                     (sdv.diag.primitive_byte_size) = ONE,
                     (sdv.vsidl.repeated_field_max_count) = 2
                 ];
+                float my_fixed_f32 = 12 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }];
+                double my_fixed_f64 = 13 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.0001
+                    offset: 0
+                }];
             }
 
             message InnerProto {
@@ -238,6 +260,8 @@ mod tests {
         uds_bytes.put_u16(1024);
         uds_bytes.put_u8(10);
         uds_bytes.put_u8(20);
+        uds_bytes.put_i32(101);
+        uds_bytes.put_i64(-101);
         let uds_bytes = uds_bytes.freeze();
 
         let mut expected_proto_bytes: Vec<u8> = vec![];
@@ -250,9 +274,9 @@ mod tests {
         expected_proto_bytes.put_u8(32); // VARINT field with field number '4'
         expected_proto_bytes.put_u8(32); // +32
         expected_proto_bytes.put_u8(41); // I64 field with field number '5'
-        expected_proto_bytes.put(&[154, 153, 153, 153, 153, 153, 25, 64][..]); // 6.4_f64
+        expected_proto_bytes.put(&6.4f64.to_le_bytes()[..]); // 6.4_f64
         expected_proto_bytes.put_u8(53); // I32 field with field number '6'
-        expected_proto_bytes.put(&[205, 204, 76, 192][..]);
+        expected_proto_bytes.put(&(-3.2f32).to_le_bytes()[..]);
         expected_proto_bytes.put_u8(56); // VARINT field with field number '7'
         expected_proto_bytes.put_u8(1); // false
         expected_proto_bytes.put_u8(66); // LEN field with field number '8'
@@ -268,6 +292,10 @@ mod tests {
         expected_proto_bytes.put_u8(80); // VARINT field with field number '10'
         expected_proto_bytes.put(&[128, 8][..]); // +1024
         expected_proto_bytes.put(&[88, 10, 88, 20][..]); // Repeated VARINT field with field number '11'
+        expected_proto_bytes.put_u8(101); // I32 field with field number '12'
+        expected_proto_bytes.put(&20.101f32.to_le_bytes()[..]);
+        expected_proto_bytes.put_u8(105); // I64 field with field number '13'
+        expected_proto_bytes.put(&(-0.010100000000000001f64).to_le_bytes()[..]);
 
         let proto_bytes =
             translator.translate_from_uds_to_protobuf(&uds_bytes, &message_descriptor).unwrap();

@@ -1,6 +1,6 @@
 // Copyright 2024 Google LLC
 use crate::field_options::FieldOptions;
-use diag_serde_protos::diag_serde::PrimitiveByteSize;
+use diag_serde_protos::diag_serde::{FixedPointEncoding, PrimitiveByteSize};
 use protobuf::reflect::{
     FieldDescriptor, MessageDescriptor, MessageRef,
     ReflectFieldRef::{self, *},
@@ -137,6 +137,36 @@ impl<'lt> ValueSerialize<'lt> {
             tuple.end()
         }
     }
+
+    fn fixed_point_f64<E>(value: f64, encoding: FixedPointEncoding) -> Result<i64, E>
+    where
+        E: serde::ser::Error,
+    {
+        let value = ((value - encoding.offset) / encoding.scale).ceil();
+
+        if value > i64::MAX as f64 || value < i64::MIN as f64 {
+            return Err(E::custom(
+                "i64 overflow when converting f64 to fixed point representation",
+            ));
+        }
+
+        Ok(value as i64)
+    }
+
+    fn fixed_point_f32<E>(value: f32, encoding: FixedPointEncoding) -> Result<i32, E>
+    where
+        E: serde::ser::Error,
+    {
+        let value: f64 = (((value as f64) - encoding.offset) / encoding.scale).ceil();
+
+        if value > i32::MAX as f64 || value < i32::MIN as f64 {
+            return Err(E::custom(
+                "i32 overflow when converting f32 to fixed point representation",
+            ));
+        }
+
+        Ok(value as i32)
+    }
 }
 
 impl<'lt> Serialize for ValueSerialize<'lt> {
@@ -165,8 +195,22 @@ impl<'lt> Serialize for ValueSerialize<'lt> {
                 _ => serializer.serialize_i32(*value),
             },
             I64(value) => serializer.serialize_i64(*value),
-            F32(value) => serializer.serialize_f32(*value),
-            F64(value) => serializer.serialize_f64(*value),
+            F32(value) => {
+                if let Some(encoding) = self.options.fixed_point_encoding() {
+                    Self::fixed_point_f32(*value, encoding)
+                        .and_then(|value| serializer.serialize_i32(value))
+                } else {
+                    serializer.serialize_f32(*value)
+                }
+            }
+            F64(value) => {
+                if let Some(encoding) = self.options.fixed_point_encoding() {
+                    Self::fixed_point_f64(*value, encoding)
+                        .and_then(|value| serializer.serialize_i64(value))
+                } else {
+                    serializer.serialize_f64(*value)
+                }
+            }
             Bytes(value) => {
                 if let Some(size) = self.options.variable_type_size().map_err(S::Error::custom)? {
                     self.serialize_fixed_size_bytes(serializer, size, value)
@@ -924,6 +968,137 @@ mod tests {
                 Token::I16(-510),
                 Token::TupleEnd,
             ],
+        )
+    }
+
+    #[test]
+    fn serialize_float_fields_with_fixed_point_options() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "syntax/diag_serde.proto";
+            import "syntax/vsidl.proto";
+
+            message TestProto {
+                repeated float my_fixed_float = 1 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }, (sdv.vsidl.repeated_field_max_count) = 2];
+                repeated double my_fixed_double = 2 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.0001
+                    offset: 0
+                }, (sdv.vsidl.repeated_field_max_count) = 2];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let values = match index {
+                0 => [F32(20.0132), F32(19.8947)],
+                1 => [F64(0.12345), F64(-0.12345)],
+                _ => unreachable!(),
+            };
+
+            for value in values {
+                field.mut_repeated(&mut *message).push(value);
+            }
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 2 },
+                Token::Tuple { len: 2 },
+                Token::I32(14),
+                Token::I32(-105),
+                Token::TupleEnd,
+                Token::Tuple { len: 2 },
+                Token::I64(1235),
+                Token::I64(-1234),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_float_field_with_fixed_point_overflow() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "syntax/diag_serde.proto";
+            import "syntax/vsidl.proto";
+
+            message TestProto {
+                float my_fixed_float = 1 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 1
+                    offset: 0
+                }];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => F32(i32::MAX as f32 + 1.0),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens_error(
+            &message_serialize,
+            &[Token::Tuple { len: 1 }, Token::Some],
+            "i32 overflow when converting f32 to fixed point representation",
+        )
+    }
+
+    #[test]
+    fn serialize_double_field_with_fixed_point_overflow() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "syntax/diag_serde.proto";
+            import "syntax/vsidl.proto";
+
+            message TestProto {
+                double my_fixed_double = 1 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 1
+                    offset: 0
+                }];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => F64(i64::MIN as f64 - 10000.0),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens_error(
+            &message_serialize,
+            &[Token::Tuple { len: 1 }, Token::Some],
+            "i64 overflow when converting f64 to fixed point representation",
         )
     }
 }

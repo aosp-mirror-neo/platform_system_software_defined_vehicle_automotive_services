@@ -1,7 +1,8 @@
 // Copyright 2024 Google LLC
-use diag_serde_protos::diag_serde::PrimitiveByteSize;
+use diag_serde_protos::diag_serde::{FixedPointEncoding, PrimitiveByteSize};
 use protobuf::reflect::FieldDescriptor;
-use protobuf::UnknownValueRef;
+use protobuf::Message;
+use protobuf::UnknownValueRef::{self, *};
 use std::num::TryFromIntError;
 use std::result::Result;
 
@@ -11,6 +12,7 @@ pub(crate) trait FieldOptions {
     fn repeated_field_count(&self) -> Result<Option<usize>, TryFromIntError>;
     fn variable_type_size(&self) -> Result<Option<usize>, TryFromIntError>;
     fn primitive_byte_size(&self) -> Option<PrimitiveByteSize>;
+    fn fixed_point_encoding(&self) -> Option<FixedPointEncoding>;
 }
 
 /// Helper function for retrieving `usize` value of a field option by its id.
@@ -27,13 +29,18 @@ fn get_size_option(
 
 /// Helper function for retrieving `u64` value of a field option by its id.
 fn get_varint_option(field_descriptor: &FieldDescriptor, option_id: u32) -> Option<u64> {
-    if let Some(UnknownValueRef::Varint(value)) =
-        field_descriptor.proto().options.special_fields.unknown_fields().get(option_id)
-    {
-        Some(value)
-    } else {
-        None
-    }
+    get_option_by_id(field_descriptor, option_id).and_then(|unknown_value| {
+        if let Varint(value) = unknown_value {
+            Some(value)
+        } else {
+            None
+        }
+    })
+}
+
+/// Helper function for retrieving option value as an `UnknownValueRef`.
+fn get_option_by_id(field_descriptor: &FieldDescriptor, option_id: u32) -> Option<UnknownValueRef> {
+    field_descriptor.proto().options.special_fields.unknown_fields().get(option_id)
 }
 
 impl FieldOptions for FieldDescriptor {
@@ -59,5 +66,22 @@ impl FieldOptions for FieldDescriptor {
             Some(1) => Some(PrimitiveByteSize::TWO),
             _ => None,
         }
+    }
+
+    fn fixed_point_encoding(&self) -> Option<FixedPointEncoding> {
+        const FIXED_POINT_ENCODING: u32 = 50201;
+
+        get_option_by_id(self, FIXED_POINT_ENCODING)
+            .and_then(
+                |unknown_value| {
+                    if let LengthDelimited(value) = unknown_value {
+                        Some(value)
+                    } else {
+                        None
+                    }
+                },
+            )
+            .map(FixedPointEncoding::parse_from_bytes)
+            .and_then(Result::ok)
     }
 }

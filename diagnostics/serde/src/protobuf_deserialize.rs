@@ -312,45 +312,70 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
     where
         D: Deserializer<'de>,
     {
+        struct I64ValueVisitor;
+        impl<'de> Visitor<'de> for I64ValueVisitor {
+            type Value = ReflectValueBox;
+
+            fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                write!(fmt, "single I64 value")
+            }
+
+            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                Ok(I64(value))
+            }
+
+            // Deserializer implementations might ignore `deserialize_i32` hint.
+            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                let value = value.try_into().map_err(|_| E::custom("i64 overflow"))?;
+
+                self.visit_i64(value)
+            }
+        }
+
+        struct I32ValueVisitor;
+        impl<'de> Visitor<'de> for I32ValueVisitor {
+            type Value = ReflectValueBox;
+
+            fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                write!(fmt, "single I32 value")
+            }
+
+            fn visit_i32<E>(self, value: i32) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                Ok(I32(value))
+            }
+
+            // Deserializer implementations might ignore `deserialize_i32` hint.
+            fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                let value = value.try_into().map_err(|_| E::custom("i32 overflow"))?;
+
+                self.visit_i32(value)
+            }
+
+            // Deserializer implementations might ignore `deserialize_i32` hint.
+            fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                let value = value.try_into().map_err(|_| E::custom("i32 overflow"))?;
+
+                self.visit_i32(value)
+            }
+        }
+
         match self.runtime_type {
             RuntimeType::I32 => {
-                struct I32ValueVisitor;
-
-                impl<'de> Visitor<'de> for I32ValueVisitor {
-                    type Value = ReflectValueBox;
-
-                    fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-                        write!(fmt, "single I32 value")
-                    }
-
-                    fn visit_i32<E>(self, value: i32) -> Result<Self::Value, E>
-                    where
-                        E: Error,
-                    {
-                        Ok(I32(value))
-                    }
-
-                    // Deserializer implementations might ignore `deserialize_i32` hint.
-                    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
-                    where
-                        E: Error,
-                    {
-                        let value = value.try_into().map_err(|_| E::custom("i32 overflow"))?;
-
-                        self.visit_i32(value)
-                    }
-
-                    // Deserializer implementations might ignore `deserialize_i32` hint.
-                    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
-                    where
-                        E: Error,
-                    {
-                        let value = value.try_into().map_err(|_| E::custom("i32 overflow"))?;
-
-                        self.visit_i32(value)
-                    }
-                }
-
                 let visitor = I32ValueVisitor;
 
                 match self.options.primitive_byte_size() {
@@ -359,36 +384,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                     _ => deserializer.deserialize_i32(visitor),
                 }
             }
-            RuntimeType::I64 => {
-                struct I64ValueVisitor;
-
-                impl<'de> Visitor<'de> for I64ValueVisitor {
-                    type Value = ReflectValueBox;
-
-                    fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-                        write!(fmt, "single I64 value")
-                    }
-
-                    fn visit_i64<E>(self, value: i64) -> Result<Self::Value, E>
-                    where
-                        E: Error,
-                    {
-                        Ok(I64(value))
-                    }
-
-                    // Deserializer implementations might ignore `deserialize_i32` hint.
-                    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
-                    where
-                        E: Error,
-                    {
-                        let value = value.try_into().map_err(|_| E::custom("i64 overflow"))?;
-
-                        self.visit_i64(value)
-                    }
-                }
-
-                deserializer.deserialize_i64(I64ValueVisitor)
-            }
+            RuntimeType::I64 => deserializer.deserialize_i64(I64ValueVisitor),
             RuntimeType::U32 => {
                 struct U32ValueVisitor;
 
@@ -491,7 +487,17 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                     }
                 }
 
-                deserializer.deserialize_f32(F32ValueVisitor)
+                if let Some(encoding) = self.options.fixed_point_encoding() {
+                    deserializer.deserialize_i32(I32ValueVisitor).and_then(|value_box| {
+                        if let I32(value) = value_box {
+                            Ok(F32((value as f64 * encoding.scale + encoding.offset) as f32))
+                        } else {
+                            Err(D::Error::custom("Unreachable: I64ValueVisitor always emits I32"))
+                        }
+                    })
+                } else {
+                    deserializer.deserialize_f32(F32ValueVisitor)
+                }
             }
             RuntimeType::F64 => {
                 struct F64ValueVisitor;
@@ -511,7 +517,17 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                     }
                 }
 
-                deserializer.deserialize_f64(F64ValueVisitor)
+                if let Some(encoding) = self.options.fixed_point_encoding() {
+                    deserializer.deserialize_i64(I64ValueVisitor).and_then(|value_box| {
+                        if let I64(value) = value_box {
+                            Ok(F64(value as f64 * encoding.scale + encoding.offset))
+                        } else {
+                            Err(D::Error::custom("Unreachable: I64ValueVisitor always emits I64"))
+                        }
+                    })
+                } else {
+                    deserializer.deserialize_f64(F64ValueVisitor)
+                }
             }
             RuntimeType::Bool => {
                 struct BoolValueVisitor;
@@ -1557,7 +1573,7 @@ mod tests {
 
         let message_deserialize = DeserializeSeedWrapper { message: expected_message };
 
-        assert_de_tokens::<DeserializeSeedWrapper>(
+        assert_de_tokens(
             &message_deserialize,
             &[
                 Token::Tuple { len: 4 },
@@ -1886,7 +1902,7 @@ mod tests {
 
         let message_deserialize = DeserializeSeedWrapper { message: expected_message };
 
-        assert_de_tokens::<DeserializeSeedWrapper>(
+        assert_de_tokens(
             &message_deserialize,
             &[
                 Token::Tuple { len: 4 },
@@ -1898,6 +1914,62 @@ mod tests {
                 Token::I8(-120),
                 Token::Some,
                 Token::I16(-510),
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn deserialize_float_fields_with_fixed_point_options() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/diag_serde.proto";
+            import "syntax/vsidl.proto";
+
+            message TestProto {
+                repeated float my_fixed_float = 1 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }, (sdv.vsidl.repeated_field_max_count) = 2];
+                repeated double my_fixed_double = 2 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.0001
+                    offset: 0
+                }, (sdv.vsidl.repeated_field_max_count) = 2];
+            }
+            "#,
+            ".TestProto",
+            _file_descriptor,
+            message_descriptor
+        );
+
+        let mut expected_message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let values = match index {
+                0 => [F32(20.013), F32(19.895)],
+                1 => [F64(0.12340000000000001), F64(-0.12350000000000001)],
+                _ => unreachable!(),
+            };
+
+            for value in values {
+                field.mut_repeated(&mut *expected_message).push(value);
+            }
+        }
+
+        let message_deserialize = DeserializeSeedWrapper { message: expected_message };
+
+        assert_de_tokens(
+            &message_deserialize,
+            &[
+                Token::Tuple { len: 2 },
+                Token::Tuple { len: 2 },
+                Token::I32(13),
+                Token::I32(-105),
+                Token::TupleEnd,
+                Token::Tuple { len: 2 },
+                Token::I64(1234),
+                Token::I64(-1235),
+                Token::TupleEnd,
                 Token::TupleEnd,
             ],
         )
