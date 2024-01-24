@@ -1,6 +1,7 @@
 // Copyright 2024 Google LLC
+use crate::enum_options::EnumOptions;
 use crate::field_options::FieldOptions;
-use diag_serde_protos::diag_serde::{FixedPointEncoding, PrimitiveByteSize};
+use diag_serde_protos::diag_serde::{ByteSize, FixedPointEncoding};
 use protobuf::reflect::{
     FieldDescriptor, MessageDescriptor, MessageRef,
     ReflectFieldRef::{self, *},
@@ -176,20 +177,20 @@ impl<'lt> Serialize for ValueSerialize<'lt> {
     {
         match &self.value {
             U32(value) => match self.options.primitive_byte_size() {
-                Some(PrimitiveByteSize::ONE) => serializer.serialize_u8(
+                Some(ByteSize::ONE) => serializer.serialize_u8(
                     (*value).try_into().map_err(|_| S::Error::custom("u8 overflow"))?,
                 ),
-                Some(PrimitiveByteSize::TWO) => serializer.serialize_u16(
+                Some(ByteSize::TWO) => serializer.serialize_u16(
                     (*value).try_into().map_err(|_| S::Error::custom("u16 overflow"))?,
                 ),
                 _ => serializer.serialize_u32(*value),
             },
             U64(value) => serializer.serialize_u64(*value),
             I32(value) => match self.options.primitive_byte_size() {
-                Some(PrimitiveByteSize::ONE) => serializer.serialize_i8(
+                Some(ByteSize::ONE) => serializer.serialize_i8(
                     (*value).try_into().map_err(|_| S::Error::custom("i8 overflow"))?,
                 ),
-                Some(PrimitiveByteSize::TWO) => serializer.serialize_i16(
+                Some(ByteSize::TWO) => serializer.serialize_i16(
                     (*value).try_into().map_err(|_| S::Error::custom("i16 overflow"))?,
                 ),
                 _ => serializer.serialize_i32(*value),
@@ -226,7 +227,15 @@ impl<'lt> Serialize for ValueSerialize<'lt> {
                     serializer.serialize_str(value)
                 }
             }
-            Enum(_, value) => serializer.serialize_i32(*value),
+            Enum(enum_descriptor, value) => match enum_descriptor.enum_byte_size() {
+                Some(ByteSize::ONE) => serializer.serialize_i8(
+                    (*value).try_into().map_err(|_| S::Error::custom("enum i8 overflow"))?,
+                ),
+                Some(ByteSize::TWO) => serializer.serialize_i16(
+                    (*value).try_into().map_err(|_| S::Error::custom("enum i16 overflow"))?,
+                ),
+                _ => serializer.serialize_i32(*value),
+            },
             Message(value) => {
                 MessageSerialize::new(&value.descriptor_dyn(), value).serialize(serializer)
             }
@@ -1099,6 +1108,62 @@ mod tests {
             &message_serialize,
             &[Token::Tuple { len: 1 }, Token::Some],
             "i64 overflow when converting f64 to fixed point representation",
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_enum_with_byte_size() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            import "syntax/diag_serde.proto";
+
+            message TestProto {
+                TestEnumOne my_1_byte_enum = 1;
+                TestEnumTwo my_2_byte_enum = 2;
+            }
+
+            enum TestEnumOne {
+                option (sdv.diag.enum_byte_size) = ONE;
+
+                A = 0;
+            }
+
+            enum TestEnumTwo {
+                option (sdv.diag.enum_byte_size) = TWO;
+
+                A = 0;
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+        let enum_descriptor1 = file_descriptor.enum_by_full_name(".TestEnumOne").unwrap();
+        let enum_descriptor2 = file_descriptor.enum_by_full_name(".TestEnumTwo").unwrap();
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => Enum(enum_descriptor1.clone(), 0),
+                1 => Enum(enum_descriptor2.clone(), 0),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 2 },
+                Token::Some,
+                Token::I8(0),
+                Token::Some,
+                Token::I16(0),
+                Token::TupleEnd,
+            ],
         )
     }
 }
