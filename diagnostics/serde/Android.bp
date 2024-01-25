@@ -17,7 +17,6 @@ rust_defaults {
     edition: "2021",
     lints: "android",
     clippy_lints: "android",
-    vendor_available: true,
 }
 
 rust_library {
@@ -27,6 +26,7 @@ rust_library {
         "sdv_uds_serde@rust_defaults",
     ],
     host_supported: true,
+    vendor_available: true,
 }
 
 rust_test {
