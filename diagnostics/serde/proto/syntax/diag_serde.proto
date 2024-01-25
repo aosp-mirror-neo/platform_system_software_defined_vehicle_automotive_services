@@ -23,14 +23,17 @@ message FixedPointEncoding {
 
 extend google.protobuf.FieldOptions {
   // Specifies byte size of the primitive field.
-  // Applicable to `int32` and `uint32` fields. Fields annotated with this option are
-  // required to fit into corresponding byte size type and will be serialized as such:
+  // Applicable to `int32`, `uint32` and `float` (if fixed_point_encoding is also
+  // specified) fields. Fields annotated with this option are required to fit into
+  // corresponding byte size type and will be serialized as such:
   //
   //         |  ONE  |  TWO  |
   // ________|_______|_______|
   // uint32  |   u8  |  u16  |
   // ________|_______|_______|
   // int32   |   i8  |  i16  |
+  // ________|_______|_______|
+  // float   |   i8  |  i16  |
   // ________|_______|_______|
   ByteSize primitive_byte_size = 50200;
 
