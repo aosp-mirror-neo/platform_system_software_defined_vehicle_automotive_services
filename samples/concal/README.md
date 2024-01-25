@@ -61,3 +61,66 @@ To run the demo, follow the steps below:
     ```bash
     adb shell /vendor/bin/sdv_con_cal_client
     ```
+
+    Once executed the client will register the following configuration:
+
+    ```json
+    RearViewCamera {
+        model: "model 1",
+        horizontal_resolution: 720,
+        vertical_resolution: 720,
+        x_axis_field_of_view: 70.0,
+        y_axis_field_of_view: 70.0,
+        is_rgb: false,
+        special_fields: SpecialFields {
+            unknown_fields: UnknownFields {
+                fields: None,
+            },
+            cached_size: CachedSize {
+                size: 0,
+            },
+        },
+    }
+    ```
+
+    Then the client will update the configuration through the use of overrides which results in the following configuration:
+
+    ```json
+    RearViewCamera {
+        model: "model 2",
+        horizontal_resolution: 1920,
+        vertical_resolution: 1080,
+        x_axis_field_of_view: 90.0,
+        y_axis_field_of_view: 90.0,
+        is_rgb: true,
+        special_fields: SpecialFields {
+            unknown_fields: UnknownFields {
+                fields: None,
+            },
+            cached_size: CachedSize {
+                size: 0,
+            },
+        },
+    }
+    ```
+
+    Finally, the client will perform a configuration rollback, such that we get the initial configuration:
+
+    ```json
+    RearViewCamera {
+        model: "model 1",
+        horizontal_resolution: 720,
+        vertical_resolution: 720,
+        x_axis_field_of_view: 70.0,
+        y_axis_field_of_view: 70.0,
+        is_rgb: false,
+        special_fields: SpecialFields {
+            unknown_fields: UnknownFields {
+                fields: None,
+            },
+            cached_size: CachedSize {
+                size: 0,
+            },
+        },
+    }
+    ```
