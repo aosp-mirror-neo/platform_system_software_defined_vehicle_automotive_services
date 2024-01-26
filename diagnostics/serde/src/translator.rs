@@ -117,12 +117,21 @@ mod tests {
                     scale: 0.0001
                     offset: 0
                 }];
+                OneByteEnum my_one_byte_enum = 14;
             }
 
             message InnerProto {
                 repeated bool my_fixed_array = 1 [(sdv.vsidl.repeated_field_max_count) = 5];
                 string my_fixed_string = 2 [(sdv.vsidl.variable_type_max_size) = 10];
                 TestEnum my_enum = 3;
+            }
+
+            enum OneByteEnum {
+                option (sdv.diag.enum_byte_size) = ONE;
+
+                A = 0;
+                B = 1;
+                C = 2;
             }
 
             enum TestEnum {
@@ -166,6 +175,8 @@ mod tests {
         proto_bytes.put(&20.101f32.to_le_bytes()[..]);
         proto_bytes.put_u8(105); // I64 field with field number '13'
         proto_bytes.put(&(-0.010100000000000001f64).to_le_bytes()[..]);
+        proto_bytes.put_u8(112); // VARINT field with field number '14'
+        proto_bytes.put_u8(1); // 1 == OneByteEnum::B
 
         let mut expected_uds_bytes = BytesMut::new();
         expected_uds_bytes.put_i64(-64);
@@ -186,6 +197,7 @@ mod tests {
         expected_uds_bytes.put_u8(20);
         expected_uds_bytes.put_i32(101);
         expected_uds_bytes.put_i64(-101);
+        expected_uds_bytes.put_i8(1);
         let expected_uds_bytes = expected_uds_bytes.freeze();
 
         let uds_bytes =
@@ -226,12 +238,21 @@ mod tests {
                     scale: 0.0001
                     offset: 0
                 }];
+                OneByteEnum my_one_byte_enum = 14;
             }
 
             message InnerProto {
                 repeated bool my_fixed_array = 1 [(sdv.vsidl.repeated_field_max_count) = 5];
                 string my_fixed_string = 2 [(sdv.vsidl.variable_type_max_size) = 10];
                 TestEnum my_enum = 3;
+            }
+
+            enum OneByteEnum {
+                option (sdv.diag.enum_byte_size) = ONE;
+
+                A = 0;
+                B = 1;
+                C = 2;
             }
 
             enum TestEnum {
@@ -262,6 +283,7 @@ mod tests {
         uds_bytes.put_u8(20);
         uds_bytes.put_i32(101);
         uds_bytes.put_i64(-101);
+        uds_bytes.put_i8(1);
         let uds_bytes = uds_bytes.freeze();
 
         let mut expected_proto_bytes: Vec<u8> = vec![];
@@ -296,6 +318,8 @@ mod tests {
         expected_proto_bytes.put(&20.101f32.to_le_bytes()[..]);
         expected_proto_bytes.put_u8(105); // I64 field with field number '13'
         expected_proto_bytes.put(&(-0.010100000000000001f64).to_le_bytes()[..]);
+        expected_proto_bytes.put_u8(112); // VARINT field with field number '14'
+        expected_proto_bytes.put_u8(1); // 1 == OneByteEnum::B
 
         let proto_bytes =
             translator.translate_from_uds_to_protobuf(&uds_bytes, &message_descriptor).unwrap();

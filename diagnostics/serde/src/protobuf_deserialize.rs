@@ -1,6 +1,7 @@
 // Copyright 2024 Google LLC
+use crate::enum_options::EnumOptions;
 use crate::field_options::FieldOptions;
-use diag_serde_protos::diag_serde::PrimitiveByteSize;
+use diag_serde_protos::diag_serde::ByteSize;
 use protobuf::reflect::{
     EnumDescriptor, FieldDescriptor, MessageDescriptor,
     ReflectValueBox::{self, *},
@@ -379,8 +380,8 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                 let visitor = I32ValueVisitor;
 
                 match self.options.primitive_byte_size() {
-                    Some(PrimitiveByteSize::ONE) => deserializer.deserialize_i8(visitor),
-                    Some(PrimitiveByteSize::TWO) => deserializer.deserialize_i16(visitor),
+                    Some(ByteSize::ONE) => deserializer.deserialize_i8(visitor),
+                    Some(ByteSize::TWO) => deserializer.deserialize_i16(visitor),
                     _ => deserializer.deserialize_i32(visitor),
                 }
             }
@@ -426,8 +427,8 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                 let visitor = U32ValueVisitor;
 
                 match self.options.primitive_byte_size() {
-                    Some(PrimitiveByteSize::ONE) => deserializer.deserialize_u8(visitor),
-                    Some(PrimitiveByteSize::TWO) => deserializer.deserialize_u16(visitor),
+                    Some(ByteSize::ONE) => deserializer.deserialize_u8(visitor),
+                    Some(ByteSize::TWO) => deserializer.deserialize_u16(visitor),
                     _ => deserializer.deserialize_u32(visitor),
                 }
             }
@@ -714,7 +715,13 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                     }
                 }
 
-                deserializer.deserialize_i32(EnumValueVisitor(enum_descriptor))
+                let visitor = EnumValueVisitor(enum_descriptor);
+
+                match enum_descriptor.enum_byte_size() {
+                    Some(ByteSize::ONE) => deserializer.deserialize_i8(visitor),
+                    Some(ByteSize::TWO) => deserializer.deserialize_i16(visitor),
+                    _ => deserializer.deserialize_i32(visitor),
+                }
             }
             RuntimeType::Message(message_descriptor) => {
                 let message =
@@ -1970,6 +1977,63 @@ mod tests {
                 Token::I64(1234),
                 Token::I64(-1235),
                 Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn deserialize_proto_with_enum_with_byte_size() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/diag_serde.proto";
+
+            message TestProto {
+                TestEnumOne my_1_byte_enum = 1;
+                TestEnumTwo my_2_byte_enum = 2;
+            }
+
+            enum TestEnumOne {
+                option (sdv.diag.enum_byte_size) = ONE;
+
+                A = 0;
+            }
+
+            enum TestEnumTwo {
+                option (sdv.diag.enum_byte_size) = TWO;
+
+                A = 0;
+            }
+            "#,
+            ".TestProto",
+            file_descriptor,
+            message_descriptor
+        );
+
+        let enum_descriptor1 = file_descriptor.enum_by_full_name(".TestEnumOne").unwrap();
+        let enum_descriptor2 = file_descriptor.enum_by_full_name(".TestEnumTwo").unwrap();
+        let mut expected_message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => Enum(enum_descriptor1.clone(), 0),
+                1 => Enum(enum_descriptor2.clone(), 0),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *expected_message, value);
+        }
+
+        let message_deserialize = DeserializeSeedWrapper { message: expected_message };
+
+        assert_de_tokens(
+            &message_deserialize,
+            &[
+                Token::Tuple { len: 2 },
+                Token::Some,
+                Token::I8(0),
+                Token::Some,
+                Token::I16(0),
                 Token::TupleEnd,
             ],
         )

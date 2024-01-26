@@ -11,7 +11,7 @@ import "google/protobuf/descriptor.proto";
 
 package sdv.diag;
 
-enum PrimitiveByteSize {
+enum ByteSize {
   ONE = 0;
   TWO = 1;
 }
@@ -31,8 +31,8 @@ extend google.protobuf.FieldOptions {
   // uint32  |   u8  |  u16  |
   // ________|_______|_______|
   // int32   |   i8  |  i16  |
-  //
-  PrimitiveByteSize primitive_byte_size = 50200;
+  // ________|_______|_______|
+  ByteSize primitive_byte_size = 50200;
 
   // Specifies fixed point encoding parameters for floating point fields.
   // Applicable to `float` and `double` fields. Fields annotated with this option will be
@@ -54,4 +54,15 @@ extend google.protobuf.FieldOptions {
   // double from i64 |   ( ( i64 as f64 ) * scale + offset ) as double  |
   // ________________|__________________________________________________|
   FixedPointEncoding fixed_point_encoding = 50201;
+}
+
+extend google.protobuf.EnumOptions {
+  // Specifies byte size of the enum.
+  // Applicable to enum *type definition*. Enums annotated with this option will be
+  // serialized as such:
+  //         |  ONE  |  TWO  |
+  // ________|_______|_______|
+  // enum    |   i8  |  i16  |
+  // ________|_______|_______|
+  ByteSize enum_byte_size = 50200;
 }

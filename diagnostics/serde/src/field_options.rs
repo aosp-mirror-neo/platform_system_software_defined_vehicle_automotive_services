@@ -1,5 +1,5 @@
 // Copyright 2024 Google LLC
-use diag_serde_protos::diag_serde::{FixedPointEncoding, PrimitiveByteSize};
+use diag_serde_protos::diag_serde::{ByteSize, FixedPointEncoding};
 use protobuf::reflect::FieldDescriptor;
 use protobuf::Message;
 use protobuf::UnknownValueRef::{self, *};
@@ -11,7 +11,7 @@ use std::result::Result;
 pub(crate) trait FieldOptions {
     fn repeated_field_count(&self) -> Result<Option<usize>, TryFromIntError>;
     fn variable_type_size(&self) -> Result<Option<usize>, TryFromIntError>;
-    fn primitive_byte_size(&self) -> Option<PrimitiveByteSize>;
+    fn primitive_byte_size(&self) -> Option<ByteSize>;
     fn fixed_point_encoding(&self) -> Option<FixedPointEncoding>;
 }
 
@@ -56,14 +56,14 @@ impl FieldOptions for FieldDescriptor {
         get_size_option(self, VARIABLE_TYPE_SIZE)
     }
 
-    fn primitive_byte_size(&self) -> Option<PrimitiveByteSize> {
+    fn primitive_byte_size(&self) -> Option<ByteSize> {
         // id of sdv.diag.primitive_byte_size field option
         const PRIMITIVE_BYTE_SIZE: u32 = 50200;
 
         // convert raw int value to enum value
         match get_varint_option(self, PRIMITIVE_BYTE_SIZE) {
-            Some(0) => Some(PrimitiveByteSize::ONE),
-            Some(1) => Some(PrimitiveByteSize::TWO),
+            Some(0) => Some(ByteSize::ONE),
+            Some(1) => Some(ByteSize::TWO),
             _ => None,
         }
     }
