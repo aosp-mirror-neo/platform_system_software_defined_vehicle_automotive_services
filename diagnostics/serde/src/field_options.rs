@@ -13,6 +13,16 @@ pub(crate) trait FieldOptions {
     fn variable_type_size(&self) -> Result<Option<usize>, TryFromIntError>;
     fn primitive_byte_size(&self) -> Option<ByteSize>;
     fn fixed_point_encoding(&self) -> Option<FixedPointEncoding>;
+
+    // Convenience method for retrieving all options that affect `float` field
+    // encoding.
+    //
+    // This method also enforces that (sdv.diag.primitive_byte_size) option is only
+    // applicable when (sdv.diag.fixed_point_encoding) option is present.
+    fn float_encoding(&self) -> Option<(FixedPointEncoding, Option<ByteSize>)> {
+        self.fixed_point_encoding()
+            .map(|fixed_point_encoding| (fixed_point_encoding, self.primitive_byte_size()))
+    }
 }
 
 /// Helper function for retrieving `usize` value of a field option by its id.

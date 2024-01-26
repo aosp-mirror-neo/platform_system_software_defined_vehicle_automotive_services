@@ -118,6 +118,14 @@ mod tests {
                     offset: 0
                 }];
                 OneByteEnum my_one_byte_enum = 14;
+                float my_one_byte_fixed_float = 15 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }, (sdv.diag.primitive_byte_size) = ONE];
+                float my_two_byte_fixed_float = 16 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }, (sdv.diag.primitive_byte_size) = TWO];
             }
 
             message InnerProto {
@@ -177,6 +185,10 @@ mod tests {
         proto_bytes.put(&(-0.010100000000000001f64).to_le_bytes()[..]);
         proto_bytes.put_u8(112); // VARINT field with field number '14'
         proto_bytes.put_u8(1); // 1 == OneByteEnum::B
+        proto_bytes.put_u8(125); // I32 field with field number '15'
+        proto_bytes.put(&20.101f32.to_le_bytes()[..]);
+        proto_bytes.put(&[133, 1][..]); // I32 field with field number '16'
+        proto_bytes.put(&20.101f32.to_le_bytes()[..]);
 
         let mut expected_uds_bytes = BytesMut::new();
         expected_uds_bytes.put_i64(-64);
@@ -198,6 +210,8 @@ mod tests {
         expected_uds_bytes.put_i32(101);
         expected_uds_bytes.put_i64(-101);
         expected_uds_bytes.put_i8(1);
+        expected_uds_bytes.put_i8(101);
+        expected_uds_bytes.put_i16(101);
         let expected_uds_bytes = expected_uds_bytes.freeze();
 
         let uds_bytes =
@@ -239,6 +253,14 @@ mod tests {
                     offset: 0
                 }];
                 OneByteEnum my_one_byte_enum = 14;
+                float my_one_byte_fixed_float = 15 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }, (sdv.diag.primitive_byte_size) = ONE];
+                float my_two_byte_fixed_float = 16 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }, (sdv.diag.primitive_byte_size) = TWO];
             }
 
             message InnerProto {
@@ -284,6 +306,8 @@ mod tests {
         uds_bytes.put_i32(101);
         uds_bytes.put_i64(-101);
         uds_bytes.put_i8(1);
+        uds_bytes.put_i8(101);
+        uds_bytes.put_i16(101);
         let uds_bytes = uds_bytes.freeze();
 
         let mut expected_proto_bytes: Vec<u8> = vec![];
@@ -320,6 +344,10 @@ mod tests {
         expected_proto_bytes.put(&(-0.010100000000000001f64).to_le_bytes()[..]);
         expected_proto_bytes.put_u8(112); // VARINT field with field number '14'
         expected_proto_bytes.put_u8(1); // 1 == OneByteEnum::B
+        expected_proto_bytes.put_u8(125); // I32 field with field number '15'
+        expected_proto_bytes.put(&20.101f32.to_le_bytes()[..]);
+        expected_proto_bytes.put(&[133, 1][..]); // I32 field with field number '16'
+        expected_proto_bytes.put(&20.101f32.to_le_bytes()[..]);
 
         let proto_bytes =
             translator.translate_from_uds_to_protobuf(&uds_bytes, &message_descriptor).unwrap();

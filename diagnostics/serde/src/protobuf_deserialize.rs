@@ -304,6 +304,22 @@ impl<'lt> ValueDeserializeSeed<'lt> {
     fn new(options: &'lt dyn FieldOptions, runtime_type: &'lt RuntimeType) -> Self {
         Self { options, runtime_type }
     }
+
+    fn deserialize_i32<'de, D, V>(
+        primitive_byte_size: Option<ByteSize>,
+        visitor: V,
+        deserializer: D,
+    ) -> Result<V::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+        V: Visitor<'de>,
+    {
+        match primitive_byte_size {
+            Some(ByteSize::ONE) => deserializer.deserialize_i8(visitor),
+            Some(ByteSize::TWO) => deserializer.deserialize_i16(visitor),
+            _ => deserializer.deserialize_i32(visitor),
+        }
+    }
 }
 
 impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
@@ -376,15 +392,11 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
         }
 
         match self.runtime_type {
-            RuntimeType::I32 => {
-                let visitor = I32ValueVisitor;
-
-                match self.options.primitive_byte_size() {
-                    Some(ByteSize::ONE) => deserializer.deserialize_i8(visitor),
-                    Some(ByteSize::TWO) => deserializer.deserialize_i16(visitor),
-                    _ => deserializer.deserialize_i32(visitor),
-                }
-            }
+            RuntimeType::I32 => Self::deserialize_i32(
+                self.options.primitive_byte_size(),
+                I32ValueVisitor,
+                deserializer,
+            ),
             RuntimeType::I64 => deserializer.deserialize_i64(I64ValueVisitor),
             RuntimeType::U32 => {
                 struct U32ValueVisitor;
@@ -488,14 +500,21 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                     }
                 }
 
-                if let Some(encoding) = self.options.fixed_point_encoding() {
-                    deserializer.deserialize_i32(I32ValueVisitor).and_then(|value_box| {
-                        if let I32(value) = value_box {
-                            Ok(F32((value as f64 * encoding.scale + encoding.offset) as f32))
-                        } else {
-                            Err(D::Error::custom("Unreachable: I64ValueVisitor always emits I32"))
-                        }
-                    })
+                if let Some((fixed_point_encoding, primitive_byte_size)) =
+                    self.options.float_encoding()
+                {
+                    Self::deserialize_i32(primitive_byte_size, I32ValueVisitor, deserializer)
+                        .and_then(|value_box| {
+                            if let I32(value) = value_box {
+                                Ok(F32((value as f64 * fixed_point_encoding.scale
+                                    + fixed_point_encoding.offset)
+                                    as f32))
+                            } else {
+                                Err(D::Error::custom(
+                                    "Unreachable: I64ValueVisitor always emits I32",
+                                ))
+                            }
+                        })
                 } else {
                     deserializer.deserialize_f32(F32ValueVisitor)
                 }
@@ -1943,6 +1962,16 @@ mod tests {
                     scale: 0.0001
                     offset: 0
                 }, (sdv.vsidl.repeated_field_max_count) = 2];
+                repeated float my_one_byte_fixed_float = 3 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }, (sdv.vsidl.repeated_field_max_count) = 2,
+                (sdv.diag.primitive_byte_size) = ONE];
+                repeated float my_two_byte_fixed_float = 4 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }, (sdv.vsidl.repeated_field_max_count) = 2,
+                (sdv.diag.primitive_byte_size) = TWO];
             }
             "#,
             ".TestProto",
@@ -1953,7 +1982,7 @@ mod tests {
         let mut expected_message = message_descriptor.new_instance();
         for (index, field) in message_descriptor.fields().enumerate() {
             let values = match index {
-                0 => [F32(20.013), F32(19.895)],
+                0 | 2 | 3 => [F32(20.013), F32(19.895)],
                 1 => [F64(0.12340000000000001), F64(-0.12350000000000001)],
                 _ => unreachable!(),
             };
@@ -1968,7 +1997,7 @@ mod tests {
         assert_de_tokens(
             &message_deserialize,
             &[
-                Token::Tuple { len: 2 },
+                Token::Tuple { len: 4 },
                 Token::Tuple { len: 2 },
                 Token::I32(13),
                 Token::I32(-105),
@@ -1976,6 +2005,14 @@ mod tests {
                 Token::Tuple { len: 2 },
                 Token::I64(1234),
                 Token::I64(-1235),
+                Token::TupleEnd,
+                Token::Tuple { len: 2 },
+                Token::I8(13),
+                Token::I8(-105),
+                Token::TupleEnd,
+                Token::Tuple { len: 2 },
+                Token::I16(13),
+                Token::I16(-105),
                 Token::TupleEnd,
                 Token::TupleEnd,
             ],

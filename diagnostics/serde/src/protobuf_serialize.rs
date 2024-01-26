@@ -168,6 +168,23 @@ impl<'lt> ValueSerialize<'lt> {
 
         Ok(value as i32)
     }
+
+    fn serialize_i32<S>(
+        value: i32,
+        primitive_byte_size: Option<ByteSize>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match primitive_byte_size {
+            Some(ByteSize::ONE) => serializer
+                .serialize_i8(value.try_into().map_err(|_| S::Error::custom("i8 overflow"))?),
+            Some(ByteSize::TWO) => serializer
+                .serialize_i16(value.try_into().map_err(|_| S::Error::custom("i16 overflow"))?),
+            _ => serializer.serialize_i32(value),
+        }
+    }
 }
 
 impl<'lt> Serialize for ValueSerialize<'lt> {
@@ -186,20 +203,17 @@ impl<'lt> Serialize for ValueSerialize<'lt> {
                 _ => serializer.serialize_u32(*value),
             },
             U64(value) => serializer.serialize_u64(*value),
-            I32(value) => match self.options.primitive_byte_size() {
-                Some(ByteSize::ONE) => serializer.serialize_i8(
-                    (*value).try_into().map_err(|_| S::Error::custom("i8 overflow"))?,
-                ),
-                Some(ByteSize::TWO) => serializer.serialize_i16(
-                    (*value).try_into().map_err(|_| S::Error::custom("i16 overflow"))?,
-                ),
-                _ => serializer.serialize_i32(*value),
-            },
+            I32(value) => {
+                Self::serialize_i32(*value, self.options.primitive_byte_size(), serializer)
+            }
             I64(value) => serializer.serialize_i64(*value),
             F32(value) => {
-                if let Some(encoding) = self.options.fixed_point_encoding() {
-                    Self::fixed_point_f32(*value, encoding)
-                        .and_then(|value| serializer.serialize_i32(value))
+                if let Some((fixed_point_encoding, primitive_byte_size)) =
+                    self.options.float_encoding()
+                {
+                    Self::fixed_point_f32(*value, fixed_point_encoding).and_then(|value| {
+                        Self::serialize_i32(value, primitive_byte_size, serializer)
+                    })
                 } else {
                     serializer.serialize_f32(*value)
                 }
@@ -997,6 +1011,16 @@ mod tests {
                     scale: 0.0001
                     offset: 0
                 }, (sdv.vsidl.repeated_field_max_count) = 2];
+                repeated float my_one_byte_fixed_float = 3 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }, (sdv.vsidl.repeated_field_max_count) = 2,
+                (sdv.diag.primitive_byte_size) = ONE];
+                repeated float my_two_byte_fixed_float = 4 [(sdv.diag.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }, (sdv.vsidl.repeated_field_max_count) = 2,
+                (sdv.diag.primitive_byte_size) = TWO];
             }
             "#,
             ".TestProto",
@@ -1005,7 +1029,7 @@ mod tests {
         let mut message = message_descriptor.new_instance();
         for (index, field) in message_descriptor.fields().enumerate() {
             let values = match index {
-                0 => [F32(20.0132), F32(19.8947)],
+                0 | 2 | 3 => [F32(20.0132), F32(19.8947)],
                 1 => [F64(0.12345), F64(-0.12345)],
                 _ => unreachable!(),
             };
@@ -1021,7 +1045,7 @@ mod tests {
         assert_ser_tokens(
             &message_serialize,
             &[
-                Token::Tuple { len: 2 },
+                Token::Tuple { len: 4 },
                 Token::Tuple { len: 2 },
                 Token::I32(14),
                 Token::I32(-105),
@@ -1029,6 +1053,14 @@ mod tests {
                 Token::Tuple { len: 2 },
                 Token::I64(1235),
                 Token::I64(-1234),
+                Token::TupleEnd,
+                Token::Tuple { len: 2 },
+                Token::I8(14),
+                Token::I8(-105),
+                Token::TupleEnd,
+                Token::Tuple { len: 2 },
+                Token::I16(14),
+                Token::I16(-105),
                 Token::TupleEnd,
                 Token::TupleEnd,
             ],
