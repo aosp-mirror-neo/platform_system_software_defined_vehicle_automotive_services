@@ -16,10 +16,15 @@ enum PrimitiveByteSize {
   TWO = 1;
 }
 
+message FixedPointEncoding {
+  double scale = 1;
+  double offset = 2;
+}
+
 extend google.protobuf.FieldOptions {
   // Specifies byte size of the primitive field.
-  // Applicable to `int32` and `uint32` fields. Fields annotated with this options are
-  // required to fit into corresponding byte size type and will be encoded as such:
+  // Applicable to `int32` and `uint32` fields. Fields annotated with this option are
+  // required to fit into corresponding byte size type and will be serialized as such:
   //
   //         |  ONE  |  TWO  |
   // ________|_______|_______|
@@ -28,4 +33,25 @@ extend google.protobuf.FieldOptions {
   // int32   |   i8  |  i16  |
   //
   PrimitiveByteSize primitive_byte_size = 50200;
+
+  // Specifies fixed point encoding parameters for floating point fields.
+  // Applicable to `float` and `double` fields. Fields annotated with this option will be
+  // serialized as such:
+  // _________________________________________________________________
+  //               |                                                  |
+  // float as i32  | ( ( (float as f64) - offset ) / scale ) as i32   |
+  // ______________|__________________________________________________|
+  //               |                                                  |
+  // double as i64 |     ( ( double - offset ) / scale ) as i64       |
+  // ______________|__________________________________________________|
+  //
+  // During deserialization, the reverse transformation is applied:
+  // ___________________________________________________________________
+  //                 |                                                  |
+  // float from i32  |   ( ( i32 as f64 ) * scale + offset ) as float   |
+  // ________________|__________________________________________________|
+  //                 |                                                  |
+  // double from i64 |   ( ( i64 as f64 ) * scale + offset ) as double  |
+  // ________________|__________________________________________________|
+  FixedPointEncoding fixed_point_encoding = 50201;
 }
