@@ -297,7 +297,7 @@ mod tests {
         Any::pack(&get_default_config(config_txtpb)).unwrap()
     }
 
-    fn override_config_fo_subkey(
+    fn override_config_for_subkey(
         config: Any,
         subkeys: &mut VecDeque<String>,
         value: String,
@@ -444,7 +444,7 @@ mod tests {
             .map(|s| s.to_string())
             .collect();
 
-        override_config_fo_subkey(config, &mut subkeys, config_override.value_txtproto)
+        override_config_for_subkey(config, &mut subkeys, config_override.value_txtproto)
     }
 
     fn get_config_override_key_value(key: &str, value: &str) -> CoPair {
