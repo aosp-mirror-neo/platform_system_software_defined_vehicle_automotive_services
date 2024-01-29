@@ -1,0 +1,27 @@
+// Copyright 2023 Google LLC
+
+syntax = "proto3";
+import "vehicle.proto";
+import "google/protobuf/empty.proto";
+package sdv.vpm.vehicle;
+
+// OEM-facing representation of the request to set a vehicle state.
+message SetVehicleStateRequest {
+  // The new vehicle state that needs to be set in the SDV VM.
+  vehicle.VpmVehicleState vehicle_state = 1;
+}
+
+/**
+ * Experimental SDV VPM System API.
+ * Unstable until API council approval.
+ */
+// VPM RPC API available only to the OEM.
+service VpmSystemService {
+  // RPC request that allows the OEM to set the vehicle state in the SDV VM.
+
+  // If the request is successful, the new vehicle state is set and is broadcasted to the vehicle
+  // state listeners in the SDV VM
+
+  // If the request failed, an error is returned with the correspoding response code.
+  rpc SetVehicleState(SetVehicleStateRequest) returns (google.protobuf.Empty) {};
+}

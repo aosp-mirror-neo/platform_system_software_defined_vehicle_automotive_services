@@ -16,7 +16,6 @@ rust_binary {
         "libsdv_log_rust",
         "liblog_rust",
         "libtokio",
-
     ],
     system_ext_specific: true,
 }
