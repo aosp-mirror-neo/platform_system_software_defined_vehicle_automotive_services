@@ -1,0 +1,32 @@
+// Copyright 2023 Google LLC
+
+/**
+ * Experimental SDV VPM System API.
+ * Unstable until API council approval.
+ */
+
+syntax = "proto3";
+import "syntax/vsidl.proto";
+package sdv.vpm.vehicle;
+
+// Note : this is not the final set of states of the vehicle state machine.
+// Allowed vehicle states in the vehicle and in the SDV VM.
+enum VpmVehicleState {
+  LOW_POWER = 0;
+  SOFTWARE_UPDATE = 1;
+  PARK = 2;
+  LIFE_ON_BOARD = 3;
+  VEHICLE_ON = 4;
+  TRACTION_ON = 5;
+}
+
+// Client facing reprensentation of the vehicle state exposed via PUB/SUB API using Data Tunnel.
+message VehicleStateChange {
+  option (sdv.vsidl.topic) = {
+    model: SINGLE_PUB
+    unique: true
+  };
+
+  // Inidcates the current state of the vehicle.
+  VpmVehicleState vehicle_state = 1;
+}
