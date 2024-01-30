@@ -1,0 +1,17 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_protobuf {
+    name: "libuser_profile_api",
+    crate_name: "user_profile_api",
+    protos: [
+        "*.proto",
+    ],
+    source_stem: "user_profile_api",
+    proto_flags: [
+        "-I external/protobuf/src",
+    ],
+    vendor_available: true,
+    host_supported: true,
+}

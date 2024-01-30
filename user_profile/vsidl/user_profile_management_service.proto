@@ -1,0 +1,82 @@
+// Copyright 2023 Google LLC
+
+// User Profile RPC APIs available to SDV services
+//
+// Allows SDV-Services to manage user configurable settings on per vehicle user basis.
+//
+// These APIs are experimental at this point.
+
+syntax = "proto3";
+
+package sdv.user_profile;
+
+import "setting.proto";
+import "error.proto";
+
+service UserProfileManagementService {
+  // Creates a profile in which user preferences are stored.
+  // Each configuration within a profile is initialized with default values unless
+  // it is provided within the create user request.
+  // The SelectUser API has to be used to designate the profile as the active one.
+  // Returns an error if the profile already exists or could not be created.
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
+
+  // Selects the active user and applies their configuration. If a UserControllableService rejects a
+  // change, the user's profile will be updated to match the current configuration.
+  // Returns an error if the profile does not exist or could not be loaded.
+  rpc SelectUser(SelectUserRequest) returns (SelectUserResponse) {}
+
+  // Deletes a profile.
+  // Returns an error if the profile could not be deleted or does not exist.
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {}
+}
+
+message CreateUserRequest {
+  // Unique identifier for the profile.
+  // The ID zero is reserved for guest profile which does not persist settings across different
+  // journeys.
+  uint64 id = 1;
+
+  // List of existing configurations to pre-populate the drivers profile with.
+  repeated Configuration configs = 2;
+}
+
+message CreateUserResponse {
+  // Error message if the profile could not be created.
+  Error error = 1;
+}
+
+message SelectUserRequest {
+  // The ID of the profile that should be loaded.
+  uint64 user_id = 1;
+}
+
+message SelectUserResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
+
+message DeleteUserRequest {
+  // The ID of the profile that should be deleted.
+  uint64 user_id = 1;
+}
+
+message DeleteUserResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
+
+message Configuration {
+  // The name of the configuration.
+  ConfigId config_id = 1;
+
+  // The list of settings which the configuration consists of.
+  repeated Setting settings = 2;
+}
+
+message ConfigId {
+  // The Fully Qualified Instance Name (FQIN) of the service bundle that declared the configuration.
+  string service_fqdn = 1;
+  // The name of the configuration within the service bundle.
+  string config_name = 2;
+}

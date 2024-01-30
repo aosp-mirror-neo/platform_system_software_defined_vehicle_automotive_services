@@ -1,0 +1,25 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+// This is a PoC version of the API.
+// It is unstable until API council approval.
+
+syntax = "proto3";
+
+package sdv.user_profile;
+
+// A key value pair representing a setting within a UserControllableService config.
+message Setting {
+  // Required.
+  // A name that uniquely identifies a setting within a configuration.
+  string key = 1;
+
+  // Required.
+  // New value of the setting.
+  oneof value {
+    bool bool = 2;
+    float float = 3;
+    uint64 int = 4;
+    string str = 5;
+    bytes blob = 6;
+  }
+}
