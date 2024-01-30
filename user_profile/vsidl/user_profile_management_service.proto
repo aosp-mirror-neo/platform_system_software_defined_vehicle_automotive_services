@@ -29,6 +29,17 @@ service UserProfileManagementService {
   // Deletes a profile.
   // Returns an error if the profile could not be deleted or does not exist.
   rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {}
+
+  // Returns a list of users stored within the User Profile.
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
+
+  // Returns configuration for given user profile or an error if the profile doesn't exist.
+  rpc GetUserConfigs(GetUserConfigsRequest) returns (GetUserConfigsResponse) {}
+
+  // Deletes all user profiles, resets all UserControllableService to the default settings and
+  // switches to the guest profile.
+  // Returns an error if the reset process failed.
+  rpc FactoryReset(FactoryResetRequest) returns (FactoryResetResponse) {}
 }
 
 message CreateUserRequest {
@@ -62,6 +73,34 @@ message DeleteUserRequest {
 }
 
 message DeleteUserResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
+
+message ListUsersRequest {}
+
+message ListUsersResponse {
+  // The list of user ids
+  repeated uint64 user_ids = 1;
+  // Error message if request fails.
+  Error error = 2;
+}
+
+message GetUserConfigsRequest {
+  // The ID of the profile that should be retrieved
+  uint64 user_id = 1;
+}
+
+message GetUserConfigsResponse {
+  // The list of configurations stored in a profile
+  repeated Configuration configs = 1;
+  // Error message if request fails.
+  Error error = 2;
+}
+
+message FactoryResetRequest {}
+
+message FactoryResetResponse {
   // Error message if request fails.
   Error error = 1;
 }
