@@ -13,9 +13,23 @@ sdv_service_bundle {
 sdv_service_bundle {
     name: "DiagnosticsProviderService1"
     server: "sdv.diagnostics.data_item.DataItem"
+
+    diagnostics_declaration {
+        data_item {
+            id: "data_item_id1"
+            message_name: "sdv.sample.diag.DataItemOne"
+        }
+    }
 }
 
 sdv_service_bundle {
     name: "DiagnosticsProviderService2"
     server: "sdv.diagnostics.data_item.DataItem"
+
+    diagnostics_declaration {
+        data_item {
+            id: "data_item_id2"
+            message_name: "sdv.sample.diag.DataItemTwo"
+        }
+    }
 }

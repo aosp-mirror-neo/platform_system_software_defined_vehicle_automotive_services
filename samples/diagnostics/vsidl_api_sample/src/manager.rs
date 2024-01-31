@@ -8,10 +8,10 @@ use diagnostics_api::diagnostics_manager::{
 };
 use diagnostics_api::negative_response_code::NegativeResponseCode;
 use diagnostics_api::session_type::SessionType;
-use diagnostics_api_sample::data_items::{DataItemOne, DataItemTwo};
+use protobuf::reflect::MessageDescriptor;
 use protobuf::EnumOrUnknown;
 use protobuf::MessageField;
-use protobuf::MessageFull;
+use sdv_config_provider::{VsidlConfigProvider, VsidlProvider};
 use sdv_uds_serde::translator::Translator;
 use sdvgenerated::data_item_interface::DataItem;
 use sdvgenerated::diagnostics_manager_interface::DiagnosticsManager;
@@ -24,8 +24,8 @@ use std::sync::Arc;
 
 // Current workaround to talk to a specific server implementation.
 // Future Middleware API to achieve this might look completely different.
-fn create_data_item_client(target_server_service_bundle: String) -> DataItemClient {
-    DataItemClient::new(Box::new(GrpcClientTransport::new(&target_server_service_bundle)))
+fn create_data_item_client(target_server_service_bundle: &str) -> DataItemClient {
+    DataItemClient::new(Box::new(GrpcClientTransport::new(target_server_service_bundle)))
 }
 
 fn read_data_item_request(data_item_id: &str) -> ReadRequest {
@@ -75,17 +75,32 @@ impl DiagnosticsManager for DiagnosticsManagerImpl {
     }
 }
 
+struct DataItemInfo {
+    sdv_service_name: String,
+    message_descriptor: MessageDescriptor,
+}
+
 fn main() {
     let first_data_item = "data_item_id1";
     let second_data_item = "data_item_id2";
 
-    let mut data_item_providers = HashMap::new();
-    data_item_providers.insert(first_data_item, "DiagnosticsProviderService1");
-    data_item_providers.insert(second_data_item, "DiagnosticsProviderService2");
+    let mut data_items = HashMap::new();
+    let vsidl_provider = VsidlProvider::new().unwrap();
 
-    let mut data_item_descriptors = HashMap::new();
-    data_item_descriptors.insert(first_data_item, DataItemOne::descriptor());
-    data_item_descriptors.insert(second_data_item, DataItemTwo::descriptor());
+    for (sdv_service_name, diagnostic_declaration) in vsidl_provider.get_diagnostics_declarations()
+    {
+        for data_item in diagnostic_declaration.data_item {
+            data_items.insert(
+                data_item.id.clone(),
+                DataItemInfo {
+                    sdv_service_name: sdv_service_name.clone(),
+                    message_descriptor: vsidl_provider
+                        .get_message_descriptor(&data_item.message_name)
+                        .unwrap(),
+                },
+            );
+        }
+    }
 
     // Create service instance and register DiagnosticsManagerServer
     let service = DiagnosticsManagerService::new();
@@ -106,7 +121,7 @@ fn main() {
     // - you do care which server to talk to
 
     let first_data_item_client =
-        create_data_item_client(data_item_providers[first_data_item].to_string());
+        create_data_item_client(&data_items[first_data_item].sdv_service_name);
 
     let response = first_data_item_client.read(read_data_item_request(first_data_item));
     println!("Fetch {:?}: {:?}.", first_data_item, response);
@@ -115,7 +130,7 @@ fn main() {
     let uds_bytes_for_initial_value = translator
         .translate_from_protobuf_to_uds(
             &response.unwrap().value,
-            &data_item_descriptors[first_data_item],
+            &data_items[first_data_item].message_descriptor,
         )
         .unwrap();
 
@@ -148,7 +163,7 @@ fn main() {
     let new_value = translator
         .translate_from_uds_to_protobuf(
             &uds_bytes_for_new_value,
-            &data_item_descriptors[first_data_item],
+            &data_items[first_data_item].message_descriptor,
         )
         .unwrap();
 
@@ -164,7 +179,7 @@ fn main() {
     let uds_bytes_for_initial_value = translator
         .translate_from_protobuf_to_uds(
             &response.unwrap().value,
-            &data_item_descriptors[first_data_item],
+            &data_items[first_data_item].message_descriptor,
         )
         .unwrap();
     println!("Fields parsed from UDS bytes: code = '{}'", uds_bytes_for_initial_value[0]);
@@ -177,7 +192,7 @@ fn main() {
     println!("Fields parsed from UDS bytes: name = '{}'", String::from_utf8(name_value).unwrap());
 
     let second_data_item_client =
-        create_data_item_client(data_item_providers[second_data_item].to_string());
+        create_data_item_client(&data_items[second_data_item].sdv_service_name);
 
     let response = second_data_item_client.read(read_data_item_request(first_data_item));
     println!(
