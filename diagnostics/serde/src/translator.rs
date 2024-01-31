@@ -92,7 +92,7 @@ mod tests {
             r#"syntax = 'proto3';
 
             import "syntax/vsidl.proto";
-            import "syntax/diag_serde.proto";
+            import "syntax/diagnostics.proto";
 
             message TestProto {
                 int64 my_i64 = 1;
@@ -103,29 +103,29 @@ mod tests {
                 float my_f32 = 6;
                 bool my_bool = 7;
                 InnerProto my_inner_proto = 8;
-                int32 my_one_byte_i32 = 9 [(sdv.diag.primitive_byte_size) = ONE];
-                uint32 my_two_bytes_u32 = 10 [(sdv.diag.primitive_byte_size) = TWO];
+                int32 my_one_byte_i32 = 9 [(sdv.vsidl.primitive_byte_size) = ONE];
+                uint32 my_two_bytes_u32 = 10 [(sdv.vsidl.primitive_byte_size) = TWO];
                 repeated uint32 my_one_byte_u32_array = 11 [
-                    (sdv.diag.primitive_byte_size) = ONE,
+                    (sdv.vsidl.primitive_byte_size) = ONE,
                     (sdv.vsidl.repeated_field_max_count) = 2
                 ];
-                float my_fixed_f32 = 12 [(sdv.diag.fixed_point_encoding) = {
+                float my_fixed_f32 = 12 [(sdv.vsidl.fixed_point_encoding) = {
                     scale: 0.001
                     offset: 20
                 }];
-                double my_fixed_f64 = 13 [(sdv.diag.fixed_point_encoding) = {
+                double my_fixed_f64 = 13 [(sdv.vsidl.fixed_point_encoding) = {
                     scale: 0.0001
                     offset: 0
                 }];
                 OneByteEnum my_one_byte_enum = 14;
-                float my_one_byte_fixed_float = 15 [(sdv.diag.fixed_point_encoding) = {
+                float my_one_byte_fixed_float = 15 [(sdv.vsidl.fixed_point_encoding) = {
                     scale: 0.001
                     offset: 20
-                }, (sdv.diag.primitive_byte_size) = ONE];
-                float my_two_byte_fixed_float = 16 [(sdv.diag.fixed_point_encoding) = {
+                }, (sdv.vsidl.primitive_byte_size) = ONE];
+                float my_two_byte_fixed_float = 16 [(sdv.vsidl.fixed_point_encoding) = {
                     scale: 0.001
                     offset: 20
-                }, (sdv.diag.primitive_byte_size) = TWO];
+                }, (sdv.vsidl.primitive_byte_size) = TWO];
             }
 
             message InnerProto {
@@ -135,7 +135,7 @@ mod tests {
             }
 
             enum OneByteEnum {
-                option (sdv.diag.enum_byte_size) = ONE;
+                option (sdv.vsidl.enum_byte_size) = ONE;
 
                 A = 0;
                 B = 1;
@@ -227,7 +227,7 @@ mod tests {
             r#"syntax = 'proto3';
 
             import "syntax/vsidl.proto";
-            import "syntax/diag_serde.proto";
+            import "syntax/diagnostics.proto";
 
             message TestProto {
                 int64 my_i64 = 1;
@@ -238,29 +238,29 @@ mod tests {
                 float my_f32 = 6;
                 bool my_bool = 7;
                 InnerProto my_inner_proto = 8;
-                int32 my_one_byte_i32 = 9 [(sdv.diag.primitive_byte_size) = ONE];
-                uint32 my_two_bytes_u32 = 10 [(sdv.diag.primitive_byte_size) = TWO];
+                int32 my_one_byte_i32 = 9 [(sdv.vsidl.primitive_byte_size) = ONE];
+                uint32 my_two_bytes_u32 = 10 [(sdv.vsidl.primitive_byte_size) = TWO];
                 repeated uint32 my_one_byte_u32_array = 11 [
-                    (sdv.diag.primitive_byte_size) = ONE,
+                    (sdv.vsidl.primitive_byte_size) = ONE,
                     (sdv.vsidl.repeated_field_max_count) = 2
                 ];
-                float my_fixed_f32 = 12 [(sdv.diag.fixed_point_encoding) = {
+                float my_fixed_f32 = 12 [(sdv.vsidl.fixed_point_encoding) = {
                     scale: 0.001
                     offset: 20
                 }];
-                double my_fixed_f64 = 13 [(sdv.diag.fixed_point_encoding) = {
+                double my_fixed_f64 = 13 [(sdv.vsidl.fixed_point_encoding) = {
                     scale: 0.0001
                     offset: 0
                 }];
                 OneByteEnum my_one_byte_enum = 14;
-                float my_one_byte_fixed_float = 15 [(sdv.diag.fixed_point_encoding) = {
+                float my_one_byte_fixed_float = 15 [(sdv.vsidl.fixed_point_encoding) = {
                     scale: 0.001
                     offset: 20
-                }, (sdv.diag.primitive_byte_size) = ONE];
-                float my_two_byte_fixed_float = 16 [(sdv.diag.fixed_point_encoding) = {
+                }, (sdv.vsidl.primitive_byte_size) = ONE];
+                float my_two_byte_fixed_float = 16 [(sdv.vsidl.fixed_point_encoding) = {
                     scale: 0.001
                     offset: 20
-                }, (sdv.diag.primitive_byte_size) = TWO];
+                }, (sdv.vsidl.primitive_byte_size) = TWO];
             }
 
             message InnerProto {
@@ -270,7 +270,7 @@ mod tests {
             }
 
             enum OneByteEnum {
-                option (sdv.diag.enum_byte_size) = ONE;
+                option (sdv.vsidl.enum_byte_size) = ONE;
 
                 A = 0;
                 B = 1;
@@ -357,10 +357,9 @@ mod tests {
 
 #[cfg(test)]
 pub mod runtime_message_descriptor {
-    use diag_serde_protos::diag_serde;
     use protobuf::reflect::{FileDescriptor, MessageDescriptor};
     use std::fs;
-    use vsidl_syntax::vsidl;
+    use vsidl_syntax::{diagnostics, vsidl};
 
     pub fn get_file_descriptor(proto_text: &str) -> FileDescriptor {
         let temp_dir = tempfile::tempdir().unwrap();
@@ -382,7 +381,7 @@ pub mod runtime_message_descriptor {
 
         FileDescriptor::new_dynamic(
             file_descriptor_proto.clone(),
-            &[vsidl::file_descriptor().clone(), diag_serde::file_descriptor().clone()],
+            &[vsidl::file_descriptor().clone(), diagnostics::file_descriptor().clone()],
         )
         .unwrap()
     }

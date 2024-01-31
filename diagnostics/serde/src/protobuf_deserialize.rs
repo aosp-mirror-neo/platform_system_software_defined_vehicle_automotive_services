@@ -1,7 +1,6 @@
 // Copyright 2024 Google LLC
 use crate::enum_options::EnumOptions;
 use crate::field_options::FieldOptions;
-use diag_serde_protos::diag_serde::ByteSize;
 use protobuf::reflect::{
     EnumDescriptor, FieldDescriptor, MessageDescriptor,
     ReflectValueBox::{self, *},
@@ -12,6 +11,7 @@ use protobuf::MessageDyn;
 use serde::de::{DeserializeSeed, Error, SeqAccess, Visitor};
 use serde::Deserializer;
 use std::fmt;
+use vsidl_syntax::diagnostics::ByteSize;
 
 // `DeserializeSeed` implementation for deserialization from proto message bytes into
 // `Box<dyn MessageDyn>` - a dynamic in-memory representation of a proto message.
@@ -1899,13 +1899,13 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/diag_serde.proto";
+            import "syntax/diagnostics.proto";
 
             message TestProto {
-                uint32 one_byte_u32 = 1 [(sdv.diag.primitive_byte_size) = ONE];
-                uint32 two_bytes_u32 = 2 [(sdv.diag.primitive_byte_size) = TWO];
-                int32 one_byte_i32 = 3 [(sdv.diag.primitive_byte_size) = ONE];
-                int32 two_bytes_i32 = 4 [(sdv.diag.primitive_byte_size) = TWO];
+                uint32 one_byte_u32 = 1 [(sdv.vsidl.primitive_byte_size) = ONE];
+                uint32 two_bytes_u32 = 2 [(sdv.vsidl.primitive_byte_size) = TWO];
+                int32 one_byte_i32 = 3 [(sdv.vsidl.primitive_byte_size) = ONE];
+                int32 two_bytes_i32 = 4 [(sdv.vsidl.primitive_byte_size) = TWO];
             }
             "#,
             ".TestProto",
@@ -1950,28 +1950,28 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/diag_serde.proto";
+            import "syntax/diagnostics.proto";
             import "syntax/vsidl.proto";
 
             message TestProto {
-                repeated float my_fixed_float = 1 [(sdv.diag.fixed_point_encoding) = {
+                repeated float my_fixed_float = 1 [(sdv.vsidl.fixed_point_encoding) = {
                     scale: 0.001
                     offset: 20
                 }, (sdv.vsidl.repeated_field_max_count) = 2];
-                repeated double my_fixed_double = 2 [(sdv.diag.fixed_point_encoding) = {
+                repeated double my_fixed_double = 2 [(sdv.vsidl.fixed_point_encoding) = {
                     scale: 0.0001
                     offset: 0
                 }, (sdv.vsidl.repeated_field_max_count) = 2];
-                repeated float my_one_byte_fixed_float = 3 [(sdv.diag.fixed_point_encoding) = {
+                repeated float my_one_byte_fixed_float = 3 [(sdv.vsidl.fixed_point_encoding) = {
                     scale: 0.001
                     offset: 20
                 }, (sdv.vsidl.repeated_field_max_count) = 2,
-                (sdv.diag.primitive_byte_size) = ONE];
-                repeated float my_two_byte_fixed_float = 4 [(sdv.diag.fixed_point_encoding) = {
+                (sdv.vsidl.primitive_byte_size) = ONE];
+                repeated float my_two_byte_fixed_float = 4 [(sdv.vsidl.fixed_point_encoding) = {
                     scale: 0.001
                     offset: 20
                 }, (sdv.vsidl.repeated_field_max_count) = 2,
-                (sdv.diag.primitive_byte_size) = TWO];
+                (sdv.vsidl.primitive_byte_size) = TWO];
             }
             "#,
             ".TestProto",
@@ -2024,7 +2024,7 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/diag_serde.proto";
+            import "syntax/diagnostics.proto";
 
             message TestProto {
                 TestEnumOne my_1_byte_enum = 1;
@@ -2032,13 +2032,13 @@ mod tests {
             }
 
             enum TestEnumOne {
-                option (sdv.diag.enum_byte_size) = ONE;
+                option (sdv.vsidl.enum_byte_size) = ONE;
 
                 A = 0;
             }
 
             enum TestEnumTwo {
-                option (sdv.diag.enum_byte_size) = TWO;
+                option (sdv.vsidl.enum_byte_size) = TWO;
 
                 A = 0;
             }

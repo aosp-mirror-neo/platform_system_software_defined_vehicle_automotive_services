@@ -12,7 +12,7 @@ rust_defaults {
         "libthiserror",
         "libprotobuf",
         "libserde",
-        "libdiag_serde_protos",
+        "libvsidl_syntax",
     ],
     edition: "2021",
     lints: "android",
@@ -38,13 +38,11 @@ rust_test {
         "liblazy_static",
         "libtempfile",
         "libprotobuf_parse",
-        "libvsidl_syntax",
         "libserde_test",
         "libserde_json",
         "libgoogletest_rust",
     ],
     data: [
-        ":sdv_diag_serde_protos",
         ":sdv_vsidl_protos",
     ],
     test_options: {

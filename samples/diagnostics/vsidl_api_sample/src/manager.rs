@@ -122,7 +122,7 @@ fn main() {
     // Uds bytes are for the following proto definition:
     //
     // message DataItemOne {
-    //     int32 code = 1 [(sdv.diag.primitive_byte_size) = ONE];
+    //     int32 code = 1 [(sdv.vsidl.primitive_byte_size) = ONE];
     //     string name = 2 [(sdv.vsidl.variable_type_max_size) = 5];
     // }
     //
@@ -141,7 +141,7 @@ fn main() {
     // Construct uds bytes for the following proto definition:
     //
     // message DataItemOne {
-    //     int32 code = 1 [(sdv.diag.primitive_byte_size) = ONE];
+    //     int32 code = 1 [(sdv.vsidl.primitive_byte_size) = ONE];
     //     string name = 2 [(sdv.vsidl.variable_type_max_size) = 5];
     // }
     let uds_bytes_for_new_value = vec![15, b'h', b'i', 0, 0, 0];
