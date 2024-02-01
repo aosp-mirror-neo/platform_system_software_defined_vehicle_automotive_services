@@ -40,6 +40,18 @@ service UserProfileManagementService {
   // switches to the guest profile.
   // Returns an error if the reset process failed.
   rpc FactoryReset(FactoryResetRequest) returns (FactoryResetResponse) {}
+
+  // Requests the change in the current user profile for the given service.
+  // There are no guarantees that the changes will be applied since services owning the
+  // settings may reject the request. The request returns once the request has been received as
+  // opposed to once the change has been made. The SubscribeToConfigChange API can be used
+  // to listen to request rejections or changes to configuration.
+  rpc RequestConfigChange(RequestConfigChangeRequest) returns (RequestConfigChangeResponse) {}
+
+  // Registers the caller for configuration update notifications.
+  // The caller must implement an interface ConfigSubscriber containing a method OnConfigChange.
+  rpc SubscribeToConfigChange(SubscribeToConfigChangeRequest)
+      returns (SubscribeToConfigChangeResponse) {}
 }
 
 message CreateUserRequest {
@@ -105,8 +117,35 @@ message FactoryResetResponse {
   Error error = 1;
 }
 
+message RequestConfigChangeRequest {
+  // The ID of the configuration that needs to be updated
+  ConfigId config_id = 1;
+
+  // The list of settings along with the new values they should be set too
+  repeated Setting settings = 2;
+}
+
+message RequestConfigChangeResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
+
+message SubscribeToConfigChangeRequest {
+  // The ID of the configuration that a service needs to be notified when a change is
+  // made to it.
+  ConfigId config_id = 1;
+}
+
+message SubscribeToConfigChangeResponse {
+  // The current value of the configuration which a service has subscribed too.
+  Configuration config = 1;
+
+  // Error message if request fails.
+  Error error = 2;
+}
+
 message Configuration {
-  // The name of the configuration.
+  // The ID of the configuration.
   ConfigId config_id = 1;
 
   // The list of settings which the configuration consists of.
