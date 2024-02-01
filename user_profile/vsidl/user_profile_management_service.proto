@@ -10,6 +10,7 @@ syntax = "proto3";
 
 package sdv.user_profile;
 
+import "configuration.proto";
 import "setting.proto";
 import "error.proto";
 
@@ -142,19 +143,4 @@ message SubscribeToConfigChangeResponse {
 
   // Error message if request fails.
   Error error = 2;
-}
-
-message Configuration {
-  // The ID of the configuration.
-  ConfigId config_id = 1;
-
-  // The list of settings which the configuration consists of.
-  repeated Setting settings = 2;
-}
-
-message ConfigId {
-  // The Fully Qualified Instance Name (FQIN) of the service bundle that declared the configuration.
-  string service_fqdn = 1;
-  // The name of the configuration within the service bundle.
-  string config_name = 2;
 }

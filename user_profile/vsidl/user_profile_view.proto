@@ -1,0 +1,28 @@
+// Copyright 2023 Google LLC
+
+// The set of APIs that services that need to be notified of user profile config change must
+// implement.
+//
+// These APIs are experimental at this point.
+
+syntax = "proto3";
+
+package sdv.user_profile;
+import "configuration.proto";
+import "setting.proto";
+import "error.proto";
+
+service UserProfileView {
+  // Notifies a service of a change to a configuration.
+  rpc OnConfigChange(OnConfigChangeRequest) returns (OnConfigChangeResponse) {}
+}
+
+message OnConfigChangeRequest {
+  // Partial configuration containing only the updated settings.
+  Configuration config = 1;
+}
+
+message OnConfigChangeResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
