@@ -47,7 +47,6 @@ rust_binary {
     rustlibs: [
         "libsdv_uds_serde",
         "libsdvgenerated_diagnostics_manager_service",
-        "libsdvmiddleware_rpc_grpc_transport",
         "libsdv_config_provider",
     ],
 }

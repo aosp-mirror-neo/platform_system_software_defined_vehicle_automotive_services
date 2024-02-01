@@ -104,8 +104,8 @@ fn register_config(
         ..Default::default()
     };
 
-    let resp = client
-        .con_cal_service_client
+    let rpc_client = client.get_con_cal_service_client("ConCalServer");
+    let resp = rpc_client
         .register_config_metadata(RegisterConfigMetadataRequest {
             config_id: MessageField::some(config_id.clone()),
             metadata: MessageField::some(config_metadata),
@@ -120,8 +120,8 @@ fn register_config(
 }
 
 fn update_config(client: &ConCalClient, overrides: &[ConfigOverride]) {
-    let resp = client
-        .con_cal_service_client
+    let rpc_client = client.get_con_cal_service_client("ConCalServer");
+    let resp = rpc_client
         .start_config_update(StartConfigUpdateRequest::new())
         .expect("start_config_update failed");
 
@@ -131,8 +131,7 @@ fn update_config(client: &ConCalClient, overrides: &[ConfigOverride]) {
 
     let update_id = resp.update_id;
 
-    let resp = client
-        .con_cal_service_client
+    let resp = rpc_client
         .add_or_update_config_override(AddOrUpdateConfigOverrideRequest {
             update_id,
             configOverride: overrides.to_owned(),
@@ -144,8 +143,7 @@ fn update_config(client: &ConCalClient, overrides: &[ConfigOverride]) {
         panic!("add_or_update_config_override failed: {:?}", resp.error.unwrap());
     }
 
-    let resp = client
-        .con_cal_service_client
+    let resp = rpc_client
         .finish_config_update(FinishConfigUpdateRequest { update_id, ..Default::default() })
         .expect("finish_config_update failed failed");
 
@@ -203,7 +201,7 @@ fn overrides(config_id: &ConfigId) -> Vec<ConfigOverride> {
 
 fn get_config(client: &ConCalClient, config_id: &ConfigId) -> Vec<u8> {
     let resp = client
-        .con_cal_service_client
+        .get_con_cal_service_client("ConCalServer")
         .get_config(GetConfigRequest {
             config_id: MessageField::some(config_id.clone()),
             ..Default::default()
@@ -223,8 +221,10 @@ fn parse_test_config_from_bytes(bytes: &[u8]) -> RearViewCamera {
 }
 
 fn rollback(client: &ConCalClient) {
-    let resp =
-        client.con_cal_service_client.rollback(RollbackRequest::new()).expect("rollback failed");
+    let rpc_client = client.get_con_cal_service_client("ConCalServer");
+    let resp = rpc_client.rollback(RollbackRequest::new()).expect("rollback failed");
+    drop(rpc_client);
+
     if resp.error.is_some() {
         panic!("rollback failed: {:?}", resp.error.unwrap())
     }

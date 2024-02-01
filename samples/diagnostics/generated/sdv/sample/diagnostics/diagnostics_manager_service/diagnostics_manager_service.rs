@@ -42,7 +42,7 @@ pub struct DiagnosticsManagerService {
 
     pub diagnostics_manager_server: DiagnosticsManagerServer,
 
-    pub data_item_client: DataItemClient,
+    data_item_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<DataItemClient>>>,
 }
 
 impl DiagnosticsManagerService {
@@ -59,9 +59,7 @@ impl DiagnosticsManagerService {
                 "DiagnosticsManagerService",
             )),
 
-            data_item_client: DataItemClient::new(Box::new(GrpcClientTransport::new(
-                "DiagnosticsProviderService1",
-            ))),
+            data_item_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
         }
     }
 
@@ -130,5 +128,14 @@ impl DiagnosticsManagerService {
             }
             None => warn!("Subscription thread was not triggered."),
         }
+    }
+
+    /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
+    pub fn get_data_item_client(&self, target_service_bundle: &str) -> Arc<DataItemClient> {
+        sdvmiddleware_common::create_if_not_exist::<DataItemClient>(
+            &self.data_item_clients,
+            target_service_bundle,
+            Box::new(|target| DataItemClient::new(Box::new(GrpcClientTransport::new(target)))),
+        )
     }
 }
