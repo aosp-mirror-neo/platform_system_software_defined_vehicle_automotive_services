@@ -1,0 +1,51 @@
+// Copyright 2023 Google LLC
+
+// APIs that must be implemented by services that contain user customizable settings.
+//
+// This is a PoC version for the API for the discussions.
+// It is unstable until API council approval.
+
+syntax = "proto3";
+
+package sdv.user_profile;
+
+import "setting.proto";
+import "error.proto";
+
+service UserControllableService {
+  // Updates the configuration with the requested changes. The method returns successfully
+  // regardless of whether the change has been made or not. The service will notify the
+  // UserProfileRegistryService of the actual setting values via the UpdateConfig API after the
+  // changes are applied or rejected.
+  rpc RequestConfigChange(RequestConfigChangeRequest) returns (RequestConfigChangeResponse) {}
+
+  // Resets the service to its default settings.
+  // The service will notify the UserProfileRegistryService of the actual setting
+  // values via the UpdateConfig API after the changes are applied.
+  rpc FactoryReset(FactoryResetRequest) returns (FactoryResetResponse) {}
+}
+
+message RequestConfigChangeRequest {
+  // The name of the configuration that needs to be updated.
+  string config_name = 1;
+
+  // A unique id for this change request.
+  // Once the change is made, the transaction_id should be used in UpdateConfig sent to
+  // UserProfileRegistryService
+  uint64 transaction_id = 2;
+
+  // The list of settings along with the new values they should be set too.
+  repeated Setting settings = 3;
+}
+
+message RequestConfigChangeResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
+
+message FactoryResetRequest {}
+
+message FactoryResetResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
