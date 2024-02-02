@@ -36,7 +36,6 @@ message ConfigOverrideKeyValue {
   }
 
   // New value in the TextProto format (API v0).
-  // This API might be removed from the final API version.
   // To change the value completely, all fields should be redefined.
   // Defined values will be merged into existing default value for the key.
   string value_txtproto = 7;
