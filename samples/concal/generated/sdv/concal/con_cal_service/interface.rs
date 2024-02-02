@@ -39,6 +39,8 @@ use concal_api::concal_service::UnregisterFromCalibrationUpdateRequest;
 use concal_api::concal_service::UnregisterFromCalibrationUpdateResponse;
 use concal_api::concal_service::UnregisterFromConfigUpdateRequest;
 use concal_api::concal_service::UnregisterFromConfigUpdateResponse;
+use concal_api::concal_service::UpdateConfigForCalibrationRequest;
+use concal_api::concal_service::UpdateConfigForCalibrationResponse;
 use sdvmiddleware_rpc::RpcResult;
 
 /// An auto-generated RPC interface.
@@ -99,6 +101,11 @@ pub trait ConCalService: Send + Sync {
         &self,
         request: StartCalibrationRequest,
     ) -> RpcResult<StartCalibrationResponse>;
+    /// RPC method declared in the interface.
+    fn update_config_for_calibration(
+        &self,
+        request: UpdateConfigForCalibrationRequest,
+    ) -> RpcResult<UpdateConfigForCalibrationResponse>;
     /// RPC method declared in the interface.
     fn stop_calibration(
         &self,

@@ -42,27 +42,27 @@ mm vsidl_code_generator
     atest lib_override_tests
     ```
 
-## ConCal demo
+## ConCal Demo Application
 
 The samples include a reference implementation of the ConCal server along with a sample client.
-The client registers a configuration in ConCal, updates it via overrides then performs a rollback.
+The client registers a configuration in ConCal, updates it via overrides, and performs a rollback.
 To run the demo, follow the steps below:
 
-1. Execute steps 1 and 2 from `ConCal Config Override Library` section
-
-2. Start the sample ConCal server
+1. Start the sample ConCal server in one shell
 
    ```bash
    adb shell /vendor/bin/sdv_con_cal_service
    ```
 
-3. Run the sample ConCal client
+   The output `ConCalServer service bundle started` means that the server was successfully launched.
+
+2. Run the sample ConCal client in another shell
 
     ```bash
     adb shell /vendor/bin/sdv_con_cal_client
     ```
 
-    Once executed the client will register the following configuration:
+3. Once executed the client will register the following configuration and you will see the output
 
     ```json
     RearViewCamera {
@@ -81,11 +81,15 @@ To run the demo, follow the steps below:
             },
         },
     }
+    Press any key to continue...
     ```
 
-    Then the client will update the configuration through the use of overrides which results in the following configuration:
+4. Press ENTER. The client will prompt `ConfigOverrides`.
+
+5. Press ENTER. The client will update the configuration through the use of overrides which results in the following configuration and output:
 
     ```json
+    Modified configuration:
     RearViewCamera {
         model: "model 2",
         horizontal_resolution: 1920,
@@ -102,9 +106,10 @@ To run the demo, follow the steps below:
             },
         },
     }
+    Press any key to continue...
     ```
 
-    Finally, the client will perform a configuration rollback, such that we get the initial configuration:
+6. Press ENTER. Finally, the client will perform a configuration rollback, such that we get the initial configuration:
 
     ```json
     RearViewCamera {

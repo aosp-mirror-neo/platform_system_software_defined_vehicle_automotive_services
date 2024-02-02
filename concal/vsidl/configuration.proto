@@ -43,19 +43,10 @@ message ConfigOverrideKeyValue {
 }
 
 // Unique identifier for the config.
-// <full package name like com.company.domain.apex>.<service name like
-// SomeService>/(<instance_name>?)/<config_name>.
-// It does not include VM name, but it can be introduced if
-// required. If a field is not defined, this field matches any characters.
-// Undefined fields allow to match multiple configs.
 message ConfigId {
-  // com.company_name
-  string company_domain = 1;
-  string domain = 2;
-  string apex = 3;
-  string service = 4;
-  string instance = 5;
-  string config = 6;
+  // The FQIN of the service bundle that owns the configuration.
+  string service_fqin = 1;
+  string config_name = 2;
 }
 
 message ConfigOverride {

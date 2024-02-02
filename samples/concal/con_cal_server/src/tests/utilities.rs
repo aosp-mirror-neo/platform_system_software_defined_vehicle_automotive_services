@@ -13,12 +13,8 @@ pub(crate) fn test_config() -> Configuration {
 
 pub(crate) fn test_config_id() -> ConfigId {
     ConfigId {
-        company_domain: String::from("testdata"),
-        domain: String::from("testdata"),
-        apex: String::from("testdata"),
-        service: String::from("testdata"),
-        instance: String::from("testdata"),
-        config: String::from("testdata"),
+        service_fqin: String::from("testdata.testdata.testdata.testdata.testdata"),
+        config_name: String::from("testdata"),
         ..Default::default()
     }
 }

@@ -512,6 +512,13 @@ impl ConCalService for ConCalServiceImpl {
     ) -> RpcResult<UnregisterFromCalibrationUpdateResponse> {
         todo!();
     }
+
+    fn update_config_for_calibration(
+        &self,
+        _request: UpdateConfigForCalibrationRequest,
+    ) -> RpcResult<UpdateConfigForCalibrationResponse> {
+        todo!();
+    }
 }
 
 #[cfg(test)]

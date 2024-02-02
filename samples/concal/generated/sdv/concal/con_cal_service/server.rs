@@ -40,6 +40,8 @@ use concal_api::concal_service::UnregisterFromCalibrationUpdateRequest;
 use concal_api::concal_service::UnregisterFromCalibrationUpdateResponse;
 use concal_api::concal_service::UnregisterFromConfigUpdateRequest;
 use concal_api::concal_service::UnregisterFromConfigUpdateResponse;
+use concal_api::concal_service::UpdateConfigForCalibrationRequest;
+use concal_api::concal_service::UpdateConfigForCalibrationResponse;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
@@ -135,6 +137,12 @@ impl ConCalServiceServer {
         serve_method::<StartCalibrationRequest, StartCalibrationResponse>(
             Box::new(move |req| callback.start_calibration(req)),
             "ConCalService::start_calibration",
+            self.transport.as_ref(),
+        );
+        let callback = service.clone();
+        serve_method::<UpdateConfigForCalibrationRequest, UpdateConfigForCalibrationResponse>(
+            Box::new(move |req| callback.update_config_for_calibration(req)),
+            "ConCalService::update_config_for_calibration",
             self.transport.as_ref(),
         );
         let callback = service.clone();

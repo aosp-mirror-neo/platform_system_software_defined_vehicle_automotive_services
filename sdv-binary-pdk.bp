@@ -24,7 +24,6 @@ genrule {
     defaults: ["sdv@binary_pdk_dist"],
     srcs: [
         "concal/vsidl/**/*",
-        "concal/aidl/**/*",
         "README.md",
     ],
     out: ["automotive_services_concal_api.zip"],
