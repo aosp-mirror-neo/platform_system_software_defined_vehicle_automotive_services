@@ -70,12 +70,8 @@ fn test_config() -> RearViewCamera {
 
 fn test_config_id() -> ConfigId {
     ConfigId {
-        company_domain: "company_domain".to_string(),
-        domain: "domain".to_string(),
-        apex: "apex".to_string(),
-        service: "service".to_string(),
-        instance: "instance".to_string(),
-        config: "config".to_string(),
+        service_fqin: "company_domain.domain.apex.service.instance".to_string(),
+        config_name: "config".to_string(),
         ..Default::default()
     }
 }
