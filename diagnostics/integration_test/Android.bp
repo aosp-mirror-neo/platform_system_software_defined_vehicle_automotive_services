@@ -1,0 +1,21 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_test {
+    name: "sdv_diag_integration_test",
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+    srcs: ["src/main.rs"],
+    rustlibs: [
+        "liblog_rust",
+        "libsdv_log_rust",
+        "libsdv_samples_stdout_verifier",
+    ],
+    data: [
+        "tests/manager_stdout.txt",
+    ],
+    vendor: true,
+}
