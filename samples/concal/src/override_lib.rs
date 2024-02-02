@@ -190,6 +190,17 @@ mod tests {
     }
 
     #[test]
+    fn override_textproto_bytes_succeeds() {
+        let mut value = format!("bytes_parameter: \"{:?}\"", "Initial text".as_bytes());
+        let default = register_config(&value);
+        value = format!("\"{:?}\"", "Updated text".as_bytes());
+        let config_override = get_config_override_key_value("bytes_parameter", &value);
+        let new_config = override_config(default, config_override);
+        let upd_config = format!("bytes_parameter: \"{:?}\"", "Updated text".as_bytes());
+        assert_eq!(print_to_string(&*new_config), upd_config);
+    }
+
+    #[test]
     fn clear_textproto_config_succeeds() {
         let default = register_config("bool_parameter: true int_parameter: 5 float_parameter: 3.4 str_parameter: \"string parameter\" nested_parameter {} complex_parameter {second_parameter: \"initial\"} nested_package {}");
         // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.

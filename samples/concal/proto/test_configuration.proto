@@ -21,4 +21,5 @@ message TestConfiguration {
   InnerTestConfigurationDifferentFile nested_parameter = 7;
   ComplexParameterInFile complex_parameter = 8;
   android.sdv.config.diffpackage.InnerTestConfigurationDifferentPackage nested_package = 9;
+  bytes bytes_parameter = 10;
 }
