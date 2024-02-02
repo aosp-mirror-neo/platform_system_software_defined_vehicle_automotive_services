@@ -40,6 +40,8 @@ use concal_api::concal_service::UnregisterFromCalibrationUpdateRequest;
 use concal_api::concal_service::UnregisterFromCalibrationUpdateResponse;
 use concal_api::concal_service::UnregisterFromConfigUpdateRequest;
 use concal_api::concal_service::UnregisterFromConfigUpdateResponse;
+use concal_api::concal_service::UpdateConfigForCalibrationRequest;
+use concal_api::concal_service::UpdateConfigForCalibrationResponse;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;
 use sdvmiddleware_rpc::RpcResult;
@@ -175,6 +177,16 @@ impl ConCalService for ConCalServiceClient {
         call_method::<StartCalibrationRequest, StartCalibrationResponse>(
             self.transport.as_ref(),
             "ConCalService::start_calibration",
+            &request,
+        )
+    }
+    fn update_config_for_calibration(
+        &self,
+        request: UpdateConfigForCalibrationRequest,
+    ) -> RpcResult<UpdateConfigForCalibrationResponse> {
+        call_method::<UpdateConfigForCalibrationRequest, UpdateConfigForCalibrationResponse>(
+            self.transport.as_ref(),
+            "ConCalService::update_config_for_calibration",
             &request,
         )
     }

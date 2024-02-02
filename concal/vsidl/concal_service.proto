@@ -95,6 +95,11 @@ service ConCalService {
   // Start calibration for a specified config.
   rpc StartCalibration(StartCalibrationRequest) returns (StartCalibrationResponse) {}
 
+  // Update a calibration config.
+  // New config values are stored in memory.
+  rpc UpdateConfigForCalibration(UpdateConfigForCalibrationRequest)
+      returns (UpdateConfigForCalibrationResponse) {}
+
   // Stops calibration for a specified config
   // and resets config to the original values.
   rpc StopCalibration(StopCalibrationRequest) returns (StopCalibrationResponse) {}
@@ -324,3 +329,13 @@ message GetCalibrationConfigIdsResponse {
   // Error message if request fails.
   Error error = 2;
 }
+
+message UpdateConfigForCalibrationRequest {
+  // Unique config identifier, which has to be calibrated.
+  ConfigId config_id = 1;
+
+  // New calibration values in the form of a serialized calibration config.
+  bytes config = 2;
+}
+
+message UpdateConfigForCalibrationResponse {}
