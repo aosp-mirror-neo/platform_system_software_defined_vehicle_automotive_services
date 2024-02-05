@@ -1,7 +1,7 @@
 // Copyright 2024 Google LLC
-use diag_serde_protos::diag_serde::ByteSize;
 use protobuf::reflect::EnumDescriptor;
 use protobuf::UnknownValueRef::{self, Varint};
+use vsidl_syntax::diagnostics::ByteSize;
 
 /// Trait that allows to retrieve protobuf field options that affect serialization /
 /// deserialization process.

@@ -1,10 +1,10 @@
 // Copyright 2024 Google LLC
-use diag_serde_protos::diag_serde::{ByteSize, FixedPointEncoding};
 use protobuf::reflect::FieldDescriptor;
 use protobuf::Message;
 use protobuf::UnknownValueRef::{self, *};
 use std::num::TryFromIntError;
 use std::result::Result;
+use vsidl_syntax::diagnostics::{ByteSize, FixedPointEncoding};
 
 /// Trait that allows to retrieve protobuf field options that affect serialization /
 /// deserialization process.
@@ -17,8 +17,8 @@ pub(crate) trait FieldOptions {
     // Convenience method for retrieving all options that affect `float` field
     // encoding.
     //
-    // This method also enforces that (sdv.diag.primitive_byte_size) option is only
-    // applicable when (sdv.diag.fixed_point_encoding) option is present.
+    // This method also enforces that (sdv.vsidl.primitive_byte_size) option is only
+    // applicable when (sdv.vsidl.fixed_point_encoding) option is present.
     fn float_encoding(&self) -> Option<(FixedPointEncoding, Option<ByteSize>)> {
         self.fixed_point_encoding()
             .map(|fixed_point_encoding| (fixed_point_encoding, self.primitive_byte_size()))
@@ -67,7 +67,7 @@ impl FieldOptions for FieldDescriptor {
     }
 
     fn primitive_byte_size(&self) -> Option<ByteSize> {
-        // id of sdv.diag.primitive_byte_size field option
+        // id of sdv.vsidl.primitive_byte_size field option
         const PRIMITIVE_BYTE_SIZE: u32 = 50200;
 
         // convert raw int value to enum value

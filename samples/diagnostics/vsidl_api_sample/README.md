@@ -18,7 +18,7 @@ Middleware code is already generated and placed in generated/ folder. However, i
 run the following command from the `$REPO_ROOT/system/software_defined_vehicle` folder:
 
 ```bash
-vsidl_code_generator --vsidl-path core_services/vsidl/protos/ --catalog-path automotive_services/samples/diagnostics/vsidl_api_sample/catalog --output-path automotive_services/samples/diagnostics/vsidl_api_sample/ --dependency-paths automotive_services/diagnostics/vsidl --dependency-paths automotive_services/diagnostics/serde/proto
+vsidl_code_generator --vsidl-path core_services/vsidl/protos/ --catalog-path automotive_services/samples/diagnostics/vsidl_api_sample/catalog --output-path automotive_services/samples/diagnostics/vsidl_api_sample/ --dependency-paths automotive_services/diagnostics/vsidl
 ```
 
 If you get an error that *vsidl_code_generator* is not found, build it first:
