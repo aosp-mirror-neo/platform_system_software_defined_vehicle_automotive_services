@@ -1,0 +1,10 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_library {
+    name: "libsdv_samples_stdout_verifier",
+    crate_name: "sdv_samples_stdout_verifier",
+    srcs: ["src/samples_stdout_verifier.rs"],
+    vendor_available: true,
+}
