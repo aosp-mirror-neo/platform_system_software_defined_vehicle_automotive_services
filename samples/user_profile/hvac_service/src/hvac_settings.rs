@@ -2,10 +2,11 @@ use std::collections::HashMap;
 
 use user_profile_api::setting::setting::Value;
 
-const MODE: &str = "MODE";
-const FAN_SPEED: &str = "FAN_SPEED";
-const TEMPERATURE: &str = "TEMPERATURE";
-const ENABLED: &str = "ENABLED";
+pub(crate) const CONFIG_NAME: &str = "HVAC";
+pub(crate) const MODE: &str = "MODE";
+pub(crate) const FAN_SPEED: &str = "FAN_SPEED";
+pub(crate) const TEMPERATURE: &str = "TEMPERATURE";
+pub(crate) const ENABLED: &str = "ENABLED";
 
 pub fn default_configuration() -> HashMap<String, Value> {
     let mut settings: HashMap<String, Value> = HashMap::new();
