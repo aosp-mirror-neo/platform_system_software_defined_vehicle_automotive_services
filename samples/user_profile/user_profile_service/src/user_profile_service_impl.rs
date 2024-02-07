@@ -1,12 +1,16 @@
 // Copyright 2023 Google LLC
+use sdvgenerated::user_profile_management_service_interface::UserProfileManagementService;
 use sdvgenerated::user_profile_registry_service_interface::UserProfileRegistryService;
 
+use user_profile_api::configuration::Configuration;
 use user_profile_api::user_profile_registry_service::{
     RegisterConfigRequest, RegisterConfigResponse,
 };
 
 use user_profile_api::error::{Error, ResponseCode};
 use user_profile_api::setting::setting::Value;
+use user_profile_api::setting::Setting;
+use user_profile_api::user_profile_management_service::*;
 use user_profile_api::user_profile_registry_service::{UpdateConfigRequest, UpdateConfigResponse};
 
 use protobuf::{EnumOrUnknown, MessageField};
@@ -19,10 +23,13 @@ use crate::config_metadata::ConfigMetadata;
 use crate::macros::{acquire_lock_or_return_err, error_response};
 
 type Settings = HashMap<String, Value>;
+type Configurations = HashMap<ConfigId, Settings>;
+type Profiles = HashMap<u64, Configurations>;
 
 pub struct UserProfileServiceImpl {
     defaults: Mutex<HashMap<ConfigId, ConfigMetadata>>,
     vehicle_state: Mutex<HashMap<ConfigId, Settings>>,
+    user_profiles: Mutex<Profiles>,
 }
 
 impl UserProfileServiceImpl {
@@ -30,7 +37,130 @@ impl UserProfileServiceImpl {
         UserProfileServiceImpl {
             defaults: Mutex::new(HashMap::new()),
             vehicle_state: Mutex::new(HashMap::new()),
+            user_profiles: Mutex::new(Profiles::new()),
         }
+    }
+}
+
+impl UserProfileManagementService for UserProfileServiceImpl {
+    fn create_user(&self, request: CreateUserRequest) -> RpcResult<CreateUserResponse> {
+        if request.id == 0 {
+            println!(
+                "Invalid create user request, ID {} is reserved for guest profile",
+                request.id
+            );
+            return error_response!(
+                CreateUserResponse,
+                ResponseCode::INVALID_REQUEST,
+                "User ID '0' is reserved for guest profile",
+            );
+        }
+
+        let mut profiles = acquire_lock_or_return_err!(self.user_profiles, CreateUserResponse);
+        if profiles.contains_key(&request.id) {
+            println!("Invalid create user request, ID {} is already in use", request.id);
+            return error_response!(
+                CreateUserResponse,
+                ResponseCode::INVALID_REQUEST,
+                "User ID '{}' is already in use",
+                request.id
+            );
+        }
+
+        let mut configurations = Configurations::new();
+        for config in request.configs.iter() {
+            let settings_map: HashMap<String, Value> = config
+                .settings
+                .iter()
+                .map(|setting| (setting.key.clone(), setting.value.clone().unwrap()))
+                .collect::<HashMap<_, _>>();
+
+            configurations.insert(ConfigId::from(config.config_id.clone().unwrap()), settings_map);
+        }
+
+        println!("Created profile with ID: {}", request.id);
+
+        profiles.insert(request.id, configurations);
+
+        Ok(CreateUserResponse::new())
+    }
+
+    fn select_user(&self, _request: SelectUserRequest) -> RpcResult<SelectUserResponse> {
+        todo!()
+    }
+
+    fn delete_user(&self, _request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
+        todo!()
+    }
+
+    fn list_users(&self, _request: ListUsersRequest) -> RpcResult<ListUsersResponse> {
+        todo!()
+    }
+
+    fn get_user_configs(
+        &self,
+        _request: GetUserConfigsRequest,
+    ) -> RpcResult<GetUserConfigsResponse> {
+        todo!()
+    }
+
+    fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
+        todo!()
+    }
+
+    fn request_config_change(
+        &self,
+        _request: RequestConfigChangeRequest,
+    ) -> RpcResult<RequestConfigChangeResponse> {
+        todo!()
+    }
+
+    fn subscribe_to_config_change(
+        &self,
+        request: SubscribeToConfigChangeRequest,
+    ) -> RpcResult<SubscribeToConfigChangeResponse> {
+        //TODO: Once middleware exposes the identity of the caller, we need to
+        //register their identity. For now we will rely on a client that is hardcoded to call a specific service bundle
+
+        if request.config_id.is_none() {
+            return error_response!(
+                SubscribeToConfigChangeResponse,
+                ResponseCode::INVALID_REQUEST,
+                "Request {:#?} contains None config_id field",
+                request
+            );
+        }
+        let vehicle_state =
+            acquire_lock_or_return_err!(self.vehicle_state, SubscribeToConfigChangeResponse);
+
+        let config_id = ConfigId::from(request.config_id.clone().unwrap());
+        if let Some(settings) = vehicle_state.get(&config_id) {
+            let mut result = SubscribeToConfigChangeResponse::new();
+            result.config = MessageField::some(Configuration {
+                config_id: request.config_id.clone(),
+                settings: settings
+                    .iter()
+                    .map(|(key, value)| Setting {
+                        key: key.clone(),
+                        value: Some(value.clone()),
+                        ..Default::default()
+                    })
+                    .collect(),
+                ..Default::default()
+            });
+
+            println!("Successfully registered subscriber to config: {:?}", config_id);
+            return Ok(result);
+        }
+
+        println!("Received request to subscribe to non existent config: {:?}", config_id);
+
+        error_response!(
+            SubscribeToConfigChangeResponse,
+            ResponseCode::INVALID_REQUEST,
+            "Config {:?} does not exist",
+            config_id
+        )
     }
 }
 
