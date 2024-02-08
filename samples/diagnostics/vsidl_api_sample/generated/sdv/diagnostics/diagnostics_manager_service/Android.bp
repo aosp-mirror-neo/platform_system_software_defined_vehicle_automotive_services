@@ -13,7 +13,7 @@ rust_library {
     ],
     rustlibs: [
         "libprotobuf",
-        "libdiagnostics_api_sample",
+        "libdiagnostics_sample_catalog",
         "liblog_rust",
         "libsdv_log_rust",
         "libsdvmiddleware_rpc_grpc_transport",

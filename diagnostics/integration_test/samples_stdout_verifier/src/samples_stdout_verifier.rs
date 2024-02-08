@@ -61,7 +61,7 @@ impl SamplesStdoutVerifier {
 
                         let child_string_output = String::from_utf8_lossy(&child_output.stdout);
 
-                        Self::assert_eq_to_file(&child_string_output, expected_stdout_file)
+                        Self::assert_eq_to_file(&child_string_output, expected_stdout_file);
                     }));
                 }
                 None => {
@@ -85,13 +85,16 @@ impl SamplesStdoutVerifier {
     fn assert_eq_to_file(output: &str, expected_output_file_path: &str) {
         let expected_output = File::open(expected_output_file_path).unwrap();
 
-        let output_lines = output.lines();
-        let mut expected_output_lines = BufReader::new(expected_output).lines();
+        let mut output_lines = output.lines();
+        let expected_output_lines = BufReader::new(expected_output).lines();
 
-        output_lines.for_each(|actual_line| {
-            let expected_line = expected_output_lines.next().unwrap().unwrap();
+        expected_output_lines.for_each(|expected_line| {
+            let actual_line = output_lines.next().unwrap();
+            let expected_line = expected_line.unwrap();
             assert_eq!(actual_line, expected_line);
-        })
+        });
+
+        assert_eq!(output_lines.next(), None);
     }
 }
 

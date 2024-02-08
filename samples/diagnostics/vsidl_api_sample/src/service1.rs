@@ -4,7 +4,7 @@
 mod data_item_impl;
 
 use crate::data_item_impl::DataItemImpl;
-use diagnostics_api_sample::data_items::DataItemOne;
+use diagnostics_sample_catalog::data_items::DataItemOne;
 use sdvgenerated::diagnostics_provider_service1::DiagnosticsProviderService1;
 use std::sync::Arc;
 

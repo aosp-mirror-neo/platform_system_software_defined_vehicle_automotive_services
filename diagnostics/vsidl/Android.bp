@@ -12,8 +12,21 @@ rust_protobuf {
     source_stem: "diagnostics_api",
     proto_flags: [
         "-I external/protobuf/src",
-        "-I system/software_defined_vehicle/core_services/vsidl/",
+        "-I system/software_defined_vehicle/core_services/vsidl/protos",
     ],
     host_supported: true,
     vendor: true,
+}
+
+filegroup {
+    name: "libdiagnostics_protos",
+    srcs: ["*.proto"],
+}
+
+filegroup {
+    name: "libdiagnostics_protos_with_bp_file",
+    srcs: [
+        ":libdiagnostics_protos",
+        "Android.bp",
+    ],
 }
