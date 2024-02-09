@@ -33,9 +33,9 @@ fn main() {
 
     wait_for_key_press();
 
-    let overrides = overrides();
+    let overrides = overrides(&config_id);
     println!("\nApplying the following overrides:\n{:#?}", &overrides);
-    update_config(&client, &config_id, &overrides);
+    update_config(&client, &overrides);
 
     wait_for_key_press();
 
@@ -122,7 +122,7 @@ fn register_config(
     }
 }
 
-fn update_config(client: &ConCalClient, config_id: &ConfigId, overrides: &[ConfigOverride]) {
+fn update_config(client: &ConCalClient, overrides: &[ConfigOverride]) {
     let resp = client
         .con_cal_service_client
         .start_config_update(StartConfigUpdateRequest::new())
@@ -138,7 +138,6 @@ fn update_config(client: &ConCalClient, config_id: &ConfigId, overrides: &[Confi
         .con_cal_service_client
         .add_or_update_config_override(AddOrUpdateConfigOverrideRequest {
             update_id,
-            config_id: MessageField::some(config_id.to_owned()),
             configOverride: overrides.to_owned(),
             ..Default::default()
         })
@@ -158,9 +157,13 @@ fn update_config(client: &ConCalClient, config_id: &ConfigId, overrides: &[Confi
     }
 }
 
-fn overrides() -> Vec<ConfigOverride> {
-    let mut overrides =
-        ConfigOverride { override_id: "1".to_string(), pairs: Vec::new(), ..Default::default() };
+fn overrides(config_id: &ConfigId) -> Vec<ConfigOverride> {
+    let mut overrides = ConfigOverride {
+        config_id: MessageField::some(config_id.to_owned()),
+        override_id: "1".to_string(),
+        pairs: Vec::new(),
+        ..Default::default()
+    };
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("model"),

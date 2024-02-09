@@ -196,11 +196,8 @@ message AddOrUpdateConfigOverrideRequest {
   // Random number which exists only during the update transaction.
   int64 update_id = 1;
 
-  // Unique config identifier.
-  ConfigId config_id = 2;
-
   // At least one.
-  repeated ConfigOverride configOverride = 3;
+  repeated ConfigOverride configOverride = 2;
 }
 
 message AddOrUpdateConfigOverrideResponse {
@@ -215,9 +212,6 @@ message RemoveConfigOverrideRequest {
   // Override identifier defined by the caller.
   // Unique per caller.
   string override_id = 2;
-
-  // Unique config identifier.
-  ConfigId config_id = 3;
 }
 
 message RemoveConfigOverrideResponse {

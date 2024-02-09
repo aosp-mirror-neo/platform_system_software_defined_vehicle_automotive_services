@@ -315,12 +315,14 @@ impl ConCalService for ConCalServiceImpl {
     ) -> RpcResult<AddOrUpdateConfigOverrideResponse> {
         let mut mlock = acquire_lock_or_return_err!(self.data, AddOrUpdateConfigOverrideResponse);
 
-        if request.config_id.is_none() {
-            return error_response!(
-                AddOrUpdateConfigOverrideResponse,
-                ResponseCode::INVALID_REQUEST,
-                "ConfigId is empty",
-            );
+        for config_override in request.configOverride.iter() {
+            if config_override.config_id.is_none() {
+                return error_response!(
+                    AddOrUpdateConfigOverrideResponse,
+                    ResponseCode::INVALID_REQUEST,
+                    "ConfigId is empty",
+                );
+            }
         }
 
         if mlock.current_update_id.is_none()
@@ -338,7 +340,7 @@ impl ConCalService for ConCalServiceImpl {
         for config_override in request.configOverride.iter() {
             mlock.overrides.insert(
                 OverrideKey {
-                    config_id: HashableConfigId::from(request.config_id.clone().unwrap()),
+                    config_id: HashableConfigId::from(config_override.config_id.clone().unwrap()),
                     override_id: config_override.override_id.clone(),
                 },
                 config_override.clone(),

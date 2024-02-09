@@ -53,6 +53,9 @@ message ConfigOverride {
   // Unique per caller.
   string override_id = 1;
 
+  // Unique config identifier.
+  ConfigId config_id = 2;
+
   // Key-value pairs for keys to be updated in the config.
-  repeated ConfigOverrideKeyValue pairs = 2;
+  repeated ConfigOverrideKeyValue pairs = 3;
 }
