@@ -22,29 +22,21 @@ message ConfigMetadata {
 message ConfigOverrideKeyValue {
   // Required.
   // The name of the key (configuration parameter).
+  // If the key is empty, the complete config is changed.
   string key = 1;
 
-  // Required.
-  // New value of the key.
-  // Please, do not use this API for now (API v1).
-  oneof value {
-    bool value_bool = 2;
-    float value_float = 3;
-    uint64 value_int = 4;
-    string value_str = 5;
-    bytes value_blob = 6;
-  }
-
-  // New value in the TextProto format (API v0).
-  // To change the value completely, all fields should be redefined.
+  // New value in the TextProto format.
+  // To change the value completely, all its fields should be redefined.
   // Defined values will be merged into existing default value for the key.
-  string value_txtproto = 7;
+  string value_txtproto = 2;
 }
 
 // Unique identifier for the config.
 message ConfigId {
   // The FQIN of the service bundle that owns the configuration.
   string service_fqin = 1;
+
+  // The name of the config.
   string config_name = 2;
 }
 

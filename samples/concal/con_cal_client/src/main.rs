@@ -1,10 +1,7 @@
 // Copyright 2023 Google LLC
 #![allow(missing_docs)]
 use concal_api::concal_service::*;
-use concal_api::configuration::{
-    config_override_key_value::Value::*, ConfigId, ConfigMetadata, ConfigOverride,
-    ConfigOverrideKeyValue,
-};
+use concal_api::configuration::{ConfigId, ConfigMetadata, ConfigOverride, ConfigOverrideKeyValue};
 use protobuf::descriptor::FileDescriptorSet as FdSet;
 use protobuf::well_known_types::any::Any;
 use protobuf::{Message, MessageField};
@@ -167,37 +164,37 @@ fn overrides(config_id: &ConfigId) -> Vec<ConfigOverride> {
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("model"),
-        value: Some(ValueStr("model 2".to_string())),
+        value_txtproto: String::from("\"model 2\""),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("horizontal_resolution"),
-        value: Some(ValueInt(1920)),
+        value_txtproto: String::from("1920"),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("vertical_resolution"),
-        value: Some(ValueInt(1080)),
+        value_txtproto: String::from("1080"),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("x_axis_field_of_view"),
-        value: Some(ValueFloat(90.0)),
+        value_txtproto: String::from("90.0"),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("y_axis_field_of_view"),
-        value: Some(ValueFloat(90.0)),
+        value_txtproto: String::from("90.0"),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("is_rgb"),
-        value: Some(ValueBool(true)),
+        value_txtproto: String::from("true"),
         ..Default::default()
     });
 

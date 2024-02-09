@@ -527,7 +527,6 @@ impl ConCalService for ConCalServiceImpl {
 mod tests {
     #![allow(unused_imports)]
     use super::*;
-    use concal_api::configuration::config_override_key_value::Value;
     use concal_api::configuration::ConfigId;
     use concal_api::configuration::ConfigOverrideKeyValue;
     use protobuf::descriptor::FileDescriptorSet;
@@ -599,14 +598,19 @@ mod tests {
         let resp = register_config_metadata(&service, &config_id, &config);
         assert!(resp.error.is_none());
 
-        let overrides = create_sample_overrides(String::from("1"), true, String::from("new_value"));
+        let overrides = create_sample_overrides(
+            &config_id,
+            String::from("\"1\""),
+            true,
+            String::from("\"new_value\""),
+        );
 
         let resp = start_config_update(&service);
         assert!(resp.error.is_none());
 
         let update_id = resp.update_id;
 
-        let resp = add_or_update_config_override(&service, update_id, &config_id, &overrides);
+        let resp = add_or_update_config_override(&service, update_id, &overrides);
         assert!(resp.error.is_none());
 
         let resp = finish_config_update(&service, update_id);
@@ -633,14 +637,19 @@ mod tests {
         let resp = register_config_metadata(&service, &config_id, &config);
         assert!(resp.error.is_none());
 
-        let overrides = create_sample_overrides(String::from("1"), true, String::from("new_value"));
+        let overrides = create_sample_overrides(
+            &config_id,
+            String::from("\"1\""),
+            true,
+            String::from("\"new_value\""),
+        );
 
         let resp = start_config_update(&service);
         assert!(resp.error.is_none());
 
         let update_id = resp.update_id;
 
-        let resp = add_or_update_config_override(&service, update_id, &config_id, &overrides);
+        let resp = add_or_update_config_override(&service, update_id, &overrides);
         assert!(resp.error.is_none());
 
         let resp = finish_config_update(&service, update_id);
@@ -686,14 +695,19 @@ mod tests {
         let resp = register_config_metadata(&service, &config_id, &config);
         assert!(resp.error.is_none());
 
-        let overrides = create_sample_overrides(String::from("1"), true, String::from("new_value"));
+        let overrides = create_sample_overrides(
+            &config_id,
+            String::from("\"1\""),
+            true,
+            String::from("\"new_value\""),
+        );
 
         let resp = start_config_update(&service);
         assert!(resp.error.is_none());
 
         let update_id = resp.update_id;
 
-        let resp = add_or_update_config_override(&service, update_id, &config_id, &overrides);
+        let resp = add_or_update_config_override(&service, update_id, &overrides);
         assert!(resp.error.is_none());
 
         let resp = finish_config_update(&service, update_id);
@@ -735,13 +749,11 @@ mod tests {
     fn add_or_update_config_override(
         service: &ConCalServiceImpl,
         update_id: i64,
-        config_id: &ConfigId,
         overrides: &[ConfigOverride],
     ) -> AddOrUpdateConfigOverrideResponse {
         service
             .add_or_update_config_override(AddOrUpdateConfigOverrideRequest {
                 update_id,
-                config_id: MessageField::some(config_id.clone()),
                 configOverride: overrides.to_vec(),
                 ..Default::default()
             })
@@ -767,21 +779,23 @@ mod tests {
     }
 
     fn create_sample_overrides(
+        config_id: &ConfigId,
         override_id: String,
         bool_parameter: bool,
         str_parameter: String,
     ) -> Vec<ConfigOverride> {
         vec![ConfigOverride {
+            config_id: MessageField::some(config_id.clone()),
             override_id,
             pairs: vec![
                 ConfigOverrideKeyValue {
                     key: String::from("bool_parameter"),
-                    value: Some(Value::ValueBool(bool_parameter)),
+                    value_txtproto: bool_parameter.to_string(),
                     ..Default::default()
                 },
                 ConfigOverrideKeyValue {
                     key: String::from("str_parameter"),
-                    value: Some(Value::ValueStr(str_parameter)),
+                    value_txtproto: str_parameter,
                     ..Default::default()
                 },
             ],
