@@ -5,9 +5,9 @@
 mod tests {
     use sdv_samples_stdout_verifier::SamplesStdoutVerifier;
 
-    const DIAGNOSTICS_MANAGER_BINARY: &str = "diag_vsidl_manager_sample";
-    const DIAGNOSTICS_SERVICE1_BINARY: &str = "diag_vsidl_service_sample1";
-    const DIAGNOSTICS_SERVICE2_BINARY: &str = "diag_vsidl_service_sample2";
+    const DIAGNOSTICS_MANAGER_BINARY: &str = "diag_manager_sample";
+    const DIAGNOSTICS_SERVICE1_BINARY: &str = "diag_data_item1_service_sample";
+    const DIAGNOSTICS_SERVICE2_BINARY: &str = "diag_data_item2_service_sample";
 
     #[test]
     fn test_diagnostics() {

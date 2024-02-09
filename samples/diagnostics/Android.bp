@@ -1,0 +1,56 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_defaults {
+    name: "diag_samples@rust_defaults",
+    defaults: ["sdv@rust_defaults"],
+    crate_name: "diag_samples",
+    rustlibs: [
+        "libsdvgenerated_rpc_data_item",
+        "libdiagnostics_api",
+        "libprotobuf",
+        "libanyhow",
+        "liblog_rust",
+        "libsdv_log_rust",
+        "libprotobuf",
+        "libsdvmiddleware_rpc",
+    ],
+    apex_available: ["//apex_available:platform"],
+    vendor_available: true,
+}
+
+rust_binary {
+    name: "diag_data_item1_service_sample",
+    defaults: ["diag_samples@rust_defaults"],
+    srcs: ["src/service1.rs"],
+    prefer_rlib: true,
+    rustlibs: [
+        "libsdvgenerated_diagnostics_provider_service1",
+        "libdiagnostics_sample_catalog",
+    ],
+}
+
+rust_binary {
+    name: "diag_data_item2_service_sample",
+    defaults: ["diag_samples@rust_defaults"],
+    srcs: ["src/service2.rs"],
+    prefer_rlib: true,
+    rustlibs: [
+        "libsdvgenerated_diagnostics_provider_service2",
+        "libdiagnostics_sample_catalog",
+    ],
+}
+
+rust_binary {
+    name: "diag_manager_sample",
+    defaults: ["diag_samples@rust_defaults"],
+    srcs: ["src/manager.rs"],
+    prefer_rlib: true,
+    rustlibs: [
+        "libsdv_uds_serde",
+        "libsdvgenerated_diagnostics_manager_service",
+        "libsdvmiddleware_rpc_grpc_transport",
+        "libsdv_config_provider",
+    ],
+}

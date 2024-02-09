@@ -1,21 +1,11 @@
 # Diagnostics Manager APIs
 
-Currently Diagnostics API is defined in both AIDL (to be removed) and VSIDL formats.
+Currently Diagnostics API is defined in VSIDL format.
 APIs are based on ISO 14229-1:2020 and AUTOSAR Diagnostic Event Manager standards.
 
 All APIs are experimental at the moment.
 
-## AIDL definitions
-
-Defines two Diagnostics API surfaces:
-
-* **IDiagnosticsManager.aidl**: Set of APIs for normal SDV-Services to expose diagnostics
-data.
-
-* **IDiagnosticsManagerPlatform.aidl**: Set of privileged APIs for Diagnostics Manager to
-delegate parts of its functionality (e.g. Authentication) to privileged SDV-Services.
-
-## VSIDL definitions
+## VSIDL API definitions
 
 * **diagnostics_manager.proto**: RPC API for SDV-Service to query information from
 Diagnostics Manager.
