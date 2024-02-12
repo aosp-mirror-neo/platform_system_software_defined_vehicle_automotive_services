@@ -1,0 +1,18 @@
+rust_binary {
+    name: "sdv_user_profile_service",
+    crate_name: "sdv_user_profile_service",
+    srcs: [
+        "src/main.rs",
+    ],
+    rustlibs: [
+        "libprotobuf",
+        "libsdvgenerated_user_profile_server",
+        "libuser_profile_api",
+        "libbinder_rs",
+        "libsdvmiddleware_rpc",
+        "libitertools",
+        "librand",
+        "libprotobuf_parse",
+    ],
+    vendor: true,
+}
