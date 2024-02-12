@@ -1,10 +1,10 @@
-// Copyright 2023 Google LLC
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+// This is an experimental version for the ConCal API.
+// It is unstable until API council approval.
 
 // Interface for SDV services which want to get notified about changes to a specific config, before
 // the config change becomes active.
-//
-// This is a PoC version for the API for the discussions.
-// It is unstable until API council approval.
 
 syntax = "proto3";
 
@@ -13,10 +13,9 @@ package sdv.concal;
 import "configuration.proto";
 import "google/protobuf/descriptor.proto";
 
+// Service which subscribes to ConCal to receive updates on a specific-config change before the
+// update becomes active.
 service ConfigSubscriberService {
-  // Service which subscribes to ConCal to receive updates on a specific-config change before the
-  // update becomes active.
-
   // ConCal provides a new version of the config with its schema.
   // Returns an error if the config cannot be deserialized.
   rpc OnConfigUpdate(OnConfigUpdateRequest) returns (OnConfigUpdateResponse) {}

@@ -1,12 +1,6 @@
-// Copyright 2023 Google LLC
+// Copyright 2023 Google LLC. All Rights Reserved.
 
-// Generally available Configuration/Calibration Service APIs for use by
-// SDV-Services.
-//
-// Allows SDV-Services to deliver customized configuration based on the vehicle
-// options and factors.
-//
-// This is a PoC version for the API for the discussions.
+// This is an experimental version for the ConCal API.
 // It is unstable until API council approval.
 
 syntax = "proto3";
@@ -19,11 +13,15 @@ import "error.proto";
 
 import "google/protobuf/descriptor.proto";
 
+// Generally available Configuration/Calibration Service (ConCal) APIs for use by
+// SDV-Services.
+// ConCal delivers customized verhicle-specific service bundles' configurations.
 service ConCalService {
   // Configuration functionality.
 
   // Retrieves service configuration.
-  // Returns an error if multiple configs matching the request.
+  // Returns an error if multiple configs matching the request or requested config is not available
+  // at ConCal.
   rpc GetConfig(GetConfigRequest) returns (GetConfigResponse) {}
 
   // Registers configuration schema with default config.
@@ -39,49 +37,45 @@ service ConCalService {
   // No updates can run in parallel.
   // The method will return error if another update session is in progress.
   // Each update can include multiple overrides.
-  // This API should be only available to the privileged services like
-  // UpdateManager.
+  // This API should be only available to the privileged service bundles.
   rpc StartConfigUpdate(StartConfigUpdateRequest) returns (StartConfigUpdateResponse) {}
 
   // Adds or updates a config override.
   // Dependent on the sender of the message, configuration service should assign
-  // a priority to it. Executed before StartUpdate() and FinishUpdate(). This API
-  // should be only available to the privileged services like UpdateManager.
+  // a priority to it. Executed before StartConfigUpdate() and FinishConfigUpdate(). This API
+  // should be only available to the privileged service bundles.
   rpc AddOrUpdateConfigOverride(AddOrUpdateConfigOverrideRequest)
       returns (AddOrUpdateConfigOverrideResponse) {}
 
   // Removes a config override.
-  // This API should be only available to the privileged services like
-  // UpdateManager.
+  // This API should be only available to the privileged service bundles.
   rpc RemoveConfigOverride(RemoveConfigOverrideRequest) returns (RemoveConfigOverrideResponse) {}
 
   // Cancels an update. All ConfigOverrides sent after the last
-  // StartUpdate() and now() are reverted.
-  // This API should be only available to the privileged
-  // services like UpdateManager.
+  // StartConfigUpdate() and now() are reverted.
+  // This API should be only available to the privileged service bundles.
   rpc CancelConfigUpdate(CancelConfigUpdateRequest) returns (CancelConfigUpdateResponse) {}
 
   // Marks the end of configuration update.
   // A new configuration snapshot is calculated and stored persistently.
-  // This API should be only available to the privileged services like
-  // UpdateManager.
+  // This API should be only available to the privileged service bundles.
   rpc FinishConfigUpdate(FinishConfigUpdateRequest) returns (FinishConfigUpdateResponse) {}
 
-  // Rollbacks the last update to the previous configuration snapshot.
-  // This API should be only available to the privileged services like
-  // UpdateManager. Can't be performed while another update is in progress.
+  // Rolls back the last update to the previous configuration snapshot.
+  // This API should be only available to the privileged service bundles.
+  // Can't be performed while another update is in progress.
   rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
 
   // Removes all configuration updates and default configurations.
-  // This API should be only available to the privileged services like
-  // UpdateManager. Cleans all services up to the factory state. Can't be
+  // This API should be only available to the privileged service bundles.
+  // Cleans all services up to the factory state. Can't be
   // performed while another update is in progress.
   rpc Reset(ResetRequest) returns (ResetResponse) {}
 
   // Removes a configuration.
   // Called when a service is deinstalled.
-  // This API should be only available to the privileged services like
-  // UpdateManager. Can't be performed while another update is in progress.
+  // This API should be only available to the privileged service bundles.
+  // Can't be performed while another update is in progress.
   rpc DeinstallConfig(DeinstallConfigRequest) returns (DeinstallConfigResponse) {}
 
   // Calibration functionality.
@@ -109,7 +103,7 @@ service ConCalService {
   // - if this service does not have rights to read the config,
   // - if the config is not stored in the ConCal,
   // - if multiple configs match the request.
-  // The caller should implement ConfigSubscriber interface.
+  // The caller should implement ConfigSubscriberService interface.
   rpc GetConfigAndRegisterForConfigUpdate(GetConfigAndRegisterForConfigUpdateRequest)
       returns (GetConfigAndRegisterForConfigUpdateResponse) {}
 
@@ -332,4 +326,7 @@ message UpdateConfigForCalibrationRequest {
   bytes config = 2;
 }
 
-message UpdateConfigForCalibrationResponse {}
+message UpdateConfigForCalibrationResponse {
+  // Error message if request fails.
+  Error error = 1;
+}

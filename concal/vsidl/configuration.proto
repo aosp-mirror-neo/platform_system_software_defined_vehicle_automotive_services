@@ -1,6 +1,6 @@
 // Copyright 2023 Google LLC. All Rights Reserved.
 
-// This is a PoC version for the API for the discussions (API v0).
+// This is an experimental version for the ConCal API.
 // It is unstable until API council approval.
 
 syntax = "proto3";
@@ -10,6 +10,8 @@ package sdv.concal;
 import "google/protobuf/any.proto";
 import "google/protobuf/descriptor.proto";
 
+// Based on the technique for self-describing messages.
+// Provides default configuration with its schema.
 message ConfigMetadata {
   // Proto types and their dependencies.
   google.protobuf.FileDescriptorSet descriptor_set = 1;
@@ -20,14 +22,17 @@ message ConfigMetadata {
 
 // Key-value pair to update configuration.
 message ConfigOverrideKeyValue {
-  // Required.
-  // The name of the key (configuration parameter).
-  // If the key is empty, the complete config is changed.
+  // A path to the config field, which will be overridden. Elements in the path are separated by
+  // dots. The last element shows which exact element should be rewritten. It might be a singular or
+  // complex field or a specific key in a map. Specifying a key as a path allows traversing to the
+  // deepest levels of the config and rewriting simple as well as complex structures.
+  // If the key is empty, the complete config will be modified.
   string key = 1;
 
-  // New value in the TextProto format.
+  // A new value in the TextProto format.
+  // The provided value is merged into into the existing key's value.
+  // If no value is provided, the corresponding field, config, or a key in a map should be cleared.
   // To change the value completely, all its fields should be redefined.
-  // Defined values will be merged into existing default value for the key.
   string value_txtproto = 2;
 }
 
@@ -40,6 +45,7 @@ message ConfigId {
   string config_name = 2;
 }
 
+// A collection of changes for a specific config which should be atomically applied.
 message ConfigOverride {
   // Override identifier defined by the caller.
   // Unique per caller.

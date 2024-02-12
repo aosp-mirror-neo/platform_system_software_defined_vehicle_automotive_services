@@ -1,8 +1,6 @@
-// Copyright 2023 Google LLC
+// Copyright 2023 Google LLC. All Rights Reserved.
 
-// Interface for SDV services which want their configs to be calibrated.
-//
-// This is a PoC version for the API for the discussions.
+// This is an experimental version for the ConCal API.
 // It is unstable until API council approval.
 
 syntax = "proto3";
@@ -12,20 +10,21 @@ package sdv.concal;
 import "configuration.proto";
 import "calibration.proto";
 
+// Interface for SDV service bundles which want their configs to be calibrated.
+// The same CalibratableService can get multiple sequential calibration requests for the same config
+// and multiple configs can be calibrated in parallel.
+// Only ConCal can use call this API.
 service CalibratableService {
-  // Service which participates in the calibration for a specific calibration config,
-  // i.e. the same service can get multiple sequential calibration requests for the same config
-  // and multiple configs can be calibrated in parallel.
-
-  // ConCal delivers a new version of the calibration config.
-  // The calibratable service stores a copy of its current calibration config.
-  // Returns an error if a calibration config is not known.
+  // Creates a new calibration session, in which a calibrated config is temporarily changed as long
+  // as the session is open. Returns an error if a calibration config
+  // is not known.
   rpc StartCalibration(StartCalibrationRequest) returns (StartCalibrationResponse) {}
 
-  // Update a calibration config.
+  // Updates a calibration config. New calibration values are stored in memory.
   rpc UpdateConfig(UpdateConfigRequest) returns (UpdateConfigResponse) {}
 
-  // Service should reset its calibration config to the original values when the calibration stops.
+  // Marks the end of the calibration session and reverts the calibrated config to its values prior
+  // to the calibration session.
   rpc FinishCalibration(FinishCalibrationRequest) returns (FinishCalibrationResponse) {}
 }
 

@@ -1,6 +1,6 @@
 // Copyright 2023 Google LLC. All Rights Reserved.
 
-// This is a PoC version for the API for the discussions.
+// This is an experimental version for the ConCal API.
 // It is unstable until API council approval.
 
 syntax = "proto3";
