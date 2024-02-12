@@ -1,14 +1,15 @@
-// Copyright 2023 Google LLC
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+// This is an experimental version for the ConCal API.
+// It is unstable until API council approval.
 
 // Error messages for ConCal.
-//
-// This is a PoC version for the API for the discussions.
-// It is unstable until API council approval.
 
 syntax = "proto3";
 
 package sdv.concal;
 
+// ConCal response codes.
 enum ResponseCode {
   SUCCESS = 0x00;
   INTERNAL_ERROR = 0x01;
@@ -20,7 +21,10 @@ enum ResponseCode {
   RUNTIME_ERROR = 0x07;
 }
 
+// ConCal error message returned by ConCal with each response.
 message Error {
   ResponseCode error_code = 1;
+
+  // Error message.
   string message = 2;
 }

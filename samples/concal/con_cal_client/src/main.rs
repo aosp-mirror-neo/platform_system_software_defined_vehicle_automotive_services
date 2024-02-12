@@ -1,10 +1,7 @@
 // Copyright 2023 Google LLC
 #![allow(missing_docs)]
 use concal_api::concal_service::*;
-use concal_api::configuration::{
-    config_override_key_value::Value::*, ConfigId, ConfigMetadata, ConfigOverride,
-    ConfigOverrideKeyValue,
-};
+use concal_api::configuration::{ConfigId, ConfigMetadata, ConfigOverride, ConfigOverrideKeyValue};
 use protobuf::descriptor::FileDescriptorSet as FdSet;
 use protobuf::well_known_types::any::Any;
 use protobuf::{Message, MessageField};
@@ -33,9 +30,9 @@ fn main() {
 
     wait_for_key_press();
 
-    let overrides = overrides();
+    let overrides = overrides(&config_id);
     println!("\nApplying the following overrides:\n{:#?}", &overrides);
-    update_config(&client, &config_id, &overrides);
+    update_config(&client, &overrides);
 
     wait_for_key_press();
 
@@ -122,7 +119,7 @@ fn register_config(
     }
 }
 
-fn update_config(client: &ConCalClient, config_id: &ConfigId, overrides: &[ConfigOverride]) {
+fn update_config(client: &ConCalClient, overrides: &[ConfigOverride]) {
     let resp = client
         .con_cal_service_client
         .start_config_update(StartConfigUpdateRequest::new())
@@ -138,7 +135,6 @@ fn update_config(client: &ConCalClient, config_id: &ConfigId, overrides: &[Confi
         .con_cal_service_client
         .add_or_update_config_override(AddOrUpdateConfigOverrideRequest {
             update_id,
-            config_id: MessageField::some(config_id.to_owned()),
             configOverride: overrides.to_owned(),
             ..Default::default()
         })
@@ -158,43 +154,47 @@ fn update_config(client: &ConCalClient, config_id: &ConfigId, overrides: &[Confi
     }
 }
 
-fn overrides() -> Vec<ConfigOverride> {
-    let mut overrides =
-        ConfigOverride { override_id: "1".to_string(), pairs: Vec::new(), ..Default::default() };
+fn overrides(config_id: &ConfigId) -> Vec<ConfigOverride> {
+    let mut overrides = ConfigOverride {
+        config_id: MessageField::some(config_id.to_owned()),
+        override_id: "1".to_string(),
+        pairs: Vec::new(),
+        ..Default::default()
+    };
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("model"),
-        value: Some(ValueStr("model 2".to_string())),
+        value_txtproto: String::from("\"model 2\""),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("horizontal_resolution"),
-        value: Some(ValueInt(1920)),
+        value_txtproto: String::from("1920"),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("vertical_resolution"),
-        value: Some(ValueInt(1080)),
+        value_txtproto: String::from("1080"),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("x_axis_field_of_view"),
-        value: Some(ValueFloat(90.0)),
+        value_txtproto: String::from("90.0"),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("y_axis_field_of_view"),
-        value: Some(ValueFloat(90.0)),
+        value_txtproto: String::from("90.0"),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("is_rgb"),
-        value: Some(ValueBool(true)),
+        value_txtproto: String::from("true"),
         ..Default::default()
     });
 

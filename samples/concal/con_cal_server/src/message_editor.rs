@@ -1,6 +1,9 @@
 use protobuf::descriptor::FileDescriptorSet;
+use protobuf::reflect::FieldDescriptor;
 use protobuf::reflect::MessageDescriptor;
-use protobuf::reflect::{FileDescriptor, ReflectValueBox, RuntimeFieldType};
+use protobuf::reflect::RuntimeType;
+use protobuf::reflect::{FileDescriptor, RuntimeFieldType};
+use protobuf::text_format::merge_from_str;
 use protobuf::well_known_types::any::Any;
 use protobuf::MessageDyn;
 
@@ -30,18 +33,26 @@ impl MessageEditor {
         }
     }
 
-    pub fn update_value(&mut self, key: &str, value: ReflectValueBox) -> Result<(), String> {
+    pub fn update_value(&mut self, key: &str, value: &str) -> Result<(), String> {
         let field = match self.msg_descriptor.field_by_name(key) {
             Some(x) => x,
             None => return Err(format!("Could not find field {}", key).to_string()),
         };
 
         match field.runtime_field_type() {
-            RuntimeFieldType::Singular(_) => field.set_singular_field(self.dyn_msg.as_mut(), value),
-            _ => return Err(format!("Unsupported runtime field type {:?}", key)),
+            RuntimeFieldType::Singular(_) => {
+                let override_str = Self::construct_singular_textproto(key, value, &field);
+                let result = merge_from_str(&mut *self.dyn_msg, &override_str);
+                match result {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(format!(
+                        "Could not override: override: {:?}, error: {:?}",
+                        override_str, e
+                    )),
+                }
+            }
+            _ => Err(format!("Unsupported runtime field type {:?}", key)),
         }
-
-        Ok(())
     }
 
     pub fn unpack_message(
@@ -77,5 +88,17 @@ impl MessageEditor {
             }
         }
         Err("Could not find message descriptor".to_string())
+    }
+
+    fn construct_singular_textproto(key: &str, value: &str, field: &FieldDescriptor) -> String {
+        let mut override_str: String = key.to_string();
+        print!("{}", override_str);
+        match field.singular_runtime_type() {
+            RuntimeType::Message(_) => {}
+            _ => override_str.push(':'),
+        }
+        override_str.push_str(value);
+        print!("{}", override_str);
+        override_str
     }
 }
