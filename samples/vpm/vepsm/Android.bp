@@ -1,0 +1,25 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_binary {
+    name: "vepsm",
+    crate_name: "vepsm",
+    srcs: ["src/main.rs"],
+    defaults: [
+        "sdv@rust_defaults",
+        "sdv_tracing@rust_defaults",
+    ],
+    prefer_rlib: true,
+    rustlibs: [
+        "libanyhow",
+        "libclap",
+        "libsdv_log_rust",
+        "libprotobuf",
+        "liblog_rust",
+        "libsdv_vpm_api",
+        "libsdvmiddleware_rpc",
+        "libsdvgenerated_vpm_system_client",
+    ],
+    vendor: true,
+}
