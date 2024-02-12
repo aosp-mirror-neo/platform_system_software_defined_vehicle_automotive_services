@@ -1,6 +1,6 @@
 // Copyright 2023 Google LLC. All Rights Reserved.
 
-// This is a PoC version for the API for the discussions (API v0).
+// This is an experimental version for the ConCal API.
 // It is unstable until API council approval.
 
 syntax = "proto3";
@@ -10,6 +10,8 @@ package sdv.concal;
 import "google/protobuf/any.proto";
 import "google/protobuf/descriptor.proto";
 
+// Based on the technique for self-describing messages.
+// Provides default configuration with its schema.
 message ConfigMetadata {
   // Proto types and their dependencies.
   google.protobuf.FileDescriptorSet descriptor_set = 1;
@@ -20,39 +22,38 @@ message ConfigMetadata {
 
 // Key-value pair to update configuration.
 message ConfigOverrideKeyValue {
-  // Required.
-  // The name of the key (configuration parameter).
+  // A path to the config field, which will be overridden. Elements in the path are separated by
+  // dots. The last element shows which exact element should be rewritten. It might be a singular or
+  // complex field or a specific key in a map. Specifying a key as a path allows traversing to the
+  // deepest levels of the config and rewriting simple as well as complex structures.
+  // If the key is empty, the complete config will be modified.
   string key = 1;
 
-  // Required.
-  // New value of the key.
-  // Please, do not use this API for now (API v1).
-  oneof value {
-    bool value_bool = 2;
-    float value_float = 3;
-    uint64 value_int = 4;
-    string value_str = 5;
-    bytes value_blob = 6;
-  }
-
-  // New value in the TextProto format (API v0).
-  // To change the value completely, all fields should be redefined.
-  // Defined values will be merged into existing default value for the key.
-  string value_txtproto = 7;
+  // A new value in the TextProto format.
+  // The provided value is merged into into the existing key's value.
+  // If no value is provided, the corresponding field, config, or a key in a map should be cleared.
+  // To change the value completely, all its fields should be redefined.
+  string value_txtproto = 2;
 }
 
 // Unique identifier for the config.
 message ConfigId {
   // The FQIN of the service bundle that owns the configuration.
   string service_fqin = 1;
+
+  // The name of the config.
   string config_name = 2;
 }
 
+// A collection of changes for a specific config which should be atomically applied.
 message ConfigOverride {
   // Override identifier defined by the caller.
   // Unique per caller.
   string override_id = 1;
 
+  // Unique config identifier.
+  ConfigId config_id = 2;
+
   // Key-value pairs for keys to be updated in the config.
-  repeated ConfigOverrideKeyValue pairs = 2;
+  repeated ConfigOverrideKeyValue pairs = 3;
 }
