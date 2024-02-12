@@ -54,7 +54,7 @@ adb devices
 ### Run 'Diagnostics provider 1' service bundle (RPC server)
 
 ```bash
-adb -s <VM address> shell diag_data_item1_service_sample
+adb -s <VM address> shell diag_provider1_sample
 ```
 
 If service started successfully, you should see "Diagnostics provider service bundle started." message printed to the console.
@@ -62,7 +62,7 @@ If service started successfully, you should see "Diagnostics provider service bu
 ### Run 'Diagnostics provider 2' service bundle (RPC server)
 
 ```bash
-adb -s <VM address> shell diag_data_item2_service_sample
+adb -s <VM address> shell diag_provider2_sample
 
 If service started successfully, you should see "Diagnostics provider service bundle started." message printed to the console.
 

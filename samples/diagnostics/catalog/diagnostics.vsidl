@@ -2,7 +2,7 @@
 # proto-file: //system/software_defined_vehicle/core_services/vsidl/syntax/vsidl.proto
 # proto-message: VsidlEntry
 
-package: "sdv.diagnostics"
+package: "sdv.sample.diagnostics"
 
 sdv_service_bundle {
     name: "DiagnosticsManagerService"
@@ -17,7 +17,7 @@ sdv_service_bundle {
     diagnostics_declaration {
         data_item {
             id: "data_item_id1"
-            message_name: "sdv.sample.diag.DataItemOne"
+            message_name: "sdv.sample.diagnostics.DataItemOne"
         }
     }
 }
@@ -29,7 +29,7 @@ sdv_service_bundle {
     diagnostics_declaration {
         data_item {
             id: "data_item_id2"
-            message_name: "sdv.sample.diag.DataItemTwo"
+            message_name: "sdv.sample.diagnostics.DataItemTwo"
         }
     }
 }
