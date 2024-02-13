@@ -29,18 +29,18 @@ pub struct UserProfileServerCallbacks {}
 struct Subscriptions {}
 
 pub struct UserProfileServer {
-    pub user_profile_registry_service_server: UserProfileRegistryServiceServer,
     pub user_profile_management_service_server: UserProfileManagementServiceServer,
+    pub user_profile_registry_service_server: UserProfileRegistryServiceServer,
 }
 
 impl UserProfileServer {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         UserProfileServer {
-            user_profile_registry_service_server: UserProfileRegistryServiceServer::new(
+            user_profile_management_service_server: UserProfileManagementServiceServer::new(
                 GrpcServerTransport::new("UserProfileServer"),
             ),
-            user_profile_management_service_server: UserProfileManagementServiceServer::new(
+            user_profile_registry_service_server: UserProfileRegistryServiceServer::new(
                 GrpcServerTransport::new("UserProfileServer"),
             ),
         }

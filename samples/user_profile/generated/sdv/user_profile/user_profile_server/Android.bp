@@ -17,8 +17,8 @@ rust_library {
         "liblog_rust",
         "libsdv_log_rust",
         "libsdvmiddleware_rpc_grpc_transport",
-        "libsdvgenerated_rpc_user_profile_registry_service",
         "libsdvgenerated_rpc_user_profile_management_service",
+        "libsdvgenerated_rpc_user_profile_registry_service",
         "libsdv_middleware_pubsub",
     ],
     apex_available: [

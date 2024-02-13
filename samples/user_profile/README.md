@@ -28,7 +28,7 @@ vsidl_code_generator \
 
     adb root
 
-    adb shell /vendor/bin/sdv_user_profile_service
+    adb shell sdv_user_profile_service
 
     ```
 
@@ -36,9 +36,7 @@ vsidl_code_generator \
 
     ```bash
 
-    adb root
-
-    adb shell /vendor/bin/sdv_hvac_service
+    adb shell sdv_hvac_service
 
     ```
 
@@ -178,6 +176,7 @@ Settings: [
     },
 ]
 Registering the same configuration again
+Updating setting 'HVAC' to 'true'
 ```
 
 #### User Profile Service output
@@ -315,4 +314,6 @@ Registered config hvac: ConfigMetadata {
 }
 Received request to register configuration 'hvac'
 Config hvac with version 1.0 is already registered
+Updating config HVAC
+Set 'ENABLED' to 'Bool(true)'
 ```
