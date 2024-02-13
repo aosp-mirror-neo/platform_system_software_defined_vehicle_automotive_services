@@ -3,6 +3,7 @@
 
 mod config_id;
 mod config_metadata;
+mod macros;
 mod user_profile_service_impl;
 
 use sdvgenerated::user_profile_server::UserProfileServer;
