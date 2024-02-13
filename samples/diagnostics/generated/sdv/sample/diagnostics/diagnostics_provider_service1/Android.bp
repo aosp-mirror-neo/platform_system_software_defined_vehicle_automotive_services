@@ -6,7 +6,7 @@ package {
 }
 
 rust_library {
-    name: "libsdvgenerated_diagnostics_manager_service",
+    name: "libsdvgenerated_diagnostics_provider_service1",
     crate_name: "sdvgenerated",
     srcs: [
         "mod.rs",
@@ -17,12 +17,11 @@ rust_library {
         "liblog_rust",
         "libsdv_log_rust",
         "libsdvmiddleware_rpc_grpc_transport",
-        "libsdvgenerated_rpc_diagnostics_manager",
         "libsdvgenerated_rpc_data_item",
         "libsdv_middleware_pubsub",
     ],
     apex_available: [
         "//apex_available:platform",
     ],
-    vendor_available: true,
+    vendor: true,
 }

@@ -17,14 +17,13 @@ rust_defaults {
         "libsdvmiddleware_rpc",
     ],
     apex_available: ["//apex_available:platform"],
-    vendor_available: true,
+    vendor: true,
 }
 
 rust_binary {
-    name: "diag_data_item1_service_sample",
+    name: "diag_provider1_sample",
     defaults: ["diag_samples@rust_defaults"],
     srcs: ["src/service1.rs"],
-    prefer_rlib: true,
     rustlibs: [
         "libsdvgenerated_diagnostics_provider_service1",
         "libdiagnostics_sample_catalog",
@@ -32,10 +31,9 @@ rust_binary {
 }
 
 rust_binary {
-    name: "diag_data_item2_service_sample",
+    name: "diag_provider2_sample",
     defaults: ["diag_samples@rust_defaults"],
     srcs: ["src/service2.rs"],
-    prefer_rlib: true,
     rustlibs: [
         "libsdvgenerated_diagnostics_provider_service2",
         "libdiagnostics_sample_catalog",
@@ -46,7 +44,6 @@ rust_binary {
     name: "diag_manager_sample",
     defaults: ["diag_samples@rust_defaults"],
     srcs: ["src/manager.rs"],
-    prefer_rlib: true,
     rustlibs: [
         "libsdv_uds_serde",
         "libsdvgenerated_diagnostics_manager_service",

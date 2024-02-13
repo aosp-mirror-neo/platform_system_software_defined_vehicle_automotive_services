@@ -8,7 +8,7 @@
 
 syntax = "proto3";
 
-package sdv.sample.diag;
+package sdv.sample.diagnostics;
 
 import "syntax/vsidl.proto";
 import "syntax/diagnostics.proto";
