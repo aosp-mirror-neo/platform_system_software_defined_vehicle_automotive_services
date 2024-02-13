@@ -6,4 +6,33 @@
 
 pub mod publisher {}
 
-pub mod subscriber {}
+pub mod subscriber {
+
+    #[derive(Clone, Eq, Hash, PartialEq, Debug)]
+    pub enum EventTopics {
+        DIAGNOSTICS_PROVIDER1_SAMPLE = 0,
+        DIAGNOSTICS_PROVIDER2_SAMPLE = 1,
+    }
+
+    impl sdv_middleware_pubsub::EnumTopic for EventTopics {
+        /// Returns iterator over all available topics
+        fn iterator() -> std::slice::Iter<'static, Self> {
+            use self::EventTopics::*;
+            static TOPICS: [EventTopics; 2] =
+                [DIAGNOSTICS_PROVIDER1_SAMPLE, DIAGNOSTICS_PROVIDER2_SAMPLE];
+            TOPICS.iter()
+        }
+
+        /// Returns string name of the topic
+        fn get_name(&self) -> &str {
+            match *self {
+                EventTopics::DIAGNOSTICS_PROVIDER1_SAMPLE => {
+                    "sdv.diagnostics.event.Event.DIAGNOSTICS_PROVIDER1_SAMPLE"
+                }
+                EventTopics::DIAGNOSTICS_PROVIDER2_SAMPLE => {
+                    "sdv.diagnostics.event.Event.DIAGNOSTICS_PROVIDER2_SAMPLE"
+                }
+            }
+        }
+    }
+}
