@@ -8,11 +8,13 @@ sdv_service_bundle {
     name: "DiagnosticsManagerService"
     client: "sdv.diagnostics.data_item.DataItem"
     server: "sdv.diagnostics.manager.DiagnosticsManager"
+    subscriber: "sdv.diagnostics.event.Event"
 }
 
 sdv_service_bundle {
     name: "DiagnosticsProviderService1"
     server: "sdv.diagnostics.data_item.DataItem"
+    publisher: "sdv.diagnostics.event.Event::DIAGNOSTICS_PROVIDER1_SAMPLE"
 
     diagnostics_declaration {
         data_item {
@@ -25,6 +27,7 @@ sdv_service_bundle {
 sdv_service_bundle {
     name: "DiagnosticsProviderService2"
     server: "sdv.diagnostics.data_item.DataItem"
+    publisher: "sdv.diagnostics.event.Event::DIAGNOSTICS_PROVIDER2_SAMPLE"
 
     diagnostics_declaration {
         data_item {

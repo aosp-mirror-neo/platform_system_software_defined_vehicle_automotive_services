@@ -14,6 +14,7 @@
 
 use crate::topics::publisher;
 use crate::topics::subscriber;
+use diagnostics_sample_catalog::event::Event;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
@@ -28,6 +29,8 @@ pub struct DiagnosticsProviderService1Callbacks {}
 struct Subscriptions {}
 
 pub struct DiagnosticsProviderService1 {
+    event_publisher: DataTunnelPublisher<publisher::EventTopics>,
+
     pub data_item_server: DataItemServer,
 }
 
@@ -35,6 +38,8 @@ impl DiagnosticsProviderService1 {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         DiagnosticsProviderService1 {
+            event_publisher: DataTunnelPublisher::new(137),
+
             data_item_server: DataItemServer::new(GrpcServerTransport::new(
                 "DiagnosticsProviderService1",
             )),
@@ -51,6 +56,34 @@ impl DiagnosticsProviderService1 {
     }
 
     fn register_all_topics(&mut self) -> sdv_middleware_pubsub::Result<()> {
+        self.event_publisher.register_topics()?;
+
         Ok(())
+    }
+
+    pub fn event_publish(
+        &mut self,
+        topic: &publisher::EventTopics,
+        message: &Event,
+    ) -> sdv_middleware_pubsub::Result<()> {
+        use protobuf::Message;
+        let computed_message_size = message.compute_size();
+        if computed_message_size > 137 {
+            let mut error_message = String::new();
+            error_message += format!("Message size is bigger than defined maximum for this message. Current size: {computed_message_size}\n").as_str();
+            error_message += "Found the following violations\n";
+            if message.id.len() > 64 {
+                error_message += "id field exceeded maximum defined size 64 in bytes\n";
+            }
+            if message.extended_data.len() > 64 {
+                error_message += "extended_data field exceeded maximum defined size 64 in bytes\n";
+            }
+
+            return Err(sdv_middleware_pubsub::error::Error::MessageMaxSizeViolation(
+                error_message,
+            ));
+        }
+
+        self.event_publisher.publish(topic, message)
     }
 }

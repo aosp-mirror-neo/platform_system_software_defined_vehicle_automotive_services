@@ -4,10 +4,16 @@ syntax = "proto3";
 
 package sdv.diagnostics.event;
 
+import "syntax/vsidl.proto";
+
 // Message to report the status of an event via data tunnel.
 //
 // Id of the event being reported is defined by the data tunnel topic being used.
 message Event {
+  option (sdv.vsidl.topic) = {
+    typed_name: "ServiceBundles"
+  };
+
   // Status of the event.
   //
   // Corresponds to the monitor's test result associated with the event.
@@ -35,14 +41,17 @@ message Event {
     PRE_FAIL = 3;
   }
 
+  // Name of the event.
+  string id = 1 [(sdv.vsidl.variable_type_max_size) = 64];
+
   // Status of the event.
-  Status status = 1;
+  Status status = 2;
 
   // Event-specific data related to this status update.
   //
   // E.g. in case of fail status it may contain additional information on the type of
   // failure.
-  bytes extended_data = 2;
+  bytes extended_data = 3 [(sdv.vsidl.variable_type_max_size) = 64];
 }
 
 // Message to set the state of enable condition via data tunnel.
@@ -55,8 +64,12 @@ message Event {
 //
 // See AUTOSAR Diagnostics Event Manager spec, section 7.7.6.
 message EnableCondition {
+  option (sdv.vsidl.topic) = {
+    typed_name: "ServiceBundles"
+  };
+
   // Id of the enable condition.
-  string id = 1;
+  string id = 1 [(sdv.vsidl.variable_type_max_size) = 64];
 
   // True if the enable condition is fulfilled, false otherwise.
   bool enabled = 2;
@@ -76,6 +89,10 @@ message EnableCondition {
 // See AUTOSAR Diagnostics Event Manager spec, section 7.6.
 // See ISO 14229-1:2020, table D.2.
 message OperationCycle {
+  option (sdv.vsidl.topic) = {
+    typed_name: "ServiceBundles"
+  };
+
   // Commands for the operation cycle.
   enum Command {
     // Command to trigger operation cycle start.
@@ -92,8 +109,15 @@ message OperationCycle {
   }
 
   // Id of the operation cycle.
-  string id = 1;
+  string id = 1 [(sdv.vsidl.variable_type_max_size) = 64];
 
   // Command to be issued.
   Command command = 2;
+}
+
+enum ServiceBundles {
+  option (sdv.vsidl.is_topic) = true;
+
+  DIAGNOSTICS_PROVIDER1_SAMPLE = 0;
+  DIAGNOSTICS_PROVIDER2_SAMPLE = 1;
 }
