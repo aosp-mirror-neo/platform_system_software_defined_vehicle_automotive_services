@@ -11,10 +11,13 @@ use std::sync::Arc;
 use user_profile_service_impl::UserProfileServiceImpl;
 
 fn main() {
+    let user_profile_impl = Arc::new(UserProfileServiceImpl::new());
     let service = UserProfileServer::new();
+
     service
         .user_profile_registry_service_server
-        .register_service_interface(Arc::new(UserProfileServiceImpl::new()));
+        .register_service_interface(user_profile_impl.clone());
+    service.user_profile_management_service_server.register_service_interface(user_profile_impl);
 
     println!("UserProfileServer service bundle started.");
     loop {

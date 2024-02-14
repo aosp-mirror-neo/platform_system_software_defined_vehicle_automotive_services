@@ -15,3 +15,9 @@ sdv_service_bundle {
     server: "sdv.user_profile.UserProfileManagementService"
     server: "sdv.user_profile.UserProfileRegistryService"
 }
+
+sdv_service_bundle {
+    name: "HMIService"
+    server: "sdv.user_profile.UserProfileView"
+    client: "sdv.user_profile.UserProfileManagementService"
+}

@@ -40,6 +40,14 @@ vsidl_code_generator \
 
     ```
 
+4. Launch the HMI Service
+
+    ```bash
+
+    adb shell sdv_hmi_service
+
+    ```
+
 ### Expected output
 
 #### HVAC Service Output
@@ -47,71 +55,9 @@ vsidl_code_generator \
 The HVAC service attempts to register the same configuration twice, and we expect the user profile service to ignore the second request.
 
 ```bash
-Registering config with ID: hvac,
+Registering config with ID: HVAC,
 Version: 1.0
 Settings: [
-    SettingDefinition {
-        type_: PER_USER,
-        setting: MessageField(
-            Some(
-                Setting {
-                    key: "FAN_SPEED",
-                    value: Some(
-                        Int(
-                            1,
-                        ),
-                    ),
-                    special_fields: SpecialFields {
-                        unknown_fields: UnknownFields {
-                            fields: None,
-                        },
-                        cached_size: CachedSize {
-                            size: 0,
-                        },
-                    },
-                },
-            ),
-        ),
-        special_fields: SpecialFields {
-            unknown_fields: UnknownFields {
-                fields: None,
-            },
-            cached_size: CachedSize {
-                size: 0,
-            },
-        },
-    },
-    SettingDefinition {
-        type_: PER_USER,
-        setting: MessageField(
-            Some(
-                Setting {
-                    key: "MODE",
-                    value: Some(
-                        Str(
-                            "COOL",
-                        ),
-                    ),
-                    special_fields: SpecialFields {
-                        unknown_fields: UnknownFields {
-                            fields: None,
-                        },
-                        cached_size: CachedSize {
-                            size: 0,
-                        },
-                    },
-                },
-            ),
-        ),
-        special_fields: SpecialFields {
-            unknown_fields: UnknownFields {
-                fields: None,
-            },
-            cached_size: CachedSize {
-                size: 0,
-            },
-        },
-    },
     SettingDefinition {
         type_: PER_USER,
         setting: MessageField(
@@ -121,6 +67,37 @@ Settings: [
                     value: Some(
                         Int(
                             16,
+                        ),
+                    ),
+                    special_fields: SpecialFields {
+                        unknown_fields: UnknownFields {
+                            fields: None,
+                        },
+                        cached_size: CachedSize {
+                            size: 0,
+                        },
+                    },
+                },
+            ),
+        ),
+        special_fields: SpecialFields {
+            unknown_fields: UnknownFields {
+                fields: None,
+            },
+            cached_size: CachedSize {
+                size: 0,
+            },
+        },
+    },
+    SettingDefinition {
+        type_: PER_USER,
+        setting: MessageField(
+            Some(
+                Setting {
+                    key: "FAN_SPEED",
+                    value: Some(
+                        Int(
+                            1,
                         ),
                     ),
                     special_fields: SpecialFields {
@@ -174,80 +151,49 @@ Settings: [
             },
         },
     },
+    SettingDefinition {
+        type_: PER_USER,
+        setting: MessageField(
+            Some(
+                Setting {
+                    key: "MODE",
+                    value: Some(
+                        Str(
+                            "COOL",
+                        ),
+                    ),
+                    special_fields: SpecialFields {
+                        unknown_fields: UnknownFields {
+                            fields: None,
+                        },
+                        cached_size: CachedSize {
+                            size: 0,
+                        },
+                    },
+                },
+            ),
+        ),
+        special_fields: SpecialFields {
+            unknown_fields: UnknownFields {
+                fields: None,
+            },
+            cached_size: CachedSize {
+                size: 0,
+            },
+        },
+    },
 ]
 Registering the same configuration again
-Updating setting 'HVAC' to 'true'
+Updating setting 'ENABLED' to 'true'
 ```
 
 #### User Profile Service output
 
 ```bash
-Received request to register configuration 'hvac'
-Registered config hvac: ConfigMetadata {
+UserProfileServer service bundle started.
+Registered config HVAC: ConfigMetadata {
     version: "1.0",
     settings_definition: [
-        SettingDefinition {
-            type_: PER_USER,
-            setting: MessageField(
-                Some(
-                    Setting {
-                        key: "FAN_SPEED",
-                        value: Some(
-                            Int(
-                                1,
-                            ),
-                        ),
-                        special_fields: SpecialFields {
-                            unknown_fields: UnknownFields {
-                                fields: None,
-                            },
-                            cached_size: CachedSize {
-                                size: 0,
-                            },
-                        },
-                    },
-                ),
-            ),
-            special_fields: SpecialFields {
-                unknown_fields: UnknownFields {
-                    fields: None,
-                },
-                cached_size: CachedSize {
-                    size: 0,
-                },
-            },
-        },
-        SettingDefinition {
-            type_: PER_USER,
-            setting: MessageField(
-                Some(
-                    Setting {
-                        key: "MODE",
-                        value: Some(
-                            Str(
-                                "COOL",
-                            ),
-                        ),
-                        special_fields: SpecialFields {
-                            unknown_fields: UnknownFields {
-                                fields: None,
-                            },
-                            cached_size: CachedSize {
-                                size: 0,
-                            },
-                        },
-                    },
-                ),
-            ),
-            special_fields: SpecialFields {
-                unknown_fields: UnknownFields {
-                    fields: None,
-                },
-                cached_size: CachedSize {
-                    size: 0,
-                },
-            },
-        },
         SettingDefinition {
             type_: PER_USER,
             setting: MessageField(
@@ -257,6 +203,37 @@ Registered config hvac: ConfigMetadata {
                         value: Some(
                             Int(
                                 16,
+                            ),
+                        ),
+                        special_fields: SpecialFields {
+                            unknown_fields: UnknownFields {
+                                fields: None,
+                            },
+                            cached_size: CachedSize {
+                                size: 0,
+                            },
+                        },
+                    },
+                ),
+            ),
+            special_fields: SpecialFields {
+                unknown_fields: UnknownFields {
+                    fields: None,
+                },
+                cached_size: CachedSize {
+                    size: 0,
+                },
+            },
+        },
+        SettingDefinition {
+            type_: PER_USER,
+            setting: MessageField(
+                Some(
+                    Setting {
+                        key: "FAN_SPEED",
+                        value: Some(
+                            Int(
+                                1,
                             ),
                         ),
                         special_fields: SpecialFields {
@@ -310,10 +287,149 @@ Registered config hvac: ConfigMetadata {
                 },
             },
         },
+        SettingDefinition {
+            type_: PER_USER,
+            setting: MessageField(
+                Some(
+                    Setting {
+                        key: "MODE",
+                        value: Some(
+                            Str(
+                                "COOL",
+                            ),
+                        ),
+                        special_fields: SpecialFields {
+                            unknown_fields: UnknownFields {
+                                fields: None,
+                            },
+                            cached_size: CachedSize {
+                                size: 0,
+                            },
+                        },
+                    },
+                ),
+            ),
+            special_fields: SpecialFields {
+                unknown_fields: UnknownFields {
+                    fields: None,
+                },
+                cached_size: CachedSize {
+                    size: 0,
+                },
+            },
+        },
     ],
 }
-Received request to register configuration 'hvac'
-Config hvac with version 1.0 is already registered
+Config HVAC with version 1.0 is already registered
 Updating config HVAC
 Set 'ENABLED' to 'Bool(true)'
+Invalid create user request, ID 0 is reserved for guest profile
+Created profile with ID: 1
+Successfully registered subscriber to config: ConfigId { service_fqin: "", config_name: "HVAC" }
+```
+
+#### HMI Service output
+
+The HMI service perform the following steps:
+    1. Create a user profile with ID 0, which is expected to fail since 0 is reserved for guest account
+    2. Create a profile with a valid ID
+    3. Subscribe to changes in the HVAC config
+
+``bash
+Attempting to create a user profile with a reserved ID
+Encountered error as expected: Error { error_code: INVALID_REQUEST, message: "User ID '0' is reserved for guest profile", special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }
+Creating a user profile
+Successfully created profile with ID 1
+Current HVAC configuration: Configuration {
+    config_id: MessageField(
+        Some(
+            ConfigId {
+                service_fqdn: "",
+                config_name: "HVAC",
+                special_fields: SpecialFields {
+                    unknown_fields: UnknownFields {
+                        fields: None,
+                    },
+                    cached_size: CachedSize {
+                        size: 0,
+                    },
+                },
+            },
+        ),
+    ),
+    settings: [
+        Setting {
+            key: "ENABLED",
+            value: Some(
+                Bool(
+                    true,
+                ),
+            ),
+            special_fields: SpecialFields {
+                unknown_fields: UnknownFields {
+                    fields: None,
+                },
+                cached_size: CachedSize {
+                    size: 0,
+                },
+            },
+        },
+        Setting {
+            key: "TEMPERATURE",
+            value: Some(
+                Int(
+                    16,
+                ),
+            ),
+            special_fields: SpecialFields {
+                unknown_fields: UnknownFields {
+                    fields: None,
+                },
+                cached_size: CachedSize {
+                    size: 0,
+                },
+            },
+        },
+        Setting {
+            key: "FAN_SPEED",
+            value: Some(
+                Int(
+                    1,
+                ),
+            ),
+            special_fields: SpecialFields {
+                unknown_fields: UnknownFields {
+                    fields: None,
+                },
+                cached_size: CachedSize {
+                    size: 0,
+                },
+            },
+        },
+        Setting {
+            key: "MODE",
+            value: Some(
+                Str(
+                    "COOL",
+                ),
+            ),
+            special_fields: SpecialFields {
+                unknown_fields: UnknownFields {
+                    fields: None,
+                },
+                cached_size: CachedSize {
+                    size: 0,
+                },
+            },
+        },
+    ],
+    special_fields: SpecialFields {
+        unknown_fields: UnknownFields {
+            fields: None,
+        },
+        cached_size: CachedSize {
+            size: 0,
+        },
+    },
+}
 ```

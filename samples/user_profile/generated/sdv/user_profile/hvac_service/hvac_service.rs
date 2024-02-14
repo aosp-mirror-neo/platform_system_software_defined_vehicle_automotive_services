@@ -40,11 +40,11 @@ impl HvacService {
     pub fn new() -> Self {
         HvacService {
             user_controllable_service_server: UserControllableServiceServer::new(
-                GrpcServerTransport::new("HvacService"),
+                GrpcServerTransport::new("HvacService::user_controllable_service"),
             ),
 
             user_profile_registry_service_client: UserProfileRegistryServiceClient::new(Box::new(
-                GrpcClientTransport::new("UserProfileServer"),
+                GrpcClientTransport::new("UserProfileServer::user_profile_registry_service"),
             )),
         }
     }

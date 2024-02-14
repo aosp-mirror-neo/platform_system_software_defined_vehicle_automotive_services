@@ -1,0 +1,19 @@
+rust_binary {
+    name: "sdv_hmi_service",
+    crate_name: "sdv_hmi_service",
+    srcs: [
+        "src/main.rs",
+    ],
+    rustlibs: [
+        "libprotobuf",
+        "libsdvgenerated_rpc_user_profile_management_service",
+        "libsdvgenerated_hmi_service",
+        "libuser_profile_api",
+        "libbinder_rs",
+        "libsdvmiddleware_rpc",
+        "libitertools",
+        "librand",
+        "libprotobuf_parse",
+    ],
+    vendor: true,
+}
