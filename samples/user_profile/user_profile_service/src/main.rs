@@ -1,5 +1,5 @@
 // Copyright 2024 Google LLC
-#![allow(missing_docs, dead_code, unused_mut, unused_variables, unused_imports)]
+#![allow(missing_docs)]
 
 mod config_metadata;
 mod macros;

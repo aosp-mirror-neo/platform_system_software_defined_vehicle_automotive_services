@@ -55,383 +55,110 @@ vsidl_code_generator \
 #### HVAC Service Output
 
 The HVAC service attempts to register the same configuration twice, and we expect the user profile service to ignore the second request.
+Additionally HVAC service will get requests to change settings and will respond successfully with the current state.
 
 ```bash
-Registering config with ID: HVAC,
+adb shell sdv_hvac_service
+Registering config with name: HVAC,
 Version: 1.0
-Settings: [
-    SettingDefinition {
-        type_: PER_USER,
-        setting: MessageField(
-            Some(
-                Setting {
-                    key: "TEMPERATURE",
-                    value: Some(
-                        Int(
-                            16,
-                        ),
-                    ),
-                    special_fields: SpecialFields {
-                        unknown_fields: UnknownFields {
-                            fields: None,
-                        },
-                        cached_size: CachedSize {
-                            size: 0,
-                        },
-                    },
-                },
-            ),
-        ),
-        special_fields: SpecialFields {
-            unknown_fields: UnknownFields {
-                fields: None,
-            },
-            cached_size: CachedSize {
-                size: 0,
-            },
-        },
-    },
-    SettingDefinition {
-        type_: PER_USER,
-        setting: MessageField(
-            Some(
-                Setting {
-                    key: "FAN_SPEED",
-                    value: Some(
-                        Int(
-                            1,
-                        ),
-                    ),
-                    special_fields: SpecialFields {
-                        unknown_fields: UnknownFields {
-                            fields: None,
-                        },
-                        cached_size: CachedSize {
-                            size: 0,
-                        },
-                    },
-                },
-            ),
-        ),
-        special_fields: SpecialFields {
-            unknown_fields: UnknownFields {
-                fields: None,
-            },
-            cached_size: CachedSize {
-                size: 0,
-            },
-        },
-    },
-    SettingDefinition {
-        type_: PER_USER,
-        setting: MessageField(
-            Some(
-                Setting {
-                    key: "ENABLED",
-                    value: Some(
-                        Bool(
-                            false,
-                        ),
-                    ),
-                    special_fields: SpecialFields {
-                        unknown_fields: UnknownFields {
-                            fields: None,
-                        },
-                        cached_size: CachedSize {
-                            size: 0,
-                        },
-                    },
-                },
-            ),
-        ),
-        special_fields: SpecialFields {
-            unknown_fields: UnknownFields {
-                fields: None,
-            },
-            cached_size: CachedSize {
-                size: 0,
-            },
-        },
-    },
-    SettingDefinition {
-        type_: PER_USER,
-        setting: MessageField(
-            Some(
-                Setting {
-                    key: "MODE",
-                    value: Some(
-                        Str(
-                            "COOL",
-                        ),
-                    ),
-                    special_fields: SpecialFields {
-                        unknown_fields: UnknownFields {
-                            fields: None,
-                        },
-                        cached_size: CachedSize {
-                            size: 0,
-                        },
-                    },
-                },
-            ),
-        ),
-        special_fields: SpecialFields {
-            unknown_fields: UnknownFields {
-                fields: None,
-            },
-            cached_size: CachedSize {
-                size: 0,
-            },
-        },
-    },
-]
+Key FAN_SPEED      , Type: PER_USER, Value Int64(1)
+Key TEMPERATURE    , Type: PER_USER, Value Int64(16)
+Key ENABLED        , Type: PER_USER, Value Bool(false)
+
+
+
 Registering the same configuration again
-Updating setting 'ENABLED' to 'true'
+
+
+Config change request, simulating setting change delay
+
+
+Applied changes from request with transaction ID: 358
+Current settings
+Key TEMPERATURE     Value Int64(16        )
+Key FAN_SPEED       Value Int64(1         )
+Key ENABLED         Value Bool(false     )
+Config change request, simulating setting change delay
+
+
+Applied changes from request with transaction ID: 360
+Current settings
+Key TEMPERATURE     Value Int64(32        )
+Key FAN_SPEED       Value Int64(1         )
+Key ENABLED         Value Bool(false     )
+Config change request, simulating setting change delay
+
+
+Applied changes from request with transaction ID: 141
+Current settings
+Key TEMPERATURE     Value Int64(16        )
+Key FAN_SPEED       Value Int64(1         )
+Key ENABLED         Value Bool(false     )
 ```
 
 #### User Profile Service output
 
 ```bash
 UserProfileServer service bundle started.
-Registered config HVAC: ConfigMetadata {
-    version: "1.0",
-    settings_definition: [
-        SettingDefinition {
-            type_: PER_USER,
-            setting: MessageField(
-                Some(
-                    Setting {
-                        key: "TEMPERATURE",
-                        value: Some(
-                            Int(
-                                16,
-                            ),
-                        ),
-                        special_fields: SpecialFields {
-                            unknown_fields: UnknownFields {
-                                fields: None,
-                            },
-                            cached_size: CachedSize {
-                                size: 0,
-                            },
-                        },
-                    },
-                ),
-            ),
-            special_fields: SpecialFields {
-                unknown_fields: UnknownFields {
-                    fields: None,
-                },
-                cached_size: CachedSize {
-                    size: 0,
-                },
-            },
-        },
-        SettingDefinition {
-            type_: PER_USER,
-            setting: MessageField(
-                Some(
-                    Setting {
-                        key: "FAN_SPEED",
-                        value: Some(
-                            Int(
-                                1,
-                            ),
-                        ),
-                        special_fields: SpecialFields {
-                            unknown_fields: UnknownFields {
-                                fields: None,
-                            },
-                            cached_size: CachedSize {
-                                size: 0,
-                            },
-                        },
-                    },
-                ),
-            ),
-            special_fields: SpecialFields {
-                unknown_fields: UnknownFields {
-                    fields: None,
-                },
-                cached_size: CachedSize {
-                    size: 0,
-                },
-            },
-        },
-        SettingDefinition {
-            type_: PER_USER,
-            setting: MessageField(
-                Some(
-                    Setting {
-                        key: "ENABLED",
-                        value: Some(
-                            Bool(
-                                false,
-                            ),
-                        ),
-                        special_fields: SpecialFields {
-                            unknown_fields: UnknownFields {
-                                fields: None,
-                            },
-                            cached_size: CachedSize {
-                                size: 0,
-                            },
-                        },
-                    },
-                ),
-            ),
-            special_fields: SpecialFields {
-                unknown_fields: UnknownFields {
-                    fields: None,
-                },
-                cached_size: CachedSize {
-                    size: 0,
-                },
-            },
-        },
-        SettingDefinition {
-            type_: PER_USER,
-            setting: MessageField(
-                Some(
-                    Setting {
-                        key: "MODE",
-                        value: Some(
-                            Str(
-                                "COOL",
-                            ),
-                        ),
-                        special_fields: SpecialFields {
-                            unknown_fields: UnknownFields {
-                                fields: None,
-                            },
-                            cached_size: CachedSize {
-                                size: 0,
-                            },
-                        },
-                    },
-                ),
-            ),
-            special_fields: SpecialFields {
-                unknown_fields: UnknownFields {
-                    fields: None,
-                },
-                cached_size: CachedSize {
-                    size: 0,
-                },
-            },
-        },
-    ],
-}
+Registered config HVAC
+Key FAN_SPEED      , Type: PER_USER, Value Int64(1)
+Key TEMPERATURE    , Type: PER_USER, Value Int64(16)
+Key ENABLED        , Type: PER_USER, Value Bool(false)
+
+
+
 Config HVAC with version 1.0 is already registered
-Updating config HVAC
-Set 'ENABLED' to 'Bool(true)'
-Invalid create user request, ID 0 is reserved for guest profile
 Created profile with ID: 1
-Successfully registered subscriber to config: ConfigId { service_fqin: "", config_name: "HVAC" }
+Loading profile of user 1
+
+Updated the following settings
+Key ENABLED         Value Bool(false)
+Key TEMPERATURE     Value Int64(16)
+Key FAN_SPEED       Value Int64(1)
+
+
+
+Config Change request to HVAC with the following settings:
+Key TEMPERATURE     Value Int64(32)
+
+
+
+Updated the following settings
+Key TEMPERATURE     Value Int64(32)
+
+
+
+Successfully registered subscriber to config: HVAC
+
+Created profile with ID: 2
+Loading profile of user 2
+
+Updated the following settings
+Key ENABLED         Value Bool(false)
+Key FAN_SPEED       Value Int64(1)
+Key TEMPERATURE     Value Int64(16)
 ```
 
 #### HMI Service output
 
 The HMI service perform the following steps:
-    1. Create a user profile with ID 0, which is expected to fail since 0 is reserved for guest account
-    2. Create a profile with a valid ID
+    1. Create a user profile with ID 1 and switch to it
+    2. Change a TEMPERATURE from 16 to 32
     3. Subscribe to changes in the HVAC config
+    4. Create a user profile with ID 2 and switch to it
 
 ``bash
-Attempting to create a user profile with a reserved ID
-Encountered error as expected: Error { error_code: INVALID_REQUEST, message: "User ID '0' is reserved for guest profile", special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }
 Creating a user profile
 Successfully created profile with ID 1
-Current HVAC configuration: Configuration {
-    config_id: MessageField(
-        Some(
-            ConfigId {
-                service_fqdn: "",
-                config_name: "HVAC",
-                special_fields: SpecialFields {
-                    unknown_fields: UnknownFields {
-                        fields: None,
-                    },
-                    cached_size: CachedSize {
-                        size: 0,
-                    },
-                },
-            },
-        ),
-    ),
-    settings: [
-        Setting {
-            key: "ENABLED",
-            value: Some(
-                Bool(
-                    true,
-                ),
-            ),
-            special_fields: SpecialFields {
-                unknown_fields: UnknownFields {
-                    fields: None,
-                },
-                cached_size: CachedSize {
-                    size: 0,
-                },
-            },
-        },
-        Setting {
-            key: "TEMPERATURE",
-            value: Some(
-                Int(
-                    16,
-                ),
-            ),
-            special_fields: SpecialFields {
-                unknown_fields: UnknownFields {
-                    fields: None,
-                },
-                cached_size: CachedSize {
-                    size: 0,
-                },
-            },
-        },
-        Setting {
-            key: "FAN_SPEED",
-            value: Some(
-                Int(
-                    1,
-                ),
-            ),
-            special_fields: SpecialFields {
-                unknown_fields: UnknownFields {
-                    fields: None,
-                },
-                cached_size: CachedSize {
-                    size: 0,
-                },
-            },
-        },
-        Setting {
-            key: "MODE",
-            value: Some(
-                Str(
-                    "COOL",
-                ),
-            ),
-            special_fields: SpecialFields {
-                unknown_fields: UnknownFields {
-                    fields: None,
-                },
-                cached_size: CachedSize {
-                    size: 0,
-                },
-            },
-        },
-    ],
-    special_fields: SpecialFields {
-        unknown_fields: UnknownFields {
-            fields: None,
-        },
-        cached_size: CachedSize {
-            size: 0,
-        },
-    },
-}
+
+Current HVAC configuration
+Key FAN_SPEED       Value Int64(1)
+Key TEMPERATURE     Value Int64(32)
+Key ENABLED         Value Bool(false)
+
+
+
+Creating another user profile
+Successfully created profile with ID 2
+Switched to profile 2
 ```

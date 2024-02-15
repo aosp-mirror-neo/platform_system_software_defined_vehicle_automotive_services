@@ -6,6 +6,7 @@ rust_binary {
     ],
     rustlibs: [
         "libprotobuf",
+        "liblazy_static",
         "libsdvgenerated_hvac_service",
         "libuser_profile_api",
         "libbinder_rs",
@@ -13,6 +14,10 @@ rust_binary {
         "libitertools",
         "librand",
         "libprotobuf_parse",
+        "libuser_profile_utils",
+        "libsdvmiddleware_rpc_grpc_transport",
+        "libsdvgenerated_rpc_user_profile_registry_service",
+        "libsdvgenerated_rpc_user_controllable_service",
     ],
     vendor: true,
 }
