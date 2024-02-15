@@ -5,6 +5,8 @@ syntax = "proto3";
 package sdv.diagnostics.fault;
 
 import "google/protobuf/empty.proto";
+import "syntax/diagnostics.proto";
+import "syntax/vsidl.proto";
 
 // Diagnostics interface to listen for fault status changes.
 service FaultListener {
@@ -56,15 +58,17 @@ message OnFaultStatusChangeRequest {
   }
 
   // Id of the fault.
-  string id = 1;
+  string id = 1 [(sdv.vsidl.variable_type_max_size) = 64];
 
   // Current status of the fault.
   //
   // Bitwise combination of the constants defined in StatusMask enum.
-  int32 status = 2;
+  uint32 status = 2 [(sdv.vsidl.primitive_byte_size) = ONE];
 
   // Fault-specific data related to this status change.
   //
   // E.g. it may contain additional information on the type of failure.
-  bytes extended_data = 3;
+  //
+  // This corresponds to the extended data of the event that triggered the fault.
+  bytes extended_data = 3 [(sdv.vsidl.variable_type_max_size) = 64];
 }
