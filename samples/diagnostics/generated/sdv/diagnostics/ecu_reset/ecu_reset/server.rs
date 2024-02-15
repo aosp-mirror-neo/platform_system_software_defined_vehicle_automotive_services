@@ -5,6 +5,7 @@
 
 use crate::interface::ECUReset;
 use diagnostics_api::connection::ConnectionId;
+use diagnostics_api::ecu_reset::CustomResetRequest;
 use diagnostics_api::ecu_reset::RapidPowerShutdownResponse;
 use diagnostics_api::negative_response_code::EmptyResponse;
 use sdvmiddleware_common::serve_method;
@@ -57,7 +58,7 @@ impl ECUResetServer {
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<ConnectionId, EmptyResponse>(
+        serve_method::<CustomResetRequest, EmptyResponse>(
             Box::new(move |req| callback.custom_reset(req)),
             "ECUReset::custom_reset",
             self.transport.as_ref(),

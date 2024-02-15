@@ -72,11 +72,11 @@ impl DiagnosticsProviderService2 {
             let mut error_message = String::new();
             error_message += format!("Message size is bigger than defined maximum for this message. Current size: {computed_message_size}\n").as_str();
             error_message += "Found the following violations\n";
-            if message.id.len() > 64 {
-                error_message += "id field exceeded maximum defined size 64 in bytes\n";
-            }
             if message.extended_data.len() > 64 {
                 error_message += "extended_data field exceeded maximum defined size 64 in bytes\n";
+            }
+            if message.id.len() > 64 {
+                error_message += "id field exceeded maximum defined size 64 in bytes\n";
             }
 
             return Err(sdv_middleware_pubsub::error::Error::MessageMaxSizeViolation(
