@@ -6,6 +6,7 @@ package sdv.diagnostics.ecu_reset;
 
 import "connection.proto";
 import "negative_response_code.proto";
+import "syntax/diagnostics.proto";
 
 // Diagnostic interface for ECUReset (UDS 0x11) service.
 //
@@ -32,8 +33,20 @@ service ECUReset {
   // Request to disable the previously enabled "rapid power shutdown".
   rpc DisableRapidPowerShutdown(connection.ConnectionId) returns (nrc.EmptyResponse) {}
 
-  // Perform vehicle manufacturer / system supplier specific reset.
-  rpc CustomReset(connection.ConnectionId) returns (nrc.EmptyResponse) {}
+  // Perform vehicle manufacturer / system supplier specific ECU reset.
+  rpc CustomReset(CustomResetRequest) returns (nrc.EmptyResponse) {}
+}
+
+message CustomResetRequest {
+  // Diagnostic connection id.
+  connection.ConnectionId connection_id = 1;
+
+  // Type of the ECU reset to be performed.
+  //
+  // Valid values:
+  //  - 0x40 to 0x5F: vehicle manufacturer specific reset;
+  //  - 0x60 to 0x75: system supplier specific reset.
+  int32 reset_type = 2 [(sdv.vsidl.primitive_byte_size) = ONE];
 }
 
 message RapidPowerShutdownResponse {

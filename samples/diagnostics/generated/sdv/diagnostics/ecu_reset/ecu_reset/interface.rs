@@ -4,6 +4,7 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use diagnostics_api::connection::ConnectionId;
+use diagnostics_api::ecu_reset::CustomResetRequest;
 use diagnostics_api::ecu_reset::RapidPowerShutdownResponse;
 use diagnostics_api::negative_response_code::EmptyResponse;
 use sdvmiddleware_rpc::RpcResult;
@@ -24,5 +25,5 @@ pub trait ECUReset: Send + Sync {
     /// RPC method declared in the interface.
     fn disable_rapid_power_shutdown(&self, request: ConnectionId) -> RpcResult<EmptyResponse>;
     /// RPC method declared in the interface.
-    fn custom_reset(&self, request: ConnectionId) -> RpcResult<EmptyResponse>;
+    fn custom_reset(&self, request: CustomResetRequest) -> RpcResult<EmptyResponse>;
 }
