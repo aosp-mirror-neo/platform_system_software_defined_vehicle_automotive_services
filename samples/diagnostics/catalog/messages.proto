@@ -21,3 +21,11 @@ message DataItemOne {
 message DataItemTwo {
   repeated int32 array = 1 [(sdv.vsidl.repeated_field_max_count) = 3];
 }
+
+message IOControllableData {}
+
+message RoutineRequestParameter {}
+
+message RoutineResponseParameter {}
+
+message EventExtendedData {}
