@@ -214,4 +214,11 @@ fn main() {
 
     // Sleep to wait for events from diag provider samples.
     thread::sleep(Duration::from_secs(3));
+
+    // Print full diagnostics declaration of "DiagnosticsProviderService1" to verify that
+    // all diagnostic declaration data is preserved at runtime.
+    println!(
+        "Full diagnostics declaration of DiagnosticsProviderService1: {}",
+        vsidl_provider.get_diagnostics_declarations()["DiagnosticsProviderService1"]
+    )
 }

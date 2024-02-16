@@ -20,6 +20,34 @@ sdv_service_bundle {
         data_item {
             id: "data_item_id1"
             message_name: "sdv.sample.diagnostics.DataItemOne"
+            is_writable: true
+        }
+
+        io_control {
+            id: "io_control_data1"
+            message_name: "sdv.sample.diagnostics.IOControllableData"
+        }
+
+        event {
+            id: "event1"
+            extended_data_message_name: "sdv.sample.diagnostics.EventExtendedData"
+            fault_listener_mask: 0x1
+        }
+
+        routine {
+            id: "routine1"
+            start {
+                request: "sdv.sample.diagnostics.RoutineRequestParameter"
+                response: "sdv.sample.diagnostics.RoutineResponseParameter"
+            }
+            stop {
+                request: "sdv.sample.diagnostics.RoutineRequestParameter"
+                response: "sdv.sample.diagnostics.RoutineResponseParameter"
+            }
+            result {
+                request: "sdv.sample.diagnostics.RoutineRequestParameter"
+                response: "sdv.sample.diagnostics.RoutineResponseParameter"
+            }
         }
     }
 }

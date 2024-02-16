@@ -4,8 +4,8 @@
 mod data_item_impl;
 
 use crate::data_item_impl::DataItemImpl;
-use diagnostics_sample_catalog::data_items::DataItemOne;
 use diagnostics_sample_catalog::event::{event::Status, Event};
+use diagnostics_sample_catalog::messages::DataItemOne;
 use sdvgenerated::diagnostics_provider_service1::DiagnosticsProviderService1;
 use sdvgenerated::topics::publisher::EventTopics;
 use std::sync::Arc;
