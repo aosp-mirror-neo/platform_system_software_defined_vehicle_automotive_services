@@ -1,0 +1,23 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_binary {
+    name: "vpm_vehicle_state_client",
+    crate_name: "vpm_vehicle_state_client",
+    srcs: ["src/main.rs"],
+    defaults: [
+        "sdv@rust_defaults",
+        "sdv_tracing@rust_defaults",
+    ],
+    prefer_rlib: true,
+    rustlibs: [
+        "libsdv_log_rust",
+        "libprotobuf",
+        "liblog_rust",
+        "libsdv_vpm_api",
+        "libsdv_middleware_pubsub",
+        "libsdvgenerated_vehicle_state_subscriber",
+    ],
+    system_ext_specific: true,
+}
