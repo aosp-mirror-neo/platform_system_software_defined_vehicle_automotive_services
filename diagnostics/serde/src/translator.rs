@@ -10,12 +10,13 @@ use serde::de::DeserializeSeed;
 use serde::Serialize;
 
 /// UDS to SDV translator trait.
-/// Provides methods to translate protobuf bytes to UDS-compatible bytes to and back.
+/// Provides methods to translate protobuf bytes to UDS-compatible bytes to and back,
+/// taking protobuf as a description of message format.
 #[automock]
-pub trait Translator {
+pub(crate) trait Translator {
     /// Translates serialized protobuf message `proto_bytes` to UDS message.
     /// Method uses `message_descriptor` to perform reflection-based translation.
-    /// Returns serialized UDS message or `TranslationError`.
+    /// Returns serialized UDS message or `TranslatorError`.
     ///
     /// `proto_bytes` are expected to be in format produced by
     /// `MessageDyn::write_to_bytes()`.
@@ -23,32 +24,32 @@ pub trait Translator {
         &self,
         proto_bytes: &[u8],
         message_descriptor: &MessageDescriptor,
-    ) -> Result<Vec<u8>, TranslationError>;
+    ) -> Result<Vec<u8>, TranslatorError>;
 
     /// Translates serialized UDS message `proto_bytes` to protobuf message.
     /// Method uses `message_descriptor` to perform reflection-based translation.
-    /// Returns serialized protobuf message or `TranslationError`.
+    /// Returns serialized protobuf message or `TranslatorError`.
     ///
     /// Returned proto bytes are in format produced by `MessageDyn::write_to_bytes()`.
     fn translate_from_uds_to_protobuf(
         &self,
         uds_bytes: &[u8],
         message_descriptor: &MessageDescriptor,
-    ) -> Result<Vec<u8>, TranslationError>;
+    ) -> Result<Vec<u8>, TranslatorError>;
 }
 
 /// UDS to SDV translator implementation.
-pub struct TranslatorImpl;
+pub(crate) struct TranslatorImpl;
 
 impl Translator for TranslatorImpl {
     fn translate_from_protobuf_to_uds(
         &self,
         proto_bytes: &[u8],
         message_descriptor: &MessageDescriptor,
-    ) -> Result<Vec<u8>, TranslationError> {
+    ) -> Result<Vec<u8>, TranslatorError> {
         let message = message_descriptor
             .parse_from_bytes(proto_bytes)
-            .map_err(TranslationError::ProtobufParsingError)?;
+            .map_err(TranslatorError::ProtobufParsing)?;
 
         let mut buffer = BytesMut::new();
         let mut serializer = UdsSerializer::new(&mut buffer);
@@ -62,7 +63,7 @@ impl Translator for TranslatorImpl {
         &self,
         uds_bytes: &[u8],
         message_descriptor: &MessageDescriptor,
-    ) -> Result<Vec<u8>, TranslationError> {
+    ) -> Result<Vec<u8>, TranslatorError> {
         let mut buffer = BytesMut::new();
         buffer.extend_from_slice(uds_bytes);
         let mut deserializer = UdsDeserializer::new(&mut buffer);
@@ -70,28 +71,28 @@ impl Translator for TranslatorImpl {
         MessageDeserializeSeed::new(message_descriptor)
             .deserialize(&mut deserializer)?
             .write_to_bytes_dyn()
-            .map_err(TranslationError::ProtobufSerializationError)
+            .map_err(TranslatorError::ProtobufSerialization)
     }
 }
 
 /// Error type for translation between protobuf and UDS formats
 #[derive(Debug, thiserror::Error)]
-pub enum TranslationError {
+pub enum TranslatorError {
     /// Generic error during translation
     #[error("Generic error")]
-    GenericError,
+    Generic,
     /// Error when parsing message from proto format,
     #[error("Protobuf parsing error: {0}")]
-    ProtobufParsingError(protobuf::Error),
+    ProtobufParsing(protobuf::Error),
     /// Error when serializing message to proto format,
     #[error("Protobuf serialization error: {0}")]
-    ProtobufSerializationError(protobuf::Error),
+    ProtobufSerialization(protobuf::Error),
     /// Error when deserializing message from UDS format,
     #[error("UDS parsing error: {0}")]
-    UdsDeserializationError(#[from] UdsDeserializerError),
+    UdsDeserialization(#[from] UdsDeserializerError),
     /// Error when serializing message to UDS format,
     #[error("Protobuf serialization error: {0}")]
-    UdsSerializationError(#[from] UdsSerializerError),
+    UdsSerialization(#[from] UdsSerializerError),
 }
 
 #[cfg(test)]
