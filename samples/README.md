@@ -10,3 +10,4 @@ Below are the automotive isolated samples:
 
 * [Diagnostics sample for VSIDL](./diagnostics/README.md)
 * [Concal sample for VSIDL](./concal/)
+* [VPM samples for VSIDL](./vpm/README.md)
