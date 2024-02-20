@@ -143,34 +143,36 @@ mod tests {
 
     #[test]
     fn override_textproto_string_succeeds() {
-        let default = register_config("float_parameter: 3.4 str_parameter: \"string parameter\"");
-        let config_override = get_config_override_key_value("str_parameter", "\"updated\"");
+        let default = register_config(r#"float_parameter: 3.4 str_parameter: "string parameter""#);
+        let config_override = get_config_override_key_value("str_parameter", r#""updated""#);
         let new_config = override_config(default, config_override);
         assert_eq!(
             print_to_string(&*new_config),
-            "float_parameter: 3.4 str_parameter: \"updated\""
+            r#"float_parameter: 3.4 str_parameter: "updated""#
         );
     }
 
     #[test]
     fn override_textproto_clean_field_succeeds() {
-        let default = register_config("str_parameter: \"string parameter\" complex_parameter {first_parameter: \"new_parameter\"}");
+        let default = register_config(
+            r#"str_parameter: "string parameter" complex_parameter {first_parameter: "new_parameter"}"#,
+        );
         // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
         let config_override = get_config_override_key_value("complex_parameter", "");
         let new_config = override_config(default, config_override);
-        assert_eq!(print_to_string(&*new_config), "str_parameter: \"string parameter\"");
+        assert_eq!(print_to_string(&*new_config), r#"str_parameter: "string parameter""#);
     }
 
     #[test]
     fn override_textproto_add_new_field_succeeds() {
-        let default = register_config("str_parameter: \"string parameter\"");
+        let default = register_config(r#"str_parameter: "string parameter""#);
         // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
         let config_override =
-            get_config_override_key_value("complex_parameter", "{first_parameter: \"updated\"}");
+            get_config_override_key_value("complex_parameter", r#"{first_parameter: "updated"}"#);
         let new_config = override_config(default, config_override);
         assert_eq!(
             print_to_string(&*new_config),
-            "str_parameter: \"string parameter\" complex_parameter {first_parameter: \"updated\"}"
+            r#"str_parameter: "string parameter" complex_parameter {first_parameter: "updated"}"#
         );
     }
 
@@ -178,31 +180,33 @@ mod tests {
     fn override_textproto_complex_full_rewrite_succeeds() {
         // See that the complex parameter is rewritten completely.
         let default = register_config(
-            "str_parameter: \"string parameter\" complex_parameter {first_parameter: \"initial\"}",
+            r#"str_parameter: "string parameter" complex_parameter {first_parameter: "initial"}"#,
         );
         let config_override =
-            get_config_override_key_value("complex_parameter", "{second_parameter: \"updated\"}");
+            get_config_override_key_value("complex_parameter", r#"{second_parameter: "updated"}"#);
         let new_config = override_config(default, config_override);
         assert_eq!(
             print_to_string(&*new_config),
-            "str_parameter: \"string parameter\" complex_parameter {second_parameter: \"updated\"}"
+            r#"str_parameter: "string parameter" complex_parameter {second_parameter: "updated"}"#
         );
     }
 
     #[test]
     fn override_textproto_bytes_succeeds() {
-        let mut value = format!("bytes_parameter: \"{:?}\"", "Initial text".as_bytes());
+        let mut value = format!(r#"bytes_parameter: "{:?}""#, "Initial text".as_bytes());
         let default = register_config(&value);
-        value = format!("\"{:?}\"", "Updated text".as_bytes());
+        value = format!(r#""{:?}""#, "Updated text".as_bytes());
         let config_override = get_config_override_key_value("bytes_parameter", &value);
         let new_config = override_config(default, config_override);
-        let upd_config = format!("bytes_parameter: \"{:?}\"", "Updated text".as_bytes());
+        let upd_config = format!(r#"bytes_parameter: "{:?}""#, "Updated text".as_bytes());
         assert_eq!(print_to_string(&*new_config), upd_config);
     }
 
     #[test]
     fn clear_textproto_config_succeeds() {
-        let default = register_config("bool_parameter: true int_parameter: 5 float_parameter: 3.4 str_parameter: \"string parameter\" nested_parameter {} complex_parameter {second_parameter: \"initial\"} nested_package {}");
+        let default = register_config(
+            r#"bool_parameter: true int_parameter: 5 float_parameter: 3.4 str_parameter: "string parameter" nested_parameter {} complex_parameter {second_parameter: "initial"} nested_package {}"#,
+        );
         // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
         let config_override = get_config_override_key_value("", "");
         let new_config = override_config(default, config_override);
@@ -211,22 +215,24 @@ mod tests {
 
     #[test]
     fn override_textproto_config_succeeds() {
-        let default = register_config("bool_parameter: true int_parameter: 5 float_parameter: 3.4 str_parameter: \"string parameter\" nested_parameter {} complex_parameter {second_parameter: \"initial\"} nested_package {}");
+        let default = register_config(
+            r#"bool_parameter: true int_parameter: 5 float_parameter: 3.4 str_parameter: "string parameter" nested_parameter {} complex_parameter {second_parameter: "initial"} nested_package {}"#,
+        );
         // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
         let config_override = get_config_override_key_value(
             "",
-            "int_parameter: 10 complex_parameter {first_parameter: \"initial\"} map_parameter {key: \"first_element\" value: 1}",
+            r#"int_parameter: 10 complex_parameter {first_parameter: "initial"} map_parameter {key: "first_element" value: 1}"#,
         );
         let new_config = override_config(default, config_override);
         assert_eq!(
             print_to_string(&*new_config),
-            "int_parameter: 10 map_parameter {key: \"first_element\" value: 1} complex_parameter {first_parameter: \"initial\"}",
+            r#"int_parameter: 10 map_parameter {key: "first_element" value: 1} complex_parameter {first_parameter: "initial"}"#,
         );
     }
 
     #[test]
     fn override_textproto_clean_map_succeeds() {
-        let default = register_config("map_parameter {key: \"first_element\" value: 1}");
+        let default = register_config(r#"map_parameter {key: "first_element" value: 1}"#);
         let config_override = get_config_override_key_value("map_parameter", "");
         let new_config = override_config(default, config_override);
         assert_eq!(print_to_string(&*new_config), "");
@@ -234,10 +240,10 @@ mod tests {
 
     #[test]
     fn override_textproto_assign_new_value_map_succeeds() {
-        let default = register_config("map_parameter {key: \"first_element\" value: 1}");
+        let default = register_config(r#"map_parameter {key: "first_element" value: 1}"#);
         let config_override = get_config_override_key_value(
             "map_parameter",
-            "[{key: \"second_element\" value: 2}, {key: \"third_element\" value: 3}]",
+            r#"[{key: "second_element" value: 2}, {key: "third_element" value: 3}]"#,
         );
         let new_config = override_config(default, config_override);
 
@@ -245,12 +251,15 @@ mod tests {
         // Therefore, we need to sort the entries first.
         let map_desc = new_config.descriptor_dyn().field_by_name("map_parameter").unwrap();
         let map = map_desc.get_map(&*new_config);
-        assert_eq!(print_pretty_map(map), "map_parameter {key: \"second_element\" value: 2} map_parameter {key: \"third_element\" value: 3}");
+        assert_eq!(
+            print_pretty_map(map),
+            r#"map_parameter {key: "second_element" value: 2} map_parameter {key: "third_element" value: 3}"#
+        );
     }
 
     #[test]
     fn override_textproto_add_newkey_to_map_succeeds() {
-        let default = register_config("map_parameter {key: \"initial key\" value: 1}");
+        let default = register_config(r#"map_parameter {key: "initial key" value: 1}"#);
         // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
         let config_override = get_config_override_key_value("map_parameter.new key", "2");
         let new_config = override_config(default, config_override);
@@ -259,26 +268,28 @@ mod tests {
         // Therefore, we need to sort the entries first.
         let map_desc = new_config.descriptor_dyn().field_by_name("map_parameter").unwrap();
         let map = map_desc.get_map(&*new_config);
-        assert_eq!(print_pretty_map(map), "map_parameter {key: \"initial key\" value: 1} map_parameter {key: \"new key\" value: 2}");
+        assert_eq!(
+            print_pretty_map(map),
+            r#"map_parameter {key: "initial key" value: 1} map_parameter {key: "new key" value: 2}"#
+        );
     }
 
     #[test]
     fn override_textproto_assign_new_value_to_key_in_map_succeeds() {
-        let default = register_config("map_parameter {key: \"first_element\" value: 1}");
+        let default = register_config(r#"map_parameter {key: "first_element" value: 1}"#);
         // In Rust protobuf do not place `:` before `{` for messages, see example: `complex_parameter {`.
         let config_override = get_config_override_key_value("map_parameter.first_element", "2");
         let new_config = override_config(default, config_override);
         assert_eq!(
             print_to_string(&*new_config),
-            "map_parameter {key: \"first_element\" value: 2}"
+            r#"map_parameter {key: "first_element" value: 2}"#
         );
     }
 
     #[test]
     fn override_textproto_clean_repeated_succeeds() {
-        let default = register_config(
-            "int_parameter: 1 list_parameter: \"first\" list_parameter: \"second\"",
-        );
+        let default =
+            register_config(r#"int_parameter: 1 list_parameter: "first" list_parameter: "second""#);
         let config_override = get_config_override_key_value("list_parameter", "");
         let new_config = override_config(default, config_override);
         assert_eq!(print_to_string(&*new_config), "int_parameter: 1");
@@ -286,15 +297,15 @@ mod tests {
 
     #[test]
     fn override_textproto_assign_new_value_repeated_succeeds() {
-        let default = register_config("list_parameter: \"first\" list_parameter: \"second\"");
+        let default = register_config(r#"list_parameter: "first" list_parameter: "second""#);
         let config_override = get_config_override_key_value(
             "list_parameter",
-            "\"first updated\", \"second updated\", \"third updated\"",
+            r#""first updated", "second updated", "third updated""#,
         );
         let new_config = override_config(default, config_override);
         assert_eq!(
             print_to_string(&*new_config),
-            "list_parameter: \"first updated\" list_parameter: \"second updated\" list_parameter: \"third updated\""
+            r#"list_parameter: "first updated" list_parameter: "second updated" list_parameter: "third updated""#
         );
     }
 
@@ -441,7 +452,7 @@ mod tests {
     fn print_pretty_map(map: ReflectMapRef) -> String {
         let mut pairs = map
             .into_iter()
-            .map(|(k, v)| format!("map_parameter {{key: \"{}\" value: {}}}", k, v))
+            .map(|(k, v)| format!(r#"map_parameter {{key: "{}" value: {}}}"#, k, v))
             .collect::<Vec<_>>();
         pairs.sort();
         pairs.join(" ")
