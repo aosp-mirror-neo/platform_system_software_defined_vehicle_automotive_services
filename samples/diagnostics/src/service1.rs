@@ -31,6 +31,18 @@ fn main() {
             &EventTopics::DIAGNOSTICS_PROVIDER1_SAMPLE,
             &Event {
                 id: "event1".to_string(),
+                status: Status::PASS.into(),
+                // omitting `extended_data` is equivalent to: `extended_data: vec![]`
+                ..Default::default()
+            },
+        )
+        .unwrap();
+
+    service
+        .event_publish(
+            &EventTopics::DIAGNOSTICS_PROVIDER1_SAMPLE,
+            &Event {
+                id: "event1".to_string(),
                 status: Status::PRE_FAIL.into(),
                 extended_data: vec![],
                 ..Default::default()

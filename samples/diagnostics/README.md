@@ -103,6 +103,8 @@ Trying to fetch "data_item_id1" from the second provider, fails with response: O
 
 Fetch "data_item_id2" from the second provider: Ok(ReadResponse { value: [8, 1, 8, 2, 8, 3, 8, 4, 8, 5], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 
+Event Ok(Event { id: "event1", status: PASS, extended_data: [], special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }), received from DIAGNOSTICS_PROVIDER1_SAMPLE
+
 Event Ok(Event { id: "event1", status: PRE_FAIL, extended_data: [], special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }), received from DIAGNOSTICS_PROVIDER1_SAMPLE
 
 Event Ok(Event { id: "event2", status: PRE_FAIL, extended_data: [], special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }), received from DIAGNOSTICS_PROVIDER2_SAMPLE
