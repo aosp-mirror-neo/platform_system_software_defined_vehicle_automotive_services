@@ -43,26 +43,25 @@ impl UserProfileServiceImpl {
 
 impl UserProfileManagementService for UserProfileServiceImpl {
     fn create_user(&self, request: CreateUserRequest) -> RpcResult<CreateUserResponse> {
-        if request.id == 0 {
-            println!(
-                "Invalid create user request, ID {} is reserved for guest profile",
-                request.id
-            );
+        //TODO(b/328376446): Add support for guest user
+        if request.user.is_none() {
+            println!("Invalid create user request, user field cannot be empty");
             return error_response!(
                 CreateUserResponse,
                 ResponseCode::INVALID_REQUEST,
-                "User ID '0' is reserved for guest profile",
+                "Invalid create user request, user field cannot be empty",
             );
         }
+        let user = request.user.unwrap();
 
         let mut profiles = acquire_lock_or_return_err!(self.user_profiles, CreateUserResponse);
-        if profiles.contains_key(&request.id) {
-            println!("Invalid create user request, ID {} is already in use", request.id);
+        if profiles.contains_key(&user.id) {
+            println!("Invalid create user request, ID {} is already in use", user.id);
             return error_response!(
                 CreateUserResponse,
                 ResponseCode::INVALID_REQUEST,
                 "User ID '{}' is already in use",
-                request.id
+                user.id
             );
         }
 
@@ -77,9 +76,9 @@ impl UserProfileManagementService for UserProfileServiceImpl {
             configurations.insert(config.config_name.clone(), settings_map);
         }
 
-        println!("Created profile with ID: {}", request.id);
+        println!("Created profile with ID: {}", user.id);
 
-        profiles.insert(request.id, configurations);
+        profiles.insert(user.id, configurations);
 
         Ok(CreateUserResponse::new())
     }
