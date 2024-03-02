@@ -68,8 +68,8 @@ message SettingDefinition {
 }
 
 enum SettingKind {
-  // Store the setting as a global variable that is shared between all vehicle drivers.
-  GLOBAL = 0;
+  // A setting which is applied for all vehicle users.
+  SHARED = 0;
   // Store the value of the setting for each vehicle user separately.
   PER_USER = 1;
 };
