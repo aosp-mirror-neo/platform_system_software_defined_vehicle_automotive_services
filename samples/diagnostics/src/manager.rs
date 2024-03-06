@@ -12,7 +12,7 @@ use protobuf::reflect::MessageDescriptor;
 use protobuf::EnumOrUnknown;
 use protobuf::MessageField;
 use sdv_config_provider::{VsidlConfigProvider, VsidlProvider};
-use sdv_uds_serde::translator::Translator;
+use sdv_uds_serde::translator::{Translator, TranslatorImpl};
 use sdvgenerated::data_item_interface::DataItem;
 use sdvgenerated::diagnostics_manager_interface::DiagnosticsManager;
 use sdvgenerated::diagnostics_manager_service::{
@@ -135,7 +135,7 @@ fn main() {
     let response = first_data_item_client.read(read_data_item_request(first_data_item));
     println!("Fetch {:?}: {:?}.", first_data_item, response);
 
-    let translator = Translator {};
+    let translator = TranslatorImpl {};
     let uds_bytes_for_initial_value = translator
         .translate_from_protobuf_to_uds(
             &response.unwrap().value,

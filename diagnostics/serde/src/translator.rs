@@ -4,22 +4,44 @@ use crate::protobuf_serialize::MessageSerialize;
 use crate::uds_deserializer::{UdsDeserializer, UdsDeserializerError};
 use crate::uds_serializer::{UdsSerializer, UdsSerializerError};
 use bytes::BytesMut;
+use mockall::automock;
 use protobuf::reflect::{MessageDescriptor, MessageRef};
 use serde::de::DeserializeSeed;
 use serde::Serialize;
 
-/// UDS to SDV translator.
+/// UDS to SDV translator trait.
 /// Provides methods to translate protobuf bytes to UDS-compatible bytes to and back.
-pub struct Translator;
-
-impl Translator {
+#[automock]
+pub trait Translator {
     /// Translates serialized protobuf message `proto_bytes` to UDS message.
     /// Method uses `message_descriptor` to perform reflection-based translation.
     /// Returns serialized UDS message or `TranslationError`.
     ///
     /// `proto_bytes` are expected to be in format produced by
     /// `MessageDyn::write_to_bytes()`.
-    pub fn translate_from_protobuf_to_uds(
+    fn translate_from_protobuf_to_uds(
+        &self,
+        proto_bytes: &[u8],
+        message_descriptor: &MessageDescriptor,
+    ) -> Result<Vec<u8>, TranslationError>;
+
+    /// Translates serialized UDS message `proto_bytes` to protobuf message.
+    /// Method uses `message_descriptor` to perform reflection-based translation.
+    /// Returns serialized protobuf message or `TranslationError`.
+    ///
+    /// Returned proto bytes are in format produced by `MessageDyn::write_to_bytes()`.
+    fn translate_from_uds_to_protobuf(
+        &self,
+        uds_bytes: &[u8],
+        message_descriptor: &MessageDescriptor,
+    ) -> Result<Vec<u8>, TranslationError>;
+}
+
+/// UDS to SDV translator implementation.
+pub struct TranslatorImpl;
+
+impl Translator for TranslatorImpl {
+    fn translate_from_protobuf_to_uds(
         &self,
         proto_bytes: &[u8],
         message_descriptor: &MessageDescriptor,
@@ -36,12 +58,7 @@ impl Translator {
         Ok(buffer.to_vec())
     }
 
-    /// Translates serialized UDS message `proto_bytes` to protobuf message.
-    /// Method uses `message_descriptor` to perform reflection-based translation.
-    /// Returns serialized protobuf message or `TranslationError`.
-    ///
-    /// Returned proto bytes are in format produced by `MessageDyn::write_to_bytes()`.
-    pub fn translate_from_uds_to_protobuf(
+    fn translate_from_uds_to_protobuf(
         &self,
         uds_bytes: &[u8],
         message_descriptor: &MessageDescriptor,
@@ -80,13 +97,13 @@ pub enum TranslationError {
 #[cfg(test)]
 mod tests {
     use crate::translator::runtime_message_descriptor::get_message_descriptor;
-    use crate::translator::Translator;
+    use crate::translator::{Translator, TranslatorImpl};
     use bytes::{BufMut, BytesMut};
     use std::vec::Vec;
 
     #[googletest::test]
     fn translate_from_protobuf_to_uds() {
-        let translator = Translator {};
+        let translator = TranslatorImpl {};
 
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
@@ -221,7 +238,7 @@ mod tests {
 
     #[googletest::test]
     fn translate_from_uds_to_protobuf() {
-        let translator = Translator {};
+        let translator = TranslatorImpl {};
 
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
