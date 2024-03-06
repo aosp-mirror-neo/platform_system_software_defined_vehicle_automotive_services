@@ -2,7 +2,7 @@ use concal_api::calibration::*;
 use concal_api::concal_service::*;
 use concal_api::configuration::ConfigMetadata;
 use concal_api::configuration::ConfigOverride;
-use concal_api::error::{Error, ResponseCode};
+use concal_api::status::{ResponseCode, Status};
 use protobuf::EnumOrUnknown;
 use protobuf::Message;
 use protobuf::MessageField;
@@ -25,7 +25,7 @@ macro_rules! acquire_lock_or_return_err {
             Ok(x) => x,
             Err(e) => {
                 return Ok($return_type {
-                    error: ConCalServiceImpl::error(
+                    status: generate_status(
                         ResponseCode::RUNTIME_ERROR,
                         format!("Unable to obtain mutex: {:?}", e),
                     ),
@@ -36,12 +36,12 @@ macro_rules! acquire_lock_or_return_err {
     }};
 }
 
-macro_rules! error_response {
-    ($return_type:ident, $response_code:expr, $error_message:literal, $($error_message_format_arg: tt)*) => {{
+macro_rules! status_response {
+    ($return_type:ident, $response_code:expr, $status_message:literal, $($status_message_format_arg: tt)*) => {{
         Ok($return_type {
-            error: ConCalServiceImpl::error(
+            status: generate_status(
                 $response_code,
-                format!($error_message, $($error_message_format_arg)*),
+                format!($status_message, $($status_message_format_arg)*),
             ),
             ..Default::default()
         })
@@ -76,6 +76,13 @@ impl ConCalServiceData {
     }
 }
 
+fn generate_status(status_code: ResponseCode, message: String) -> MessageField<Status> {
+    MessageField::some(Status {
+        code: EnumOrUnknown::from(status_code),
+        message,
+        ..Default::default()
+    })
+}
 pub struct ConCalServiceImpl {
     data: Mutex<ConCalServiceData>,
 }
@@ -83,14 +90,6 @@ pub struct ConCalServiceImpl {
 impl ConCalServiceImpl {
     pub fn new() -> Self {
         ConCalServiceImpl { data: Mutex::new(ConCalServiceData::new()) }
-    }
-
-    fn error(error_code: ResponseCode, message: String) -> MessageField<Error> {
-        MessageField::some(Error {
-            error_code: EnumOrUnknown::from(error_code),
-            message,
-            ..Default::default()
-        })
     }
 
     fn group_overrides_by_config_id(
@@ -143,7 +142,7 @@ impl ConCalService for ConCalServiceImpl {
         let mlock = acquire_lock_or_return_err!(self.data, GetConfigResponse);
 
         if request.config_id.is_none() {
-            return error_response!(
+            return status_response!(
                 GetConfigResponse,
                 ResponseCode::INVALID_REQUEST,
                 "Request does not provide a config id",
@@ -155,7 +154,7 @@ impl ConCalService for ConCalServiceImpl {
             match mlock.derived_configs.get(&config_id).or(mlock.base_configs.get(&config_id)) {
                 Some(x) => x,
                 None => {
-                    return error_response!(
+                    return status_response!(
                         GetConfigResponse,
                         ResponseCode::NOT_FOUND_ERROR,
                         "Config with ID {:?} does not exist",
@@ -168,6 +167,7 @@ impl ConCalService for ConCalServiceImpl {
         return Ok(GetConfigResponse {
             config: config_bytes,
             config_version: config.version().clone(),
+            status: generate_status(ResponseCode::SUCCESS, "".to_string()),
             ..Default::default()
         });
     }
@@ -181,7 +181,7 @@ impl ConCalService for ConCalServiceImpl {
         let config_id = match request.config_id.is_some() {
             true => HashableConfigId::from(request.config_id.unwrap()),
             false => {
-                return error_response!(
+                return status_response!(
                     RegisterConfigMetadataResponse,
                     ResponseCode::INVALID_REQUEST,
                     "ConfigId is empty",
@@ -189,7 +189,7 @@ impl ConCalService for ConCalServiceImpl {
             }
         };
         if config_id.contains_empty_fields() {
-            return error_response!(
+            return status_response!(
                 RegisterConfigMetadataResponse,
                 ResponseCode::INVALID_REQUEST,
                 "ConfigId fields contain an empty string: {:?}",
@@ -199,13 +199,16 @@ impl ConCalService for ConCalServiceImpl {
         if mlock.base_configs.contains_key(&config_id)
             && mlock.base_configs.get(&config_id).unwrap().version() == &request.config_version
         {
-            return Ok(RegisterConfigMetadataResponse::new());
+            return Ok(RegisterConfigMetadataResponse {
+                status: generate_status(ResponseCode::SUCCESS, "".to_string()),
+                ..Default::default()
+            });
         }
 
         let metadata: ConfigMetadata = match request.metadata.is_some() {
             true => request.metadata.unwrap(),
             false => {
-                return error_response!(
+                return status_response!(
                     RegisterConfigMetadataResponse,
                     ResponseCode::INVALID_REQUEST,
                     "Metadata for config {:?} is not initialized",
@@ -215,7 +218,7 @@ impl ConCalService for ConCalServiceImpl {
         };
 
         if metadata.default_config.is_none() {
-            return error_response!(
+            return status_response!(
                 RegisterConfigMetadataResponse,
                 ResponseCode::INVALID_REQUEST,
                 "Default configuration for config {:?} is not provided",
@@ -224,7 +227,7 @@ impl ConCalService for ConCalServiceImpl {
         }
 
         if metadata.descriptor_set.is_none() {
-            return error_response!(
+            return status_response!(
                 RegisterConfigMetadataResponse,
                 ResponseCode::INVALID_REQUEST,
                 "Descriptor set for config {:?} is not provided",
@@ -240,7 +243,10 @@ impl ConCalService for ConCalServiceImpl {
 
         mlock.base_configs.insert(config_id, config);
 
-        Ok(RegisterConfigMetadataResponse::new())
+        Ok(RegisterConfigMetadataResponse {
+            status: generate_status(ResponseCode::SUCCESS, "".to_string()),
+            ..Default::default()
+        })
     }
 
     fn get_config_metadata(
@@ -252,7 +258,7 @@ impl ConCalService for ConCalServiceImpl {
         let config_id = match request.config_id.is_some() {
             true => HashableConfigId::from(request.config_id.unwrap()),
             false => {
-                return error_response!(
+                return status_response!(
                     GetConfigMetadataResponse,
                     ResponseCode::INVALID_REQUEST,
                     "ConfigId is empty",
@@ -260,7 +266,7 @@ impl ConCalService for ConCalServiceImpl {
             }
         };
         if config_id.contains_empty_fields() {
-            return error_response!(
+            return status_response!(
                 GetConfigMetadataResponse,
                 ResponseCode::INVALID_REQUEST,
                 "ConfigId fields contain an empty string: {:?}",
@@ -279,6 +285,7 @@ impl ConCalService for ConCalServiceImpl {
             descriptor_set: MessageField::some(config.descriptor().clone()),
             ..Default::default()
         });
+        response.status = generate_status(ResponseCode::SUCCESS, "".to_string());
 
         Ok(response)
     }
@@ -291,7 +298,7 @@ impl ConCalService for ConCalServiceImpl {
 
         mlock.current_update_id = match mlock.current_update_id {
             Some(id) => {
-                return error_response!(
+                return status_response!(
                     StartConfigUpdateResponse,
                     ResponseCode::SESSION_IN_PROGRESS,
                     "Update with ID {:?} already in progress",
@@ -305,6 +312,7 @@ impl ConCalService for ConCalServiceImpl {
 
         Ok(StartConfigUpdateResponse {
             update_id: mlock.current_update_id.unwrap(),
+            status: generate_status(ResponseCode::SUCCESS, "".to_string()),
             ..Default::default()
         })
     }
@@ -317,7 +325,7 @@ impl ConCalService for ConCalServiceImpl {
 
         for config_override in request.configOverride.iter() {
             if config_override.config_id.is_none() {
-                return error_response!(
+                return status_response!(
                     AddOrUpdateConfigOverrideResponse,
                     ResponseCode::INVALID_REQUEST,
                     "ConfigId is empty",
@@ -328,7 +336,7 @@ impl ConCalService for ConCalServiceImpl {
         if mlock.current_update_id.is_none()
             || request.update_id != mlock.current_update_id.unwrap()
         {
-            return error_response!(
+            return status_response!(
                 AddOrUpdateConfigOverrideResponse,
                 ResponseCode::INVALID_REQUEST,
                 "Invalid update request, current update has id {:?}, request has id {}",
@@ -347,7 +355,10 @@ impl ConCalService for ConCalServiceImpl {
             );
         }
 
-        Ok(AddOrUpdateConfigOverrideResponse::new())
+        Ok(AddOrUpdateConfigOverrideResponse {
+            status: generate_status(ResponseCode::SUCCESS, "".to_string()),
+            ..Default::default()
+        })
     }
 
     fn remove_config_override(
@@ -366,7 +377,7 @@ impl ConCalService for ConCalServiceImpl {
         if mlock.current_update_id.is_none()
             || request.update_id != mlock.current_update_id.unwrap()
         {
-            return error_response!(
+            return status_response!(
                 CancelConfigUpdateResponse,
                 ResponseCode::INVALID_REQUEST,
                 "Invalid update request, current update has id {:?}, request has id {}",
@@ -378,7 +389,10 @@ impl ConCalService for ConCalServiceImpl {
         mlock.current_update_id = None;
         mlock.overrides.rollback();
 
-        Ok(CancelConfigUpdateResponse::new())
+        Ok(CancelConfigUpdateResponse {
+            status: generate_status(ResponseCode::SUCCESS, "".to_string()),
+            ..Default::default()
+        })
     }
 
     fn finish_config_update(
@@ -390,7 +404,7 @@ impl ConCalService for ConCalServiceImpl {
         if mlock.current_update_id.is_none()
             || request.update_id != mlock.current_update_id.unwrap()
         {
-            return error_response!(
+            return status_response!(
                 FinishConfigUpdateResponse,
                 ResponseCode::INVALID_REQUEST,
                 "Current update has ID {:?} and requested update has id {:?}",
@@ -407,7 +421,7 @@ impl ConCalService for ConCalServiceImpl {
             match self.calculate_snapshot(&mlock.base_configs, &overrides_for_each_config) {
                 Ok(x) => x,
                 Err(err) => {
-                    return error_response!(
+                    return status_response!(
                         FinishConfigUpdateResponse,
                         ResponseCode::INTERNAL_ERROR,
                         "Update {:?} failed due to {:?}",
@@ -421,14 +435,17 @@ impl ConCalService for ConCalServiceImpl {
         mlock.derived_configs.snapshot();
         *mlock.derived_configs = new_configurations;
 
-        Ok(FinishConfigUpdateResponse::new())
+        Ok(FinishConfigUpdateResponse {
+            status: generate_status(ResponseCode::SUCCESS, "".to_string()),
+            ..Default::default()
+        })
     }
 
     fn rollback(&self, _request: RollbackRequest) -> RpcResult<RollbackResponse> {
         let mut mlock = acquire_lock_or_return_err!(self.data, RollbackResponse);
 
         if mlock.current_update_id.is_some() {
-            return error_response!(
+            return status_response!(
                 RollbackResponse,
                 ResponseCode::INVALID_REQUEST,
                 "Cannot rollback while an update {:?} is in progress",
@@ -439,14 +456,17 @@ impl ConCalService for ConCalServiceImpl {
         mlock.overrides.rollback();
         mlock.derived_configs.rollback();
 
-        Ok(RollbackResponse::new())
+        Ok(RollbackResponse {
+            status: generate_status(ResponseCode::SUCCESS, "".to_string()),
+            ..Default::default()
+        })
     }
 
     fn reset(&self, _request: ResetRequest) -> RpcResult<ResetResponse> {
         let mut mlock = acquire_lock_or_return_err!(self.data, ResetResponse);
 
         if mlock.current_update_id.is_some() {
-            return error_response!(
+            return status_response!(
                 ResetResponse,
                 ResponseCode::SESSION_IN_PROGRESS,
                 "Cannot perform a reset while an update {:?} is in progress",
@@ -456,7 +476,10 @@ impl ConCalService for ConCalServiceImpl {
 
         *mlock = ConCalServiceData::new();
 
-        Ok(ResetResponse::new())
+        Ok(ResetResponse {
+            status: generate_status(ResponseCode::SUCCESS, "".to_string()),
+            ..Default::default()
+        })
     }
 
     fn deinstall_config(
@@ -537,6 +560,13 @@ mod tests {
 
     use crate::tests::utilities::*;
 
+    macro_rules! check_status {
+        ($result:expr, $status:expr) => {
+            assert!($result.status.is_some());
+            assert_eq!($result.status.unwrap().code, EnumOrUnknown::from($status));
+        };
+    }
+
     #[test]
     fn get_config_returns_error_when_request_contains_none_config_id() {
         let service = ConCalServiceImpl::new();
@@ -545,11 +575,7 @@ mod tests {
             .get_config(GetConfigRequest { ..Default::default() })
             .expect("Expected get_config to succeed");
 
-        assert!(result.error.is_some());
-        assert_eq!(
-            result.error.unwrap().error_code,
-            EnumOrUnknown::from(ResponseCode::INVALID_REQUEST)
-        );
+        check_status!(result, ResponseCode::INVALID_REQUEST);
     }
 
     #[test]
@@ -565,11 +591,7 @@ mod tests {
             })
             .expect("Expected get_config to succeed");
 
-        assert!(result.error.is_some());
-        assert_eq!(
-            result.error.unwrap().error_code,
-            EnumOrUnknown::from(ResponseCode::NOT_FOUND_ERROR)
-        );
+        check_status!(result, ResponseCode::NOT_FOUND_ERROR);
     }
 
     #[test]
@@ -580,10 +602,10 @@ mod tests {
         let service = ConCalServiceImpl::new();
 
         let resp = register_config_metadata(&service, &config_id, &config);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let resp = get_config(&service, &config_id);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         assert_eq!(&resp.config_version, config.version());
         assert_eq!(resp.config, config.data().write_to_bytes().unwrap());
@@ -596,7 +618,7 @@ mod tests {
         let config_id = test_config_id();
 
         let resp = register_config_metadata(&service, &config_id, &config);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let overrides = create_sample_overrides(
             &config_id,
@@ -606,18 +628,18 @@ mod tests {
         );
 
         let resp = start_config_update(&service);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let update_id = resp.update_id;
 
         let resp = add_or_update_config_override(&service, update_id, &overrides);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let resp = finish_config_update(&service, update_id);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let resp = get_config(&service, &config_id);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
         assert_eq!(&resp.config_version, config.version());
 
         let any = Any::parse_from_bytes(&resp.config).expect("to convert bytes to any");
@@ -635,7 +657,7 @@ mod tests {
         let config_id = test_config_id();
 
         let resp = register_config_metadata(&service, &config_id, &config);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let overrides = create_sample_overrides(
             &config_id,
@@ -645,21 +667,21 @@ mod tests {
         );
 
         let resp = start_config_update(&service);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let update_id = resp.update_id;
 
         let resp = add_or_update_config_override(&service, update_id, &overrides);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let resp = finish_config_update(&service, update_id);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let resp = service.rollback(RollbackRequest::new()).expect("rollback to succeed");
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let resp = get_config(&service, &config_id);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         assert_eq!(&resp.config_version, config.version());
         assert_eq!(resp.config, config.data().write_to_bytes().unwrap());
@@ -672,17 +694,13 @@ mod tests {
         let config_id = test_config_id();
 
         let resp = register_config_metadata(&service, &config_id, &config);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let resp = start_config_update(&service);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let resp = service.reset(ResetRequest::new()).expect("reset failed");
-        assert!(resp.error.is_some());
-        assert_eq!(
-            resp.error.clone().unwrap().error_code,
-            EnumOrUnknown::from(ResponseCode::SESSION_IN_PROGRESS)
-        );
+        check_status!(resp, ResponseCode::SESSION_IN_PROGRESS);
     }
 
     #[test]
@@ -693,7 +711,7 @@ mod tests {
 
         // Register a config with overrides and reset afterwards to ensure all changes are deleted
         let resp = register_config_metadata(&service, &config_id, &config);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let overrides = create_sample_overrides(
             &config_id,
@@ -703,38 +721,34 @@ mod tests {
         );
 
         let resp = start_config_update(&service);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let update_id = resp.update_id;
 
         let resp = add_or_update_config_override(&service, update_id, &overrides);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let resp = finish_config_update(&service, update_id);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let resp = service.reset(ResetRequest::new()).expect("reset failed");
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let resp = get_config(&service, &config_id);
-        assert!(resp.error.is_some());
-        assert_eq!(
-            resp.error.clone().unwrap().error_code,
-            EnumOrUnknown::from(ResponseCode::NOT_FOUND_ERROR)
-        );
+        check_status!(resp, ResponseCode::NOT_FOUND_ERROR);
 
         let resp = register_config_metadata(&service, &config_id, &config);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         //Ensure that any update doesn't apply overrides that were created before the reset.
         let resp = start_config_update(&service);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let resp = finish_config_update(&service, resp.update_id);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         let resp = get_config(&service, &config_id);
-        assert!(resp.error.is_none());
+        check_status!(resp, ResponseCode::SUCCESS);
 
         assert_eq!(&resp.config_version, config.version());
         assert_eq!(resp.config, config.data().write_to_bytes().unwrap());

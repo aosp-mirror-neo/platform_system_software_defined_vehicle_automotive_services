@@ -9,7 +9,7 @@ package sdv.concal;
 
 import "configuration.proto";
 import "calibration.proto";
-import "error.proto";
+import "status.proto";
 
 import "google/protobuf/descriptor.proto";
 
@@ -138,8 +138,10 @@ message GetConfigResponse {
   // Version identifier for the config.
   string config_version = 2;
 
-  // Error message if request fails.
-  Error error = 3;
+  // Status message if request fails.
+  // In case of failure, other message values are either not set or their correctness is not
+  // guaranteed.
+  Status status = 3;
 }
 
 message RegisterConfigMetadataRequest {
@@ -155,8 +157,8 @@ message RegisterConfigMetadataRequest {
 }
 
 message RegisterConfigMetadataResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }
 
 message GetConfigMetadataRequest {
@@ -172,8 +174,10 @@ message GetConfigMetadataResponse {
   // Service config schema and default message.
   ConfigMetadata metadata = 1;
 
-  // Error message if request fails.
-  Error error = 2;
+  // Status message if request fails.
+  // In case of failure, other message values are either not set or their correctness is not
+  // guaranteed.
+  Status status = 2;
 }
 
 message StartConfigUpdateRequest {}
@@ -182,8 +186,10 @@ message StartConfigUpdateResponse {
   // Random number which exists only during the update transaction.
   int64 update_id = 1;
 
-  // Error message if request fails.
-  Error error = 2;
+  // Status message if request fails.
+  // In case of failure, other message values are either not set or their correctness is not
+  // guaranteed.
+  Status status = 2;
 }
 
 message AddOrUpdateConfigOverrideRequest {
@@ -195,8 +201,8 @@ message AddOrUpdateConfigOverrideRequest {
 }
 
 message AddOrUpdateConfigOverrideResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }
 
 message RemoveConfigOverrideRequest {
@@ -209,8 +215,8 @@ message RemoveConfigOverrideRequest {
 }
 
 message RemoveConfigOverrideResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }
 
 message CancelConfigUpdateRequest {
@@ -219,8 +225,8 @@ message CancelConfigUpdateRequest {
 }
 
 message CancelConfigUpdateResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }
 
 message FinishConfigUpdateRequest {
@@ -229,15 +235,15 @@ message FinishConfigUpdateRequest {
 }
 
 message FinishConfigUpdateResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }
 
 message RollbackRequest {}
 
 message RollbackResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }
 
 message ResetRequest {
@@ -245,8 +251,8 @@ message ResetRequest {
   ConfigId config_id = 1;
 }
 message ResetResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }
 
 message DeinstallConfigRequest {
@@ -255,8 +261,8 @@ message DeinstallConfigRequest {
 }
 
 message DeinstallConfigResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }
 
 message GetConfigAndRegisterForConfigUpdateRequest {
@@ -274,8 +280,10 @@ message GetConfigAndRegisterForConfigUpdateResponse {
   // Version identifier for the service package.
   string config_version = 3;
 
-  // Error message if request fails.
-  Error error = 4;
+  // Status message if request fails.
+  // In case of failure, other message values are either not set or their correctness is not
+  // guaranteed.
+  Status status = 4;
 }
 
 message UnregisterFromConfigUpdateRequest {
@@ -284,8 +292,8 @@ message UnregisterFromConfigUpdateRequest {
 }
 
 message UnregisterFromConfigUpdateResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }
 
 message RegisterForCalibrationUpdateRequest {
@@ -294,8 +302,8 @@ message RegisterForCalibrationUpdateRequest {
 }
 
 message RegisterForCalibrationUpdateResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }
 
 message UnregisterFromCalibrationUpdateRequest {
@@ -304,8 +312,8 @@ message UnregisterFromCalibrationUpdateRequest {
 }
 
 message UnregisterFromCalibrationUpdateResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }
 
 message GetCalibrationConfigIdsRequest {}
@@ -314,8 +322,10 @@ message GetCalibrationConfigIdsResponse {
   // List of unique config identifiers for calibratable configs.
   repeated ConfigId config_ids = 1;
 
-  // Error message if request fails.
-  Error error = 2;
+  // Status message if request fails.
+  // In case of failure, other message values are either not set or their correctness is not
+  // guaranteed.
+  Status status = 2;
 }
 
 message UpdateConfigForCalibrationRequest {
@@ -327,6 +337,6 @@ message UpdateConfigForCalibrationRequest {
 }
 
 message UpdateConfigForCalibrationResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }
