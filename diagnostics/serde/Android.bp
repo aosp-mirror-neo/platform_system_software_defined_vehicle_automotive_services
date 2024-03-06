@@ -13,6 +13,7 @@ rust_defaults {
         "libprotobuf",
         "libserde",
         "libvsidl_syntax",
+        "libmockall",
     ],
     edition: "2021",
     lints: "android",
