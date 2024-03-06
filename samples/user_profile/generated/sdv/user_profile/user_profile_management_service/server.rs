@@ -15,8 +15,8 @@ use user_profile_api::user_profile_management_service::RequestConfigChangeReques
 use user_profile_api::user_profile_management_service::RequestConfigChangeResponse;
 use user_profile_api::user_profile_management_service::SelectUserRequest;
 use user_profile_api::user_profile_management_service::SelectUserResponse;
-use user_profile_api::user_profile_management_service::SubscribeToConfigChangeRequest;
-use user_profile_api::user_profile_management_service::SubscribeToConfigChangeResponse;
+use user_profile_api::user_profile_management_service::SubscribeToConfigChangeAndGetConfigRequest;
+use user_profile_api::user_profile_management_service::SubscribeToConfigChangeAndGetConfigResponse;
 use user_profile_api::user_profile_management_service::UnsubscribeToConfigChangeRequest;
 use user_profile_api::user_profile_management_service::UnsubscribeToConfigChangeResponse;
 
@@ -60,9 +60,12 @@ impl UserProfileManagementServiceServer {
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<SubscribeToConfigChangeRequest, SubscribeToConfigChangeResponse>(
-            Box::new(move |req| callback.subscribe_to_config_change(req)),
-            "UserProfileManagementService::subscribe_to_config_change",
+        serve_method::<
+            SubscribeToConfigChangeAndGetConfigRequest,
+            SubscribeToConfigChangeAndGetConfigResponse,
+        >(
+            Box::new(move |req| callback.subscribe_to_config_change_and_get_config(req)),
+            "UserProfileManagementService::subscribe_to_config_change_and_get_config",
             self.transport.as_ref(),
         );
         let callback = service.clone();

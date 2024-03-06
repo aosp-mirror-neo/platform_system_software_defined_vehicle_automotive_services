@@ -21,7 +21,7 @@ vsidl_code_generator \
 1. Launch Cuttlefish
 
     ```bash
-    launch_cvd --noresume -vsock_guest_cid=3 -guest-enforce-security=false
+    cvd start --guest-enforce-security=false
     ```
 
 2. Run the User Profile Service

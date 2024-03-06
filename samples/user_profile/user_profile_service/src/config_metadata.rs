@@ -1,5 +1,5 @@
 // Copyright 2024 Google LLC
-use user_profile_api::user_profile_registry_service::SettingDefinition;
+use user_profile_api::setting::SettingDefinition;
 
 #[derive(Debug)]
 pub struct ConfigMetadata {

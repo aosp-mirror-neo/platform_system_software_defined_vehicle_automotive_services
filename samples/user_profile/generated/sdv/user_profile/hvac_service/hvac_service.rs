@@ -32,7 +32,9 @@ struct Subscriptions {}
 pub struct HvacService {
     pub user_controllable_service_server: UserControllableServiceServer,
 
-    pub user_profile_registry_service_client: UserProfileRegistryServiceClient,
+    user_profile_registry_service_clients: parking_lot::RwLock<
+        std::collections::HashMap<String, Arc<UserProfileRegistryServiceClient>>,
+    >,
 }
 
 impl HvacService {
@@ -42,9 +44,10 @@ impl HvacService {
             user_controllable_service_server: UserControllableServiceServer::new(
                 GrpcServerTransport::new("HvacService::user_controllable_service"),
             ),
-            user_profile_registry_service_client: UserProfileRegistryServiceClient::new(Box::new(
-                GrpcClientTransport::new("UserProfileServer::user_profile_registry_service"),
-            )),
+
+            user_profile_registry_service_clients: parking_lot::RwLock::new(
+                std::collections::HashMap::new(),
+            ),
         }
     }
 
@@ -59,5 +62,22 @@ impl HvacService {
 
     fn register_all_topics(&mut self) -> sdv_middleware_pubsub::Result<()> {
         Ok(())
+    }
+
+    /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
+    pub fn get_user_profile_registry_service_client(
+        &self,
+        target_service_bundle: &str,
+    ) -> Arc<UserProfileRegistryServiceClient> {
+        sdvmiddleware_common::create_if_not_exist::<UserProfileRegistryServiceClient>(
+            &self.user_profile_registry_service_clients,
+            target_service_bundle,
+            Box::new(|target| {
+                UserProfileRegistryServiceClient::new(Box::new(GrpcClientTransport::new(&format!(
+                    "{}::{}",
+                    target, "user_profile_registry_service"
+                ))))
+            }),
+        )
     }
 }
