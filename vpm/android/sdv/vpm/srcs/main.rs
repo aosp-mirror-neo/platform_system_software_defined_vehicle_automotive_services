@@ -1,11 +1,8 @@
 // Copyright 2023 Google LLC
 //! Vehicle Mode and Power Management Agent.
 
-mod agent;
-mod vehicle_state_listener;
-
-use crate::agent::VPM;
 use log::info;
+use sdv_vpm::VPM;
 
 static LOG_TAG: &str = "sdv_vpm_agent";
 
