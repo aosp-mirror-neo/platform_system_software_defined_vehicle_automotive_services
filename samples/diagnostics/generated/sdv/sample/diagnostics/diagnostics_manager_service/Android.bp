@@ -16,6 +16,8 @@ rust_library {
         "libdiagnostics_sample_catalog",
         "liblog_rust",
         "libsdv_log_rust",
+        "libparking_lot",
+        "libsdvmiddleware_common",
         "libsdvmiddleware_rpc_grpc_transport",
         "libsdvgenerated_rpc_diagnostics_manager",
         "libsdvgenerated_rpc_data_item",

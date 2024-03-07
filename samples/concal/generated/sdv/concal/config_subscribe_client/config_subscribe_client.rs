@@ -28,16 +28,17 @@ pub struct ConfigSubscribeClientCallbacks {}
 struct Subscriptions {}
 
 pub struct ConfigSubscribeClient {
-    pub config_subscriber_service_client: ConfigSubscriberServiceClient,
+    config_subscriber_service_clients:
+        parking_lot::RwLock<std::collections::HashMap<String, Arc<ConfigSubscriberServiceClient>>>,
 }
 
 impl ConfigSubscribeClient {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         ConfigSubscribeClient {
-            config_subscriber_service_client: ConfigSubscriberServiceClient::new(Box::new(
-                GrpcClientTransport::new("ConfigSubscriberServer"),
-            )),
+            config_subscriber_service_clients: parking_lot::RwLock::new(
+                std::collections::HashMap::new(),
+            ),
         }
     }
 
@@ -52,5 +53,20 @@ impl ConfigSubscribeClient {
 
     fn register_all_topics(&mut self) -> sdv_middleware_pubsub::Result<()> {
         Ok(())
+    }
+
+    /// Returns the read lock guard of a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
+    /// Please explicitly drop the returned read lock guard.
+    pub fn get_config_subscriber_service_client(
+        &self,
+        target_service_bundle: &str,
+    ) -> Arc<ConfigSubscriberServiceClient> {
+        sdvmiddleware_common::create_if_not_exist::<ConfigSubscriberServiceClient>(
+            &self.config_subscriber_service_clients,
+            target_service_bundle,
+            Box::new(|target| {
+                ConfigSubscriberServiceClient::new(Box::new(GrpcClientTransport::new(target)))
+            }),
+        )
     }
 }
