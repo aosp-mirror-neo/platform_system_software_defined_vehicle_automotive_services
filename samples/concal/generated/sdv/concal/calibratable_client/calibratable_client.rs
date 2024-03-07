@@ -28,16 +28,15 @@ pub struct CalibratableClientCallbacks {}
 struct Subscriptions {}
 
 pub struct CalibratableClient {
-    pub calibratable_service_client: CalibratableServiceClient,
+    calibratable_service_clients:
+        parking_lot::RwLock<std::collections::HashMap<String, Arc<CalibratableServiceClient>>>,
 }
 
 impl CalibratableClient {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         CalibratableClient {
-            calibratable_service_client: CalibratableServiceClient::new(Box::new(
-                GrpcClientTransport::new("CalibratableServer"),
-            )),
+            calibratable_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
         }
     }
 
@@ -52,5 +51,20 @@ impl CalibratableClient {
 
     fn register_all_topics(&mut self) -> sdv_middleware_pubsub::Result<()> {
         Ok(())
+    }
+
+    /// Returns the read lock guard of a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
+    /// Please explicitly drop the returned read lock guard.
+    pub fn get_calibratable_service_client(
+        &self,
+        target_service_bundle: &str,
+    ) -> Arc<CalibratableServiceClient> {
+        sdvmiddleware_common::create_if_not_exist::<CalibratableServiceClient>(
+            &self.calibratable_service_clients,
+            target_service_bundle,
+            Box::new(|target| {
+                CalibratableServiceClient::new(Box::new(GrpcClientTransport::new(target)))
+            }),
+        )
     }
 }

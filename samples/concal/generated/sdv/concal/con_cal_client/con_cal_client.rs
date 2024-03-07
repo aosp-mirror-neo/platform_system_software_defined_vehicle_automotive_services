@@ -28,16 +28,15 @@ pub struct ConCalClientCallbacks {}
 struct Subscriptions {}
 
 pub struct ConCalClient {
-    pub con_cal_service_client: ConCalServiceClient,
+    con_cal_service_clients:
+        parking_lot::RwLock<std::collections::HashMap<String, Arc<ConCalServiceClient>>>,
 }
 
 impl ConCalClient {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         ConCalClient {
-            con_cal_service_client: ConCalServiceClient::new(Box::new(GrpcClientTransport::new(
-                "ConCalServer",
-            ))),
+            con_cal_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
         }
     }
 
@@ -52,5 +51,18 @@ impl ConCalClient {
 
     fn register_all_topics(&mut self) -> sdv_middleware_pubsub::Result<()> {
         Ok(())
+    }
+
+    /// Returns the read lock guard of a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
+    /// Please explicitly drop the returned read lock guard.
+    pub fn get_con_cal_service_client(
+        &self,
+        target_service_bundle: &str,
+    ) -> Arc<ConCalServiceClient> {
+        sdvmiddleware_common::create_if_not_exist::<ConCalServiceClient>(
+            &self.con_cal_service_clients,
+            target_service_bundle,
+            Box::new(|target| ConCalServiceClient::new(Box::new(GrpcClientTransport::new(target)))),
+        )
     }
 }
