@@ -7,16 +7,9 @@ package sdv.user_profile;
 import "setting.proto";
 
 message Configuration {
-  // The ID of the configuration.
-  ConfigId config_id = 1;
+  // A unique name for this configuration
+  string config_name = 1;
 
   // The list of settings which the configuration consists of.
   repeated Setting settings = 2;
-}
-
-message ConfigId {
-  // The Fully Qualified Instance Name (FQIN) of the service bundle that declared the configuration.
-  string service_fqdn = 1;
-  // The name of the configuration within the service bundle.
-  string config_name = 2;
 }
