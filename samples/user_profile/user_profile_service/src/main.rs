@@ -1,7 +1,6 @@
 // Copyright 2024 Google LLC
 #![allow(missing_docs, dead_code)]
 
-mod config_id;
 mod config_metadata;
 mod macros;
 mod user_profile_service_impl;

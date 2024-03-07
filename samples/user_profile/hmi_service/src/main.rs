@@ -1,12 +1,10 @@
 // Copyright 2024 Google LLC
 #![allow(missing_docs)]
 
-use protobuf::MessageField;
 use sdvgenerated::hmi_service::HmiService;
 use sdvgenerated::user_profile_management_service_interface::UserProfileManagementService;
-use user_profile_api::{
-    configuration::ConfigId,
-    user_profile_management_service::{CreateUserRequest, SubscribeToConfigChangeRequest},
+use user_profile_api::user_profile_management_service::{
+    CreateUserRequest, SubscribeToConfigChangeRequest,
 };
 
 fn main() {
@@ -38,11 +36,7 @@ fn main() {
     let response = hmi_service
         .user_profile_management_service_client
         .subscribe_to_config_change(SubscribeToConfigChangeRequest {
-            config_id: MessageField::some(ConfigId {
-                service_fqdn: "".to_string(),
-                config_name: "HVAC".to_string(),
-                ..Default::default()
-            }),
+            config_name: "HVAC".to_string(),
             ..Default::default()
         })
         .expect("Failed to perform GRPC request to subscribe to configuration changes");
