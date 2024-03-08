@@ -16,6 +16,8 @@ vsidl_code_generator \
 
 ## Running the sample
 
+**Please note the samples are still under active development and should not be tested yet**
+
 1. Launch Cuttlefish
 
     ```bash
