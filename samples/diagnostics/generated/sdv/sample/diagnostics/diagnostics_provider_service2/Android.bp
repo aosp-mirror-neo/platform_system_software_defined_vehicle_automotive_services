@@ -20,6 +20,8 @@ rust_library {
         "libsdvgenerated_rpc_data_item",
         "libsdv_middleware_pubsub",
         "libsdvmiddleware_common",
+        "libsdv_middleware_extension_diagnostics",
+        "libdiagnostics_api",
     ],
     apex_available: [
         "//apex_available:platform",

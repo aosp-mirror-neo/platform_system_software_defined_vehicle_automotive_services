@@ -4,13 +4,11 @@
 mod data_item_impl;
 
 use crate::data_item_impl::DataItemImpl;
-use diagnostics_sample_catalog::event::{event::Status, Event};
-use diagnostics_sample_catalog::messages::DataItemTwo;
+use diagnostics_api::event::Status;
+use diagnostics_sample_catalog::messages::{DataItemTwo, SecondEventExt};
+use sdv_middleware_extension_diagnostics::Event;
 use sdvgenerated::diagnostics_provider_service2::DiagnosticsProviderService2;
-use sdvgenerated::topics::publisher::EventTopics;
 use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
 
 fn main() {
     let mut service = DiagnosticsProviderService2::new();
@@ -22,21 +20,12 @@ fn main() {
 
     println!("Diagnostics provider service bundle started.");
 
-    // Sleep for 2s to ensure the correct order of logs in diagnostics manager sample.
-    // I.e. event should be sent after data item communication has finished, and the
-    // event from diagnostics provider 1 has been sent.
-    thread::sleep(Duration::from_secs(2));
-
     service
-        .event_publish(
-            &EventTopics::DIAGNOSTICS_PROVIDER2_SAMPLE,
-            &Event {
-                id: "event2".to_string(),
-                status: Status::PRE_FAIL.into(),
-                extended_data: vec![],
-                ..Default::default()
-            },
-        )
+        .diagnostics
+        .publish_event2_event(Event::new(
+            Status::PRE_FAIL,
+            Some(SecondEventExt { ..Default::default() }),
+        ))
         .unwrap();
 
     loop {
