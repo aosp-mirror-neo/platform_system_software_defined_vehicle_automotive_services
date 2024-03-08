@@ -14,6 +14,7 @@ rust_defaults {
         "libserde",
         "libvsidl_syntax",
         "libmockall",
+        "libsdv_config_provider",
     ],
     edition: "2021",
     lints: "android",

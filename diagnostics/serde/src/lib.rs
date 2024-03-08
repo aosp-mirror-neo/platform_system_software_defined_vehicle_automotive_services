@@ -4,7 +4,13 @@
 //! Implements serialization/deserialization between UDS and protobuf formats
 
 /// Public translation APIs
-pub mod translator;
+pub mod diagnostics_translator;
+
+/// Defines ids for diagnostic entities to be translated.
+pub mod entity_id;
+
+/// Protobuf <-> UDS translator
+mod translator;
 
 /// serde::Deserialize implementation for protobuf message
 mod protobuf_deserialize;
