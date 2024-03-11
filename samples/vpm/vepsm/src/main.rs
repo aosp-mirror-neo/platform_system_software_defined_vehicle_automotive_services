@@ -25,7 +25,7 @@ fn main() -> anyhow::Result<()> {
     let vehicle_state: VpmVehicleState = args.vehicle_state.into();
     let request =
         SetVehicleStateRequest { vehicle_state: vehicle_state.into(), ..Default::default() };
-    client.vpm_system_service_client.set_vehicle_state(request)?;
+    client.get_vpm_system_service_client("VpmSystemServiceBundle").set_vehicle_state(request)?;
     println!("Vehicle mode set successfully {:?}", vehicle_state);
     Ok(())
 }
