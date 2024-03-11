@@ -16,6 +16,8 @@ pub enum EntityId {
         /// Method's message.
         message: MethodMessage,
     },
+    /// Extended data of the diagnostics event.
+    EventExtendedData(String),
 }
 
 /// Routine control method.
