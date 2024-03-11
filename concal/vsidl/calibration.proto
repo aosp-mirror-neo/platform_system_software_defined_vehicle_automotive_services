@@ -8,7 +8,7 @@ syntax = "proto3";
 package sdv.concal;
 
 import "configuration.proto";
-import "error.proto";
+import "status.proto";
 
 message StartCalibrationRequest {
   // Unique config identifier.
@@ -19,8 +19,8 @@ message StartCalibrationRequest {
 }
 
 message StartCalibrationResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }
 
 message StopCalibrationRequest {
@@ -29,6 +29,6 @@ message StopCalibrationRequest {
 }
 
 message StopCalibrationResponse {
-  // Error message if request fails.
-  Error error = 1;
+  // Status message if request fails.
+  Status status = 1;
 }

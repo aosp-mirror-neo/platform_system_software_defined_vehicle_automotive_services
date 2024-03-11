@@ -2,6 +2,7 @@
 #![allow(missing_docs)]
 use concal_api::concal_service::*;
 use concal_api::configuration::{ConfigId, ConfigMetadata, ConfigOverride, ConfigOverrideKeyValue};
+use concal_api::status::ResponseCode;
 use protobuf::descriptor::FileDescriptorSet as FdSet;
 use protobuf::well_known_types::any::Any;
 use protobuf::{Message, MessageField};
@@ -13,6 +14,14 @@ use std::vec::Vec;
 
 use sdvgenerated::con_cal_service_interface::ConCalService;
 use sdvtestconcal_proto_rust::rear_view_camera::RearViewCamera;
+
+macro_rules! panic_if_failed {
+    ($result:expr, $message:expr) => {
+        if $result.status.is_some() & ($result.status.code != ResponseCode::SUCCESS.into()) {
+            panic!($message, $result.status.unwrap());
+        }
+    };
+}
 
 fn main() {
     let client = ConCalClient::new();
@@ -104,8 +113,8 @@ fn register_config(
         ..Default::default()
     };
 
-    let rpc_client = client.get_con_cal_service_client("ConCalServer");
-    let resp = rpc_client
+    let resp = client
+        .get_con_cal_service_client("ConCalServer")
         .register_config_metadata(RegisterConfigMetadataRequest {
             config_id: MessageField::some(config_id.clone()),
             metadata: MessageField::some(config_metadata),
@@ -114,9 +123,7 @@ fn register_config(
         })
         .expect("register_config_metadata failed");
 
-    if resp.error.is_some() {
-        panic!("register_config_metadata failed: {:?}", resp.error.unwrap());
-    }
+    panic_if_failed!(resp, "register_config_metadata failed: {:?}");
 }
 
 fn update_config(client: &ConCalClient, overrides: &[ConfigOverride]) {
@@ -125,9 +132,7 @@ fn update_config(client: &ConCalClient, overrides: &[ConfigOverride]) {
         .start_config_update(StartConfigUpdateRequest::new())
         .expect("start_config_update failed");
 
-    if resp.error.is_some() {
-        panic!("start_config_update failed: {:?}", resp.error.unwrap());
-    }
+    panic_if_failed!(resp, "start_config_update failed: {:?}");
 
     let update_id = resp.update_id;
 
@@ -139,17 +144,13 @@ fn update_config(client: &ConCalClient, overrides: &[ConfigOverride]) {
         })
         .expect("add_or_update_config_override failed");
 
-    if resp.error.is_some() {
-        panic!("add_or_update_config_override failed: {:?}", resp.error.unwrap());
-    }
+    panic_if_failed!(resp, "add_or_update_config_override failed: {:?}");
 
     let resp = rpc_client
         .finish_config_update(FinishConfigUpdateRequest { update_id, ..Default::default() })
         .expect("finish_config_update failed failed");
 
-    if resp.error.is_some() {
-        panic!("finish_config_update failed failed: {:?}", resp.error.unwrap())
-    }
+    panic_if_failed!(resp, "finish_config_update failed failed: {:?}");
 }
 
 fn overrides(config_id: &ConfigId) -> Vec<ConfigOverride> {
@@ -208,9 +209,7 @@ fn get_config(client: &ConCalClient, config_id: &ConfigId) -> Vec<u8> {
         })
         .expect("get_config failed");
 
-    if resp.error.is_some() {
-        panic!("get_config failed: {:?}", resp.error.unwrap());
-    }
+    panic_if_failed!(resp, "get_config failed: {:?}");
     resp.config
 }
 
@@ -221,13 +220,11 @@ fn parse_test_config_from_bytes(bytes: &[u8]) -> RearViewCamera {
 }
 
 fn rollback(client: &ConCalClient) {
-    let rpc_client = client.get_con_cal_service_client("ConCalServer");
-    let resp = rpc_client.rollback(RollbackRequest::new()).expect("rollback failed");
-    drop(rpc_client);
-
-    if resp.error.is_some() {
-        panic!("rollback failed: {:?}", resp.error.unwrap())
-    }
+    let resp = client
+        .get_con_cal_service_client("ConCalServer")
+        .rollback(RollbackRequest::new())
+        .expect("rollback failed");
+    panic_if_failed!(resp, "rollback failed: {:?}");
 }
 
 fn wait_for_key_press() {
