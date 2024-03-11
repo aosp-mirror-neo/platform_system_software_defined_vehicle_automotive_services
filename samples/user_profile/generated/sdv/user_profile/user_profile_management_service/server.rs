@@ -7,12 +7,6 @@ use crate::interface::UserProfileManagementService;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
-use user_profile_api::user_profile_management_service::CreateUserRequest;
-use user_profile_api::user_profile_management_service::CreateUserResponse;
-use user_profile_api::user_profile_management_service::DeleteUserRequest;
-use user_profile_api::user_profile_management_service::DeleteUserResponse;
-use user_profile_api::user_profile_management_service::FactoryResetRequest;
-use user_profile_api::user_profile_management_service::FactoryResetResponse;
 use user_profile_api::user_profile_management_service::GetUserConfigsRequest;
 use user_profile_api::user_profile_management_service::GetUserConfigsResponse;
 use user_profile_api::user_profile_management_service::ListUsersRequest;
@@ -40,24 +34,6 @@ impl UserProfileManagementServiceServer {
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn UserProfileManagementService>) {
         let callback = service.clone();
-        serve_method::<CreateUserRequest, CreateUserResponse>(
-            Box::new(move |req| callback.create_user(req)),
-            "UserProfileManagementService::create_user",
-            self.transport.as_ref(),
-        );
-        let callback = service.clone();
-        serve_method::<SelectUserRequest, SelectUserResponse>(
-            Box::new(move |req| callback.select_user(req)),
-            "UserProfileManagementService::select_user",
-            self.transport.as_ref(),
-        );
-        let callback = service.clone();
-        serve_method::<DeleteUserRequest, DeleteUserResponse>(
-            Box::new(move |req| callback.delete_user(req)),
-            "UserProfileManagementService::delete_user",
-            self.transport.as_ref(),
-        );
-        let callback = service.clone();
         serve_method::<ListUsersRequest, ListUsersResponse>(
             Box::new(move |req| callback.list_users(req)),
             "UserProfileManagementService::list_users",
@@ -70,9 +46,9 @@ impl UserProfileManagementServiceServer {
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<FactoryResetRequest, FactoryResetResponse>(
-            Box::new(move |req| callback.factory_reset(req)),
-            "UserProfileManagementService::factory_reset",
+        serve_method::<SelectUserRequest, SelectUserResponse>(
+            Box::new(move |req| callback.select_user(req)),
+            "UserProfileManagementService::select_user",
             self.transport.as_ref(),
         );
         let callback = service.clone();

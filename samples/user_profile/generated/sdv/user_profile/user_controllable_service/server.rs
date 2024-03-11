@@ -7,8 +7,8 @@ use crate::interface::UserControllableService;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
-use user_profile_api::user_profile_management_service::FactoryResetRequest;
-use user_profile_api::user_profile_management_service::FactoryResetResponse;
+use user_profile_api::user_profile_admin_service::FactoryResetRequest;
+use user_profile_api::user_profile_admin_service::FactoryResetResponse;
 use user_profile_api::user_profile_management_service::RequestConfigChangeRequest;
 use user_profile_api::user_profile_management_service::RequestConfigChangeResponse;
 
