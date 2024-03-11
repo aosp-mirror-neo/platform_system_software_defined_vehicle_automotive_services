@@ -36,10 +36,11 @@ mm vsidl_code_generator
     launch_cvd -guest-enforce-security false
     ```
 
-3. Run the test
+3. Run tests
 
     ```bash
     atest lib_override_tests
+    atest sdv_con_cal_service_tests
     ```
 
 ## ConCal Demo Application
