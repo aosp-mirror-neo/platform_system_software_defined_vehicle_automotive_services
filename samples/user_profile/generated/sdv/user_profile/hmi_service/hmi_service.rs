@@ -17,6 +17,7 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
+use sdvgenerated_rpc_user_profile_admin_service::client::UserProfileAdminServiceClient;
 use sdvgenerated_rpc_user_profile_management_service::client::UserProfileManagementServiceClient;
 use sdvgenerated_rpc_user_profile_view::server::UserProfileViewServer;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
@@ -32,6 +33,7 @@ struct Subscriptions {}
 pub struct HmiService {
     pub user_profile_view_server: UserProfileViewServer,
 
+    pub user_profile_admin_service_client: UserProfileAdminServiceClient,
     pub user_profile_management_service_client: UserProfileManagementServiceClient,
 }
 
@@ -42,7 +44,9 @@ impl HmiService {
             user_profile_view_server: UserProfileViewServer::new(GrpcServerTransport::new(
                 "HmiService::user_profile_view",
             )),
-
+            user_profile_admin_service_client: UserProfileAdminServiceClient::new(Box::new(
+                GrpcClientTransport::new("UserProfileServer::user_profile_admin_service"),
+            )),
             user_profile_management_service_client: UserProfileManagementServiceClient::new(
                 Box::new(GrpcClientTransport::new(
                     "UserProfileServer::user_profile_management_service",

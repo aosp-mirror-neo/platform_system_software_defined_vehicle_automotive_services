@@ -4,12 +4,6 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use sdvmiddleware_rpc::RpcResult;
-use user_profile_api::user_profile_management_service::CreateUserRequest;
-use user_profile_api::user_profile_management_service::CreateUserResponse;
-use user_profile_api::user_profile_management_service::DeleteUserRequest;
-use user_profile_api::user_profile_management_service::DeleteUserResponse;
-use user_profile_api::user_profile_management_service::FactoryResetRequest;
-use user_profile_api::user_profile_management_service::FactoryResetResponse;
 use user_profile_api::user_profile_management_service::GetUserConfigsRequest;
 use user_profile_api::user_profile_management_service::GetUserConfigsResponse;
 use user_profile_api::user_profile_management_service::ListUsersRequest;
@@ -24,18 +18,12 @@ use user_profile_api::user_profile_management_service::SubscribeToConfigChangeRe
 /// An auto-generated RPC interface.
 pub trait UserProfileManagementService: Send + Sync {
     /// RPC method declared in the interface.
-    fn create_user(&self, request: CreateUserRequest) -> RpcResult<CreateUserResponse>;
-    /// RPC method declared in the interface.
-    fn select_user(&self, request: SelectUserRequest) -> RpcResult<SelectUserResponse>;
-    /// RPC method declared in the interface.
-    fn delete_user(&self, request: DeleteUserRequest) -> RpcResult<DeleteUserResponse>;
-    /// RPC method declared in the interface.
     fn list_users(&self, request: ListUsersRequest) -> RpcResult<ListUsersResponse>;
     /// RPC method declared in the interface.
     fn get_user_configs(&self, request: GetUserConfigsRequest)
         -> RpcResult<GetUserConfigsResponse>;
     /// RPC method declared in the interface.
-    fn factory_reset(&self, request: FactoryResetRequest) -> RpcResult<FactoryResetResponse>;
+    fn select_user(&self, request: SelectUserRequest) -> RpcResult<SelectUserResponse>;
     /// RPC method declared in the interface.
     fn request_config_change(
         &self,

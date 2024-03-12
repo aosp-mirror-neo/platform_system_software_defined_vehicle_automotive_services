@@ -17,6 +17,7 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
+use sdvgenerated_rpc_user_profile_admin_service::server::UserProfileAdminServiceServer;
 use sdvgenerated_rpc_user_profile_management_service::server::UserProfileManagementServiceServer;
 use sdvgenerated_rpc_user_profile_registry_service::server::UserProfileRegistryServiceServer;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
@@ -29,19 +30,23 @@ pub struct UserProfileServerCallbacks {}
 struct Subscriptions {}
 
 pub struct UserProfileServer {
-    pub user_profile_registry_service_server: UserProfileRegistryServiceServer,
+    pub user_profile_admin_service_server: UserProfileAdminServiceServer,
     pub user_profile_management_service_server: UserProfileManagementServiceServer,
+    pub user_profile_registry_service_server: UserProfileRegistryServiceServer,
 }
 
 impl UserProfileServer {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         UserProfileServer {
-            user_profile_registry_service_server: UserProfileRegistryServiceServer::new(
-                GrpcServerTransport::new("UserProfileServer::user_profile_registry_service"),
+            user_profile_admin_service_server: UserProfileAdminServiceServer::new(
+                GrpcServerTransport::new("UserProfileServer::user_profile_admin_service"),
             ),
             user_profile_management_service_server: UserProfileManagementServiceServer::new(
                 GrpcServerTransport::new("UserProfileServer::user_profile_management_service"),
+            ),
+            user_profile_registry_service_server: UserProfileRegistryServiceServer::new(
+                GrpcServerTransport::new("UserProfileServer::user_profile_registry_service"),
             ),
         }
     }

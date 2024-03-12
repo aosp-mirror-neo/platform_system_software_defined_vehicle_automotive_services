@@ -16,32 +16,16 @@ import "error.proto";
 import "user.proto";
 
 service UserProfileManagementService {
-  // Creates a profile in which user preferences are stored.
-  // Each configuration within a profile is initialized with default values unless
-  // it is provided within the create user request.
-  // The SelectUser API has to be used to designate the profile as the active one.
-  // Returns an error if the profile already exists or could not be created.
-  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
-
-  // Selects the active user and applies their configuration. If a UserControllableService rejects a
-  // change, the user's profile will be updated to match the current configuration.
-  // Returns an error if the profile does not exist or could not be loaded.
-  rpc SelectUser(SelectUserRequest) returns (SelectUserResponse) {}
-
-  // Deletes a profile.
-  // Returns an error if the profile could not be deleted or does not exist.
-  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {}
-
   // Returns a list of users stored within the User Profile.
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
 
   // Returns configuration for given user profile or an error if the profile doesn't exist.
   rpc GetUserConfigs(GetUserConfigsRequest) returns (GetUserConfigsResponse) {}
 
-  // Deletes all user profiles, resets all UserControllableService to the default settings and
-  // switches to the guest profile.
-  // Returns an error if the reset process failed.
-  rpc FactoryReset(FactoryResetRequest) returns (FactoryResetResponse) {}
+  // Selects the active user and applies their configuration. If a UserControllableService rejects a
+  // change, the user's profile will be updated to match the current configuration.
+  // Returns an error if the profile does not exist or could not be loaded.
+  rpc SelectUser(SelectUserRequest) returns (SelectUserResponse) {}
 
   // Requests the change in the current user profile for the given service.
   // There are no guarantees that the changes will be applied since services owning the
@@ -56,35 +40,12 @@ service UserProfileManagementService {
       returns (SubscribeToConfigChangeResponse) {}
 }
 
-message CreateUserRequest {
-  // The user that should be created.
-  User user = 1;
-
-  // List of existing configurations to pre-populate the drivers profile with.
-  repeated Configuration configs = 2;
-}
-
-message CreateUserResponse {
-  // Error message if the profile could not be created.
-  Error error = 1;
-}
-
 message SelectUserRequest {
   // The ID of the profile that should be loaded.
   uint64 user_id = 1;
 }
 
 message SelectUserResponse {
-  // Error message if request fails.
-  Error error = 1;
-}
-
-message DeleteUserRequest {
-  // The ID of the profile that should be deleted.
-  uint64 user_id = 1;
-}
-
-message DeleteUserResponse {
   // Error message if request fails.
   Error error = 1;
 }
@@ -108,13 +69,6 @@ message GetUserConfigsResponse {
   repeated Configuration configs = 1;
   // Error message if request fails.
   Error error = 2;
-}
-
-message FactoryResetRequest {}
-
-message FactoryResetResponse {
-  // Error message if request fails.
-  Error error = 1;
 }
 
 message RequestConfigChangeRequest {
