@@ -2,6 +2,8 @@
 //! Vehicle and Power Mode Agent.
 
 #![allow(unused)]
+mod vehicle_state_listener;
+
 use crate::vehicle_state_listener::VehicleStateListener;
 use async_trait::async_trait;
 use log::{error, info};
@@ -76,6 +78,12 @@ impl VehicleStateService for VehicleStateServiceImpl {
 /// The agent contains service implementation for vehilce and power mode management.
 pub struct VPM {
     vehicle_service: Arc<dyn VehicleStateService>,
+}
+
+impl Default for VPM {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// VPM agent implementation.
