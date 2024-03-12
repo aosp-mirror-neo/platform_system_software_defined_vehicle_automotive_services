@@ -20,25 +20,36 @@ rust_defaults {
     proc_macros: [
         "libasync_trait",
     ],
+    system_ext_specific: true,
     lints: "android",
     clippy_lints: "android",
 }
 
+rust_library {
+    name: "libsdv_vpm",
+    srcs: ["srcs/agent.rs"],
+    defaults: [
+        "sdv_tracing@rust_defaults",
+        "vpm_agent@rust_defaults",
+    ],
+}
+
 rust_binary {
     name: "sdv_vpm_agent",
-    crate_name: "sdv_vpm",
     srcs: ["srcs/main.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
         "vpm_agent@rust_defaults",
     ],
-    prefer_rlib: true,
+    rustlibs: [
+        "libsdv_vpm",
+    ],
     system_ext_specific: true,
 }
 
 rust_test {
     name: "sdv_vpm_agent_unit_tests",
-    srcs: ["srcs/main.rs"],
+    srcs: ["srcs/agent.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
         "vpm_agent@rust_defaults",
@@ -50,8 +61,23 @@ rust_test {
         "automotive-sdv-tests",
         "general-tests",
     ],
-    proc_macros: [
-        "libasync_trait",
-    ],
     prefer_rlib: true,
+}
+
+rust_test {
+    name: "sdv_vpm_agent_integration_tests",
+    srcs: ["tests/integration_test.rs"],
+    defaults: [
+        "sdv_tracing@rust_defaults",
+    ],
+    rustlibs: [
+        "libtokio",
+        "libsdv_vpm_api",
+        "libsdv_middleware_pubsub",
+        "libsdvgenerated_vpm_integration_test_bundle",
+    ],
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
 }

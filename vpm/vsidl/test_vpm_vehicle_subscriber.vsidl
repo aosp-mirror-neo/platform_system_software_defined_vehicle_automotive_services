@@ -1,0 +1,10 @@
+# proto-file: //system/software_defined_vehicle/core_services/vsidl/syntax/vsidl.proto
+# proto-message: VsidlEntry
+
+package: "test.sdv.vpm"
+
+sdv_service_bundle {
+    name: "VpmIntegrationTestBundle"
+    subscriber:  "sdv.vpm.vehicle.VehicleStateChange::VehicleStateChange"
+    client:  "sdv.vpm.vehicle.VpmSystemService"
+}
