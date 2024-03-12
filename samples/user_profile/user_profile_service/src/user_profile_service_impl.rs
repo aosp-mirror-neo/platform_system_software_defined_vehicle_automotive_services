@@ -154,6 +154,13 @@ impl UserProfileManagementService for UserProfileServiceImpl {
             request.config_name
         )
     }
+
+    fn unsubscribe_from_config_change(
+        &self,
+        _request: UnsubscribeToConfigChangeRequest,
+    ) -> RpcResult<UnsubscribeToConfigChangeResponse> {
+        todo!()
+    }
 }
 
 impl UserProfileRegistryService for UserProfileServiceImpl {
