@@ -1,4 +1,5 @@
 // Copyright 2023 Google LLC
+use sdvgenerated::user_profile_admin_service_interface::UserProfileAdminService;
 use sdvgenerated::user_profile_management_service_interface::UserProfileManagementService;
 use sdvgenerated::user_profile_registry_service_interface::UserProfileRegistryService;
 
@@ -10,6 +11,7 @@ use user_profile_api::user_profile_registry_service::{
 use user_profile_api::error::{Error, ResponseCode};
 use user_profile_api::setting::setting::Value;
 use user_profile_api::setting::Setting;
+use user_profile_api::user_profile_admin_service::*;
 use user_profile_api::user_profile_management_service::*;
 use user_profile_api::user_profile_registry_service::{UpdateConfigRequest, UpdateConfigResponse};
 
@@ -41,7 +43,7 @@ impl UserProfileServiceImpl {
     }
 }
 
-impl UserProfileManagementService for UserProfileServiceImpl {
+impl UserProfileAdminService for UserProfileServiceImpl {
     fn create_user(&self, request: CreateUserRequest) -> RpcResult<CreateUserResponse> {
         //TODO(b/328376446): Add support for guest user
         if request.user.is_none() {
@@ -83,11 +85,17 @@ impl UserProfileManagementService for UserProfileServiceImpl {
         Ok(CreateUserResponse::new())
     }
 
-    fn select_user(&self, _request: SelectUserRequest) -> RpcResult<SelectUserResponse> {
+    fn delete_user(&self, _request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
         todo!()
     }
 
-    fn delete_user(&self, _request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
+    fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
+        todo!()
+    }
+}
+
+impl UserProfileManagementService for UserProfileServiceImpl {
+    fn select_user(&self, _request: SelectUserRequest) -> RpcResult<SelectUserResponse> {
         todo!()
     }
 
@@ -99,10 +107,6 @@ impl UserProfileManagementService for UserProfileServiceImpl {
         &self,
         _request: GetUserConfigsRequest,
     ) -> RpcResult<GetUserConfigsResponse> {
-        todo!()
-    }
-
-    fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
         todo!()
     }
 

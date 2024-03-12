@@ -42,7 +42,6 @@ impl HvacService {
             user_controllable_service_server: UserControllableServiceServer::new(
                 GrpcServerTransport::new("HvacService::user_controllable_service"),
             ),
-
             user_profile_registry_service_client: UserProfileRegistryServiceClient::new(Box::new(
                 GrpcClientTransport::new("UserProfileServer::user_profile_registry_service"),
             )),

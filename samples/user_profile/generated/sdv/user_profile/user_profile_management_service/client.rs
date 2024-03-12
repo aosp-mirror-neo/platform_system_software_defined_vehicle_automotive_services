@@ -7,12 +7,6 @@ use crate::interface::UserProfileManagementService;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;
 use sdvmiddleware_rpc::RpcResult;
-use user_profile_api::user_profile_management_service::CreateUserRequest;
-use user_profile_api::user_profile_management_service::CreateUserResponse;
-use user_profile_api::user_profile_management_service::DeleteUserRequest;
-use user_profile_api::user_profile_management_service::DeleteUserResponse;
-use user_profile_api::user_profile_management_service::FactoryResetRequest;
-use user_profile_api::user_profile_management_service::FactoryResetResponse;
 use user_profile_api::user_profile_management_service::GetUserConfigsRequest;
 use user_profile_api::user_profile_management_service::GetUserConfigsResponse;
 use user_profile_api::user_profile_management_service::ListUsersRequest;
@@ -37,27 +31,6 @@ impl UserProfileManagementServiceClient {
 }
 
 impl UserProfileManagementService for UserProfileManagementServiceClient {
-    fn create_user(&self, request: CreateUserRequest) -> RpcResult<CreateUserResponse> {
-        call_method::<CreateUserRequest, CreateUserResponse>(
-            self.transport.as_ref(),
-            "UserProfileManagementService::create_user",
-            &request,
-        )
-    }
-    fn select_user(&self, request: SelectUserRequest) -> RpcResult<SelectUserResponse> {
-        call_method::<SelectUserRequest, SelectUserResponse>(
-            self.transport.as_ref(),
-            "UserProfileManagementService::select_user",
-            &request,
-        )
-    }
-    fn delete_user(&self, request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
-        call_method::<DeleteUserRequest, DeleteUserResponse>(
-            self.transport.as_ref(),
-            "UserProfileManagementService::delete_user",
-            &request,
-        )
-    }
     fn list_users(&self, request: ListUsersRequest) -> RpcResult<ListUsersResponse> {
         call_method::<ListUsersRequest, ListUsersResponse>(
             self.transport.as_ref(),
@@ -75,10 +48,10 @@ impl UserProfileManagementService for UserProfileManagementServiceClient {
             &request,
         )
     }
-    fn factory_reset(&self, request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
-        call_method::<FactoryResetRequest, FactoryResetResponse>(
+    fn select_user(&self, request: SelectUserRequest) -> RpcResult<SelectUserResponse> {
+        call_method::<SelectUserRequest, SelectUserResponse>(
             self.transport.as_ref(),
-            "UserProfileManagementService::factory_reset",
+            "UserProfileManagementService::select_user",
             &request,
         )
     }

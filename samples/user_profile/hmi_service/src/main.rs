@@ -3,11 +3,11 @@
 
 use protobuf::{Enum, MessageField};
 use sdvgenerated::hmi_service::HmiService;
+use sdvgenerated::user_profile_admin_service_interface::UserProfileAdminService;
 use sdvgenerated::user_profile_management_service_interface::UserProfileManagementService;
 use user_profile_api::{
-    user::user::UserFlags,
-    user::User,
-    user_profile_management_service::{CreateUserRequest, SubscribeToConfigChangeRequest},
+    user::user::UserFlags, user::User, user_profile_admin_service::CreateUserRequest,
+    user_profile_management_service::SubscribeToConfigChangeRequest,
 };
 
 fn main() {
@@ -16,7 +16,7 @@ fn main() {
     let profile_id = 1_u64;
     println!("Creating a user profile");
     let response = hmi_service
-        .user_profile_management_service_client
+        .user_profile_admin_service_client
         .create_user(CreateUserRequest {
             user: MessageField::some(User {
                 id: profile_id,
