@@ -2,16 +2,12 @@ package {
     default_applicable_licenses: ["sdv_license"],
 }
 
-rust_binary {
-    name: "sdv_vpm_agent",
+rust_defaults {
+    name: "vpm_agent@rust_defaults",
+    defaults: ["sdv@rust_defaults"],
     crate_name: "sdv_vpm",
-    srcs: ["srcs/main.rs"],
-    defaults: [
-        "sdv@rust_defaults",
-        "sdv_tracing@rust_defaults",
-    ],
-    prefer_rlib: true,
     rustlibs: [
+        "libmockall",
         "libanyhow",
         "libsdv_log_rust",
         "libprotobuf",
@@ -21,5 +17,41 @@ rust_binary {
         "libsdvmiddleware_rpc",
         "libsdvgenerated_vpm_system_service_bundle",
     ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    lints: "android",
+    clippy_lints: "android",
+}
+
+rust_binary {
+    name: "sdv_vpm_agent",
+    crate_name: "sdv_vpm",
+    srcs: ["srcs/main.rs"],
+    defaults: [
+        "sdv_tracing@rust_defaults",
+        "vpm_agent@rust_defaults",
+    ],
+    prefer_rlib: true,
     system_ext_specific: true,
+}
+
+rust_test {
+    name: "sdv_vpm_agent_unit_tests",
+    srcs: ["srcs/main.rs"],
+    defaults: [
+        "sdv_tracing@rust_defaults",
+        "vpm_agent@rust_defaults",
+    ],
+    test_options: {
+        unit_test: true,
+    },
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    prefer_rlib: true,
 }

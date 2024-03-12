@@ -13,7 +13,7 @@ static LOG_TAG: &str = "sdv_vpm_agent";
 async fn main() -> anyhow::Result<()> {
     sdv_log::init_logger(LOG_TAG)?;
     info!("VPM Agent starting!");
-    let mut vpm = VPM::new();
+    let vpm = VPM::new();
     vpm.start().await;
     Ok(())
 }
