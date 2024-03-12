@@ -46,6 +46,16 @@ impl SamplesStdoutVerifier {
 
     /// Runs registered samples in registration order, verifying their stdout outputs.
     pub fn run_and_assert_stdout(self) {
+        self.run_and_assert(Self::assert_eq_to_file)
+    }
+
+    /// Runs registered samples in registration order, verifying their stdout outputs with line order ignored.
+    pub fn run_and_assert_stdout_ignore_order(self) {
+        self.run_and_assert(Self::assert_eq_to_file_ignore_order)
+    }
+
+    /// Runs registered samples in registration order, verifying their stdout outputs with the specific assert function.
+    fn run_and_assert(self, assert: fn(&str, &str)) {
         let mut children = Vec::new();
         let mut children_join_handles = Vec::new();
 
@@ -61,7 +71,7 @@ impl SamplesStdoutVerifier {
 
                         let child_string_output = String::from_utf8_lossy(&child_output.stdout);
 
-                        Self::assert_eq_to_file(&child_string_output, expected_stdout_file);
+                        assert(&child_string_output, expected_stdout_file);
                     }));
                 }
                 None => {
@@ -95,6 +105,16 @@ impl SamplesStdoutVerifier {
         });
 
         assert_eq!(output_lines.next(), None);
+    }
+
+    fn assert_eq_to_file_ignore_order(output: &str, expected_output_file_path: &str) {
+        let mut output_lines = output.lines().collect::<Vec<_>>();
+        output_lines.sort_unstable();
+        let expected_output = std::fs::read_to_string(expected_output_file_path).unwrap();
+        let mut expected_output_lines = expected_output.lines().collect::<Vec<_>>();
+        expected_output_lines.sort_unstable();
+
+        assert_eq!(output_lines, expected_output_lines);
     }
 }
 
