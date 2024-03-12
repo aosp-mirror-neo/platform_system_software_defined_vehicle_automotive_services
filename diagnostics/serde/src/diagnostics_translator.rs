@@ -2,8 +2,9 @@
 use crate::diagnostics_translator::DiagnosticsTranslatorError::{
     MissingEntityDeclarationError, MissingServiceBundleDeclarationError, VsidlError,
 };
-use crate::entity_id::EntityId;
-use crate::entity_id::EntityId::DataItem;
+use crate::entity_id::EntityId::{self, *};
+use crate::entity_id::MethodMessage::*;
+use crate::entity_id::RoutineMethod::*;
 use crate::translator::{Translator, TranslatorError, TranslatorImpl};
 use protobuf::reflect::MessageDescriptor;
 use sdv_config_provider::{VsidlConfigProvider, VsidlProvider};
@@ -89,6 +90,25 @@ impl DiagnosticsTranslator {
                 .iter()
                 .find(|data_item| &data_item.id == id)
                 .map(|data_item| data_item.message_name.as_str()),
+            InputOutputData(id) => declaration
+                .io_control
+                .iter()
+                .find(|io_control| &io_control.id == id)
+                .map(|io_control| io_control.message_name.as_str()),
+            Routine { id, method, message } => declaration
+                .routine
+                .iter()
+                .find(|routine| &routine.id == id)
+                .map(|routine| match method {
+                    Start => &routine.start,
+                    Stop => &routine.stop,
+                    RequestResult => &routine.result,
+                })
+                .map(|routine_method| match message {
+                    Request => &routine_method.request,
+                    Response => &routine_method.response,
+                })
+                .map(|message_name| message_name.as_str()),
         }
     }
 }
@@ -122,18 +142,29 @@ pub enum DiagnosticsTranslatorError {
 #[cfg(test)]
 mod tests {
     use crate::diagnostics_translator::{DiagnosticsTranslator, DiagnosticsTranslatorError::*};
-    use crate::entity_id::EntityId;
+    use crate::entity_id::*;
     use crate::translator::runtime_message_descriptor::get_file_descriptor;
     use crate::translator::MockTranslator;
     use googletest::assert_that;
     use googletest::prelude::{eq, matches_pattern};
     use mockall::predicate::{always, eq as mock_eq};
+    use protobuf::MessageField;
     use sdv_config_provider::{MockVsidlConfigProvider, VsidlProviderError};
     use std::collections::HashMap;
-    use vsidl_syntax::diagnostics::{diagnostics_declaration::DataItem, DiagnosticsDeclaration};
+    use vsidl_syntax::diagnostics::{
+        diagnostics_declaration::{routine::Method, *},
+        DiagnosticsDeclaration,
+    };
 
     const MESSAGE_BYTES: [u8; 5] = [1, 2, 3, 4, 5];
     const DATA_ITEM_MESSAGE: &str = "DataItem";
+    const IO_CONTROL_MESSAGE: &str = "IOControl";
+    const ROUTINE_START_REQUEST: &str = "RoutineStartRequest";
+    const ROUTINE_START_RESPONSE: &str = "RoutineStartResponse";
+    const ROUTINE_STOP_REQUEST: &str = "RoutineStopRequest";
+    const ROUTINE_STOP_RESPONSE: &str = "RoutineStopResponse";
+    const ROUTINE_RESULT_REQUEST: &str = "RoutineResultRequest";
+    const ROUTINE_RESULT_RESPONSE: &str = "RoutineResultResponse";
 
     fn create_diagnostics_translator(
         service_fqbn: String,
@@ -143,6 +174,13 @@ mod tests {
             r#"syntax = 'proto3';
 
             message DataItem {}
+            message IOControl {}
+            message RoutineStartRequest{};
+            message RoutineStartResponse{};
+            message RoutineStopRequest{};
+            message RoutineStopResponse{};
+            message RoutineResultRequest{};
+            message RoutineResultResponse{};
             "#,
         );
 
@@ -179,18 +217,22 @@ mod tests {
         ("uds:".to_owned() + message_name).to_string().as_bytes().to_vec()
     }
 
+    fn data_item_declaration(data_item_id: &str) -> DiagnosticsDeclaration {
+        DiagnosticsDeclaration {
+            data_item: vec![DataItem {
+                id: data_item_id.to_string(),
+                message_name: format!(".{}", DATA_ITEM_MESSAGE),
+                ..Default::default()
+            }],
+            ..Default::default()
+        }
+    }
+
     #[googletest::test]
     fn translate_data_item_to_uds() {
         let translator = create_diagnostics_translator(
             "service_fqbn".to_string(),
-            DiagnosticsDeclaration {
-                data_item: vec![DataItem {
-                    id: "data_item_id".to_string(),
-                    message_name: format!(".{}", DATA_ITEM_MESSAGE),
-                    ..Default::default()
-                }],
-                ..Default::default()
-            },
+            data_item_declaration("data_item_id"),
         );
 
         assert_that!(
@@ -207,14 +249,7 @@ mod tests {
     fn translate_data_item_to_protobuf() {
         let translator = create_diagnostics_translator(
             "service_fqbn".to_string(),
-            DiagnosticsDeclaration {
-                data_item: vec![DataItem {
-                    id: "data_item_id".to_string(),
-                    message_name: format!(".{}", DATA_ITEM_MESSAGE),
-                    ..Default::default()
-                }],
-                ..Default::default()
-            },
+            data_item_declaration("data_item_id"),
         );
 
         assert_that!(
@@ -224,6 +259,328 @@ mod tests {
                 &MESSAGE_BYTES[..]
             ),
             matches_pattern!(Ok(eq(proto_bytes_for_message(DATA_ITEM_MESSAGE))))
+        );
+    }
+
+    fn io_control_declaration(io_control_id: &str) -> DiagnosticsDeclaration {
+        DiagnosticsDeclaration {
+            io_control: vec![InputOutputControlData {
+                id: io_control_id.to_string(),
+                message_name: format!(".{}", IO_CONTROL_MESSAGE),
+                ..Default::default()
+            }],
+            ..Default::default()
+        }
+    }
+
+    #[googletest::test]
+    fn translate_io_control_data_to_uds() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            io_control_declaration("io_data"),
+        );
+
+        assert_that!(
+            translator.translate_from_protobuf_to_uds(
+                "service_fqbn",
+                EntityId::InputOutputData("io_data".to_string()),
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(uds_bytes_for_message(IO_CONTROL_MESSAGE))))
+        );
+    }
+
+    #[googletest::test]
+    fn translate_io_control_data_to_protobuf() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            io_control_declaration("io_data"),
+        );
+
+        assert_that!(
+            translator.translate_from_uds_to_protobuf(
+                "service_fqbn",
+                EntityId::InputOutputData("io_data".to_string()),
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(proto_bytes_for_message(IO_CONTROL_MESSAGE))))
+        );
+    }
+
+    fn routine_declaration(routine_id: &str) -> DiagnosticsDeclaration {
+        DiagnosticsDeclaration {
+            routine: vec![Routine {
+                id: routine_id.to_string(),
+                start: MessageField::some(Method {
+                    request: format!(".{}", ROUTINE_START_REQUEST),
+                    response: format!(".{}", ROUTINE_START_RESPONSE),
+                    ..Default::default()
+                }),
+                stop: MessageField::some(Method {
+                    request: format!(".{}", ROUTINE_STOP_REQUEST),
+                    response: format!(".{}", ROUTINE_STOP_RESPONSE),
+                    ..Default::default()
+                }),
+                result: MessageField::some(Method {
+                    request: format!(".{}", ROUTINE_RESULT_REQUEST),
+                    response: format!(".{}", ROUTINE_RESULT_RESPONSE),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }],
+            ..Default::default()
+        }
+    }
+
+    #[googletest::test]
+    fn translate_routine_start_request_to_uds() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            routine_declaration("routine_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_protobuf_to_uds(
+                "service_fqbn",
+                EntityId::Routine {
+                    id: "routine_id".to_string(),
+                    method: RoutineMethod::Start,
+                    message: MethodMessage::Request,
+                },
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_START_REQUEST))))
+        );
+    }
+
+    #[googletest::test]
+    fn translate_routine_start_request_to_protobuf() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            routine_declaration("routine_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_uds_to_protobuf(
+                "service_fqbn",
+                EntityId::Routine {
+                    id: "routine_id".to_string(),
+                    method: RoutineMethod::Start,
+                    message: MethodMessage::Request,
+                },
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_START_REQUEST))))
+        );
+    }
+
+    #[googletest::test]
+    fn translate_routine_start_response_to_uds() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            routine_declaration("routine_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_protobuf_to_uds(
+                "service_fqbn",
+                EntityId::Routine {
+                    id: "routine_id".to_string(),
+                    method: RoutineMethod::Start,
+                    message: MethodMessage::Response,
+                },
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_START_RESPONSE))))
+        );
+    }
+
+    #[googletest::test]
+    fn translate_routine_start_response_to_protobuf() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            routine_declaration("routine_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_uds_to_protobuf(
+                "service_fqbn",
+                EntityId::Routine {
+                    id: "routine_id".to_string(),
+                    method: RoutineMethod::Start,
+                    message: MethodMessage::Response,
+                },
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_START_RESPONSE))))
+        );
+    }
+
+    #[googletest::test]
+    fn translate_routine_stop_request_to_uds() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            routine_declaration("routine_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_protobuf_to_uds(
+                "service_fqbn",
+                EntityId::Routine {
+                    id: "routine_id".to_string(),
+                    method: RoutineMethod::Stop,
+                    message: MethodMessage::Request,
+                },
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_STOP_REQUEST))))
+        );
+    }
+
+    #[googletest::test]
+    fn translate_routine_stop_request_to_protobuf() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            routine_declaration("routine_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_uds_to_protobuf(
+                "service_fqbn",
+                EntityId::Routine {
+                    id: "routine_id".to_string(),
+                    method: RoutineMethod::Stop,
+                    message: MethodMessage::Request,
+                },
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_STOP_REQUEST))))
+        );
+    }
+
+    #[googletest::test]
+    fn translate_routine_stop_response_to_uds() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            routine_declaration("routine_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_protobuf_to_uds(
+                "service_fqbn",
+                EntityId::Routine {
+                    id: "routine_id".to_string(),
+                    method: RoutineMethod::Stop,
+                    message: MethodMessage::Response,
+                },
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_STOP_RESPONSE))))
+        );
+    }
+
+    #[googletest::test]
+    fn translate_routine_stop_response_to_protobuf() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            routine_declaration("routine_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_uds_to_protobuf(
+                "service_fqbn",
+                EntityId::Routine {
+                    id: "routine_id".to_string(),
+                    method: RoutineMethod::Stop,
+                    message: MethodMessage::Response,
+                },
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_STOP_RESPONSE))))
+        );
+    }
+
+    #[googletest::test]
+    fn translate_routine_result_request_to_uds() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            routine_declaration("routine_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_protobuf_to_uds(
+                "service_fqbn",
+                EntityId::Routine {
+                    id: "routine_id".to_string(),
+                    method: RoutineMethod::RequestResult,
+                    message: MethodMessage::Request,
+                },
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_RESULT_REQUEST))))
+        );
+    }
+
+    #[googletest::test]
+    fn translate_routine_result_request_to_protobuf() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            routine_declaration("routine_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_uds_to_protobuf(
+                "service_fqbn",
+                EntityId::Routine {
+                    id: "routine_id".to_string(),
+                    method: RoutineMethod::RequestResult,
+                    message: MethodMessage::Request,
+                },
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_RESULT_REQUEST))))
+        );
+    }
+
+    #[googletest::test]
+    fn translate_routine_result_response_to_uds() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            routine_declaration("routine_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_protobuf_to_uds(
+                "service_fqbn",
+                EntityId::Routine {
+                    id: "routine_id".to_string(),
+                    method: RoutineMethod::RequestResult,
+                    message: MethodMessage::Response,
+                },
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_RESULT_RESPONSE))))
+        );
+    }
+
+    #[googletest::test]
+    fn translate_routine_result_response_to_protobuf() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            routine_declaration("routine_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_uds_to_protobuf(
+                "service_fqbn",
+                EntityId::Routine {
+                    id: "routine_id".to_string(),
+                    method: RoutineMethod::RequestResult,
+                    message: MethodMessage::Response,
+                },
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_RESULT_RESPONSE))))
         );
     }
 
