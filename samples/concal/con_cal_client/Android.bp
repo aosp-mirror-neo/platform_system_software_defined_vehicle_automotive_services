@@ -1,3 +1,9 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
 rust_binary {
     name: "sdv_con_cal_client",
     crate_name: "sdv_con_cal_client",
