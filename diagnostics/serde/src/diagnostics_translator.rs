@@ -109,6 +109,11 @@ impl DiagnosticsTranslator {
                     Response => &routine_method.response,
                 })
                 .map(|message_name| message_name.as_str()),
+            EventExtendedData(id) => declaration
+                .event
+                .iter()
+                .find(|event| &event.id == id)
+                .map(|event| event.extended_data_message_name.as_str()),
         }
     }
 }
@@ -165,6 +170,7 @@ mod tests {
     const ROUTINE_STOP_RESPONSE: &str = "RoutineStopResponse";
     const ROUTINE_RESULT_REQUEST: &str = "RoutineResultRequest";
     const ROUTINE_RESULT_RESPONSE: &str = "RoutineResultResponse";
+    const EVENT_EXTENDED_DATA: &str = "EventExtendedData";
 
     fn create_diagnostics_translator(
         service_fqbn: String,
@@ -181,6 +187,7 @@ mod tests {
             message RoutineStopResponse{};
             message RoutineResultRequest{};
             message RoutineResultResponse{};
+            message EventExtendedData{};
             "#,
         );
 
@@ -581,6 +588,51 @@ mod tests {
                 &MESSAGE_BYTES[..]
             ),
             matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_RESULT_RESPONSE))))
+        );
+    }
+
+    fn event_declaration(event_id: &str) -> DiagnosticsDeclaration {
+        DiagnosticsDeclaration {
+            event: vec![Event {
+                id: event_id.to_string(),
+                extended_data_message_name: format!(".{}", EVENT_EXTENDED_DATA),
+                ..Default::default()
+            }],
+            ..Default::default()
+        }
+    }
+
+    #[googletest::test]
+    fn translate_event_data_to_uds() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            event_declaration("event_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_protobuf_to_uds(
+                "service_fqbn",
+                EntityId::EventExtendedData("event_id".to_string()),
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(uds_bytes_for_message(EVENT_EXTENDED_DATA))))
+        );
+    }
+
+    #[googletest::test]
+    fn translate_event_data_to_protobuf() {
+        let translator = create_diagnostics_translator(
+            "service_fqbn".to_string(),
+            event_declaration("event_id"),
+        );
+
+        assert_that!(
+            translator.translate_from_uds_to_protobuf(
+                "service_fqbn",
+                EntityId::EventExtendedData("event_id".to_string()),
+                &MESSAGE_BYTES[..]
+            ),
+            matches_pattern!(Ok(eq(proto_bytes_for_message(EVENT_EXTENDED_DATA))))
         );
     }
 
