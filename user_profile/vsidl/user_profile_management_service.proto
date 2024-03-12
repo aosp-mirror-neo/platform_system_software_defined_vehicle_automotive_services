@@ -38,6 +38,10 @@ service UserProfileManagementService {
   // The caller must implement an interface ConfigSubscriber containing a method OnConfigChange.
   rpc SubscribeToConfigChange(SubscribeToConfigChangeRequest)
       returns (SubscribeToConfigChangeResponse) {}
+
+  // Unregisters the caller for configuration update notifications.
+  rpc UnsubscribeFromConfigChange(UnsubscribeToConfigChangeRequest)
+      returns (UnsubscribeToConfigChangeResponse) {}
 }
 
 message SelectUserRequest {
@@ -96,4 +100,14 @@ message SubscribeToConfigChangeResponse {
 
   // Error message if request fails.
   Error error = 2;
+}
+
+message UnsubscribeToConfigChangeRequest {
+  // The name of the configuration that a service wants to stop receiving callbacks for.
+  string config_name = 1;
+}
+
+message UnsubscribeToConfigChangeResponse {
+  // Error message if request fails.
+  Error error = 1;
 }
