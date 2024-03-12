@@ -14,6 +14,8 @@ use user_profile_api::user_profile_management_service::SelectUserRequest;
 use user_profile_api::user_profile_management_service::SelectUserResponse;
 use user_profile_api::user_profile_management_service::SubscribeToConfigChangeRequest;
 use user_profile_api::user_profile_management_service::SubscribeToConfigChangeResponse;
+use user_profile_api::user_profile_management_service::UnsubscribeToConfigChangeRequest;
+use user_profile_api::user_profile_management_service::UnsubscribeToConfigChangeResponse;
 
 /// An auto-generated RPC interface.
 pub trait UserProfileManagementService: Send + Sync {
@@ -34,4 +36,9 @@ pub trait UserProfileManagementService: Send + Sync {
         &self,
         request: SubscribeToConfigChangeRequest,
     ) -> RpcResult<SubscribeToConfigChangeResponse>;
+    /// RPC method declared in the interface.
+    fn unsubscribe_from_config_change(
+        &self,
+        request: UnsubscribeToConfigChangeRequest,
+    ) -> RpcResult<UnsubscribeToConfigChangeResponse>;
 }
