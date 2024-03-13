@@ -7,14 +7,8 @@ use crate::interface::UserProfileManagementService;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
-use user_profile_api::user_profile_management_service::GetUserConfigsRequest;
-use user_profile_api::user_profile_management_service::GetUserConfigsResponse;
-use user_profile_api::user_profile_management_service::ListUsersRequest;
-use user_profile_api::user_profile_management_service::ListUsersResponse;
 use user_profile_api::user_profile_management_service::RequestConfigChangeRequest;
 use user_profile_api::user_profile_management_service::RequestConfigChangeResponse;
-use user_profile_api::user_profile_management_service::SelectUserRequest;
-use user_profile_api::user_profile_management_service::SelectUserResponse;
 use user_profile_api::user_profile_management_service::SubscribeToConfigChangeAndGetConfigRequest;
 use user_profile_api::user_profile_management_service::SubscribeToConfigChangeAndGetConfigResponse;
 use user_profile_api::user_profile_management_service::UnsubscribeToConfigChangeRequest;
@@ -35,24 +29,6 @@ impl UserProfileManagementServiceServer {
     /// the underlying RPC transport and calls methods of user provided
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn UserProfileManagementService>) {
-        let callback = service.clone();
-        serve_method::<ListUsersRequest, ListUsersResponse>(
-            Box::new(move |req| callback.list_users(req)),
-            "UserProfileManagementService::list_users",
-            self.transport.as_ref(),
-        );
-        let callback = service.clone();
-        serve_method::<GetUserConfigsRequest, GetUserConfigsResponse>(
-            Box::new(move |req| callback.get_user_configs(req)),
-            "UserProfileManagementService::get_user_configs",
-            self.transport.as_ref(),
-        );
-        let callback = service.clone();
-        serve_method::<SelectUserRequest, SelectUserResponse>(
-            Box::new(move |req| callback.select_user(req)),
-            "UserProfileManagementService::select_user",
-            self.transport.as_ref(),
-        );
         let callback = service.clone();
         serve_method::<RequestConfigChangeRequest, RequestConfigChangeResponse>(
             Box::new(move |req| callback.request_config_change(req)),

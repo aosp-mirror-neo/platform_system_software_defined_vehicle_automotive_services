@@ -7,14 +7,8 @@ use crate::interface::UserProfileManagementService;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;
 use sdvmiddleware_rpc::RpcResult;
-use user_profile_api::user_profile_management_service::GetUserConfigsRequest;
-use user_profile_api::user_profile_management_service::GetUserConfigsResponse;
-use user_profile_api::user_profile_management_service::ListUsersRequest;
-use user_profile_api::user_profile_management_service::ListUsersResponse;
 use user_profile_api::user_profile_management_service::RequestConfigChangeRequest;
 use user_profile_api::user_profile_management_service::RequestConfigChangeResponse;
-use user_profile_api::user_profile_management_service::SelectUserRequest;
-use user_profile_api::user_profile_management_service::SelectUserResponse;
 use user_profile_api::user_profile_management_service::SubscribeToConfigChangeAndGetConfigRequest;
 use user_profile_api::user_profile_management_service::SubscribeToConfigChangeAndGetConfigResponse;
 use user_profile_api::user_profile_management_service::UnsubscribeToConfigChangeRequest;
@@ -33,30 +27,6 @@ impl UserProfileManagementServiceClient {
 }
 
 impl UserProfileManagementService for UserProfileManagementServiceClient {
-    fn list_users(&self, request: ListUsersRequest) -> RpcResult<ListUsersResponse> {
-        call_method::<ListUsersRequest, ListUsersResponse>(
-            self.transport.as_ref(),
-            "UserProfileManagementService::list_users",
-            &request,
-        )
-    }
-    fn get_user_configs(
-        &self,
-        request: GetUserConfigsRequest,
-    ) -> RpcResult<GetUserConfigsResponse> {
-        call_method::<GetUserConfigsRequest, GetUserConfigsResponse>(
-            self.transport.as_ref(),
-            "UserProfileManagementService::get_user_configs",
-            &request,
-        )
-    }
-    fn select_user(&self, request: SelectUserRequest) -> RpcResult<SelectUserResponse> {
-        call_method::<SelectUserRequest, SelectUserResponse>(
-            self.transport.as_ref(),
-            "UserProfileManagementService::select_user",
-            &request,
-        )
-    }
     fn request_config_change(
         &self,
         request: RequestConfigChangeRequest,

@@ -4,14 +4,8 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use sdvmiddleware_rpc::RpcResult;
-use user_profile_api::user_profile_management_service::GetUserConfigsRequest;
-use user_profile_api::user_profile_management_service::GetUserConfigsResponse;
-use user_profile_api::user_profile_management_service::ListUsersRequest;
-use user_profile_api::user_profile_management_service::ListUsersResponse;
 use user_profile_api::user_profile_management_service::RequestConfigChangeRequest;
 use user_profile_api::user_profile_management_service::RequestConfigChangeResponse;
-use user_profile_api::user_profile_management_service::SelectUserRequest;
-use user_profile_api::user_profile_management_service::SelectUserResponse;
 use user_profile_api::user_profile_management_service::SubscribeToConfigChangeAndGetConfigRequest;
 use user_profile_api::user_profile_management_service::SubscribeToConfigChangeAndGetConfigResponse;
 use user_profile_api::user_profile_management_service::UnsubscribeToConfigChangeRequest;
@@ -19,13 +13,6 @@ use user_profile_api::user_profile_management_service::UnsubscribeToConfigChange
 
 /// An auto-generated RPC interface.
 pub trait UserProfileManagementService: Send + Sync {
-    /// RPC method declared in the interface.
-    fn list_users(&self, request: ListUsersRequest) -> RpcResult<ListUsersResponse>;
-    /// RPC method declared in the interface.
-    fn get_user_configs(&self, request: GetUserConfigsRequest)
-        -> RpcResult<GetUserConfigsResponse>;
-    /// RPC method declared in the interface.
-    fn select_user(&self, request: SelectUserRequest) -> RpcResult<SelectUserResponse>;
     /// RPC method declared in the interface.
     fn request_config_change(
         &self,
