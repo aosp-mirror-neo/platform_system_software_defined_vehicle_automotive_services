@@ -5,7 +5,9 @@ use sdvgenerated::user_profile_management_service_interface::UserProfileManageme
 use sdvgenerated::user_profile_registry_service_interface::UserProfileRegistryService;
 use sdvgenerated_rpc_user_controllable_service::client::UserControllableServiceClient;
 use sdvgenerated_rpc_user_controllable_service::interface::UserControllableService;
+use sdvgenerated_rpc_user_profile_view::interface::UserProfileView;
 
+use sdvgenerated_rpc_user_profile_view::client::UserProfileViewClient;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 
 use user_profile_api::configuration::Configuration;
@@ -25,6 +27,7 @@ use sdvmiddleware_rpc::RpcResult;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::vec::Vec;
+use user_profile_api::user_profile_view::OnConfigChangeRequest;
 
 use user_profile_api::user_controllable_service;
 
@@ -43,6 +46,7 @@ pub struct UserProfileServiceImpl {
     vehicle_state: Mutex<Configurations>,
     user_profiles: Mutex<Profiles>,
     active_profile: Mutex<Option<u64>>,
+    config_subscribers: Mutex<HashMap<String, Vec<String>>>,
 }
 
 impl UserProfileServiceImpl {
@@ -52,10 +56,15 @@ impl UserProfileServiceImpl {
             vehicle_state: Mutex::new(HashMap::new()),
             user_profiles: Mutex::new(Profiles::new()),
             active_profile: Mutex::new(None),
+            config_subscribers: Mutex::new(HashMap::new()),
         }
     }
 
     fn apply_config(config_name: String, settings: Vec<setting::Setting>) -> Result<(), String> {
+        // Ideally the client should be created via the get_user_controllable_service_client method
+        // that is present in the UserProfileServer, for now manually create it since the rust
+        // compiler cannot determine the correctness of the program if UserProfileServiceImpl & UserProfileServer
+        // have references to each other
         let client: UserControllableServiceClient = UserControllableServiceClient::new(Box::new(
             GrpcClientTransport::new("HvacService::user_controllable_service"),
         ));
@@ -77,6 +86,28 @@ impl UserProfileServiceImpl {
         match resp.error.is_some() {
             true => Err(format!("Failed to request config changes: {}", resp.error.unwrap())),
             false => Ok(()),
+        }
+    }
+
+    fn notify_subscribers(config: &str, setting: &[Setting], subscribers: &[String]) {
+        // Ideally the client should be created via the get_user_controllable_service_client method
+        // that is present in the UserProfileServer, for now manually create it since the rust
+        // compiler cannot determine the correctness of the program if UserProfileServiceImpl & UserProfileServer
+        // have references to each other
+        for subscriber in subscribers {
+            let client = UserProfileViewClient::new(Box::new(GrpcClientTransport::new(subscriber)));
+
+            println!("Notifying {} of config change\n", subscriber);
+            client
+                .on_config_change(OnConfigChangeRequest {
+                    config: MessageField::some(Configuration {
+                        config_name: config.to_string(),
+                        settings: setting.to_vec(),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                })
+                .expect("Failed to notify clients of config changes");
         }
     }
 }
@@ -239,11 +270,19 @@ impl UserProfileManagementService for UserProfileServiceImpl {
         &self,
         request: SubscribeToConfigChangeAndGetConfigRequest,
     ) -> RpcResult<SubscribeToConfigChangeAndGetConfigResponse> {
-        //TODO: Once middleware exposes the identity of the caller, we need to
-        //register their identity. For now we will rely on a client that is hardcoded to call a specific service bundle
         let vehicle_state = acquire_lock_or_return_err!(
             self.vehicle_state,
             SubscribeToConfigChangeAndGetConfigResponse
+        );
+        let mut config_subscribers = acquire_lock_or_return_err!(
+            self.config_subscribers,
+            SubscribeToConfigChangeAndGetConfigResponse
+        );
+        //TODO: Once middleware exposes the identity of the caller, we need to
+        //register their identity. For now we will rely on a client that is hardcoded to call a specific service bundle
+        config_subscribers.insert(
+            request.config_name.clone(),
+            vec![String::from("HmiService::user_profile_view")],
         );
 
         if let Some(settings) = vehicle_state.get(&request.config_name) {
@@ -326,6 +365,8 @@ impl UserProfileRegistryService for UserProfileServiceImpl {
     fn update_config(&self, request: UpdateConfigRequest) -> RpcResult<UpdateConfigResponse> {
         let mut vehicle_state =
             acquire_lock_or_return_err!(self.vehicle_state, UpdateConfigResponse);
+        let config_subscribers =
+            acquire_lock_or_return_err!(self.config_subscribers, UpdateConfigResponse);
 
         let service_config: &mut Settings = match vehicle_state.get_mut(&request.config_name) {
             Some(x) => x,
@@ -372,6 +413,12 @@ impl UserProfileRegistryService for UserProfileServiceImpl {
                 current_config.insert(x.key, new_value);
             });
         }
+
+        Self::notify_subscribers(
+            &request.config_name,
+            &request.settings,
+            config_subscribers.get(&request.config_name).unwrap_or(&vec![]),
+        );
 
         Ok(UpdateConfigResponse::new())
     }

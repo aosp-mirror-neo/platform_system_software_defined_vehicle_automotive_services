@@ -16,8 +16,6 @@ vsidl_code_generator \
 
 ## Running the sample
 
-**Please note the samples are still under active development and should not be tested yet**
-
 1. Launch Cuttlefish
 
     ```bash
@@ -51,6 +49,39 @@ vsidl_code_generator \
     ```
 
 ### Expected output
+
+#### HMI Service output
+
+The HMI service perform the following steps:
+    1. Create a user profile with ID 1 and switch to it
+    2. Subscribe to changes in the HVAC config
+    3. Change the TEMPERATURE from 16 to 32
+    4. Create a user profile with ID 2 and switch to it, therefore temperature will return to the profile's default 16.
+
+Creating a user profile
+Successfully created profile with ID 1
+
+Current HVAC configuration
+Key FAN_SPEED       Value Int64(1)
+Key TEMPERATURE     Value Int64(16)
+Key ENABLED         Value Bool(false)
+
+
+
+Adjusting HVAC temperature to 32
+Recieved config change notification HVAC
+Key TEMPERATURE     Value Int64(32)
+
+
+
+Creating another user profile
+Successfully created profile with ID 2
+Switched to profile 2
+Recieved config change notification HVAC
+Key ENABLED         Value Bool(false)
+Key FAN_SPEED       Value Int64(1)
+Key TEMPERATURE     Value Int64(16)
+```
 
 #### HVAC Service Output
 
@@ -137,28 +168,4 @@ Updated the following settings
 Key ENABLED         Value Bool(false)
 Key FAN_SPEED       Value Int64(1)
 Key TEMPERATURE     Value Int64(16)
-```
-
-#### HMI Service output
-
-The HMI service perform the following steps:
-    1. Create a user profile with ID 1 and switch to it
-    2. Change a TEMPERATURE from 16 to 32
-    3. Subscribe to changes in the HVAC config
-    4. Create a user profile with ID 2 and switch to it
-
-``bash
-Creating a user profile
-Successfully created profile with ID 1
-
-Current HVAC configuration
-Key FAN_SPEED       Value Int64(1)
-Key TEMPERATURE     Value Int64(32)
-Key ENABLED         Value Bool(false)
-
-
-
-Creating another user profile
-Successfully created profile with ID 2
-Switched to profile 2
 ```
