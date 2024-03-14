@@ -23,6 +23,11 @@ service UserProfileAdminService {
   // Returns an error if the profile already exists or could not be created.
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
 
+  // Selects the active user and applies their configuration. If a UserControllableService rejects a
+  // change, the user's profile will be updated to match the current configuration.
+  // Returns an error if the profile does not exist or could not be loaded.
+  rpc SelectUser(SelectUserRequest) returns (SelectUserResponse) {}
+
   // Deletes a profile.
   // Returns an error if the profile could not be deleted or does not exist.
   rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {}
@@ -31,6 +36,12 @@ service UserProfileAdminService {
   // switches to the guest profile.
   // Returns an error if the reset process failed.
   rpc FactoryReset(FactoryResetRequest) returns (FactoryResetResponse) {}
+
+  // Returns a list of users stored within the User Profile.
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
+
+  // Returns configuration for given user profile or an error if the profile doesn't exist.
+  rpc GetUserConfigs(GetUserConfigsRequest) returns (GetUserConfigsResponse) {}
 }
 
 message CreateUserRequest {
@@ -43,6 +54,16 @@ message CreateUserRequest {
 
 message CreateUserResponse {
   // Error message if the profile could not be created.
+  Error error = 1;
+}
+
+message SelectUserRequest {
+  // The ID of the profile that should be loaded.
+  uint64 user_id = 1;
+}
+
+message SelectUserResponse {
+  // Error message if request fails.
   Error error = 1;
 }
 
@@ -61,4 +82,25 @@ message FactoryResetRequest {}
 message FactoryResetResponse {
   // Error message if request fails.
   Error error = 1;
+}
+
+message ListUsersRequest {}
+
+message ListUsersResponse {
+  // The list of users
+  repeated User users = 1;
+  // Error message if request fails.
+  Error error = 2;
+}
+
+message GetUserConfigsRequest {
+  // The ID of the profile that should be retrieved
+  uint64 user_id = 1;
+}
+
+message GetUserConfigsResponse {
+  // The list of configurations stored in a profile
+  repeated Configuration configs = 1;
+  // Error message if request fails.
+  Error error = 2;
 }

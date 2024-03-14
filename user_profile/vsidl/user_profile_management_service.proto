@@ -16,17 +16,6 @@ import "error.proto";
 import "user.proto";
 
 service UserProfileManagementService {
-  // Returns a list of users stored within the User Profile.
-  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
-
-  // Returns configuration for given user profile or an error if the profile doesn't exist.
-  rpc GetUserConfigs(GetUserConfigsRequest) returns (GetUserConfigsResponse) {}
-
-  // Selects the active user and applies their configuration. If a UserControllableService rejects a
-  // change, the user's profile will be updated to match the current configuration.
-  // Returns an error if the profile does not exist or could not be loaded.
-  rpc SelectUser(SelectUserRequest) returns (SelectUserResponse) {}
-
   // Requests the change in the current user profile for the given service.
   // There are no guarantees that the changes will be applied since services owning the
   // settings may reject the request. The request returns once the request has been received as
@@ -42,37 +31,6 @@ service UserProfileManagementService {
   // Unregisters the caller for configuration update notifications.
   rpc UnsubscribeFromConfigChange(UnsubscribeToConfigChangeRequest)
       returns (UnsubscribeToConfigChangeResponse) {}
-}
-
-message SelectUserRequest {
-  // The ID of the profile that should be loaded.
-  uint64 user_id = 1;
-}
-
-message SelectUserResponse {
-  // Error message if request fails.
-  Error error = 1;
-}
-
-message ListUsersRequest {}
-
-message ListUsersResponse {
-  // The list of users
-  repeated User users = 1;
-  // Error message if request fails.
-  Error error = 2;
-}
-
-message GetUserConfigsRequest {
-  // The ID of the profile that should be retrieved
-  uint64 user_id = 1;
-}
-
-message GetUserConfigsResponse {
-  // The list of configurations stored in a profile
-  repeated Configuration configs = 1;
-  // Error message if request fails.
-  Error error = 2;
 }
 
 message RequestConfigChangeRequest {

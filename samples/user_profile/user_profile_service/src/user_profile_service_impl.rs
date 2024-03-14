@@ -11,6 +11,7 @@ use user_profile_api::user_profile_registry_service::{
 use user_profile_api::error::{Error, ResponseCode};
 use user_profile_api::setting::setting::Value;
 use user_profile_api::setting::Setting;
+use user_profile_api::setting::SettingAndConstraints;
 use user_profile_api::user_profile_admin_service::*;
 use user_profile_api::user_profile_management_service::*;
 use user_profile_api::user_profile_registry_service::{UpdateConfigRequest, UpdateConfigResponse};
@@ -85,17 +86,15 @@ impl UserProfileAdminService for UserProfileServiceImpl {
         Ok(CreateUserResponse::new())
     }
 
+    fn select_user(&self, _request: SelectUserRequest) -> RpcResult<SelectUserResponse> {
+        todo!()
+    }
+
     fn delete_user(&self, _request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
         todo!()
     }
 
     fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
-        todo!()
-    }
-}
-
-impl UserProfileManagementService for UserProfileServiceImpl {
-    fn select_user(&self, _request: SelectUserRequest) -> RpcResult<SelectUserResponse> {
         todo!()
     }
 
@@ -109,7 +108,9 @@ impl UserProfileManagementService for UserProfileServiceImpl {
     ) -> RpcResult<GetUserConfigsResponse> {
         todo!()
     }
+}
 
+impl UserProfileManagementService for UserProfileServiceImpl {
     fn request_config_change(
         &self,
         _request: RequestConfigChangeRequest,
