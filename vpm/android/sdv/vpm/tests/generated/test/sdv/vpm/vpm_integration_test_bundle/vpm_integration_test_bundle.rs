@@ -84,9 +84,10 @@ impl VpmIntegrationTestBundle {
         let builder = thread::Builder::new().name("dt_subscription_loop".into());
         let subscriptions = self.subscriptions.clone();
         let callbacks = self.callbacks.clone();
-        match builder.spawn(move || {
+        let res = builder.spawn(move || {
             Self::poll_subscriptions(subscriptions, callbacks);
-        }) {
+        });
+        match res {
             Ok(handle) => self.subscription_thread_handle = Some(handle),
             Err(e) => {
                 error!("Thread spawn failed: {:?}", e);
