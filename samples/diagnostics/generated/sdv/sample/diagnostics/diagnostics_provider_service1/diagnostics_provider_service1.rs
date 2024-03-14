@@ -3,6 +3,7 @@
     dead_code,
     missing_docs,
     unused_variables,
+    clippy::blocks_in_conditions,
     clippy::extra_unused_lifetimes,
     clippy::derivable_impls,
     clippy::new_without_default
@@ -32,17 +33,21 @@ pub struct DiagnosticsProviderService1 {
     event_publisher: DataTunnelPublisher<publisher::EventTopics>,
 
     pub data_item_server: DataItemServer,
+
+    pub diagnostics: crate::extensions::diagnostics::Diagnostics,
 }
 
 impl DiagnosticsProviderService1 {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         DiagnosticsProviderService1 {
-            event_publisher: DataTunnelPublisher::new(137),
+            event_publisher: DataTunnelPublisher::new(143),
 
             data_item_server: DataItemServer::new(GrpcServerTransport::new(
                 "DiagnosticsProviderService1",
             )),
+
+            diagnostics: crate::extensions::diagnostics::Diagnostics::new(),
         }
     }
 
@@ -50,6 +55,7 @@ impl DiagnosticsProviderService1 {
     /// in the vehicle catalog for this service bundle
     pub fn start(&mut self) -> sdv_middleware_pubsub::Result<()> {
         self.register_all_topics()?;
+        self.start_all_extensions()?;
 
         info!("Service `DiagnosticsProviderService1` has been started.");
         Ok(())
@@ -61,22 +67,29 @@ impl DiagnosticsProviderService1 {
         Ok(())
     }
 
+    fn start_all_extensions(&mut self) -> sdv_middleware_pubsub::Result<()> {
+        self.diagnostics.start()?;
+
+        Ok(())
+    }
+
     pub fn event_publish(
         &mut self,
         topic: &publisher::EventTopics,
         message: &Event,
     ) -> sdv_middleware_pubsub::Result<()> {
         use protobuf::Message;
+        use sdvmiddleware_common::size_utils::LenOf;
         let computed_message_size = message.compute_size();
-        if computed_message_size > 137 {
+        if computed_message_size > 143 {
             let mut error_message = String::new();
             error_message += format!("Message size is bigger than defined maximum for this message. Current size: {computed_message_size}\n").as_str();
             error_message += "Found the following violations\n";
-            if message.extended_data.len() > 64 {
-                error_message += "extended_data field exceeded maximum defined size 64 in bytes\n";
-            }
-            if message.id.len() > 64 {
+            if message.id.len_of() > 64 {
                 error_message += "id field exceeded maximum defined size 64 in bytes\n";
+            }
+            if message.extended_data.len_of() > 64 {
+                error_message += "extended_data field exceeded maximum defined size 64 in bytes\n";
             }
 
             return Err(sdv_middleware_pubsub::error::Error::MessageMaxSizeViolation(
