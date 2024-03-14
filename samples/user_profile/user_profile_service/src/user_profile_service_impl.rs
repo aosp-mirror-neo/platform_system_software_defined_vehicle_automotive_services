@@ -117,17 +117,19 @@ impl UserProfileManagementService for UserProfileServiceImpl {
         todo!()
     }
 
-    fn subscribe_to_config_change(
+    fn subscribe_to_config_change_and_get_config(
         &self,
-        request: SubscribeToConfigChangeRequest,
-    ) -> RpcResult<SubscribeToConfigChangeResponse> {
+        request: SubscribeToConfigChangeAndGetConfigRequest,
+    ) -> RpcResult<SubscribeToConfigChangeAndGetConfigResponse> {
         //TODO: Once middleware exposes the identity of the caller, we need to
         //register their identity. For now we will rely on a client that is hardcoded to call a specific service bundle
-        let vehicle_state =
-            acquire_lock_or_return_err!(self.vehicle_state, SubscribeToConfigChangeResponse);
+        let vehicle_state = acquire_lock_or_return_err!(
+            self.vehicle_state,
+            SubscribeToConfigChangeAndGetConfigResponse
+        );
 
         if let Some(settings) = vehicle_state.get(&request.config_name) {
-            let mut result = SubscribeToConfigChangeResponse::new();
+            let mut result = SubscribeToConfigChangeAndGetConfigResponse::new();
             result.config = MessageField::some(Configuration {
                 config_name: request.config_name.clone(),
                 settings: settings
@@ -148,7 +150,7 @@ impl UserProfileManagementService for UserProfileServiceImpl {
         println!("Received request to subscribe to non existent config: {:?}", request.config_name);
 
         error_response!(
-            SubscribeToConfigChangeResponse,
+            SubscribeToConfigChangeAndGetConfigResponse,
             ResponseCode::INVALID_REQUEST,
             "Config {:?} does not exist",
             request.config_name
@@ -169,7 +171,8 @@ impl UserProfileRegistryService for UserProfileServiceImpl {
         let mut vehicle_state =
             acquire_lock_or_return_err!(self.vehicle_state, RegisterConfigResponse);
 
-        let new_config_metadata = ConfigMetadata::new(request.version, request.settings.clone());
+        let new_config_metadata =
+            ConfigMetadata::new(request.version, request.settings_definitions.clone());
 
         if !defaults.contains_key(&request.config_name)
             || defaults.get(&request.config_name).unwrap().version()
@@ -181,8 +184,11 @@ impl UserProfileRegistryService for UserProfileServiceImpl {
             // Also register the settings in the vehicle state
             let service_config =
                 vehicle_state.entry(request.config_name.clone()).or_insert(HashMap::new());
-            request.settings.iter().cloned().for_each(|setting_definition| {
-                let setting = setting_definition.setting.unwrap();
+
+            request.settings_definitions.iter().cloned().for_each(|setting_definition| {
+                let setting_and_constraints = setting_definition.setting_and_constaints.unwrap();
+                let setting = setting_and_constraints.setting.unwrap();
+
                 service_config.entry(setting.key).or_insert(setting.value.unwrap());
             });
         } else {

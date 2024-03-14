@@ -15,8 +15,8 @@ use user_profile_api::user_profile_management_service::RequestConfigChangeReques
 use user_profile_api::user_profile_management_service::RequestConfigChangeResponse;
 use user_profile_api::user_profile_management_service::SelectUserRequest;
 use user_profile_api::user_profile_management_service::SelectUserResponse;
-use user_profile_api::user_profile_management_service::SubscribeToConfigChangeRequest;
-use user_profile_api::user_profile_management_service::SubscribeToConfigChangeResponse;
+use user_profile_api::user_profile_management_service::SubscribeToConfigChangeAndGetConfigRequest;
+use user_profile_api::user_profile_management_service::SubscribeToConfigChangeAndGetConfigResponse;
 use user_profile_api::user_profile_management_service::UnsubscribeToConfigChangeRequest;
 use user_profile_api::user_profile_management_service::UnsubscribeToConfigChangeResponse;
 
@@ -67,13 +67,16 @@ impl UserProfileManagementService for UserProfileManagementServiceClient {
             &request,
         )
     }
-    fn subscribe_to_config_change(
+    fn subscribe_to_config_change_and_get_config(
         &self,
-        request: SubscribeToConfigChangeRequest,
-    ) -> RpcResult<SubscribeToConfigChangeResponse> {
-        call_method::<SubscribeToConfigChangeRequest, SubscribeToConfigChangeResponse>(
+        request: SubscribeToConfigChangeAndGetConfigRequest,
+    ) -> RpcResult<SubscribeToConfigChangeAndGetConfigResponse> {
+        call_method::<
+            SubscribeToConfigChangeAndGetConfigRequest,
+            SubscribeToConfigChangeAndGetConfigResponse,
+        >(
             self.transport.as_ref(),
-            "UserProfileManagementService::subscribe_to_config_change",
+            "UserProfileManagementService::subscribe_to_config_change_and_get_config",
             &request,
         )
     }

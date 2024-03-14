@@ -1,5 +1,5 @@
 // Copyright 2024 Google LLC
-#![allow(missing_docs, dead_code)]
+#![allow(missing_docs, dead_code, unused_mut, unused_variables, unused_imports)]
 
 mod config_metadata;
 mod macros;
@@ -16,7 +16,10 @@ fn main() {
     service
         .user_profile_registry_service_server
         .register_service_interface(user_profile_impl.clone());
-    service.user_profile_management_service_server.register_service_interface(user_profile_impl);
+    service.user_profile_admin_service_server.register_service_interface(user_profile_impl.clone());
+    service
+        .user_profile_management_service_server
+        .register_service_interface(user_profile_impl.clone());
 
     println!("UserProfileServer service bundle started.");
     loop {

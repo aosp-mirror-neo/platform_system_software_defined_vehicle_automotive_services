@@ -28,7 +28,7 @@ message RegisterConfigRequest {
   string version = 2;
 
   // The list of settings which the configuration consists of.
-  repeated SettingDefinition settings = 3;
+  repeated SettingDefinition settings_definitions = 3;
 }
 
 message RegisterConfigResponse {
@@ -57,19 +57,3 @@ message UpdateConfigResponse {
   // Error message if request fails.
   Error error = 1;
 }
-
-message SettingDefinition {
-  // Required.
-  // Determines whether a setting is global or stored on a per user basis.
-  SettingKind type = 1;
-
-  // Required.
-  Setting setting = 2;
-}
-
-enum SettingKind {
-  // A setting which is applied for all vehicle users.
-  SHARED = 0;
-  // Store the value of the setting for each vehicle user separately.
-  PER_USER = 1;
-};

@@ -18,8 +18,66 @@ message Setting {
   oneof value {
     bool bool = 2;
     float float = 3;
-    uint64 int = 4;
-    string str = 5;
+    int32 int32 = 4;
+    int64 int64 = 5;
     bytes blob = 6;
+    int32 enum = 7;
   }
+}
+
+// The definition of a setting, along with its properties such as type and constraints
+message SettingDefinition {
+  // Required.
+  // Determines whether a setting is global or stored on a per user basis.
+  SettingKind type = 1;
+
+  // Required.
+  SettingAndConstraints setting_and_constaints = 2;
+}
+
+enum SettingKind {
+  // A setting which is applied for all vehicle users.
+  SHARED = 0;
+  // Store the value of the setting for each vehicle user separately.
+  PER_USER = 1;
+};
+
+message SettingAndConstraints {
+  // Required
+  Setting setting = 1;
+
+  // Required.
+  // New value of the setting.
+  oneof constraints {
+    FloatConstraints float_constraints = 2;
+    Int32Constraints int32_constraints = 3;
+    Int64Constraints int64_constraints = 4;
+    BytesConstraints blob_constraints = 5;
+    EnumConstraints enum_constraints = 6;
+  }
+}
+
+message Int32Constraints {
+  optional int32 min_value = 1;
+  optional int32 max_value = 2;
+  optional int32 step = 3;
+}
+
+message Int64Constraints {
+  optional int64 min_value = 1;
+  optional int64 max_value = 2;
+  optional int64 step = 3;
+}
+
+message FloatConstraints {
+  optional float min_value = 1;
+  optional float max_value = 2;
+  optional float step = 3;
+}
+
+message BytesConstraints {}
+
+message EnumConstraints {
+  // List of unique values sorted in ascending order.
+  repeated int32 possible_values = 1;
 }

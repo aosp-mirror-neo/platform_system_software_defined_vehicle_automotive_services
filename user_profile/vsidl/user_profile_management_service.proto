@@ -34,10 +34,10 @@ service UserProfileManagementService {
   // to listen to request rejections or changes to configuration.
   rpc RequestConfigChange(RequestConfigChangeRequest) returns (RequestConfigChangeResponse) {}
 
-  // Registers the caller for configuration update notifications.
+  // Registers the caller for configuration update notifications and returns the configuration.
   // The caller must implement an interface ConfigSubscriber containing a method OnConfigChange.
-  rpc SubscribeToConfigChange(SubscribeToConfigChangeRequest)
-      returns (SubscribeToConfigChangeResponse) {}
+  rpc SubscribeToConfigChangeAndGetConfig(SubscribeToConfigChangeAndGetConfigRequest)
+      returns (SubscribeToConfigChangeAndGetConfigResponse) {}
 
   // Unregisters the caller for configuration update notifications.
   rpc UnsubscribeFromConfigChange(UnsubscribeToConfigChangeRequest)
@@ -88,13 +88,13 @@ message RequestConfigChangeResponse {
   Error error = 1;
 }
 
-message SubscribeToConfigChangeRequest {
+message SubscribeToConfigChangeAndGetConfigRequest {
   // The name of the configuration that a service wants to receive callbacks for
   // when it is updated.
   string config_name = 1;
 }
 
-message SubscribeToConfigChangeResponse {
+message SubscribeToConfigChangeAndGetConfigResponse {
   // The current value of the configuration which a service has subscribed too.
   Configuration config = 1;
 
