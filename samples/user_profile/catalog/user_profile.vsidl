@@ -6,7 +6,7 @@ package: "sdv.user_profile"
 
 sdv_service_bundle {
     name: "HVACService"
-    server: "sdv.user_profile.UserControllableService"
+    server: "sdv.user_profile.user_controllable.UserControllableService"
     client: "sdv.user_profile.UserProfileRegistryService"
 }
 

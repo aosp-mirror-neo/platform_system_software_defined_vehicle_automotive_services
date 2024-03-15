@@ -12,7 +12,11 @@ rust_binary {
         "libsdvmiddleware_rpc",
         "libitertools",
         "librand",
+        "libuser_profile_utils",
         "libprotobuf_parse",
+        "libsdvmiddleware_rpc_grpc_transport",
+        "libsdvgenerated_rpc_user_controllable_service",
+
     ],
     vendor: true,
 }

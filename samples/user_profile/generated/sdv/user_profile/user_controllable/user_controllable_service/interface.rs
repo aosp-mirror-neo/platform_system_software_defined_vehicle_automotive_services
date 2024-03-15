@@ -4,10 +4,10 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use sdvmiddleware_rpc::RpcResult;
-use user_profile_api::user_profile_admin_service::FactoryResetRequest;
-use user_profile_api::user_profile_admin_service::FactoryResetResponse;
-use user_profile_api::user_profile_management_service::RequestConfigChangeRequest;
-use user_profile_api::user_profile_management_service::RequestConfigChangeResponse;
+use user_profile_api::user_controllable_service::FactoryResetRequest;
+use user_profile_api::user_controllable_service::FactoryResetResponse;
+use user_profile_api::user_controllable_service::RequestConfigChangeRequest;
+use user_profile_api::user_controllable_service::RequestConfigChangeResponse;
 
 /// An auto-generated RPC interface.
 pub trait UserControllableService: Send + Sync {

@@ -15,4 +15,8 @@ impl ConfigMetadata {
     pub fn version(&self) -> &String {
         &self.version
     }
+
+    pub fn settings_definition(&self) -> &Vec<SettingDefinition> {
+        &self.settings_definition
+    }
 }

@@ -15,6 +15,7 @@ rust_binary {
         "libitertools",
         "librand",
         "libprotobuf_parse",
+        "libuser_profile_utils",
     ],
     vendor: true,
 }
