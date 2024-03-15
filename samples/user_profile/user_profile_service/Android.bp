@@ -16,7 +16,7 @@ rust_binary {
         "libprotobuf_parse",
         "libsdvmiddleware_rpc_grpc_transport",
         "libsdvgenerated_rpc_user_controllable_service",
-
+        "libsdvgenerated_rpc_user_profile_view",
     ],
     vendor: true,
 }

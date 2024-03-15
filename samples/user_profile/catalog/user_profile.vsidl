@@ -15,6 +15,8 @@ sdv_service_bundle {
     server: "sdv.user_profile.UserProfileAdminService"
     server: "sdv.user_profile.UserProfileManagementService"
     server: "sdv.user_profile.UserProfileRegistryService"
+    client: "sdv.user_profile.UserProfileView"
+    client: "sdv.user_profile.user_controllable.UserControllableService"
 }
 
 sdv_service_bundle {

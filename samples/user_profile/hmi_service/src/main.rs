@@ -1,6 +1,10 @@
 // Copyright 2024 Google LLC
 #![allow(missing_docs)]
 
+mod hmi_service_impl;
+
+use std::sync::Arc;
+
 use protobuf::{Enum, MessageField};
 use sdvgenerated::hmi_service::HmiService;
 use sdvgenerated::user_profile_admin_service_interface::UserProfileAdminService;
@@ -15,13 +19,17 @@ use user_profile_api::{
     user_profile_management_service::SubscribeToConfigChangeAndGetConfigRequest,
 };
 
+use hmi_service_impl::HmiServiceImpl;
 use user_profile_utils::print_settings;
 
 pub const CONFIG_NAME: &str = "HVAC";
 pub const TEMPERATURE: &str = "TEMPERATURE";
 
 fn main() {
+    let hmi_service_impl = Arc::new(HmiServiceImpl::new());
     let hmi_service = HmiService::new();
+    hmi_service.user_profile_view_server.register_service_interface(hmi_service_impl);
+
     let user_profile_admin_client =
         hmi_service.get_user_profile_admin_service_client("UserProfileServer");
     let user_profile_management_client =
@@ -56,6 +64,19 @@ fn main() {
     std::thread::sleep(std::time::Duration::from_secs(5));
 
     let response = user_profile_management_client
+        .subscribe_to_config_change_and_get_config(SubscribeToConfigChangeAndGetConfigRequest {
+            config_name: "HVAC".to_string(),
+            ..Default::default()
+        })
+        .expect("Failed to perform GRPC request to subscribe to configuration changes");
+    if response.error.is_some() {
+        panic!("Failed to subscribe to configuration change: {:?}", response.error.unwrap());
+    }
+    println!("Current HVAC configuration");
+    print_settings(&response.config.unwrap().settings);
+
+    println!("Adjusting HVAC temperature to 32");
+    let response = user_profile_management_client
         .request_config_change(RequestConfigChangeRequest {
             config_name: CONFIG_NAME.to_string(),
             settings: vec![Setting {
@@ -72,18 +93,6 @@ fn main() {
 
     // HVAC requires 3 seconds to make the change, lets wait for 5 seconds before changing the profile
     std::thread::sleep(std::time::Duration::from_secs(5));
-
-    let response = user_profile_management_client
-        .subscribe_to_config_change_and_get_config(SubscribeToConfigChangeAndGetConfigRequest {
-            config_name: "HVAC".to_string(),
-            ..Default::default()
-        })
-        .expect("Failed to perform GRPC request to subscribe to configuration changes");
-    if response.error.is_some() {
-        panic!("Failed to subscribe to configuration change: {:?}", response.error.unwrap());
-    }
-    println!("Current HVAC configuration");
-    print_settings(&response.config.unwrap().settings);
 
     println!("Creating another user profile");
     let profile_id_2 = 2;
@@ -111,4 +120,8 @@ fn main() {
     }
 
     println!("Switched to profile {}", profile_id_2);
+
+    loop {
+        std::thread::park()
+    }
 }
