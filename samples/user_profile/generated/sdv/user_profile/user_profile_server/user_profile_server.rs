@@ -17,9 +17,12 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
+use sdvgenerated_rpc_user_controllable_service::client::UserControllableServiceClient;
 use sdvgenerated_rpc_user_profile_admin_service::server::UserProfileAdminServiceServer;
 use sdvgenerated_rpc_user_profile_management_service::server::UserProfileManagementServiceServer;
 use sdvgenerated_rpc_user_profile_registry_service::server::UserProfileRegistryServiceServer;
+use sdvgenerated_rpc_user_profile_view::client::UserProfileViewClient;
+use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -30,23 +33,33 @@ pub struct UserProfileServerCallbacks {}
 struct Subscriptions {}
 
 pub struct UserProfileServer {
+    pub user_profile_registry_service_server: UserProfileRegistryServiceServer,
     pub user_profile_admin_service_server: UserProfileAdminServiceServer,
     pub user_profile_management_service_server: UserProfileManagementServiceServer,
-    pub user_profile_registry_service_server: UserProfileRegistryServiceServer,
+
+    user_profile_view_clients:
+        parking_lot::RwLock<std::collections::HashMap<String, Arc<UserProfileViewClient>>>,
+    user_controllable_service_clients:
+        parking_lot::RwLock<std::collections::HashMap<String, Arc<UserControllableServiceClient>>>,
 }
 
 impl UserProfileServer {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         UserProfileServer {
+            user_profile_registry_service_server: UserProfileRegistryServiceServer::new(
+                GrpcServerTransport::new("UserProfileServer::user_profile_registry_service"),
+            ),
             user_profile_admin_service_server: UserProfileAdminServiceServer::new(
                 GrpcServerTransport::new("UserProfileServer::user_profile_admin_service"),
             ),
             user_profile_management_service_server: UserProfileManagementServiceServer::new(
                 GrpcServerTransport::new("UserProfileServer::user_profile_management_service"),
             ),
-            user_profile_registry_service_server: UserProfileRegistryServiceServer::new(
-                GrpcServerTransport::new("UserProfileServer::user_profile_registry_service"),
+
+            user_profile_view_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+            user_controllable_service_clients: parking_lot::RwLock::new(
+                std::collections::HashMap::new(),
             ),
         }
     }
@@ -62,5 +75,38 @@ impl UserProfileServer {
 
     fn register_all_topics(&mut self) -> sdv_middleware_pubsub::Result<()> {
         Ok(())
+    }
+
+    /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
+    pub fn get_user_profile_view_client(
+        &self,
+        target_service_bundle: &str,
+    ) -> Arc<UserProfileViewClient> {
+        sdvmiddleware_common::create_if_not_exist::<UserProfileViewClient>(
+            &self.user_profile_view_clients,
+            target_service_bundle,
+            Box::new(|target| {
+                UserProfileViewClient::new(Box::new(GrpcClientTransport::new(&format!(
+                    "{}::{}",
+                    target, "user_profile_view"
+                ))))
+            }),
+        )
+    }
+    /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
+    pub fn get_user_controllable_service_client(
+        &self,
+        target_service_bundle: &str,
+    ) -> Arc<UserControllableServiceClient> {
+        sdvmiddleware_common::create_if_not_exist::<UserControllableServiceClient>(
+            &self.user_controllable_service_clients,
+            target_service_bundle,
+            Box::new(|target| {
+                UserControllableServiceClient::new(Box::new(GrpcClientTransport::new(&format!(
+                    "{}::{}",
+                    target, "user_controllable_service"
+                ))))
+            }),
+        )
     }
 }

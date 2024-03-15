@@ -6,6 +6,7 @@ rust_binary {
     ],
     rustlibs: [
         "libprotobuf",
+        "libsdvgenerated_rpc_user_profile_view",
         "libsdvgenerated_rpc_user_profile_management_service",
         "libsdvgenerated_rpc_user_profile_admin_service",
         "libsdvgenerated_hmi_service",
