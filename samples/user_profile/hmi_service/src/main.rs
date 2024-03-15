@@ -12,6 +12,8 @@ use sdvgenerated::user_profile_management_service_interface::UserProfileManageme
 use user_profile_api::setting::setting::Value;
 use user_profile_api::setting::Setting;
 use user_profile_api::user_profile_admin_service::CreateUserRequest;
+use user_profile_api::user_profile_admin_service::DeleteUserRequest;
+use user_profile_api::user_profile_admin_service::FactoryResetRequest;
 use user_profile_api::user_profile_admin_service::SelectUserRequest;
 use user_profile_api::user_profile_management_service::RequestConfigChangeRequest;
 use user_profile_api::{
@@ -46,18 +48,18 @@ fn main() {
             }),
             ..Default::default()
         })
-        .expect("Failed to perform GRPC request to create user profile");
-    if response.error.is_some() {
-        panic!("Failed to create profile with ID {}: {:?}", profile_id, response.error.unwrap());
+        .expect("Failed to perform request to create user profile");
+    if let Some(error) = response.error.into_option() {
+        panic!("Failed to create profile with ID {}: {:?}", profile_id, error);
     } else {
         println!("Successfully created profile with ID {}\n", profile_id);
     }
 
     let response = user_profile_admin_client
         .select_user(SelectUserRequest { user_id: profile_id, ..Default::default() })
-        .expect("Failed to perform GRPC request to select user profile");
-    if response.error.is_some() {
-        panic!("Failed to select profile with ID {}: {:?}", profile_id, response.error.unwrap());
+        .expect("Failed to perform request to select user profile");
+    if let Some(error) = response.error.into_option() {
+        panic!("Failed to select profile with ID {}: {:?}", profile_id, error);
     }
 
     // HVAC requires 3 seconds to make the change, lets wait for 5 seconds before changing the profile
@@ -68,9 +70,9 @@ fn main() {
             config_name: "HVAC".to_string(),
             ..Default::default()
         })
-        .expect("Failed to perform GRPC request to subscribe to configuration changes");
-    if response.error.is_some() {
-        panic!("Failed to subscribe to configuration change: {:?}", response.error.unwrap());
+        .expect("Failed to perform request to subscribe to configuration changes");
+    if let Some(error) = response.error.into_option() {
+        panic!("Failed to subscribe to configuration change: {:?}", error);
     }
     println!("Current HVAC configuration");
     print_settings(&response.config.unwrap().settings);
@@ -86,9 +88,9 @@ fn main() {
             }],
             ..Default::default()
         })
-        .expect("Failed to perform GRPC request to request config change");
-    if response.error.is_some() {
-        panic!("Failed to perform config change {:?}", response.error.unwrap());
+        .expect("Failed to perform request config change");
+    if let Some(error) = response.error.into_option() {
+        panic!("Failed to perform config change {:?}", error);
     }
 
     // HVAC requires 3 seconds to make the change, lets wait for 5 seconds before changing the profile
@@ -105,21 +107,41 @@ fn main() {
             }),
             ..Default::default()
         })
-        .expect("Failed to perform GRPC request to create user profile");
-    if response.error.is_some() {
-        panic!("Failed to create profile with ID {}: {:?}", profile_id_2, response.error.unwrap());
+        .expect("Failed to perform request to create user profile");
+    if let Some(error) = response.error.into_option() {
+        panic!("Failed to create profile with ID {}: {:?}", profile_id_2, error);
     } else {
         println!("Successfully created profile with ID {}", profile_id_2);
     }
 
     let response = user_profile_admin_client
         .select_user(SelectUserRequest { user_id: profile_id_2, ..Default::default() })
-        .expect("Failed to perform GRPC request to select user profile");
-    if response.error.is_some() {
-        panic!("Failed to select profile with ID {}: {:?}", profile_id_2, response.error.unwrap());
+        .expect("Failed to perform request to select user profile");
+    if let Some(error) = response.error.into_option() {
+        panic!("Failed to select profile with ID {}: {:?}", profile_id_2, error);
     }
 
     println!("Switched to profile {}", profile_id_2);
+
+    // Switching profile will result in a callback for settings change, sleep until we receive the callback
+    // to avoid mixing the order of the messages in the standard output
+    std::thread::sleep(std::time::Duration::from_secs(5));
+
+    let response = user_profile_admin_client
+        .delete_user(DeleteUserRequest { user_id: profile_id, ..Default::default() })
+        .expect("Failed to perform request to delete profile");
+    if let Some(error) = response.error.into_option() {
+        panic!("Failed to delete profile with ID {}: {:?}", profile_id, error);
+    }
+    println!("Deleted user profile {}", profile_id);
+
+    let response = user_profile_admin_client
+        .factory_reset(FactoryResetRequest::new())
+        .expect("Failed to perform request to factory reset");
+    if let Some(error) = response.error.into_option() {
+        panic!("Failed to perform factory reset: {:?}", error);
+    }
+    println!("Performed factory reset");
 
     loop {
         std::thread::park()
