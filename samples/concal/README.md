@@ -33,7 +33,7 @@ mm vsidl_code_generator
 2. Run the device
 
     ```bash
-    launch_cvd -guest-enforce-security false
+    cvd start -guest-enforce-security false
     ```
 
 3. Run tests
