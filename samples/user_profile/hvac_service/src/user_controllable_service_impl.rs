@@ -12,7 +12,7 @@ use user_profile_api::user_controllable_service::{
     RequestConfigChangeResponse,
 };
 
-use crate::settings::SETTINGS;
+use crate::settings::{default_configuration, SETTINGS};
 
 pub(crate) struct UserControllableServiceImpl {}
 
@@ -73,6 +73,13 @@ impl UserControllableService for UserControllableServiceImpl {
     }
 
     fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
-        todo!()
+        let mut settings = SETTINGS.lock().unwrap();
+
+        *settings = default_configuration();
+
+        println!("\nPerformed factory reset");
+        settings.iter().for_each(|(key, value)| println!("Key {:<15} Value {:<10?}", key, value));
+
+        Ok(FactoryResetResponse::new())
     }
 }

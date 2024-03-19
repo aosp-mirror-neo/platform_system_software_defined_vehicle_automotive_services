@@ -58,19 +58,20 @@ The HMI service perform the following steps:
     2. Subscribe to changes in the HVAC config
     3. Change the TEMPERATURE from 16 to 32
     4. Create a user profile with ID 2 and switch to it, therefore temperature will return to the profile's default 16.
+    5. Delete the first profile with ID 1
 
 Creating a user profile
 Successfully created profile with ID 1
 
 Current HVAC configuration
 Key FAN_SPEED       Value Int64(1)
-Key TEMPERATURE     Value Int64(16)
 Key ENABLED         Value Bool(false)
+Key TEMPERATURE     Value Int64(16)
 
 
 
 Adjusting HVAC temperature to 32
-Recieved config change notification HVAC
+Received config change notification HVAC
 Key TEMPERATURE     Value Int64(32)
 
 
@@ -78,10 +79,15 @@ Key TEMPERATURE     Value Int64(32)
 Creating another user profile
 Successfully created profile with ID 2
 Switched to profile 2
-Recieved config change notification HVAC
+Received config change notification HVAC
 Key ENABLED         Value Bool(false)
-Key FAN_SPEED       Value Int64(1)
 Key TEMPERATURE     Value Int64(16)
+Key FAN_SPEED       Value Int64(1)
+
+
+
+Deleted user profile 1
+Performed factory reset
 ```
 
 #### HVAC Service Output
@@ -90,12 +96,11 @@ The HVAC service attempts to register the same configuration twice, and we expec
 Additionally HVAC service will get requests to change settings and will respond successfully with the current state.
 
 ```bash
-adb shell sdv_hvac_service
 Registering config with name: HVAC,
 Version: 1.0
 Key FAN_SPEED      , Type: PER_USER, Value Int64(1)
-Key TEMPERATURE    , Type: PER_USER, Value Int64(16)
 Key ENABLED        , Type: PER_USER, Value Bool(false)
+Key TEMPERATURE    , Type: PER_USER, Value Int64(16)
 
 
 
@@ -105,27 +110,32 @@ Registering the same configuration again
 Config change request, simulating setting change delay
 
 
-Applied changes from request with transaction ID: 358
+Applied changes from request with transaction ID: 89
 Current settings
-Key TEMPERATURE     Value Int64(16        )
 Key FAN_SPEED       Value Int64(1         )
+Key TEMPERATURE     Value Int64(16        )
 Key ENABLED         Value Bool(false     )
 Config change request, simulating setting change delay
 
 
-Applied changes from request with transaction ID: 360
+Applied changes from request with transaction ID: 590
 Current settings
+Key FAN_SPEED       Value Int64(1         )
 Key TEMPERATURE     Value Int64(32        )
-Key FAN_SPEED       Value Int64(1         )
 Key ENABLED         Value Bool(false     )
 Config change request, simulating setting change delay
 
 
-Applied changes from request with transaction ID: 141
+Applied changes from request with transaction ID: 754
 Current settings
-Key TEMPERATURE     Value Int64(16        )
 Key FAN_SPEED       Value Int64(1         )
+Key TEMPERATURE     Value Int64(16        )
 Key ENABLED         Value Bool(false     )
+
+Performed factory reset
+Key ENABLED         Value Bool(false     )
+Key FAN_SPEED       Value Int64(1         )
+Key TEMPERATURE     Value Int64(16        )
 ```
 
 #### User Profile Service output

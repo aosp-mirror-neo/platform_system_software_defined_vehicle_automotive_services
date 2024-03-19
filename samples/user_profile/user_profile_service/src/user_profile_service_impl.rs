@@ -89,6 +89,24 @@ impl UserProfileServiceImpl {
         }
     }
 
+    fn reset_services() -> Result<(), String> {
+        let client = UserControllableServiceClient::new(Box::new(GrpcClientTransport::new(
+            "HvacService::user_controllable_service",
+        )));
+
+        let resp =
+            client.factory_reset(user_controllable_service::FactoryResetRequest::new()).map_err(
+                |x| format!("Failed to perform GRPC request to request_config_change: {}", x),
+            )?;
+
+        match resp.error.is_some() {
+            true => {
+                Err(format!("Failed to factory reset HvacService service: {}", resp.error.unwrap()))
+            }
+            false => Ok(()),
+        }
+    }
+
     fn notify_subscribers(config: &str, setting: &[Setting], subscribers: &[String]) {
         // Ideally the client should be created via the get_user_controllable_service_client method
         // that is present in the UserProfileServer, for now manually create it since the rust
@@ -212,12 +230,52 @@ impl UserProfileAdminService for UserProfileServiceImpl {
         Ok(SelectUserResponse::new())
     }
 
-    fn delete_user(&self, _request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
-        todo!()
+    fn delete_user(&self, request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
+        let mut profiles = acquire_lock_or_return_err!(self.user_profiles, DeleteUserResponse);
+        let active_profile = acquire_lock_or_return_err!(self.active_profile, DeleteUserResponse);
+
+        if !profiles.contains_key(&request.user_id) {
+            return Ok(DeleteUserResponse {
+                error: MessageField::some(Error {
+                    error_code: EnumOrUnknown::new(ResponseCode::NOT_FOUND_ERROR),
+                    message: format!("User {} does not exist", request.user_id),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            });
+        }
+        if active_profile.is_some_and(|id| id == request.user_id) {
+            return Ok(DeleteUserResponse {
+                error: MessageField::some(Error {
+                    error_code: EnumOrUnknown::new(ResponseCode::INVALID_REQUEST),
+                    message: format!("Cannot delete User {} since it is in use", request.user_id),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            });
+        }
+        profiles.remove(&request.user_id);
+
+        Ok(DeleteUserResponse::new())
     }
 
     fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
-        todo!()
+        let mut profiles = acquire_lock_or_return_err!(self.user_profiles, FactoryResetResponse);
+        profiles.clear();
+
+        let resp = match Self::reset_services() {
+            Ok(_) => FactoryResetResponse::new(),
+            Err(err) => FactoryResetResponse {
+                error: MessageField::some(Error {
+                    error_code: EnumOrUnknown::new(ResponseCode::INTERNAL_ERROR),
+                    message: err,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        };
+
+        Ok(resp)
     }
 
     fn list_users(&self, _request: ListUsersRequest) -> RpcResult<ListUsersResponse> {
