@@ -50,6 +50,9 @@ fn main() {
         )
         .unwrap();
 
+    // Check if diagnostics extension is accessible.
+    let _ = service.diagnostics;
+
     loop {
         std::thread::park();
     }
