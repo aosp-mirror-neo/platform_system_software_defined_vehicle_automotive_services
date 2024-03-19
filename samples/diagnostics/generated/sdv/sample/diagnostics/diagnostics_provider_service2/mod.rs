@@ -7,3 +7,5 @@ pub mod diagnostics_provider_service2;
 pub mod topics;
 
 pub use sdvgenerated_rpc_data_item::interface as data_item_interface;
+
+pub mod extensions;
