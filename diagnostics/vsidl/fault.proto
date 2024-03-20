@@ -65,10 +65,10 @@ message OnFaultStatusChangeRequest {
   // Bitwise combination of the constants defined in StatusMask enum.
   uint32 status = 2 [(sdv.vsidl.primitive_byte_size) = ONE];
 
-  // Fault-specific data related to this status change.
+  // Optional fault-specific data related to this status change.
   //
   // E.g. it may contain additional information on the type of failure.
   //
   // This corresponds to the extended data of the event that triggered the fault.
-  bytes extended_data = 3 [(sdv.vsidl.variable_type_max_size) = 64];
+  optional bytes extended_data = 3 [(sdv.vsidl.variable_type_max_size) = 64];
 }

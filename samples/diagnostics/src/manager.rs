@@ -6,18 +6,18 @@ use diagnostics_api::data_item::{ReadRequest, WriteRequest};
 use diagnostics_api::diagnostics_manager::{
     GetConnectionMetadataRequest, GetConnectionMetadataResponse,
 };
+use diagnostics_api::event::Event;
 use diagnostics_api::negative_response_code::NegativeResponseCode;
 use diagnostics_api::session_type::SessionType;
 use protobuf::EnumOrUnknown;
 use protobuf::MessageField;
 use sdv_config_provider::{VsidlConfigProvider, VsidlProvider};
+use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
 use sdv_uds_serde::diagnostics_translator::DiagnosticsTranslator;
 use sdv_uds_serde::entity_id::EntityId;
 use sdvgenerated::data_item_interface::DataItem;
 use sdvgenerated::diagnostics_manager_interface::DiagnosticsManager;
-use sdvgenerated::diagnostics_manager_service::{
-    DiagnosticsManagerService, DiagnosticsManagerServiceCallbacks,
-};
+use sdvgenerated::diagnostics_manager_service::DiagnosticsManagerService;
 use sdvmiddleware_rpc::error::RpcError;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -30,6 +30,28 @@ fn read_data_item_request(data_item_id: &str) -> ReadRequest {
 
 fn write_data_item_request(data_item_id: &str, value: Vec<u8>) -> WriteRequest {
     WriteRequest { id: data_item_id.to_string(), value, ..Default::default() }
+}
+
+#[derive(Clone, Eq, Hash, PartialEq, Debug)]
+pub enum EventTopics {
+    Event1,
+    Event2,
+}
+
+impl sdv_middleware_pubsub::EnumTopic for EventTopics {
+    /// Returns iterator over all available topics
+    fn iterator() -> std::slice::Iter<'static, Self> {
+        static TOPICS: [EventTopics; 2] = [EventTopics::Event1, EventTopics::Event2];
+        TOPICS.iter()
+    }
+
+    /// Returns string name of the topic
+    fn get_name(&self) -> &str {
+        match self {
+            EventTopics::Event1 => "diagnostics_provider_service1.event.event1",
+            EventTopics::Event2 => "diagnostics_provider_service2.event.event2",
+        }
+    }
 }
 
 struct DiagnosticsManagerImpl {}
@@ -83,15 +105,15 @@ fn main() {
     data_items.insert(second_data_item.to_string(), "DiagnosticsProviderService2".to_string());
 
     // Create service instance and register DiagnosticsManagerServer
-    let mut service = DiagnosticsManagerService::new(DiagnosticsManagerServiceCallbacks {
-        event_cb: Box::new(|topic, event| {
-            println!("Event {:?}, received from {:?}", event, topic);
-        }),
-    });
+    let mut service = DiagnosticsManagerService::new();
     service
         .diagnostics_manager_server
         .register_service_interface(Arc::new(DiagnosticsManagerImpl::new()));
     service.start().unwrap();
+
+    // Sleep to wait for diagnostic providers to register.
+    thread::sleep(Duration::from_secs(2));
+
     println!("Diagnostics Manager service bundle started.");
 
     let first_data_item_client = service.get_data_item_client(&data_items[first_data_item]);
@@ -178,13 +200,22 @@ fn main() {
     let response = second_data_item_client.read(read_data_item_request(second_data_item));
     println!("Fetch {:?} from the second provider: {:?}.", second_data_item, response);
 
-    // Sleep to wait for events from diag provider samples.
-    thread::sleep(Duration::from_secs(3));
-
     // Print full diagnostics declaration of "DiagnosticsProviderService1" to verify that
     // all diagnostic declaration data is preserved at runtime.
     println!(
         "Full diagnostics declaration of DiagnosticsProviderService1: {}",
         VsidlProvider::new().unwrap().get_diagnostics_declarations()["DiagnosticsProviderService1"]
-    )
+    );
+
+    thread::sleep(Duration::from_secs(5));
+
+    // Subscribe to event topics:
+    let mut event_subscriber = DataTunnelSubscriber::<EventTopics>::new();
+    event_subscriber.subscribe().unwrap();
+    let subscriber_cb = Box::new(
+        |topic: &EventTopics, event: Result<Event, sdv_middleware_pubsub::error::Error>| {
+            println!("Event {:?}, received from {:?}", event, topic);
+        },
+    );
+    event_subscriber.poll(&*subscriber_cb);
 }

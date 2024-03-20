@@ -6,52 +6,45 @@ package sdv.diagnostics.event;
 
 import "syntax/vsidl.proto";
 
+// Status of the event.
+//
+// Corresponds to the monitor's test result associated with the event.
+//
+// See AUTOSAR Diagnostics Event Manager specification, section 8.6.1.9.
+enum Status {
+  // Test associated with the event has passed.
+  //
+  // No further debouncing by diagnostics manager required.
+  PASS = 0;
+
+  // Test associated with the event has failed.
+  //
+  // No further debouncing by diagnostics manager required.
+  FAIL = 1;
+
+  // Test associated with the event has passed.
+  //
+  // Debouncing should be handled by diagnostics manager.
+  PRE_PASS = 2;
+
+  // Test associated with the event has failed.
+  //
+  // Debouncing should be handled by diagnostics manager.
+  PRE_FAIL = 3;
+}
+
 // Message to report the status of an event via data tunnel.
 //
 // Id of the event being reported is defined by the data tunnel topic being used.
 message Event {
-  option (sdv.vsidl.topic) = {
-    typed_name: "ServiceBundles"
-  };
-
   // Status of the event.
-  //
-  // Corresponds to the monitor's test result associated with the event.
-  //
-  // See AUTOSAR Diagnostics Event Manager specification, section 8.6.1.9.
-  enum Status {
-    // Test associated with the event has passed.
-    //
-    // No further debouncing by diagnostics manager required.
-    PASS = 0;
+  Status status = 1;
 
-    // Test associated with the event has failed.
-    //
-    // No further debouncing by diagnostics manager required.
-    FAIL = 1;
-
-    // Test associated with the event has passed.
-    //
-    // Debouncing should be handled by diagnostics manager.
-    PRE_PASS = 2;
-
-    // Test associated with the event has failed.
-    //
-    // Debouncing should be handled by diagnostics manager.
-    PRE_FAIL = 3;
-  }
-
-  // Name of the event.
-  string id = 1 [(sdv.vsidl.variable_type_max_size) = 64];
-
-  // Status of the event.
-  Status status = 2;
-
-  // Event-specific data related to this status update.
+  // Optional event-specific data related to this status update.
   //
   // E.g. in case of fail status it may contain additional information on the type of
   // failure.
-  bytes extended_data = 3 [(sdv.vsidl.variable_type_max_size) = 64];
+  optional bytes extended_data = 2;
 }
 
 // Message to set the state of enable condition via data tunnel.
