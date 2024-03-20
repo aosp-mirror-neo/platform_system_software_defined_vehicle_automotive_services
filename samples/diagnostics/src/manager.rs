@@ -200,6 +200,13 @@ fn main() {
     let response = second_data_item_client.read(read_data_item_request(second_data_item));
     println!("Fetch {:?} from the second provider: {:?}.", second_data_item, response);
 
+    let response =
+        second_data_item_client.write(write_data_item_request(second_data_item, new_value.clone()));
+    println!(
+        "Trying to write {:?} to the second provider, fails with response: {:?}.",
+        second_data_item, response
+    );
+
     // Print full diagnostics declaration of "DiagnosticsProviderService1" to verify that
     // all diagnostic declaration data is preserved at runtime.
     println!(
@@ -209,7 +216,7 @@ fn main() {
 
     thread::sleep(Duration::from_secs(5));
 
-    // Subscribe to event topics:
+    // Poll topics once:
     let mut event_subscriber = DataTunnelSubscriber::<EventTopics>::new();
     event_subscriber.subscribe().unwrap();
     let subscriber_cb = Box::new(

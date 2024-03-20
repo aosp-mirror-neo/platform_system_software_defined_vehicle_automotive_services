@@ -1,21 +1,29 @@
-#![allow(missing_docs)]
+#![allow(missing_docs, unused_imports)]
 // Copyright 2023 Google LLC
 
-mod data_item_impl;
-
-use crate::data_item_impl::DataItemImpl;
 use diagnostics_api::event::Status;
 use diagnostics_sample_catalog::messages::{DataItemTwo, SecondEventExt};
+use sdv_middleware_extension_diagnostics::data_item::ReadOnlyDataItemHandler;
 use sdv_middleware_extension_diagnostics::event::Event;
+use sdv_middleware_extension_diagnostics::DiagnosticsResult;
 use sdvgenerated::diagnostics_provider_service2::DiagnosticsProviderService2;
 use std::sync::Arc;
 
+struct DataItemTwoHandler {}
+
+impl ReadOnlyDataItemHandler<DataItemTwo> for DataItemTwoHandler {
+    fn read(&self) -> DiagnosticsResult<DataItemTwo> {
+        Ok(DataItemTwo { array: vec![1, 2, 3], ..Default::default() })
+    }
+}
+
 fn main() {
     let mut service = DiagnosticsProviderService2::new();
-    service.data_item_server.register_service_interface(Arc::new(DataItemImpl::new(
-        "data_item_id2".to_string(),
-        Box::new(DataItemTwo { array: vec![1, 2, 3, 4, 5], ..Default::default() }),
-    )));
+
+    let data_item_server_impl =
+        service.diagnostics.create_data_item_server(Box::new(DataItemTwoHandler {}));
+
+    service.data_item_server.register_service_interface(data_item_server_impl);
     service.start().unwrap();
 
     println!("Diagnostics provider service bundle started.");
