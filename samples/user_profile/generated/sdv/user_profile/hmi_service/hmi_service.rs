@@ -33,11 +33,11 @@ struct Subscriptions {}
 pub struct HmiService {
     pub user_profile_view_server: UserProfileViewServer,
 
-    user_profile_admin_service_clients:
-        parking_lot::RwLock<std::collections::HashMap<String, Arc<UserProfileAdminServiceClient>>>,
     user_profile_management_service_clients: parking_lot::RwLock<
         std::collections::HashMap<String, Arc<UserProfileManagementServiceClient>>,
     >,
+    user_profile_admin_service_clients:
+        parking_lot::RwLock<std::collections::HashMap<String, Arc<UserProfileAdminServiceClient>>>,
 }
 
 impl HmiService {
@@ -48,10 +48,10 @@ impl HmiService {
                 "HmiService::user_profile_view",
             )),
 
-            user_profile_admin_service_clients: parking_lot::RwLock::new(
+            user_profile_management_service_clients: parking_lot::RwLock::new(
                 std::collections::HashMap::new(),
             ),
-            user_profile_management_service_clients: parking_lot::RwLock::new(
+            user_profile_admin_service_clients: parking_lot::RwLock::new(
                 std::collections::HashMap::new(),
             ),
         }
@@ -71,6 +71,21 @@ impl HmiService {
     }
 
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
+    pub fn get_user_profile_management_service_client(
+        &self,
+        target_service_bundle: &str,
+    ) -> Arc<UserProfileManagementServiceClient> {
+        sdvmiddleware_common::create_if_not_exist::<UserProfileManagementServiceClient>(
+            &self.user_profile_management_service_clients,
+            target_service_bundle,
+            Box::new(|target| {
+                UserProfileManagementServiceClient::new(Box::new(GrpcClientTransport::new(
+                    &format!("{}::{}", target, "user_profile_management_service"),
+                )))
+            }),
+        )
+    }
+    /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
     pub fn get_user_profile_admin_service_client(
         &self,
         target_service_bundle: &str,
@@ -83,21 +98,6 @@ impl HmiService {
                     "{}::{}",
                     target, "user_profile_admin_service"
                 ))))
-            }),
-        )
-    }
-    /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_user_profile_management_service_client(
-        &self,
-        target_service_bundle: &str,
-    ) -> Arc<UserProfileManagementServiceClient> {
-        sdvmiddleware_common::create_if_not_exist::<UserProfileManagementServiceClient>(
-            &self.user_profile_management_service_clients,
-            target_service_bundle,
-            Box::new(|target| {
-                UserProfileManagementServiceClient::new(Box::new(GrpcClientTransport::new(
-                    &format!("{}::{}", target, "user_profile_management_service"),
-                )))
             }),
         )
     }

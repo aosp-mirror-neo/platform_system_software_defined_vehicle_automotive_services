@@ -8,11 +8,11 @@ use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 use std::thread;
 
 use user_profile_api::user_controllable_service::{
-    FactoryResetRequest, FactoryResetResponse, RequestConfigChangeRequest,
-    RequestConfigChangeResponse,
+    FactoryResetRequest, FactoryResetResponse, RequestSettingsChangeRequest,
+    RequestSettingsChangeResponse,
 };
 
-use crate::settings::{default_configuration, SETTINGS};
+use crate::settings::{default_settings, SETTINGS};
 
 pub(crate) struct UserControllableServiceImpl {}
 
@@ -29,16 +29,16 @@ impl UserControllableServiceImpl {
 }
 
 impl UserControllableService for UserControllableServiceImpl {
-    fn request_config_change(
+    fn request_settings_change(
         &self,
-        request: RequestConfigChangeRequest,
-    ) -> RpcResult<RequestConfigChangeResponse> {
+        request: RequestSettingsChangeRequest,
+    ) -> RpcResult<RequestSettingsChangeResponse> {
         // Typically services controlling hardware components take some time to reconfigure a device, to simulate the time delay
         // we spawn a thread that notifies User Profile asynchronously of the setting changes after a couple of seconds
         thread::spawn(move || {
             let mut settings = SETTINGS.lock().unwrap();
 
-            println!("Config change request, simulating setting change delay\n\n");
+            println!("Settings change request, simulating setting change delay\n\n");
             thread::sleep(std::time::Duration::from_secs(2));
 
             request.settings.iter().for_each(|setting| {
@@ -57,25 +57,25 @@ impl UserControllableService for UserControllableServiceImpl {
 
             let client = Self::client();
             let response = client
-                .update_config(user_profile_registry_service::UpdateConfigRequest {
-                    config_name: request.config_name,
+                .update_settings(user_profile_registry_service::UpdateSettingsRequest {
+                    group_name: request.group_name,
                     transaction_id: request.transaction_id,
                     settings: request.settings,
                     ..Default::default()
                 })
-                .expect("Failed to perform GRPC to update config");
+                .expect("Failed to perform GRPC to update settings");
             if response.error.is_some() {
-                panic!("Failed update config within user profile {:#?}", response.error.unwrap());
+                panic!("Failed update settings within user profile {:#?}", response.error.unwrap());
             }
         });
 
-        Ok(RequestConfigChangeResponse::new())
+        Ok(RequestSettingsChangeResponse::new())
     }
 
     fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
         let mut settings = SETTINGS.lock().unwrap();
 
-        *settings = default_configuration();
+        *settings = default_settings();
 
         println!("\nPerformed factory reset");
         settings.iter().for_each(|(key, value)| println!("Key {:<15} Value {:<10?}", key, value));

@@ -13,38 +13,38 @@ import "setting.proto";
 import "error.proto";
 
 service UserProfileRegistryService {
-  // Registers the config of user controllable services along with their default values.
-  rpc RegisterConfig(RegisterConfigRequest) returns (RegisterConfigResponse) {}
+  // Registers settings of user controllable services along with their default values.
+  rpc RegisterSettings(RegisterSettingsRequest) returns (RegisterSettingsResponse) {}
 
-  // Updates the set of settings within the selected configuration.
-  rpc UpdateConfig(UpdateConfigRequest) returns (UpdateConfigResponse) {}
+  // Updates the set of settings within the selected SettingGroup.
+  rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse) {}
 }
 
-message RegisterConfigRequest {
-  // The name of the configuration.
-  string config_name = 1;
+message RegisterSettingsRequest {
+  // The name of the group in which the settings will be stored.
+  string group_name = 1;
 
-  // The version number of the configuration.
+  // The version number of the settings group.
   string version = 2;
 
-  // The list of settings which the configuration consists of.
+  // The list of settings within the group.
   repeated SettingDefinition settings_definitions = 3;
 }
 
-message RegisterConfigResponse {
+message RegisterSettingsResponse {
   // Error message if request fails.
   Error error = 1;
 }
 
-message UpdateConfigRequest {
-  // The name of the configuration that needs to be updated.
-  // The configuration is stored within a namespace which is automatically
+message UpdateSettingsRequest {
+  // The name of the settings group that needs to be updated.
+  // The settings group is stored within a namespace which is automatically
   // defined for each UserControllableService therefore the name does not need to be globally
   // unique.
-  string config_name = 1;
+  string group_name = 1;
 
   // Optional field.
-  // Whenever a configuration has been changed due to a request from the User Profile service, the
+  // Whenever a setting has been changed due to a request from the User Profile service, the
   // original transaction_id should be included. This allows the User Profile service to map
   // incoming changes to the original requests.
   uint64 transaction_id = 2;
@@ -53,7 +53,7 @@ message UpdateConfigRequest {
   repeated Setting settings = 3;
 }
 
-message UpdateConfigResponse {
+message UpdateSettingsResponse {
   // Error message if request fails.
   Error error = 1;
 }

@@ -10,22 +10,21 @@ syntax = "proto3";
 
 package sdv.user_profile;
 
-import "configuration.proto";
+import "settings_group.proto";
 import "setting.proto";
 import "error.proto";
 import "user.proto";
 
 service UserProfileAdminService {
   // Creates a profile in which user preferences are stored.
-  // Each configuration within a profile is initialized with default values unless
-  // it is provided within the create user request.
+  // Each setting within a profile is initialized with a default value.
   // The SelectUser API has to be used to designate the profile as the active one.
   // Returns an error if the profile already exists or could not be created.
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
 
-  // Selects the active user and applies their configuration. If a UserControllableService rejects a
-  // change, the user's profile will be updated to match the current configuration.
-  // Returns an error if the profile does not exist or could not be loaded.
+  // Selects the active user and applies their settings. If a UserControllableService rejects
+  // a change, the user's profile will be updated to match the current settings. Returns an
+  // error if the profile does not exist or could not be loaded.
   rpc SelectUser(SelectUserRequest) returns (SelectUserResponse) {}
 
   // Deletes a profile.
@@ -40,8 +39,8 @@ service UserProfileAdminService {
   // Returns a list of users stored within the User Profile.
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
 
-  // Returns configuration for given user profile or an error if the profile doesn't exist.
-  rpc GetUserConfigs(GetUserConfigsRequest) returns (GetUserConfigsResponse) {}
+  // Returns setting for given user profile or an error if the profile doesn't exist.
+  rpc GetUserSettings(GetUserSettingsRequest) returns (GetUserSettingsResponse) {}
 }
 
 message CreateUserRequest {
@@ -90,14 +89,14 @@ message ListUsersResponse {
   Error error = 2;
 }
 
-message GetUserConfigsRequest {
+message GetUserSettingsRequest {
   // The ID of the profile that should be retrieved
   uint64 user_id = 1;
 }
 
-message GetUserConfigsResponse {
-  // The list of configurations stored in a profile
-  repeated Configuration configs = 1;
+message GetUserSettingsResponse {
+  // The list of settings groups stored in a profile
+  repeated SettingsGroup groups = 1;
   // Error message if request fails.
   Error error = 2;
 }

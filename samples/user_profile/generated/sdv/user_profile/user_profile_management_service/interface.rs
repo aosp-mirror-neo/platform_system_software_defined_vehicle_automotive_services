@@ -4,28 +4,28 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use sdvmiddleware_rpc::RpcResult;
-use user_profile_api::user_profile_management_service::RequestConfigChangeRequest;
-use user_profile_api::user_profile_management_service::RequestConfigChangeResponse;
-use user_profile_api::user_profile_management_service::SubscribeToConfigChangeAndGetConfigRequest;
-use user_profile_api::user_profile_management_service::SubscribeToConfigChangeAndGetConfigResponse;
-use user_profile_api::user_profile_management_service::UnsubscribeToConfigChangeRequest;
-use user_profile_api::user_profile_management_service::UnsubscribeToConfigChangeResponse;
+use user_profile_api::user_profile_management_service::RequestSettingsChangeRequest;
+use user_profile_api::user_profile_management_service::RequestSettingsChangeResponse;
+use user_profile_api::user_profile_management_service::SubscribeToSettingsChangeAndGetSettingsRequest;
+use user_profile_api::user_profile_management_service::SubscribeToSettingsChangeAndGetSettingsResponse;
+use user_profile_api::user_profile_management_service::UnsubscribeToSettingsChangeRequest;
+use user_profile_api::user_profile_management_service::UnsubscribeToSettingsChangeResponse;
 
 /// An auto-generated RPC interface.
 pub trait UserProfileManagementService: Send + Sync {
     /// RPC method declared in the interface.
-    fn request_config_change(
+    fn request_settings_change(
         &self,
-        request: RequestConfigChangeRequest,
-    ) -> RpcResult<RequestConfigChangeResponse>;
+        request: RequestSettingsChangeRequest,
+    ) -> RpcResult<RequestSettingsChangeResponse>;
     /// RPC method declared in the interface.
-    fn subscribe_to_config_change_and_get_config(
+    fn subscribe_to_settings_change_and_get_settings(
         &self,
-        request: SubscribeToConfigChangeAndGetConfigRequest,
-    ) -> RpcResult<SubscribeToConfigChangeAndGetConfigResponse>;
+        request: SubscribeToSettingsChangeAndGetSettingsRequest,
+    ) -> RpcResult<SubscribeToSettingsChangeAndGetSettingsResponse>;
     /// RPC method declared in the interface.
-    fn unsubscribe_from_config_change(
+    fn unsubscribe_from_settings_change(
         &self,
-        request: UnsubscribeToConfigChangeRequest,
-    ) -> RpcResult<UnsubscribeToConfigChangeResponse>;
+        request: UnsubscribeToSettingsChangeRequest,
+    ) -> RpcResult<UnsubscribeToSettingsChangeResponse>;
 }

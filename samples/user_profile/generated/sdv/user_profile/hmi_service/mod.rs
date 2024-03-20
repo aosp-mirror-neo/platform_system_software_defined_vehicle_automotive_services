@@ -6,8 +6,8 @@
 pub mod hmi_service;
 pub mod topics;
 
-pub use sdvgenerated_rpc_user_profile_admin_service::interface as user_profile_admin_service_interface;
-
 pub use sdvgenerated_rpc_user_profile_management_service::interface as user_profile_management_service_interface;
+
+pub use sdvgenerated_rpc_user_profile_admin_service::interface as user_profile_admin_service_interface;
 
 pub use sdvgenerated_rpc_user_profile_view::interface as user_profile_view_interface;

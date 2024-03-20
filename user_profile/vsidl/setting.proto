@@ -7,10 +7,10 @@ syntax = "proto3";
 
 package sdv.user_profile;
 
-// A key value pair representing a setting within a UserControllableService config.
+// A key value pair representing a setting within a UserControllableService SettingsGroup.
 message Setting {
   // Required.
-  // A name that uniquely identifies a setting within a configuration.
+  // A name that uniquely identifies a setting within a SettingsGroup.
   string key = 1;
 
   // Required.

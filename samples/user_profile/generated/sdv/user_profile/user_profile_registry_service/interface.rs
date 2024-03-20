@@ -4,15 +4,18 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use sdvmiddleware_rpc::RpcResult;
-use user_profile_api::user_profile_registry_service::RegisterConfigRequest;
-use user_profile_api::user_profile_registry_service::RegisterConfigResponse;
-use user_profile_api::user_profile_registry_service::UpdateConfigRequest;
-use user_profile_api::user_profile_registry_service::UpdateConfigResponse;
+use user_profile_api::user_profile_registry_service::RegisterSettingsRequest;
+use user_profile_api::user_profile_registry_service::RegisterSettingsResponse;
+use user_profile_api::user_profile_registry_service::UpdateSettingsRequest;
+use user_profile_api::user_profile_registry_service::UpdateSettingsResponse;
 
 /// An auto-generated RPC interface.
 pub trait UserProfileRegistryService: Send + Sync {
     /// RPC method declared in the interface.
-    fn register_config(&self, request: RegisterConfigRequest) -> RpcResult<RegisterConfigResponse>;
+    fn register_settings(
+        &self,
+        request: RegisterSettingsRequest,
+    ) -> RpcResult<RegisterSettingsResponse>;
     /// RPC method declared in the interface.
-    fn update_config(&self, request: UpdateConfigRequest) -> RpcResult<UpdateConfigResponse>;
+    fn update_settings(&self, request: UpdateSettingsRequest) -> RpcResult<UpdateSettingsResponse>;
 }
