@@ -8,13 +8,11 @@ sdv_service_bundle {
     name: "DiagnosticsManagerService"
     client: "sdv.diagnostics.data_item.DataItem"
     server: "sdv.diagnostics.manager.DiagnosticsManager"
-    subscriber: "sdv.diagnostics.event.Event"
 }
 
 sdv_service_bundle {
     name: "DiagnosticsProviderService1"
     server: "sdv.diagnostics.data_item.DataItem"
-    publisher: "sdv.diagnostics.event.Event::DIAGNOSTICS_PROVIDER1_SAMPLE"
 
     diagnostics_declaration {
         data_item {
@@ -30,8 +28,8 @@ sdv_service_bundle {
 
         event {
             id: "event1"
-            extended_data_message_name: "sdv.sample.diagnostics.EventExtendedData"
-            fault_listener_mask: 0x1
+            extended_data_message_name: "sdv.sample.diagnostics.FirstEventExt"
+            fault_listener_mask: 0x3
         }
 
         routine {
@@ -55,12 +53,17 @@ sdv_service_bundle {
 sdv_service_bundle {
     name: "DiagnosticsProviderService2"
     server: "sdv.diagnostics.data_item.DataItem"
-    publisher: "sdv.diagnostics.event.Event::DIAGNOSTICS_PROVIDER2_SAMPLE"
 
     diagnostics_declaration {
         data_item {
             id: "data_item_id2"
             message_name: "sdv.sample.diagnostics.DataItemTwo"
+        }
+
+        event {
+            id: "event2"
+            extended_data_message_name: "sdv.sample.diagnostics.SecondEventExt"
+            fault_listener_mask: 0x1
         }
     }
 }

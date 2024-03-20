@@ -1,0 +1,18 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_library {
+    name: "libsdv_middleware_extension_diagnostics",
+    crate_name: "sdv_middleware_extension_diagnostics",
+    srcs: [
+        "src/lib.rs",
+    ],
+    rustlibs: [
+        "libsdvmiddleware_rpc",
+        "libprotobuf",
+        "libparking_lot",
+        "libdiagnostics_api",
+    ],
+    vendor: true,
+}
