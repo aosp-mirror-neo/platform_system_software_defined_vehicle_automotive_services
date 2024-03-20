@@ -13,10 +13,8 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::diagnostics_provider_service2::DiagnosticsProviderService2;
-use crate::topics::publisher;
-use crate::topics::subscriber;
 use diagnostics_api::event::Event as EventMessage;
-use sdv_middleware_extension_diagnostics::Event;
+use sdv_middleware_extension_diagnostics::event::Event;
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::{error::Error, Result};
 use std::sync::Arc;
