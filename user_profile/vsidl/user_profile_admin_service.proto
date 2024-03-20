@@ -47,9 +47,6 @@ service UserProfileAdminService {
 message CreateUserRequest {
   // The user that should be created.
   User user = 1;
-
-  // List of existing configurations to pre-populate the drivers profile with.
-  repeated Configuration configs = 2;
 }
 
 message CreateUserResponse {

@@ -175,16 +175,6 @@ impl UserProfileAdminService for UserProfileServiceImpl {
 
             configurations.insert(config_name.clone(), settings_map);
         }
-
-        // override defaults with values provided by user creator
-        for config in request.configs.iter() {
-            let service_config = configurations.entry(config.config_name.clone()).or_default();
-
-            config.settings.iter().for_each(|setting| {
-                service_config.insert(setting.key.clone(), setting.value.clone().unwrap());
-            });
-        }
-
         println!("Created profile with ID: {}", user.id);
 
         profiles.insert(user.id, configurations);
