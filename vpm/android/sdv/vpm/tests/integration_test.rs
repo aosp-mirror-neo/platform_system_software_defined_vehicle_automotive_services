@@ -33,7 +33,7 @@ mod tests {
             .unwrap();
         test_bundle.start().unwrap();
 
-        // Then then new vehicle state should be received by the subscriber.
+        // Then the new vehicle state should be received by the subscriber.
         match rx.recv_timeout(Duration::from_secs(5)) {
             Ok(value) => assert_eq!(value, VpmVehicleState::SOFTWARE_UPDATE),
             Err(std::sync::mpsc::RecvTimeoutError::Timeout) => panic!("Timeout reached"),
