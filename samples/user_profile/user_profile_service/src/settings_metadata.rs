@@ -2,12 +2,12 @@
 use user_profile_api::setting::SettingDefinition;
 
 #[derive(Debug)]
-pub struct ConfigMetadata {
+pub struct SettingsGroupMetadata {
     version: String,
     settings_definition: Vec<SettingDefinition>,
 }
 
-impl ConfigMetadata {
+impl SettingsGroupMetadata {
     pub fn new(version: String, settings_definition: Vec<SettingDefinition>) -> Self {
         Self { version, settings_definition }
     }

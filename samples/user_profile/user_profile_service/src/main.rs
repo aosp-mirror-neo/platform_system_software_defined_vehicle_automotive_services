@@ -1,8 +1,8 @@
 // Copyright 2024 Google LLC
 #![allow(missing_docs)]
 
-mod config_metadata;
 mod macros;
+mod settings_metadata;
 mod user_profile_service_impl;
 
 use sdvgenerated::user_profile_server::UserProfileServer;

@@ -60,18 +60,19 @@ The HMI service perform the following steps:
     4. Create a user profile with ID 2 and switch to it, therefore temperature will return to the profile's default 16.
     5. Delete the first profile with ID 1
 
+```bash
 Creating a user profile
 Successfully created profile with ID 1
 
-Current HVAC configuration
+Current HVAC settings
 Key FAN_SPEED       Value Int64(1)
-Key ENABLED         Value Bool(false)
 Key TEMPERATURE     Value Int64(16)
+Key ENABLED         Value Bool(false)
 
 
 
 Adjusting HVAC temperature to 32
-Received config change notification HVAC
+Received settings change notification HVAC
 Key TEMPERATURE     Value Int64(32)
 
 
@@ -79,10 +80,10 @@ Key TEMPERATURE     Value Int64(32)
 Creating another user profile
 Successfully created profile with ID 2
 Switched to profile 2
-Received config change notification HVAC
-Key ENABLED         Value Bool(false)
+Received settings change notification HVAC
 Key TEMPERATURE     Value Int64(16)
 Key FAN_SPEED       Value Int64(1)
+Key ENABLED         Value Bool(false)
 
 
 
@@ -96,71 +97,73 @@ The HVAC service attempts to register the same configuration twice, and we expec
 Additionally HVAC service will get requests to change settings and will respond successfully with the current state.
 
 ```bash
-Registering config with name: HVAC,
+Registering settings group with name: HVAC,
 Version: 1.0
+Key TEMPERATURE    , Type: PER_USER, Value Int64(16)
 Key FAN_SPEED      , Type: PER_USER, Value Int64(1)
 Key ENABLED        , Type: PER_USER, Value Bool(false)
-Key TEMPERATURE    , Type: PER_USER, Value Int64(16)
 
 
 
-Registering the same configuration again
+Registering the same settings again
 
 
-Config change request, simulating setting change delay
+Settings change request, simulating setting change delay
 
 
-Applied changes from request with transaction ID: 89
+Applied changes from request with transaction ID: 302
 Current settings
-Key FAN_SPEED       Value Int64(1         )
 Key TEMPERATURE     Value Int64(16        )
-Key ENABLED         Value Bool(false     )
-Config change request, simulating setting change delay
-
-
-Applied changes from request with transaction ID: 590
-Current settings
 Key FAN_SPEED       Value Int64(1         )
+Key ENABLED         Value Bool(false     )
+Settings change request, simulating setting change delay
+
+
+Applied changes from request with transaction ID: 660
+Current settings
 Key TEMPERATURE     Value Int64(32        )
-Key ENABLED         Value Bool(false     )
-Config change request, simulating setting change delay
-
-
-Applied changes from request with transaction ID: 754
-Current settings
 Key FAN_SPEED       Value Int64(1         )
+Key ENABLED         Value Bool(false     )
+Settings change request, simulating setting change delay
+
+
+Applied changes from request with transaction ID: 376
+Current settings
 Key TEMPERATURE     Value Int64(16        )
+Key FAN_SPEED       Value Int64(1         )
 Key ENABLED         Value Bool(false     )
 
 Performed factory reset
-Key ENABLED         Value Bool(false     )
-Key FAN_SPEED       Value Int64(1         )
 Key TEMPERATURE     Value Int64(16        )
+Key FAN_SPEED       Value Int64(1         )
+Key ENABLED         Value Bool(false     )
 ```
 
 #### User Profile Service output
 
 ```bash
 UserProfileServer service bundle started.
-Registered config HVAC
-Key FAN_SPEED      , Type: PER_USER, Value Int64(1)
+Registered settings HVAC
 Key TEMPERATURE    , Type: PER_USER, Value Int64(16)
+Key FAN_SPEED      , Type: PER_USER, Value Int64(1)
 Key ENABLED        , Type: PER_USER, Value Bool(false)
 
 
 
-Config HVAC with version 1.0 is already registered
+Settings HVAC with version 1.0 is already registered
 Created profile with ID: 1
 Loading profile of user 1
 
 Updated the following settings
-Key ENABLED         Value Bool(false)
 Key TEMPERATURE     Value Int64(16)
 Key FAN_SPEED       Value Int64(1)
+Key ENABLED         Value Bool(false)
 
 
 
-Config Change request to HVAC with the following settings:
+Successfully registered subscriber to settings: HVAC
+
+Settings Change request to HVAC with the following settings:
 Key TEMPERATURE     Value Int64(32)
 
 
@@ -170,13 +173,17 @@ Key TEMPERATURE     Value Int64(32)
 
 
 
-Successfully registered subscriber to config: HVAC
+Notifying HmiService::user_profile_view of settings change
 
 Created profile with ID: 2
 Loading profile of user 2
 
 Updated the following settings
-Key ENABLED         Value Bool(false)
-Key FAN_SPEED       Value Int64(1)
 Key TEMPERATURE     Value Int64(16)
+Key FAN_SPEED       Value Int64(1)
+Key ENABLED         Value Bool(false)
+
+
+
+Notifying HmiService::user_profile_view of settings change
 ```

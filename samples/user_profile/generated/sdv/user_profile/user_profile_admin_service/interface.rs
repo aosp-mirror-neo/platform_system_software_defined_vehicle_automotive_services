@@ -10,8 +10,8 @@ use user_profile_api::user_profile_admin_service::DeleteUserRequest;
 use user_profile_api::user_profile_admin_service::DeleteUserResponse;
 use user_profile_api::user_profile_admin_service::FactoryResetRequest;
 use user_profile_api::user_profile_admin_service::FactoryResetResponse;
-use user_profile_api::user_profile_admin_service::GetUserConfigsRequest;
-use user_profile_api::user_profile_admin_service::GetUserConfigsResponse;
+use user_profile_api::user_profile_admin_service::GetUserSettingsRequest;
+use user_profile_api::user_profile_admin_service::GetUserSettingsResponse;
 use user_profile_api::user_profile_admin_service::ListUsersRequest;
 use user_profile_api::user_profile_admin_service::ListUsersResponse;
 use user_profile_api::user_profile_admin_service::SelectUserRequest;
@@ -30,6 +30,8 @@ pub trait UserProfileAdminService: Send + Sync {
     /// RPC method declared in the interface.
     fn list_users(&self, request: ListUsersRequest) -> RpcResult<ListUsersResponse>;
     /// RPC method declared in the interface.
-    fn get_user_configs(&self, request: GetUserConfigsRequest)
-        -> RpcResult<GetUserConfigsResponse>;
+    fn get_user_settings(
+        &self,
+        request: GetUserSettingsRequest,
+    ) -> RpcResult<GetUserSettingsResponse>;
 }

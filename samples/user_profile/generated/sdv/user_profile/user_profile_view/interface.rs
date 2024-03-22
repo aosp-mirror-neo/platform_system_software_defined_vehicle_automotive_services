@@ -4,12 +4,14 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use sdvmiddleware_rpc::RpcResult;
-use user_profile_api::user_profile_view::OnConfigChangeRequest;
-use user_profile_api::user_profile_view::OnConfigChangeResponse;
+use user_profile_api::user_profile_view::OnSettingsChangeRequest;
+use user_profile_api::user_profile_view::OnSettingsChangeResponse;
 
 /// An auto-generated RPC interface.
 pub trait UserProfileView: Send + Sync {
     /// RPC method declared in the interface.
-    fn on_config_change(&self, request: OnConfigChangeRequest)
-        -> RpcResult<OnConfigChangeResponse>;
+    fn on_settings_change(
+        &self,
+        request: OnSettingsChangeRequest,
+    ) -> RpcResult<OnSettingsChangeResponse>;
 }

@@ -6,16 +6,16 @@
 use sdvmiddleware_rpc::RpcResult;
 use user_profile_api::user_controllable_service::FactoryResetRequest;
 use user_profile_api::user_controllable_service::FactoryResetResponse;
-use user_profile_api::user_controllable_service::RequestConfigChangeRequest;
-use user_profile_api::user_controllable_service::RequestConfigChangeResponse;
+use user_profile_api::user_controllable_service::RequestSettingsChangeRequest;
+use user_profile_api::user_controllable_service::RequestSettingsChangeResponse;
 
 /// An auto-generated RPC interface.
 pub trait UserControllableService: Send + Sync {
     /// RPC method declared in the interface.
-    fn request_config_change(
+    fn request_settings_change(
         &self,
-        request: RequestConfigChangeRequest,
-    ) -> RpcResult<RequestConfigChangeResponse>;
+        request: RequestSettingsChangeRequest,
+    ) -> RpcResult<RequestSettingsChangeResponse>;
     /// RPC method declared in the interface.
     fn factory_reset(&self, request: FactoryResetRequest) -> RpcResult<FactoryResetResponse>;
 }

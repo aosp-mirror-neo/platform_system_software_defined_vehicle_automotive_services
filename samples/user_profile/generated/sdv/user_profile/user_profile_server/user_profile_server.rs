@@ -33,9 +33,9 @@ pub struct UserProfileServerCallbacks {}
 struct Subscriptions {}
 
 pub struct UserProfileServer {
-    pub user_profile_registry_service_server: UserProfileRegistryServiceServer,
     pub user_profile_admin_service_server: UserProfileAdminServiceServer,
     pub user_profile_management_service_server: UserProfileManagementServiceServer,
+    pub user_profile_registry_service_server: UserProfileRegistryServiceServer,
 
     user_profile_view_clients:
         parking_lot::RwLock<std::collections::HashMap<String, Arc<UserProfileViewClient>>>,
@@ -47,14 +47,14 @@ impl UserProfileServer {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         UserProfileServer {
-            user_profile_registry_service_server: UserProfileRegistryServiceServer::new(
-                GrpcServerTransport::new("UserProfileServer::user_profile_registry_service"),
-            ),
             user_profile_admin_service_server: UserProfileAdminServiceServer::new(
                 GrpcServerTransport::new("UserProfileServer::user_profile_admin_service"),
             ),
             user_profile_management_service_server: UserProfileManagementServiceServer::new(
                 GrpcServerTransport::new("UserProfileServer::user_profile_management_service"),
+            ),
+            user_profile_registry_service_server: UserProfileRegistryServiceServer::new(
+                GrpcServerTransport::new("UserProfileServer::user_profile_registry_service"),
             ),
 
             user_profile_view_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
