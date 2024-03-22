@@ -13,8 +13,8 @@ use user_profile_api::user_profile_admin_service::DeleteUserRequest;
 use user_profile_api::user_profile_admin_service::DeleteUserResponse;
 use user_profile_api::user_profile_admin_service::FactoryResetRequest;
 use user_profile_api::user_profile_admin_service::FactoryResetResponse;
-use user_profile_api::user_profile_admin_service::GetUserConfigsRequest;
-use user_profile_api::user_profile_admin_service::GetUserConfigsResponse;
+use user_profile_api::user_profile_admin_service::GetUserSettingsRequest;
+use user_profile_api::user_profile_admin_service::GetUserSettingsResponse;
 use user_profile_api::user_profile_admin_service::ListUsersRequest;
 use user_profile_api::user_profile_admin_service::ListUsersResponse;
 use user_profile_api::user_profile_admin_service::SelectUserRequest;
@@ -68,13 +68,13 @@ impl UserProfileAdminService for UserProfileAdminServiceClient {
             &request,
         )
     }
-    fn get_user_configs(
+    fn get_user_settings(
         &self,
-        request: GetUserConfigsRequest,
-    ) -> RpcResult<GetUserConfigsResponse> {
-        call_method::<GetUserConfigsRequest, GetUserConfigsResponse>(
+        request: GetUserSettingsRequest,
+    ) -> RpcResult<GetUserSettingsResponse> {
+        call_method::<GetUserSettingsRequest, GetUserSettingsResponse>(
             self.transport.as_ref(),
-            "UserProfileAdminService::get_user_configs",
+            "UserProfileAdminService::get_user_settings",
             &request,
         )
     }

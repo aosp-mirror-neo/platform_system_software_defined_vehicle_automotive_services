@@ -10,9 +10,9 @@ use sdvgenerated_rpc_user_profile_view::interface::UserProfileView;
 use sdvgenerated_rpc_user_profile_view::client::UserProfileViewClient;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 
-use user_profile_api::configuration::Configuration;
+use user_profile_api::settings_group::SettingsGroup;
 use user_profile_api::user_profile_registry_service::{
-    RegisterConfigRequest, RegisterConfigResponse,
+    RegisterSettingsRequest, RegisterSettingsResponse,
 };
 
 use user_profile_api::error::{Error, ResponseCode};
@@ -20,33 +20,35 @@ use user_profile_api::setting::setting::Value;
 use user_profile_api::setting::{self, Setting, SettingKind};
 use user_profile_api::user_profile_admin_service::*;
 use user_profile_api::user_profile_management_service::*;
-use user_profile_api::user_profile_registry_service::{UpdateConfigRequest, UpdateConfigResponse};
+use user_profile_api::user_profile_registry_service::{
+    UpdateSettingsRequest, UpdateSettingsResponse,
+};
 
 use protobuf::{EnumOrUnknown, MessageField};
 use sdvmiddleware_rpc::RpcResult;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::vec::Vec;
-use user_profile_api::user_profile_view::OnConfigChangeRequest;
+use user_profile_api::user_profile_view::OnSettingsChangeRequest;
 
 use user_profile_api::user_controllable_service;
 
-use crate::config_metadata::ConfigMetadata;
 use crate::macros::{acquire_lock_or_return_err, error_response};
+use crate::settings_metadata::SettingsGroupMetadata;
 use user_profile_utils::{print_setting_definition, print_settings};
 
 use rand::Rng;
 
 type Settings = HashMap<String, Value>;
-type Configurations = HashMap<String, Settings>;
-type Profiles = HashMap<u64, Configurations>;
+type SettingsGroupTable = HashMap<String, Settings>;
+type Profiles = HashMap<u64, SettingsGroupTable>;
 
 pub struct UserProfileServiceImpl {
-    defaults: Mutex<HashMap<String, ConfigMetadata>>,
-    vehicle_state: Mutex<Configurations>,
+    defaults: Mutex<HashMap<String, SettingsGroupMetadata>>,
+    vehicle_state: Mutex<SettingsGroupTable>,
     user_profiles: Mutex<Profiles>,
     active_profile: Mutex<Option<u64>>,
-    config_subscribers: Mutex<HashMap<String, Vec<String>>>,
+    change_subscribers: Mutex<HashMap<String, Vec<String>>>,
 }
 
 impl UserProfileServiceImpl {
@@ -56,11 +58,11 @@ impl UserProfileServiceImpl {
             vehicle_state: Mutex::new(HashMap::new()),
             user_profiles: Mutex::new(Profiles::new()),
             active_profile: Mutex::new(None),
-            config_subscribers: Mutex::new(HashMap::new()),
+            change_subscribers: Mutex::new(HashMap::new()),
         }
     }
 
-    fn apply_config(config_name: String, settings: Vec<setting::Setting>) -> Result<(), String> {
+    fn apply_settings(group_name: String, settings: Vec<setting::Setting>) -> Result<(), String> {
         // Ideally the client should be created via the get_user_controllable_service_client method
         // that is present in the UserProfileServer, for now manually create it since the rust
         // compiler cannot determine the correctness of the program if UserProfileServiceImpl & UserProfileServer
@@ -73,18 +75,18 @@ impl UserProfileServiceImpl {
         let transaction_id: u64 = rng.gen_range(0..1000);
 
         let resp = client
-            .request_config_change(user_controllable_service::RequestConfigChangeRequest {
-                config_name,
+            .request_settings_change(user_controllable_service::RequestSettingsChangeRequest {
+                group_name,
                 transaction_id,
                 settings,
                 ..Default::default()
             })
             .map_err(|x| {
-                format!("Failed to perform GRPC request to request_config_change: {}", x)
+                format!("Failed to perform GRPC request to request_settings_change: {}", x)
             })?;
 
         match resp.error.is_some() {
-            true => Err(format!("Failed to request config changes: {}", resp.error.unwrap())),
+            true => Err(format!("Failed to request settings changes: {}", resp.error.unwrap())),
             false => Ok(()),
         }
     }
@@ -96,7 +98,7 @@ impl UserProfileServiceImpl {
 
         let resp =
             client.factory_reset(user_controllable_service::FactoryResetRequest::new()).map_err(
-                |x| format!("Failed to perform GRPC request to request_config_change: {}", x),
+                |x| format!("Failed to perform GRPC request to request_settings_change: {}", x),
             )?;
 
         match resp.error.is_some() {
@@ -107,7 +109,7 @@ impl UserProfileServiceImpl {
         }
     }
 
-    fn notify_subscribers(config: &str, setting: &[Setting], subscribers: &[String]) {
+    fn notify_subscribers(settings: &str, setting: &[Setting], subscribers: &[String]) {
         // Ideally the client should be created via the get_user_controllable_service_client method
         // that is present in the UserProfileServer, for now manually create it since the rust
         // compiler cannot determine the correctness of the program if UserProfileServiceImpl & UserProfileServer
@@ -115,17 +117,17 @@ impl UserProfileServiceImpl {
         for subscriber in subscribers {
             let client = UserProfileViewClient::new(Box::new(GrpcClientTransport::new(subscriber)));
 
-            println!("Notifying {} of config change\n", subscriber);
+            println!("Notifying {} of settings change\n", subscriber);
             client
-                .on_config_change(OnConfigChangeRequest {
-                    config: MessageField::some(Configuration {
-                        config_name: config.to_string(),
+                .on_settings_change(OnSettingsChangeRequest {
+                    group: MessageField::some(SettingsGroup {
+                        name: settings.to_string(),
                         settings: setting.to_vec(),
                         ..Default::default()
                     }),
                     ..Default::default()
                 })
-                .expect("Failed to notify clients of config changes");
+                .expect("Failed to notify clients of settings changes");
         }
     }
 }
@@ -155,11 +157,11 @@ impl UserProfileAdminService for UserProfileServiceImpl {
         }
 
         // Initialize profile with default values
-        let mut configurations = Configurations::new();
+        let mut setting_groups = SettingsGroupTable::new();
         let defaults = acquire_lock_or_return_err!(self.defaults, CreateUserResponse);
 
-        for (config_name, config_defaults) in defaults.iter() {
-            let settings_map: HashMap<String, Value> = config_defaults
+        for (group_name, default_settings) in defaults.iter() {
+            let settings_map: HashMap<String, Value> = default_settings
                 .settings_definition()
                 .iter()
                 .filter(|x| x.type_.unwrap() == SettingKind::PER_USER)
@@ -173,21 +175,12 @@ impl UserProfileAdminService for UserProfileServiceImpl {
                 })
                 .collect::<HashMap<_, _>>();
 
-            configurations.insert(config_name.clone(), settings_map);
-        }
-
-        // override defaults with values provided by user creator
-        for config in request.configs.iter() {
-            let service_config = configurations.entry(config.config_name.clone()).or_default();
-
-            config.settings.iter().for_each(|setting| {
-                service_config.insert(setting.key.clone(), setting.value.clone().unwrap());
-            });
+            setting_groups.insert(group_name.clone(), settings_map);
         }
 
         println!("Created profile with ID: {}", user.id);
 
-        profiles.insert(user.id, configurations);
+        profiles.insert(user.id, setting_groups);
 
         Ok(CreateUserResponse::new())
     }
@@ -197,7 +190,7 @@ impl UserProfileAdminService for UserProfileServiceImpl {
         let mut active_profile =
             acquire_lock_or_return_err!(self.active_profile, SelectUserResponse);
 
-        let target_profile: &Configurations = match profiles.get(&request.user_id) {
+        let target_profile: &SettingsGroupTable = match profiles.get(&request.user_id) {
             Some(x) => x,
             None => {
                 return error_response!(
@@ -212,7 +205,7 @@ impl UserProfileAdminService for UserProfileServiceImpl {
         println!("Loading profile of user {}\n", request.user_id);
         *active_profile = Some(request.user_id);
 
-        for (config_name, settings) in target_profile {
+        for (group_name, settings) in target_profile {
             let settings = settings
                 .iter()
                 .map(|(setting_name, value)| setting::Setting {
@@ -222,8 +215,8 @@ impl UserProfileAdminService for UserProfileServiceImpl {
                 })
                 .collect_vec();
 
-            if let Err(result) = Self::apply_config(config_name.clone(), settings) {
-                println!("Failed to apply config changes: {}", result);
+            if let Err(result) = Self::apply_settings(group_name.clone(), settings) {
+                println!("Failed to apply settings changes: {}", result);
             }
         }
 
@@ -282,37 +275,37 @@ impl UserProfileAdminService for UserProfileServiceImpl {
         todo!()
     }
 
-    fn get_user_configs(
+    fn get_user_settings(
         &self,
-        _request: GetUserConfigsRequest,
-    ) -> RpcResult<GetUserConfigsResponse> {
+        _request: GetUserSettingsRequest,
+    ) -> RpcResult<GetUserSettingsResponse> {
         todo!()
     }
 }
 
 impl UserProfileManagementService for UserProfileServiceImpl {
-    fn request_config_change(
+    fn request_settings_change(
         &self,
-        request: RequestConfigChangeRequest,
-    ) -> RpcResult<RequestConfigChangeResponse> {
+        request: RequestSettingsChangeRequest,
+    ) -> RpcResult<RequestSettingsChangeResponse> {
         let vehicle_state =
-            acquire_lock_or_return_err!(self.vehicle_state, RequestConfigChangeResponse);
+            acquire_lock_or_return_err!(self.vehicle_state, RequestSettingsChangeResponse);
 
-        if !vehicle_state.contains_key(&request.config_name) {
+        if !vehicle_state.contains_key(&request.group_name) {
             return error_response!(
-                RequestConfigChangeResponse,
+                RequestSettingsChangeResponse,
                 ResponseCode::INVALID_REQUEST,
-                "Config {} not found",
-                request.config_name
+                "Settings {} not found",
+                request.group_name
             );
         }
 
-        println!("Config Change request to {} with the following settings: ", request.config_name);
+        println!("Settings Change request to {} with the following settings: ", request.group_name);
         print_settings(&request.settings);
 
-        let resp = match Self::apply_config(request.config_name, request.settings) {
-            Ok(_) => RequestConfigChangeResponse::new(),
-            Err(err) => RequestConfigChangeResponse {
+        let resp = match Self::apply_settings(request.group_name, request.settings) {
+            Ok(_) => RequestSettingsChangeResponse::new(),
+            Err(err) => RequestSettingsChangeResponse {
                 error: MessageField::some(Error {
                     error_code: EnumOrUnknown::new(ResponseCode::RUNTIME_ERROR),
                     message: err,
@@ -324,29 +317,29 @@ impl UserProfileManagementService for UserProfileServiceImpl {
         Ok(resp)
     }
 
-    fn subscribe_to_config_change_and_get_config(
+    fn subscribe_to_settings_change_and_get_settings(
         &self,
-        request: SubscribeToConfigChangeAndGetConfigRequest,
-    ) -> RpcResult<SubscribeToConfigChangeAndGetConfigResponse> {
+        request: SubscribeToSettingsChangeAndGetSettingsRequest,
+    ) -> RpcResult<SubscribeToSettingsChangeAndGetSettingsResponse> {
         let vehicle_state = acquire_lock_or_return_err!(
             self.vehicle_state,
-            SubscribeToConfigChangeAndGetConfigResponse
+            SubscribeToSettingsChangeAndGetSettingsResponse
         );
-        let mut config_subscribers = acquire_lock_or_return_err!(
-            self.config_subscribers,
-            SubscribeToConfigChangeAndGetConfigResponse
+        let mut change_subscribers = acquire_lock_or_return_err!(
+            self.change_subscribers,
+            SubscribeToSettingsChangeAndGetSettingsResponse
         );
         //TODO: Once middleware exposes the identity of the caller, we need to
         //register their identity. For now we will rely on a client that is hardcoded to call a specific service bundle
-        config_subscribers.insert(
-            request.config_name.clone(),
+        change_subscribers.insert(
+            request.group_name.clone(),
             vec![String::from("HmiService::user_profile_view")],
         );
 
-        if let Some(settings) = vehicle_state.get(&request.config_name) {
-            let mut result = SubscribeToConfigChangeAndGetConfigResponse::new();
-            result.config = MessageField::some(Configuration {
-                config_name: request.config_name.clone(),
+        if let Some(settings) = vehicle_state.get(&request.group_name) {
+            let mut result = SubscribeToSettingsChangeAndGetSettingsResponse::new();
+            result.group = MessageField::some(SettingsGroup {
+                name: request.group_name.clone(),
                 settings: settings
                     .iter()
                     .map(|(key, value)| Setting {
@@ -358,89 +351,95 @@ impl UserProfileManagementService for UserProfileServiceImpl {
                 ..Default::default()
             });
 
-            println!("Successfully registered subscriber to config: {}\n", request.config_name);
+            println!("Successfully registered subscriber to settings: {}\n", request.group_name);
             return Ok(result);
         }
 
-        println!("Received request to subscribe to non existent config: {:?}", request.config_name);
+        println!(
+            "Received request to subscribe to non existent settings: {:?}",
+            request.group_name
+        );
 
         error_response!(
-            SubscribeToConfigChangeAndGetConfigResponse,
+            SubscribeToSettingsChangeAndGetSettingsResponse,
             ResponseCode::INVALID_REQUEST,
-            "Config {:?} does not exist",
-            request.config_name
+            "Settings {:?} does not exist",
+            request.group_name
         )
     }
 
-    fn unsubscribe_from_config_change(
+    fn unsubscribe_from_settings_change(
         &self,
-        _request: UnsubscribeToConfigChangeRequest,
-    ) -> RpcResult<UnsubscribeToConfigChangeResponse> {
+        _request: UnsubscribeToSettingsChangeRequest,
+    ) -> RpcResult<UnsubscribeToSettingsChangeResponse> {
         todo!()
     }
 }
 
 impl UserProfileRegistryService for UserProfileServiceImpl {
-    fn register_config(&self, request: RegisterConfigRequest) -> RpcResult<RegisterConfigResponse> {
-        let mut defaults = acquire_lock_or_return_err!(self.defaults, RegisterConfigResponse);
+    fn register_settings(
+        &self,
+        request: RegisterSettingsRequest,
+    ) -> RpcResult<RegisterSettingsResponse> {
+        let mut defaults = acquire_lock_or_return_err!(self.defaults, RegisterSettingsResponse);
         let mut vehicle_state =
-            acquire_lock_or_return_err!(self.vehicle_state, RegisterConfigResponse);
+            acquire_lock_or_return_err!(self.vehicle_state, RegisterSettingsResponse);
 
-        let new_config_metadata =
-            ConfigMetadata::new(request.version, request.settings_definitions.clone());
+        let settings_group_metadata =
+            SettingsGroupMetadata::new(request.version, request.settings_definitions.clone());
 
-        if !defaults.contains_key(&request.config_name)
-            || defaults.get(&request.config_name).unwrap().version()
-                != new_config_metadata.version()
+        if !defaults.contains_key(&request.group_name)
+            || defaults.get(&request.group_name).unwrap().version()
+                != settings_group_metadata.version()
         {
-            println!("Registered config {}", request.config_name);
+            println!("Registered settings {}", request.group_name);
 
             print_setting_definition(&request.settings_definitions);
 
-            defaults.insert(request.config_name.clone(), new_config_metadata);
+            defaults.insert(request.group_name.clone(), settings_group_metadata);
 
             // Also register the settings in the vehicle state
-            let service_config =
-                vehicle_state.entry(request.config_name.clone()).or_insert(HashMap::new());
+            let service_settings =
+                vehicle_state.entry(request.group_name.clone()).or_insert(HashMap::new());
 
             request.settings_definitions.iter().cloned().for_each(|setting_definition| {
                 let setting_and_constraints = setting_definition.setting_and_constaints.unwrap();
                 let setting = setting_and_constraints.setting.unwrap();
 
-                service_config.entry(setting.key).or_insert(setting.value.unwrap());
+                service_settings.entry(setting.key).or_insert(setting.value.unwrap());
             });
         } else {
             println!(
-                "Config {} with version {} is already registered",
-                request.config_name,
-                new_config_metadata.version()
+                "Settings {} with version {} is already registered",
+                request.group_name,
+                settings_group_metadata.version()
             );
         }
 
-        Ok(RegisterConfigResponse::new())
+        Ok(RegisterSettingsResponse::new())
     }
 
-    fn update_config(&self, request: UpdateConfigRequest) -> RpcResult<UpdateConfigResponse> {
+    fn update_settings(&self, request: UpdateSettingsRequest) -> RpcResult<UpdateSettingsResponse> {
         let mut vehicle_state =
-            acquire_lock_or_return_err!(self.vehicle_state, UpdateConfigResponse);
-        let config_subscribers =
-            acquire_lock_or_return_err!(self.config_subscribers, UpdateConfigResponse);
+            acquire_lock_or_return_err!(self.vehicle_state, UpdateSettingsResponse);
+        let change_subscribers =
+            acquire_lock_or_return_err!(self.change_subscribers, UpdateSettingsResponse);
 
-        let service_config: &mut Settings = match vehicle_state.get_mut(&request.config_name) {
+        let service_settings: &mut Settings = match vehicle_state.get_mut(&request.group_name) {
             Some(x) => x,
             None => {
                 return error_response!(
-                    UpdateConfigResponse,
+                    UpdateSettingsResponse,
                     ResponseCode::NOT_FOUND_ERROR,
-                    "Config with {} not found",
-                    request.config_name
+                    "Settings with {} not found",
+                    request.group_name
                 )
             }
         };
 
         if request.settings.iter().any(|setting| setting.value.is_none()) {
             return error_response!(
-                UpdateConfigResponse,
+                UpdateSettingsResponse,
                 ResponseCode::INVALID_REQUEST,
                 "Encountered settings with a None value: {:?}",
                 request.settings
@@ -449,35 +448,35 @@ impl UserProfileRegistryService for UserProfileServiceImpl {
 
         request.settings.iter().cloned().for_each(|x| {
             let new_value = x.value.unwrap();
-            service_config.insert(x.key, new_value);
+            service_settings.insert(x.key, new_value);
         });
 
         println!("Updated the following settings");
         print_settings(&request.settings);
 
         let active_profile_id =
-            acquire_lock_or_return_err!(self.active_profile, UpdateConfigResponse);
+            acquire_lock_or_return_err!(self.active_profile, UpdateSettingsResponse);
 
         if let Some(active_profile_id) = *active_profile_id {
             let mut profiles =
-                acquire_lock_or_return_err!(self.user_profiles, UpdateConfigResponse);
+                acquire_lock_or_return_err!(self.user_profiles, UpdateSettingsResponse);
             let active_profile: &mut HashMap<String, HashMap<String, Value>> =
                 profiles.get_mut(&active_profile_id).unwrap();
-            let current_config: &mut HashMap<String, Value> =
-                active_profile.get_mut(&request.config_name).unwrap();
+            let current_settings: &mut HashMap<String, Value> =
+                active_profile.get_mut(&request.group_name).unwrap();
 
             request.settings.iter().cloned().for_each(|x| {
                 let new_value = x.value.unwrap();
-                current_config.insert(x.key, new_value);
+                current_settings.insert(x.key, new_value);
             });
         }
 
         Self::notify_subscribers(
-            &request.config_name,
+            &request.group_name,
             &request.settings,
-            config_subscribers.get(&request.config_name).unwrap_or(&vec![]),
+            change_subscribers.get(&request.group_name).unwrap_or(&vec![]),
         );
 
-        Ok(UpdateConfigResponse::new())
+        Ok(UpdateSettingsResponse::new())
     }
 }

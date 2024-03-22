@@ -13,8 +13,8 @@ use user_profile_api::user_profile_admin_service::DeleteUserRequest;
 use user_profile_api::user_profile_admin_service::DeleteUserResponse;
 use user_profile_api::user_profile_admin_service::FactoryResetRequest;
 use user_profile_api::user_profile_admin_service::FactoryResetResponse;
-use user_profile_api::user_profile_admin_service::GetUserConfigsRequest;
-use user_profile_api::user_profile_admin_service::GetUserConfigsResponse;
+use user_profile_api::user_profile_admin_service::GetUserSettingsRequest;
+use user_profile_api::user_profile_admin_service::GetUserSettingsResponse;
 use user_profile_api::user_profile_admin_service::ListUsersRequest;
 use user_profile_api::user_profile_admin_service::ListUsersResponse;
 use user_profile_api::user_profile_admin_service::SelectUserRequest;
@@ -66,9 +66,9 @@ impl UserProfileAdminServiceServer {
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<GetUserConfigsRequest, GetUserConfigsResponse>(
-            Box::new(move |req| callback.get_user_configs(req)),
-            "UserProfileAdminService::get_user_configs",
+        serve_method::<GetUserSettingsRequest, GetUserSettingsResponse>(
+            Box::new(move |req| callback.get_user_settings(req)),
+            "UserProfileAdminService::get_user_settings",
             self.transport.as_ref(),
         );
     }

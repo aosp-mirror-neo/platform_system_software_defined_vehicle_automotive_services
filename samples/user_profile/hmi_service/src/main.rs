@@ -15,16 +15,16 @@ use user_profile_api::user_profile_admin_service::CreateUserRequest;
 use user_profile_api::user_profile_admin_service::DeleteUserRequest;
 use user_profile_api::user_profile_admin_service::FactoryResetRequest;
 use user_profile_api::user_profile_admin_service::SelectUserRequest;
-use user_profile_api::user_profile_management_service::RequestConfigChangeRequest;
+use user_profile_api::user_profile_management_service::RequestSettingsChangeRequest;
 use user_profile_api::{
     user::user::UserFlags, user::User,
-    user_profile_management_service::SubscribeToConfigChangeAndGetConfigRequest,
+    user_profile_management_service::SubscribeToSettingsChangeAndGetSettingsRequest,
 };
 
 use hmi_service_impl::HmiServiceImpl;
 use user_profile_utils::print_settings;
 
-pub const CONFIG_NAME: &str = "HVAC";
+pub const SETTINGS_GROUP_NAME: &str = "HVAC";
 pub const TEMPERATURE: &str = "TEMPERATURE";
 
 fn main() {
@@ -66,21 +66,23 @@ fn main() {
     std::thread::sleep(std::time::Duration::from_secs(5));
 
     let response = user_profile_management_client
-        .subscribe_to_config_change_and_get_config(SubscribeToConfigChangeAndGetConfigRequest {
-            config_name: "HVAC".to_string(),
-            ..Default::default()
-        })
-        .expect("Failed to perform request to subscribe to configuration changes");
+        .subscribe_to_settings_change_and_get_settings(
+            SubscribeToSettingsChangeAndGetSettingsRequest {
+                group_name: "HVAC".to_string(),
+                ..Default::default()
+            },
+        )
+        .expect("Failed to perform request to subscribe to settings changes");
     if let Some(error) = response.error.into_option() {
-        panic!("Failed to subscribe to configuration change: {:?}", error);
+        panic!("Failed to subscribe to settings change: {:?}", error);
     }
-    println!("Current HVAC configuration");
-    print_settings(&response.config.unwrap().settings);
+    println!("Current HVAC settings");
+    print_settings(&response.group.unwrap().settings);
 
     println!("Adjusting HVAC temperature to 32");
     let response = user_profile_management_client
-        .request_config_change(RequestConfigChangeRequest {
-            config_name: CONFIG_NAME.to_string(),
+        .request_settings_change(RequestSettingsChangeRequest {
+            group_name: SETTINGS_GROUP_NAME.to_string(),
             settings: vec![Setting {
                 key: TEMPERATURE.to_string(),
                 value: Some(Value::Int64(32)),
@@ -88,9 +90,9 @@ fn main() {
             }],
             ..Default::default()
         })
-        .expect("Failed to perform request config change");
+        .expect("Failed to perform request setting change");
     if let Some(error) = response.error.into_option() {
-        panic!("Failed to perform config change {:?}", error);
+        panic!("Failed to perform setting change {:?}", error);
     }
 
     // HVAC requires 3 seconds to make the change, lets wait for 5 seconds before changing the profile
