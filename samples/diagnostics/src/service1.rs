@@ -6,7 +6,7 @@ mod data_item_impl;
 use crate::data_item_impl::DataItemImpl;
 use diagnostics_api::event::Status;
 use diagnostics_sample_catalog::messages::{DataItemOne, FirstEventExt};
-use sdv_middleware_extension_diagnostics::Event;
+use sdv_middleware_extension_diagnostics::event::Event;
 use sdvgenerated::diagnostics_provider_service1::DiagnosticsProviderService1;
 use std::sync::Arc;
 
