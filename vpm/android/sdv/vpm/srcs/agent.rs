@@ -27,7 +27,7 @@ use tokio::task;
 #[automock]
 #[async_trait]
 // The trait encapsulates the functions of the vehicle states.
-// It also helps with testing the VPM agent while mocking the middelware generated code.
+// It also helps with testing the VPM agent while mocking the middleware generated code.
 trait VehicleStateService {
     // Starts the rpc server that receives incoming RPC requests from the OEM to set the vehicle state in the SDV VM.
     fn start_rpc_server(&self, vpm_state_listener: VehicleStateListener);
@@ -75,7 +75,7 @@ impl VehicleStateService for VehicleStateServiceImpl {
 }
 
 /// VPM agent.
-/// The agent contains service implementation for vehilce and power mode management.
+/// The agent contains service implementation for vehicle and power mode management.
 pub struct VPM {
     vehicle_service: Arc<dyn VehicleStateService>,
 }
@@ -129,7 +129,7 @@ mod tests {
         mock_service.expect_start_rpc_server().times(1).return_const(());
         mock_service.expect_start_vehicle_state_handler().times(1).return_const(());
 
-        // When: the new agent is created, publisher and rpc servers are created
+        // When: the new agent is created, publisher and rpc servers are created.
         let agent = VPM::new_with_services(Arc::new(mock_service));
         let _test = agent.start().await;
     }
