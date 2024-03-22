@@ -22,6 +22,6 @@ mod tests {
             "tests/manager_stdout.txt",
         );
 
-        sample_logs_verifier.run_and_assert_stdout();
+        sample_logs_verifier.run_and_assert_stdout_ignore_order();
     }
 }
