@@ -6,7 +6,7 @@ package {
 }
 
 rust_library {
-    name: "libsdvgenerated_vehicle_state_subscriber",
+    name: "libsdvgenerated_vpm_system_client",
     crate_name: "sdvgenerated",
     srcs: [
         "mod.rs",
@@ -16,7 +16,11 @@ rust_library {
         "libsdv_vpm_api",
         "liblog_rust",
         "libsdv_log_rust",
+        "libparking_lot",
+        "libsdvmiddleware_rpc_grpc_transport",
+        "libsdvgenerated_rpc_vpm_system_service",
         "libsdv_middleware_pubsub",
+        "libsdvmiddleware_common",
     ],
     apex_available: [
         "//apex_available:platform",

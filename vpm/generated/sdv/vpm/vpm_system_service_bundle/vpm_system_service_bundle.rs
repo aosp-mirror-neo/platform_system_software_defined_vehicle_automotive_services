@@ -3,6 +3,7 @@
     dead_code,
     missing_docs,
     unused_variables,
+    clippy::blocks_in_conditions,
     clippy::extra_unused_lifetimes,
     clippy::derivable_impls,
     clippy::new_without_default
@@ -38,7 +39,7 @@ impl VpmSystemServiceBundle {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         VpmSystemServiceBundle {
-            vehicle_state_change_publisher: DataTunnelPublisher::new(5),
+            vehicle_state_change_publisher: DataTunnelPublisher::new(11),
 
             vpm_system_service_server: VpmSystemServiceServer::new(GrpcServerTransport::new(
                 "VpmSystemServiceBundle",
@@ -66,8 +67,9 @@ impl VpmSystemServiceBundle {
         message: &VehicleStateChange,
     ) -> sdv_middleware_pubsub::Result<()> {
         use protobuf::Message;
+        use sdvmiddleware_common::size_utils::LenOf;
         let computed_message_size = message.compute_size();
-        if computed_message_size > 5 {
+        if computed_message_size > 11 {
             let mut error_message = String::new();
             error_message += format!("Message size is bigger than defined maximum for this message. Current size: {computed_message_size}\n").as_str();
 

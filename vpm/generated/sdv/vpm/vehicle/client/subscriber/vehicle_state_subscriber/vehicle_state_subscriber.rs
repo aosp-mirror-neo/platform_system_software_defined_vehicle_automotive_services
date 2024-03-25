@@ -3,6 +3,7 @@
     dead_code,
     missing_docs,
     unused_variables,
+    clippy::blocks_in_conditions,
     clippy::extra_unused_lifetimes,
     clippy::derivable_impls,
     clippy::new_without_default
@@ -53,6 +54,7 @@ impl VehicleStateSubscriber {
     /// in the vehicle catalog for this service bundle
     pub fn start(&mut self) -> sdv_middleware_pubsub::Result<()> {
         self.register_all_topics()?;
+
         self.subscribe_to_topics()?;
         self.start_subscription_listening_thread()?;
         info!("Service `VehicleStateSubscriber` has been started.");
@@ -77,10 +79,9 @@ impl VehicleStateSubscriber {
         let builder = thread::Builder::new().name("dt_subscription_loop".into());
         let subscriptions = self.subscriptions.clone();
         let callbacks = self.callbacks.clone();
-        let res = builder.spawn(move || {
+        match builder.spawn(move || {
             Self::poll_subscriptions(subscriptions, callbacks);
-        });
-        match res {
+        }) {
             Ok(handle) => self.subscription_thread_handle = Some(handle),
             Err(e) => {
                 error!("Thread spawn failed: {:?}", e);
