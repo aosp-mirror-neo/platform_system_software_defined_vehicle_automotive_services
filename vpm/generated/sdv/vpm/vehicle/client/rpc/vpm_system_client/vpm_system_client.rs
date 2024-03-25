@@ -3,6 +3,7 @@
     dead_code,
     missing_docs,
     unused_variables,
+    clippy::blocks_in_conditions,
     clippy::extra_unused_lifetimes,
     clippy::derivable_impls,
     clippy::new_without_default
