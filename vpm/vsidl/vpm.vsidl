@@ -9,7 +9,7 @@ sdv_service_bundle {
     name: "VpmSystemServiceBundle"
 
     # OEM-facing RPC server that allows the OEM to set the vehicle state [Not to third party applications and services].
-    server: "sdv.vpm.vehicle.VpmSystemService"
+    server: "sdv.vpm.VpmSystemService"
 
     # Public Data tunnel publisher for vehicle state.
     publisher: "sdv.vpm.vehicle.VehicleStateChange::VehicleStateChange"

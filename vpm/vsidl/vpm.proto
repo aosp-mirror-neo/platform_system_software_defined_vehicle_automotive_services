@@ -1,14 +1,47 @@
-// Copyright 2023 Google LLC
+// Copyright 2024 Google LLC
 
 syntax = "proto3";
 import "vehicle.proto";
 import "google/protobuf/empty.proto";
-package sdv.vpm.vehicle;
+package sdv.vpm;
 
 // OEM-facing representation of the request to set a vehicle state.
 message SetVehicleStateRequest {
-  // The new vehicle state that needs to be set in the SDV VM.
+  // The new vehicle state to be set in the SDV VM.
   vehicle.VpmVehicleState vehicle_state = 1;
+}
+
+// OEM-facing representation of power states that can be requested by the OEM.
+enum PowerStateRequest {
+  TURN_ON = 0;
+  PREPARE_SHUTDOWN = 1;
+  CANCEL_SHUTDOWN = 2;
+  FINISH_SHUTDOWN = 3;
+}
+
+// OEM-facing representation of shutdown types that can be chosen with PREPARE_SHUTDOWN
+// PowerStateRequest.
+enum ShutdownType {
+  POWER_OFF = 0;
+  SUSPEND_TO_RAM = 1;
+  SUSPEND_TO_DISK = 2;
+}
+
+// OEM-facing representation of the power state change request message.
+message PowerStateChangeRequest {
+  PowerStateRequest power_request = 1;
+  ShutdownType shutdown_type = 2;
+  uint64 timeout_ms = 3;
+}
+// OEM-facing representation of the power state change response message.
+message PowerStateChangeResponse {
+  PowerStateChangeRequestError error = 1;
+}
+
+// OEM-facing representation of the errors that could occur during power state change.
+enum PowerStateChangeRequestError {
+  // Transition for the current state to the requested one is invalid
+  INVALID_TRANSITION = 0;
 }
 
 /**
@@ -22,6 +55,15 @@ service VpmSystemService {
   // If the request is successful, the new vehicle state is set and is broadcasted to the vehicle
   // state listeners in the SDV VM
 
-  // If the request failed, an error is returned with the correspoding response code.
+  // If the request fails, an error is returned with the corresponding response code.
   rpc SetVehicleState(SetVehicleStateRequest) returns (google.protobuf.Empty) {};
+
+  // RPC request that allows the OEM to set the power state in the SDV VM.
+
+  // If the request is successful, the new power state is sent to the Orchestrator and SDV agents.
+  // OEM will receive a callback either after successful callback execution from Orchestrator and
+  // SDV agents or after timeout. If the request fails, an error is returned with the corresponding
+  // response code.
+
+  rpc SetPowerState(PowerStateChangeRequest) returns (PowerStateChangeResponse) {};
 }
