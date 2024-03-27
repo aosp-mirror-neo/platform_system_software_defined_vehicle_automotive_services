@@ -2,9 +2,9 @@
 //! Vehicle and Power Mode Agent.
 
 #![allow(unused)]
-mod vehicle_state_listener;
+mod rpc_server;
 
-use crate::vehicle_state_listener::VehicleStateListener;
+use crate::rpc_server::RpcServer;
 use async_trait::async_trait;
 use log::{error, info};
 use mockall::automock;
@@ -13,7 +13,6 @@ use sdv_vpm_api::vehicle::VehicleStateChange;
 use sdv_vpm_api::vehicle::VpmVehicleState;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
 use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
-use sdvgenerated::vpm_system_service_interface::VpmSystemService;
 use sdvmiddleware_rpc::error::RpcError;
 use sdvmiddleware_rpc::RpcResult;
 use std::sync::mpsc::channel;
@@ -26,28 +25,28 @@ use tokio::task;
 
 #[automock]
 #[async_trait]
-// The trait encapsulates the functions of the vehicle states.
+// The trait encapsulates the functions of the service bundle.
 // It also helps with testing the VPM agent while mocking the middleware generated code.
-trait VehicleStateService {
+trait VpmSystemService {
     // Starts the rpc server that receives incoming RPC requests from the OEM to set the vehicle state in the SDV VM.
-    fn start_rpc_server(&self, vpm_state_listener: VehicleStateListener);
+    fn start_rpc_server(&self, rpc_server: RpcServer);
 
     // Starts the rpc handler which waits for RPC requests to set the vehicle state and publishes them into DT.
     async fn start_vehicle_state_handler(&self, vehicle_state_receiver: Receiver<VpmVehicleState>);
 }
 
-struct VehicleStateServiceImpl {
+struct VpmSystemServiceImpl {
     vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>,
 }
 
 #[async_trait]
-impl VehicleStateService for VehicleStateServiceImpl {
-    fn start_rpc_server(&self, vehicle_state_listener: VehicleStateListener) {
+impl VpmSystemService for VpmSystemServiceImpl {
+    fn start_rpc_server(&self, rpc_server: RpcServer) {
         self.vpm_service_bundle
             .lock()
             .unwrap()
             .vpm_system_service_server
-            .register_service_interface(Arc::new(vehicle_state_listener));
+            .register_service_interface(Arc::new(rpc_server));
     }
 
     async fn start_vehicle_state_handler(&self, vehicle_state_receiver: Receiver<VpmVehicleState>) {
@@ -77,7 +76,7 @@ impl VehicleStateService for VehicleStateServiceImpl {
 /// VPM agent.
 /// The agent contains service implementation for vehicle and power mode management.
 pub struct VPM {
-    vehicle_service: Arc<dyn VehicleStateService>,
+    system_service: Arc<dyn VpmSystemService>,
 }
 
 impl Default for VPM {
@@ -92,29 +91,30 @@ impl VPM {
     pub fn new() -> Self {
         let mut vpm_bundle = VpmSystemServiceBundle::new();
         vpm_bundle.start().unwrap();
-        Self::new_with_services(Arc::new(VehicleStateServiceImpl {
+        Self::new_with_services(Arc::new(VpmSystemServiceImpl {
             vpm_service_bundle: Arc::new(Mutex::new(vpm_bundle)),
         }))
     }
 
-    fn new_with_services(vehicle_service: Arc<dyn VehicleStateService>) -> Self {
-        Self { vehicle_service }
+    fn new_with_services(system_service: Arc<dyn VpmSystemService>) -> Self {
+        Self { system_service }
     }
 
     /// Starts the VPM agent.
-    /// The agent will start the vehilce state service and the power mode state service.
+    /// The agent will start the vehicle state service and the power mode state service.
     pub async fn start(&self) {
         info!("Starting VPM Agent.");
         let (vehicle_state_sender, vehicle_state_receiver) = channel();
-        self.vehicle_service.start_rpc_server(VehicleStateListener::new(vehicle_state_sender));
-        self.vehicle_service.start_vehicle_state_handler(vehicle_state_receiver).await;
+        let rpc_server = RpcServer::new(vehicle_state_sender);
+        self.system_service.start_rpc_server(rpc_server);
+        self.system_service.start_vehicle_state_handler(vehicle_state_receiver).await;
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vehicle_state_listener::VehicleStateListener;
+    use crate::rpc_server::RpcServer;
     use crate::VPM;
     use mockall::predicate;
     use tokio::runtime::Handle;
@@ -123,7 +123,7 @@ mod tests {
     #[tokio::test]
     async fn vpm_agent_starts() {
         // Given: a mock service.
-        let mut mock_service = MockVehicleStateService::default();
+        let mut mock_service = MockVpmSystemService::default();
 
         // Expect: the publisher and the rpc server will be started.
         mock_service.expect_start_rpc_server().times(1).return_const(());
