@@ -61,12 +61,12 @@ The HMI service perform the following steps:
     5. Delete the first profile with ID 1
 
 ```bash
-Creating a user profile
+Creating an ephemeral user profile
 Successfully created profile with ID 1
 
 Current HVAC settings
-Key TEMPERATURE    , Value: Int64(16) , Constraint: "Int64Constraints(Int64Constraints { min_value: Some(16), max_value: Some(32), step: None, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })"
 Key ENABLED        , Value: Bool(false), Constraint: "None"
+Key TEMPERATURE    , Value: Int64(16) , Constraint: "Int64Constraints(Int64Constraints { min_value: Some(16), max_value: Some(32), step: None, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })"
 Key FAN_SPEED      , Value: Int64(1)  , Constraint: "Int64Constraints(Int64Constraints { min_value: Some(1), max_value: Some(5), step: None, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })"
 
 
@@ -82,10 +82,12 @@ Received error "Int64(\n    100,\n) is not a valid value for Setting TEMPERATURE
 
 Creating another user profile
 Successfully created profile with ID 2
+List of current user ids: "2"
+
 Switched to profile 2
 Received settings change notification HVAC
-Key TEMPERATURE     Value: Int64(16)
 Key ENABLED         Value: Bool(false)
+Key TEMPERATURE     Value: Int64(16)
 Key FAN_SPEED       Value: Int64(1)
 
 
@@ -105,8 +107,8 @@ Additionally HVAC service will get requests to change settings and will respond 
 Registering settings group with name: HVAC,
 Version: 1.0
 Key ENABLED        , Type: PER_USER, Value: Bool(false)
-Key TEMPERATURE    , Type: PER_USER, Value: Int64(16)
 Key FAN_SPEED      , Type: PER_USER, Value: Int64(1)
+Key TEMPERATURE    , Type: PER_USER, Value: Int64(16)
 
 
 
@@ -116,7 +118,7 @@ Registering the same settings again
 Settings change request, simulating setting change delay
 
 
-Applied changes from request with transaction ID: 268
+Applied changes from request with transaction ID: 726
 Current settings
 Key FAN_SPEED       Value Int64(1         )
 Key TEMPERATURE     Value Int64(16        )
@@ -124,7 +126,7 @@ Key ENABLED         Value Bool(false     )
 Settings change request, simulating setting change delay
 
 
-Applied changes from request with transaction ID: 789
+Applied changes from request with transaction ID: 841
 Current settings
 Key FAN_SPEED       Value Int64(1         )
 Key TEMPERATURE     Value Int64(32        )
@@ -132,7 +134,7 @@ Key ENABLED         Value Bool(false     )
 Settings change request, simulating setting change delay
 
 
-Applied changes from request with transaction ID: 643
+Applied changes from request with transaction ID: 977
 Current settings
 Key FAN_SPEED       Value Int64(1         )
 Key TEMPERATURE     Value Int64(16        )
@@ -140,8 +142,8 @@ Key ENABLED         Value Bool(false     )
 
 Performed factory reset
 Key FAN_SPEED       Value Int64(1         )
-Key TEMPERATURE     Value Int64(16        )
 Key ENABLED         Value Bool(false     )
+Key TEMPERATURE     Value Int64(16        )
 ```
 
 #### User Profile Service output
@@ -150,8 +152,8 @@ Key ENABLED         Value Bool(false     )
 UserProfileServer service bundle started.
 Registered settings HVAC
 Key ENABLED        , Type: PER_USER, Value: Bool(false)
-Key TEMPERATURE    , Type: PER_USER, Value: Int64(16)
 Key FAN_SPEED      , Type: PER_USER, Value: Int64(1)
+Key TEMPERATURE    , Type: PER_USER, Value: Int64(16)
 
 
 
@@ -160,8 +162,8 @@ Created profile with ID: 1
 Loading profile of user 1
 
 Updated the following settings
-Key TEMPERATURE     Value: Int64(16)
 Key ENABLED         Value: Bool(false)
+Key TEMPERATURE     Value: Int64(16)
 Key FAN_SPEED       Value: Int64(1)
 
 
@@ -185,8 +187,8 @@ Loading profile of user 2
 
 Deleted ephemeral profile: 1
 Updated the following settings
-Key TEMPERATURE     Value: Int64(16)
 Key ENABLED         Value: Bool(false)
+Key TEMPERATURE     Value: Int64(16)
 Key FAN_SPEED       Value: Int64(1)
 
 

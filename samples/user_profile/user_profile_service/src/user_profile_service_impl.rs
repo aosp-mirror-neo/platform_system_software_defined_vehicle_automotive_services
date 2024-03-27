@@ -1,4 +1,5 @@
 // Copyright 2023 Google LLC
+use itertools::Itertools;
 use sdvgenerated::user_profile_admin_service_interface::UserProfileAdminService;
 use sdvgenerated::user_profile_management_service_interface::UserProfileManagementService;
 use sdvgenerated::user_profile_registry_service_interface::UserProfileRegistryService;
@@ -288,7 +289,10 @@ impl UserProfileAdminService for UserProfileServiceImpl {
     }
 
     fn list_users(&self, _request: ListUsersRequest) -> RpcResult<ListUsersResponse> {
-        todo!()
+        let profiles = acquire_lock_or_return_err!(self.user_profiles, ListUsersResponse);
+        let users = profiles.iter().map(|(_, config)| config.user.clone()).collect_vec();
+
+        Ok(ListUsersResponse { users, ..Default::default() })
     }
 
     fn get_user_settings(
