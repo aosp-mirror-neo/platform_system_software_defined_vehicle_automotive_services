@@ -2,8 +2,10 @@
 #![allow(missing_docs)]
 
 mod macros;
+mod settings_group;
 mod settings_metadata;
 mod user_profile_service_impl;
+mod vehicle_configuration;
 
 use sdvgenerated::user_profile_server::UserProfileServer;
 use std::sync::Arc;

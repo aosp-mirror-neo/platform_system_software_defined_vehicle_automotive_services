@@ -43,7 +43,7 @@ fn main() {
         .create_user(CreateUserRequest {
             user: MessageField::some(User {
                 id: profile_id,
-                flags: UserFlags::DRIVER.value(),
+                flags: UserFlags::DRIVER.value() | UserFlags::EPHEMERAL.value(),
                 ..Default::default()
             }),
             ..Default::default()
@@ -99,7 +99,7 @@ fn main() {
     std::thread::sleep(std::time::Duration::from_secs(5));
 
     println!("Creating another user profile");
-    let profile_id_2 = 2;
+    let profile_id_2 = 2_u64;
     let response = user_profile_admin_client
         .create_user(CreateUserRequest {
             user: MessageField::some(User {
@@ -129,13 +129,31 @@ fn main() {
     // to avoid mixing the order of the messages in the standard output
     std::thread::sleep(std::time::Duration::from_secs(5));
 
+    let profile_id_3 = 3_u64;
+    println!("Testing profile deletion, creating profile with ID {}", profile_id_3);
     let response = user_profile_admin_client
-        .delete_user(DeleteUserRequest { user_id: profile_id, ..Default::default() })
+        .create_user(CreateUserRequest {
+            user: MessageField::some(User {
+                id: profile_id_3,
+                flags: UserFlags::DRIVER.value(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        })
+        .expect("Failed to perform request to create user profile");
+    if let Some(error) = response.error.into_option() {
+        panic!("Failed to create profile with ID {}: {:?}", profile_id_3, error);
+    } else {
+        println!("Successfully created profile with ID {}", profile_id_3);
+    }
+
+    let response = user_profile_admin_client
+        .delete_user(DeleteUserRequest { user_id: profile_id_3, ..Default::default() })
         .expect("Failed to perform request to delete profile");
     if let Some(error) = response.error.into_option() {
-        panic!("Failed to delete profile with ID {}: {:?}", profile_id, error);
+        panic!("Failed to delete profile with ID {}: {:?}", profile_id_3, error);
     }
-    println!("Deleted user profile {}", profile_id);
+    println!("Deleted user profile {}", profile_id_3);
 
     let response = user_profile_admin_client
         .factory_reset(FactoryResetRequest::new())
