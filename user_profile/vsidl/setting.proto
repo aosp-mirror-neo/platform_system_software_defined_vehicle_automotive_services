@@ -28,7 +28,6 @@ message Setting {
 // The definition of a setting, along with its properties such as type and constraints
 message SettingDefinition {
   // Required.
-  // Determines whether a setting is global or stored on a per user basis.
   SettingKind type = 1;
 
   // Required.
@@ -51,7 +50,7 @@ message SettingAndConstraints {
   Setting setting = 1;
 
   // Required.
-  // New value of the setting.
+  // Defines restrictions on the setting's value
   oneof constraints {
     FloatConstraints float_constraints = 2;
     Int32Constraints int32_constraints = 3;
