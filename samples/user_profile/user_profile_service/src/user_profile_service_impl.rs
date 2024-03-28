@@ -1,5 +1,4 @@
 // Copyright 2023 Google LLC
-use itertools::Itertools;
 use sdvgenerated::user_profile_admin_service_interface::UserProfileAdminService;
 use sdvgenerated::user_profile_management_service_interface::UserProfileManagementService;
 use sdvgenerated::user_profile_registry_service_interface::UserProfileRegistryService;
@@ -17,7 +16,7 @@ use user_profile_api::user_profile_registry_service::{
 };
 
 use user_profile_api::error::{Error, ResponseCode};
-use user_profile_api::setting::{self, Setting, SettingKind};
+use user_profile_api::setting::{Setting as SettingProto, SettingKind};
 use user_profile_api::user_profile_admin_service::*;
 use user_profile_api::user_profile_management_service::*;
 use user_profile_api::user_profile_registry_service::{
@@ -34,8 +33,8 @@ use user_profile_api::user_profile_view::OnSettingsChangeRequest;
 use user_profile_api::user_controllable_service;
 
 use crate::macros::{acquire_lock_or_return_err, error_response};
+use crate::setting::Setting;
 use crate::settings_group::SettingsGroup;
-use crate::settings_metadata::SettingsGroupMetadata;
 use crate::vehicle_configuration::VehicleConfiguration;
 use user_profile_utils::{print_setting_definition, print_settings};
 
@@ -43,7 +42,6 @@ use rand::Rng;
 
 type Profiles = HashMap<u64, VehicleConfiguration>;
 pub struct UserProfileServiceImpl {
-    defaults: Mutex<HashMap<String, SettingsGroupMetadata>>,
     vehicle_state: Mutex<VehicleConfiguration>,
     user_profiles: Mutex<Profiles>,
     active_profile: Mutex<Option<u64>>,
@@ -53,7 +51,6 @@ pub struct UserProfileServiceImpl {
 impl UserProfileServiceImpl {
     pub fn new() -> Self {
         UserProfileServiceImpl {
-            defaults: Mutex::new(HashMap::new()),
             vehicle_state: Mutex::new(VehicleConfiguration::new(User::new())),
             user_profiles: Mutex::new(Profiles::new()),
             active_profile: Mutex::new(None),
@@ -61,7 +58,7 @@ impl UserProfileServiceImpl {
         }
     }
 
-    fn apply_settings(group_name: String, settings: Vec<setting::Setting>) -> Result<(), String> {
+    fn apply_settings(group_name: String, settings: Vec<SettingProto>) -> Result<(), String> {
         // Ideally the client should be created via the get_user_controllable_service_client method
         // that is present in the UserProfileServer, for now manually create it since the rust
         // compiler cannot determine the correctness of the program if UserProfileServiceImpl & UserProfileServer
@@ -108,7 +105,7 @@ impl UserProfileServiceImpl {
         }
     }
 
-    fn notify_subscribers(settings: &str, setting: &[Setting], subscribers: &[String]) {
+    fn notify_subscribers(settings: &str, setting: &[SettingProto], subscribers: &[String]) {
         // Ideally the client should be created via the get_user_controllable_service_client method
         // that is present in the UserProfileServer, for now manually create it since the rust
         // compiler cannot determine the correctness of the program if UserProfileServiceImpl & UserProfileServer
@@ -155,33 +152,10 @@ impl UserProfileAdminService for UserProfileServiceImpl {
         }
 
         // Initialize profile with default values
-        let mut new_profile = VehicleConfiguration::new(User {
-            id: user.id,
-            flags: user.flags,
-            ..Default::default()
-        });
-        let defaults = acquire_lock_or_return_err!(self.defaults, CreateUserResponse);
-
-        for (group_name, default_settings) in defaults.iter() {
-            let settings: Vec<Setting> = default_settings
-                .settings_definition()
-                .iter()
-                .filter(|x| x.type_.unwrap() == SettingKind::PER_USER)
-                .cloned()
-                .map(|setting_definition| {
-                    let setting_and_constraints =
-                        setting_definition.setting_and_constaints.unwrap();
-                    setting_and_constraints.setting.unwrap()
-                })
-                .collect_vec();
-            let settings_group = SettingsGroup::new(
-                group_name.clone(),
-                default_settings.version().clone(),
-                settings,
-            );
-
-            new_profile.settings_groups.insert(group_name.clone(), settings_group);
-        }
+        let vehicle_state = acquire_lock_or_return_err!(self.vehicle_state, CreateUserResponse);
+        let mut new_profile = vehicle_state.clone();
+        new_profile.reset_settings();
+        new_profile.user = User { id: user.id, flags: user.flags, ..Default::default() };
 
         println!("Created profile with ID: {}", user.id);
 
@@ -210,7 +184,13 @@ impl UserProfileAdminService for UserProfileServiceImpl {
         println!("Loading profile of user {}\n", request.user_id);
 
         for settings_group in target_profile.settings_groups.values() {
-            let settings = settings_group.settings.values().cloned().collect();
+            let settings = settings_group
+                .settings
+                .values()
+                .filter(|x| x.kind.as_ref() == &SettingKind::PER_USER)
+                .cloned()
+                .map(SettingProto::from)
+                .collect();
 
             if let Err(result) = Self::apply_settings(settings_group.name.clone(), settings) {
                 println!("Failed to apply settings changes: {}", result);
@@ -348,7 +328,12 @@ impl UserProfileManagementService for UserProfileServiceImpl {
             let mut result = SubscribeToSettingsChangeAndGetSettingsResponse::new();
             result.group = MessageField::some(SettingsGroupProto {
                 name: request.group_name.clone(),
-                settings: settings_group.settings.values().cloned().collect(),
+                settings: settings_group
+                    .settings
+                    .values()
+                    .cloned()
+                    .map(SettingProto::from)
+                    .collect(),
                 version: settings_group.version.clone(),
                 ..Default::default()
             });
@@ -383,24 +368,16 @@ impl UserProfileRegistryService for UserProfileServiceImpl {
         &self,
         request: RegisterSettingsRequest,
     ) -> RpcResult<RegisterSettingsResponse> {
-        let mut defaults = acquire_lock_or_return_err!(self.defaults, RegisterSettingsResponse);
         let mut vehicle_state =
             acquire_lock_or_return_err!(self.vehicle_state, RegisterSettingsResponse);
 
-        let settings_group_metadata = SettingsGroupMetadata::new(
-            request.version.clone(),
-            request.settings_definitions.clone(),
-        );
-
-        if !defaults.contains_key(&request.group_name)
-            || defaults.get(&request.group_name).unwrap().version()
-                != settings_group_metadata.version()
+        if !vehicle_state.settings_groups.contains_key(&request.group_name)
+            || vehicle_state.settings_groups.get(&request.group_name).unwrap().version
+                != request.version
         {
             println!("Registered settings {}", request.group_name);
 
             print_setting_definition(&request.settings_definitions);
-
-            defaults.insert(request.group_name.clone(), settings_group_metadata);
 
             // Also register the settings in the vehicle state
             let settings_group =
@@ -409,18 +386,16 @@ impl UserProfileRegistryService for UserProfileServiceImpl {
                 );
 
             request.settings_definitions.iter().cloned().for_each(|setting_definition| {
-                let setting_and_constraints = setting_definition.setting_and_constaints.unwrap();
-                let setting = setting_and_constraints.setting.unwrap();
+                let setting = Setting::from(setting_definition);
 
-                if !settings_group.settings.contains_key(&setting.key) {
-                    settings_group.settings.insert(setting.key.clone(), setting);
+                if !settings_group.settings.contains_key(&setting.name) {
+                    settings_group.settings.insert(setting.name.clone(), setting);
                 }
             });
         } else {
             println!(
                 "Settings {} with version {} is already registered",
-                request.group_name,
-                settings_group_metadata.version()
+                request.group_name, request.version
             );
         }
 
@@ -457,7 +432,9 @@ impl UserProfileRegistryService for UserProfileServiceImpl {
 
         request.settings.iter().cloned().for_each(|x| {
             if let Some(setting) = service_settings_group.settings.get_mut(&x.key) {
-                setting.value = x.value;
+                if let Err(err) = setting.set_value(x.value.unwrap()) {
+                    println!("Cannot update setting {}: ", err);
+                }
             }
         });
 
@@ -476,7 +453,9 @@ impl UserProfileRegistryService for UserProfileServiceImpl {
 
             request.settings.iter().cloned().for_each(|x| {
                 if let Some(setting) = current_settings_group.settings.get_mut(&x.key) {
-                    setting.value = x.value;
+                    if let Err(err) = setting.set_value(x.value.unwrap()) {
+                        println!("Cannot update setting {}: ", err);
+                    }
                 }
             });
         }

@@ -1,6 +1,6 @@
+use crate::setting::Setting;
 use std::collections::HashMap;
 use std::vec::Vec;
-use user_profile_api::setting::Setting;
 
 #[derive(Clone)]
 pub(crate) struct SettingsGroup {
@@ -14,7 +14,7 @@ impl SettingsGroup {
         let mut group = Self { name, version, settings: HashMap::new() };
 
         for setting in settings {
-            group.settings.insert(setting.key.clone(), setting);
+            group.settings.insert(setting.name.clone(), setting);
         }
 
         group
