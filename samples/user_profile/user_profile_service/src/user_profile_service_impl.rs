@@ -67,9 +67,8 @@ impl UserProfileServiceImpl {
         // that is present in the UserProfileServer, for now manually create it since the rust
         // compiler cannot determine the correctness of the program if UserProfileServiceImpl & UserProfileServer
         // have references to each other
-        let client: UserControllableServiceClient = UserControllableServiceClient::new(Box::new(
-            GrpcClientTransport::new("HvacService::user_controllable_service"),
-        ));
+        let client: UserControllableServiceClient =
+            UserControllableServiceClient::new(Box::new(GrpcClientTransport::new("HvacService")));
 
         let mut rng = rand::thread_rng();
         let transaction_id: u64 = rng.gen_range(0..1000);
@@ -92,9 +91,8 @@ impl UserProfileServiceImpl {
     }
 
     fn reset_services() -> Result<(), String> {
-        let client = UserControllableServiceClient::new(Box::new(GrpcClientTransport::new(
-            "HvacService::user_controllable_service",
-        )));
+        let client =
+            UserControllableServiceClient::new(Box::new(GrpcClientTransport::new("HvacService")));
 
         let resp =
             client.factory_reset(user_controllable_service::FactoryResetRequest::new()).map_err(
@@ -331,10 +329,7 @@ impl UserProfileManagementService for UserProfileServiceImpl {
         );
         //TODO: Once middleware exposes the identity of the caller, we need to
         //register their identity. For now we will rely on a client that is hardcoded to call a specific service bundle
-        change_subscribers.insert(
-            request.group_name.clone(),
-            vec![String::from("HmiService::user_profile_view")],
-        );
+        change_subscribers.insert(request.group_name.clone(), vec![String::from("HmiService")]);
 
         if let Some(settings) = vehicle_state.get(&request.group_name) {
             let mut result = SubscribeToSettingsChangeAndGetSettingsResponse::new();
