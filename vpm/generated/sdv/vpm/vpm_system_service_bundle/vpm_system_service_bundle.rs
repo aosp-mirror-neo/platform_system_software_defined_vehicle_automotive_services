@@ -38,12 +38,12 @@ pub struct VpmSystemServiceBundle {
 impl VpmSystemServiceBundle {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
+        let rpc_transport = GrpcServerTransport::new("VpmSystemServiceBundle");
+
         VpmSystemServiceBundle {
             vehicle_state_change_publisher: DataTunnelPublisher::new(11),
 
-            vpm_system_service_server: VpmSystemServiceServer::new(GrpcServerTransport::new(
-                "VpmSystemServiceBundle",
-            )),
+            vpm_system_service_server: VpmSystemServiceServer::new(rpc_transport.clone()),
         }
     }
 

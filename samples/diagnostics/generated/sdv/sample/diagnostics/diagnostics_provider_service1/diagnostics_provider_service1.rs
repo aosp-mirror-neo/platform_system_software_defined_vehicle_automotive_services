@@ -37,10 +37,10 @@ pub struct DiagnosticsProviderService1 {
 impl DiagnosticsProviderService1 {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
+        let rpc_transport = GrpcServerTransport::new("DiagnosticsProviderService1");
+
         DiagnosticsProviderService1 {
-            data_item_server: DataItemServer::new(GrpcServerTransport::new(
-                "DiagnosticsProviderService1",
-            )),
+            data_item_server: DataItemServer::new(rpc_transport.clone()),
 
             diagnostics: crate::extensions::diagnostics::Diagnostics::new(),
         }

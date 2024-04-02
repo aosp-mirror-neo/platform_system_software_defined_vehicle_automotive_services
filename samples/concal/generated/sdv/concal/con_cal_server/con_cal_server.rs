@@ -3,6 +3,7 @@
     dead_code,
     missing_docs,
     unused_variables,
+    clippy::blocks_in_conditions,
     clippy::extra_unused_lifetimes,
     clippy::derivable_impls,
     clippy::new_without_default
@@ -34,11 +35,9 @@ pub struct ConCalServer {
 impl ConCalServer {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
-        ConCalServer {
-            con_cal_service_server: ConCalServiceServer::new(GrpcServerTransport::new(
-                "ConCalServer",
-            )),
-        }
+        let rpc_transport = GrpcServerTransport::new("ConCalServer");
+
+        ConCalServer { con_cal_service_server: ConCalServiceServer::new(rpc_transport.clone()) }
     }
 
     /// Triggers publishing and subscription to all the topics defined
