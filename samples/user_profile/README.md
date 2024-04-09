@@ -65,9 +65,9 @@ Creating a user profile
 Successfully created profile with ID 1
 
 Current HVAC settings
+Key ENABLED         Value Bool(false)
 Key FAN_SPEED       Value Int64(1)
 Key TEMPERATURE     Value Int64(16)
-Key ENABLED         Value Bool(false)
 
 
 
@@ -81,13 +81,15 @@ Creating another user profile
 Successfully created profile with ID 2
 Switched to profile 2
 Received settings change notification HVAC
-Key TEMPERATURE     Value Int64(16)
 Key FAN_SPEED       Value Int64(1)
 Key ENABLED         Value Bool(false)
+Key TEMPERATURE     Value Int64(16)
 
 
 
-Deleted user profile 1
+Testing profile deletion, creating profile with ID 3
+Successfully created profile with ID 3
+Deleted user profile 3
 Performed factory reset
 ```
 
@@ -99,8 +101,8 @@ Additionally HVAC service will get requests to change settings and will respond 
 ```bash
 Registering settings group with name: HVAC,
 Version: 1.0
-Key TEMPERATURE    , Type: PER_USER, Value Int64(16)
 Key FAN_SPEED      , Type: PER_USER, Value Int64(1)
+Key TEMPERATURE    , Type: PER_USER, Value Int64(16)
 Key ENABLED        , Type: PER_USER, Value Bool(false)
 
 
@@ -111,32 +113,32 @@ Registering the same settings again
 Settings change request, simulating setting change delay
 
 
-Applied changes from request with transaction ID: 302
+Applied changes from request with transaction ID: 442
 Current settings
-Key TEMPERATURE     Value Int64(16        )
 Key FAN_SPEED       Value Int64(1         )
 Key ENABLED         Value Bool(false     )
+Key TEMPERATURE     Value Int64(16        )
 Settings change request, simulating setting change delay
 
 
-Applied changes from request with transaction ID: 660
+Applied changes from request with transaction ID: 22
 Current settings
+Key FAN_SPEED       Value Int64(1         )
+Key ENABLED         Value Bool(false     )
 Key TEMPERATURE     Value Int64(32        )
-Key FAN_SPEED       Value Int64(1         )
-Key ENABLED         Value Bool(false     )
 Settings change request, simulating setting change delay
 
 
-Applied changes from request with transaction ID: 376
+Applied changes from request with transaction ID: 215
 Current settings
-Key TEMPERATURE     Value Int64(16        )
 Key FAN_SPEED       Value Int64(1         )
 Key ENABLED         Value Bool(false     )
+Key TEMPERATURE     Value Int64(16        )
 
 Performed factory reset
-Key TEMPERATURE     Value Int64(16        )
-Key FAN_SPEED       Value Int64(1         )
 Key ENABLED         Value Bool(false     )
+Key FAN_SPEED       Value Int64(1         )
+Key TEMPERATURE     Value Int64(16        )
 ```
 
 #### User Profile Service output
@@ -144,8 +146,8 @@ Key ENABLED         Value Bool(false     )
 ```bash
 UserProfileServer service bundle started.
 Registered settings HVAC
-Key TEMPERATURE    , Type: PER_USER, Value Int64(16)
 Key FAN_SPEED      , Type: PER_USER, Value Int64(1)
+Key TEMPERATURE    , Type: PER_USER, Value Int64(16)
 Key ENABLED        , Type: PER_USER, Value Bool(false)
 
 
@@ -155,9 +157,9 @@ Created profile with ID: 1
 Loading profile of user 1
 
 Updated the following settings
-Key TEMPERATURE     Value Int64(16)
 Key FAN_SPEED       Value Int64(1)
 Key ENABLED         Value Bool(false)
+Key TEMPERATURE     Value Int64(16)
 
 
 
@@ -178,12 +180,16 @@ Notifying HmiService::user_profile_view of settings change
 Created profile with ID: 2
 Loading profile of user 2
 
+Deleted ephemeral profile: 1
 Updated the following settings
-Key TEMPERATURE     Value Int64(16)
 Key FAN_SPEED       Value Int64(1)
 Key ENABLED         Value Bool(false)
+Key TEMPERATURE     Value Int64(16)
 
 
 
 Notifying HmiService::user_profile_view of settings change
+
+Created profile with ID: 3
+Deleted profile with ID: 3
 ```
