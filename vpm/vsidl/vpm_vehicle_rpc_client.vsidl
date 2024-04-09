@@ -5,5 +5,5 @@ package: "sdv.vpm.vehicle.client.rpc"
 
 sdv_service_bundle {
     name: "VpmSystemClient"
-    client:  "sdv.vpm.vehicle.VpmSystemService"
+    client:  "sdv.vpm.VpmSystemService"
 }

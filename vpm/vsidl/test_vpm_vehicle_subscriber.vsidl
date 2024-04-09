@@ -6,5 +6,5 @@ package: "test.sdv.vpm"
 sdv_service_bundle {
     name: "VpmIntegrationTestBundle"
     subscriber:  "sdv.vpm.vehicle.VehicleStateChange::VehicleStateChange"
-    client:  "sdv.vpm.vehicle.VpmSystemService"
+    client:  "sdv.vpm.VpmSystemService"
 }
