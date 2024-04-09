@@ -5,6 +5,7 @@ use user_profile_api::user::{user::UserFlags, User};
 
 use crate::settings_group::SettingsGroup;
 
+#[derive(Clone)]
 pub(crate) struct VehicleConfiguration {
     pub user: User,
     pub settings_groups: HashMap<String, SettingsGroup>,
@@ -17,5 +18,11 @@ impl VehicleConfiguration {
 
     pub fn is_ephemeral(&self) -> bool {
         (self.user.flags & UserFlags::EPHEMERAL.value()) == UserFlags::EPHEMERAL.value()
+    }
+
+    pub fn reset_settings(&mut self) {
+        self.settings_groups
+            .values_mut()
+            .for_each(|group| group.settings.values_mut().for_each(|setting| setting.reset()))
     }
 }

@@ -2,8 +2,8 @@
 #![allow(missing_docs)]
 
 mod macros;
+mod setting;
 mod settings_group;
-mod settings_metadata;
 mod user_profile_service_impl;
 mod vehicle_configuration;
 
