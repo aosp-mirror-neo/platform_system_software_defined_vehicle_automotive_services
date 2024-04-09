@@ -3,6 +3,7 @@
     dead_code,
     missing_docs,
     unused_variables,
+    clippy::blocks_in_conditions,
     clippy::extra_unused_lifetimes,
     clippy::derivable_impls,
     clippy::new_without_default
@@ -33,9 +34,9 @@ pub struct UserProfileServerCallbacks {}
 struct Subscriptions {}
 
 pub struct UserProfileServer {
-    pub user_profile_admin_service_server: UserProfileAdminServiceServer,
     pub user_profile_management_service_server: UserProfileManagementServiceServer,
     pub user_profile_registry_service_server: UserProfileRegistryServiceServer,
+    pub user_profile_admin_service_server: UserProfileAdminServiceServer,
 
     user_profile_view_clients:
         parking_lot::RwLock<std::collections::HashMap<String, Arc<UserProfileViewClient>>>,
@@ -46,15 +47,17 @@ pub struct UserProfileServer {
 impl UserProfileServer {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
+        let rpc_transport = GrpcServerTransport::new("UserProfileServer");
+
         UserProfileServer {
-            user_profile_admin_service_server: UserProfileAdminServiceServer::new(
-                GrpcServerTransport::new("UserProfileServer::user_profile_admin_service"),
-            ),
             user_profile_management_service_server: UserProfileManagementServiceServer::new(
-                GrpcServerTransport::new("UserProfileServer::user_profile_management_service"),
+                rpc_transport.clone(),
             ),
             user_profile_registry_service_server: UserProfileRegistryServiceServer::new(
-                GrpcServerTransport::new("UserProfileServer::user_profile_registry_service"),
+                rpc_transport.clone(),
+            ),
+            user_profile_admin_service_server: UserProfileAdminServiceServer::new(
+                rpc_transport.clone(),
             ),
 
             user_profile_view_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
@@ -86,10 +89,7 @@ impl UserProfileServer {
             &self.user_profile_view_clients,
             target_service_bundle,
             Box::new(|target| {
-                UserProfileViewClient::new(Box::new(GrpcClientTransport::new(&format!(
-                    "{}::{}",
-                    target, "user_profile_view"
-                ))))
+                UserProfileViewClient::new(Box::new(GrpcClientTransport::new(target)))
             }),
         )
     }
@@ -102,10 +102,7 @@ impl UserProfileServer {
             &self.user_controllable_service_clients,
             target_service_bundle,
             Box::new(|target| {
-                UserControllableServiceClient::new(Box::new(GrpcClientTransport::new(&format!(
-                    "{}::{}",
-                    target, "user_controllable_service"
-                ))))
+                UserControllableServiceClient::new(Box::new(GrpcClientTransport::new(target)))
             }),
         )
     }

@@ -23,7 +23,7 @@ impl UserControllableServiceImpl {
 
     fn client() -> UserProfileRegistryServiceClient {
         UserProfileRegistryServiceClient::new(Box::new(GrpcClientTransport::new(
-            "UserProfileServer::user_profile_registry_service",
+            "UserProfileServer",
         )))
     }
 }
