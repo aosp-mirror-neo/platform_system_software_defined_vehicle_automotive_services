@@ -4,6 +4,37 @@ rust_binary {
     srcs: [
         "src/main.rs",
     ],
+    defaults: ["sdv_user_profile@rust_defaults"],
+    rustlibs: [
+    ],
+    vendor: true,
+}
+
+rust_test {
+    name: "sdv_user_profile_service_tests",
+    srcs: [
+        "src/main.rs",
+    ],
+    rustlibs: [
+
+    ],
+    defaults: ["sdv_user_profile@rust_defaults"],
+    test_options: {
+        unit_test: true,
+    },
+    test_suites: [
+        "general-tests",
+        "automotive-sdv-tests",
+    ],
+    auto_gen_config: true,
+    vendor: true,
+}
+
+rust_defaults {
+    name: "sdv_user_profile@rust_defaults",
+    defaults: [
+        "sdv@rust_defaults",
+    ],
     rustlibs: [
         "libprotobuf",
         "libsdvgenerated_user_profile_server",
@@ -18,5 +49,4 @@ rust_binary {
         "libsdvgenerated_rpc_user_controllable_service",
         "libsdvgenerated_rpc_user_profile_view",
     ],
-    vendor: true,
 }

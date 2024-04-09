@@ -124,6 +124,36 @@ impl UserProfileServiceImpl {
                 .expect("Failed to notify clients of settings changes");
         }
     }
+
+    fn validate_requested_setting_changes(
+        &self,
+        current_settings: &SettingsGroup,
+        requested_setting_changes: &[SettingProto],
+    ) -> Result<(), String> {
+        for setting in requested_setting_changes.iter() {
+            let current_settings = match current_settings.settings.get(&setting.key) {
+                Some(x) => x,
+                None => {
+                    return Err(format!(
+                        "Setting {} cannot be found within setting group {}",
+                        setting.key, current_settings.name
+                    ))
+                }
+            };
+            if let Some(value) = &setting.value {
+                if !current_settings.is_valid_value(value) {
+                    return Err(format!(
+                        "{:#?} is not a valid value for Setting {}",
+                        value, setting.key
+                    ));
+                }
+            } else {
+                return Err(format!("Setting {} has None value", setting.key));
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl UserProfileAdminService for UserProfileServiceImpl {
@@ -277,12 +307,26 @@ impl UserProfileManagementService for UserProfileServiceImpl {
         let vehicle_state =
             acquire_lock_or_return_err!(self.vehicle_state, RequestSettingsChangeResponse);
 
-        if !vehicle_state.settings_groups.contains_key(&request.group_name) {
+        let current_settings = match vehicle_state.settings_groups.get(&request.group_name) {
+            Some(settings) => settings,
+            None => {
+                return error_response!(
+                    RequestSettingsChangeResponse,
+                    ResponseCode::INVALID_REQUEST,
+                    "Settings group {} not found",
+                    request.group_name
+                )
+            }
+        };
+
+        if let Err(err) =
+            self.validate_requested_setting_changes(current_settings, &request.settings)
+        {
             return error_response!(
                 RequestSettingsChangeResponse,
                 ResponseCode::INVALID_REQUEST,
-                "Settings {} not found",
-                request.group_name
+                "{}",
+                err,
             );
         }
 
@@ -320,18 +364,16 @@ impl UserProfileManagementService for UserProfileServiceImpl {
         change_subscribers.insert(request.group_name.clone(), vec![String::from("HmiService")]);
 
         if let Some(settings_group) = vehicle_state.settings_groups.get(&request.group_name) {
-            let mut result = SubscribeToSettingsChangeAndGetSettingsResponse::new();
-            result.group = MessageField::some(SettingsGroupProto {
-                name: request.group_name.clone(),
-                settings: settings_group
+            let result = SubscribeToSettingsChangeAndGetSettingsResponse {
+                setting_and_constraints: settings_group
                     .settings
                     .values()
                     .cloned()
-                    .map(SettingProto::from)
+                    .map(|setting| setting.into())
                     .collect(),
                 version: settings_group.version.clone(),
                 ..Default::default()
-            });
+            };
 
             println!("Successfully registered subscriber to settings: {}\n", request.group_name);
             return Ok(result);

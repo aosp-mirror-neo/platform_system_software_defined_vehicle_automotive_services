@@ -22,7 +22,7 @@ use user_profile_api::{
 };
 
 use hmi_service_impl::HmiServiceImpl;
-use user_profile_utils::print_settings;
+use user_profile_utils::print_settings_and_constraints;
 
 pub const SETTINGS_GROUP_NAME: &str = "HVAC";
 pub const TEMPERATURE: &str = "TEMPERATURE";
@@ -77,7 +77,7 @@ fn main() {
         panic!("Failed to subscribe to settings change: {:?}", error);
     }
     println!("Current HVAC settings");
-    print_settings(&response.group.unwrap().settings);
+    print_settings_and_constraints(&response.setting_and_constraints);
 
     println!("Adjusting HVAC temperature to 32");
     let response = user_profile_management_client
@@ -90,13 +90,31 @@ fn main() {
             }],
             ..Default::default()
         })
-        .expect("Failed to perform request setting change");
+        .expect("Failed to request setting change");
     if let Some(error) = response.error.into_option() {
         panic!("Failed to perform setting change {:?}", error);
     }
 
     // HVAC requires 3 seconds to make the change, lets wait for 5 seconds before changing the profile
     std::thread::sleep(std::time::Duration::from_secs(5));
+
+    println!("Attempting to Adjust HVAC temperature to invalid value 100");
+    let response = user_profile_management_client
+        .request_settings_change(RequestSettingsChangeRequest {
+            group_name: SETTINGS_GROUP_NAME.to_string(),
+            settings: vec![Setting {
+                key: TEMPERATURE.to_string(),
+                value: Some(Value::Int64(100)),
+                ..Default::default()
+            }],
+            ..Default::default()
+        })
+        .expect("Failed to request setting change");
+    if let Some(error) = response.error.into_option() {
+        println!("Received error {:?}\n", error.message);
+    } else {
+        panic!("Expected request to fail");
+    }
 
     println!("Creating another user profile");
     let profile_id_2 = 2_u64;

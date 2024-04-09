@@ -10,7 +10,6 @@ syntax = "proto3";
 
 package sdv.user_profile;
 
-import "settings_group.proto";
 import "setting.proto";
 import "error.proto";
 import "user.proto";
@@ -53,11 +52,14 @@ message SubscribeToSettingsChangeAndGetSettingsRequest {
 }
 
 message SubscribeToSettingsChangeAndGetSettingsResponse {
-  // The current value of the settings group which a service has subscribed too.
-  SettingsGroup group = 1;
+  // The version number of schema used by the settings.
+  string version = 1;
+
+  // The list of settings along with their current values
+  repeated SettingAndConstraints setting_and_constraints = 2;
 
   // Error message if request fails.
-  Error error = 2;
+  Error error = 3;
 }
 
 message UnsubscribeToSettingsChangeRequest {
