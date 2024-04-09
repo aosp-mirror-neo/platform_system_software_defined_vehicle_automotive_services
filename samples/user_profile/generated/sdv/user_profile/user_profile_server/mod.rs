@@ -6,11 +6,11 @@
 pub mod topics;
 pub mod user_profile_server;
 
-pub use sdvgenerated_rpc_user_profile_admin_service::interface as user_profile_admin_service_interface;
-
 pub use sdvgenerated_rpc_user_profile_management_service::interface as user_profile_management_service_interface;
 
 pub use sdvgenerated_rpc_user_profile_registry_service::interface as user_profile_registry_service_interface;
+
+pub use sdvgenerated_rpc_user_profile_admin_service::interface as user_profile_admin_service_interface;
 
 pub use sdvgenerated_rpc_user_profile_view::interface as user_profile_view_interface;
 

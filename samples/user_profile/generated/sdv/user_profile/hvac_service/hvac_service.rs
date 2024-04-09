@@ -3,6 +3,7 @@
     dead_code,
     missing_docs,
     unused_variables,
+    clippy::blocks_in_conditions,
     clippy::extra_unused_lifetimes,
     clippy::derivable_impls,
     clippy::new_without_default
@@ -40,9 +41,11 @@ pub struct HvacService {
 impl HvacService {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
+        let rpc_transport = GrpcServerTransport::new("HvacService");
+
         HvacService {
             user_controllable_service_server: UserControllableServiceServer::new(
-                GrpcServerTransport::new("HvacService::user_controllable_service"),
+                rpc_transport.clone(),
             ),
 
             user_profile_registry_service_clients: parking_lot::RwLock::new(
@@ -73,10 +76,7 @@ impl HvacService {
             &self.user_profile_registry_service_clients,
             target_service_bundle,
             Box::new(|target| {
-                UserProfileRegistryServiceClient::new(Box::new(GrpcClientTransport::new(&format!(
-                    "{}::{}",
-                    target, "user_profile_registry_service"
-                ))))
+                UserProfileRegistryServiceClient::new(Box::new(GrpcClientTransport::new(target)))
             }),
         )
     }

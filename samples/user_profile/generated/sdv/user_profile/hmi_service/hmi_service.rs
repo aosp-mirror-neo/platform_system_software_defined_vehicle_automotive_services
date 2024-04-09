@@ -3,6 +3,7 @@
     dead_code,
     missing_docs,
     unused_variables,
+    clippy::blocks_in_conditions,
     clippy::extra_unused_lifetimes,
     clippy::derivable_impls,
     clippy::new_without_default
@@ -43,10 +44,10 @@ pub struct HmiService {
 impl HmiService {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
+        let rpc_transport = GrpcServerTransport::new("HmiService");
+
         HmiService {
-            user_profile_view_server: UserProfileViewServer::new(GrpcServerTransport::new(
-                "HmiService::user_profile_view",
-            )),
+            user_profile_view_server: UserProfileViewServer::new(rpc_transport.clone()),
 
             user_profile_management_service_clients: parking_lot::RwLock::new(
                 std::collections::HashMap::new(),
@@ -79,9 +80,7 @@ impl HmiService {
             &self.user_profile_management_service_clients,
             target_service_bundle,
             Box::new(|target| {
-                UserProfileManagementServiceClient::new(Box::new(GrpcClientTransport::new(
-                    &format!("{}::{}", target, "user_profile_management_service"),
-                )))
+                UserProfileManagementServiceClient::new(Box::new(GrpcClientTransport::new(target)))
             }),
         )
     }
@@ -94,10 +93,7 @@ impl HmiService {
             &self.user_profile_admin_service_clients,
             target_service_bundle,
             Box::new(|target| {
-                UserProfileAdminServiceClient::new(Box::new(GrpcClientTransport::new(&format!(
-                    "{}::{}",
-                    target, "user_profile_admin_service"
-                ))))
+                UserProfileAdminServiceClient::new(Box::new(GrpcClientTransport::new(target)))
             }),
         )
     }
