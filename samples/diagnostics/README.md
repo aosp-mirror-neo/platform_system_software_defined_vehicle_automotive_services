@@ -1,6 +1,7 @@
 # Diagnostics middleware generation and implementation example
 
-The example consist of the simple diagnostics manager and diagnostics providerimplementations.
+The example consist of the simple diagnostics manager and diagnostics
+provider implementations.
 
 ## Service bundles
 
@@ -14,8 +15,9 @@ Reads / writes data items provided by diagnostics provider via RPC
 
 ## Sample code generation
 
-Middleware code is already generated and placed in generated/ folder. However, if you want to see that the code generation works,
-run the following command from the `$REPO_ROOT/system/software_defined_vehicle` folder:
+Middleware code is already generated and placed in generated/ folder. However,
+if you want to see that the code generation works, run the following command
+from the `$REPO_ROOT/system/software_defined_vehicle` folder:
 
 ```bash
 vsidl_code_generator --vsidl-path core_services/vsidl/protos/ --catalog-path automotive_services/samples/diagnostics/catalog --output-path automotive_services/samples/diagnostics/ --dependency-paths automotive_services/diagnostics/vsidl
@@ -31,9 +33,10 @@ mm vsidl_code_generator
 
 ### Build the image
 
-Image `sdv_core_cf` includes samples already. So just run the following command to build it:
+Image `sdv_core_cf` includes samples already. So just run the following command
+to build it:
 
-```m```
+`m`
 
 ### Start the cloud virtual devices
 
@@ -57,7 +60,8 @@ adb devices
 adb -s <VM address> shell diag_provider1_sample
 ```
 
-If service started successfully, you should see "Diagnostics provider service bundle started." message printed to the console.
+If service started successfully, you should see "Diagnostics provider service
+bundle started." message printed to the console.
 
 ### Run 'Diagnostics provider 2' service bundle (RPC server)
 
@@ -65,7 +69,8 @@ If service started successfully, you should see "Diagnostics provider service bu
 adb -s <VM address> shell diag_provider2_sample
 ```
 
-If service started successfully, you should see "Diagnostics provider service bundle started." message printed to the console.
+If service started successfully, you should see "Diagnostics provider service
+bundle started." message printed to the console.
 
 ### Run 'Diagnostics manager' service bundle (RPC client)
 
@@ -73,29 +78,14 @@ If service started successfully, you should see "Diagnostics provider service bu
 adb -s <VM address> shell diag_manager_sample
 ```
 
-If service started successfully, you should see "Diagnostics Manager service bundle started." message printed to the console.
+If service started successfully, you should see "Diagnostics Manager service
+bundle started." message printed to the console.
 
-If the RPC communication is working, you should the following output:
-
-#### In 'Diagnostics provider 1' terminal
-
-```
-Received read request for "data_item_id1".
-Received write request for "data_item_id1".
-Received read request for "data_item_id1".
-```
-
-#### In 'Diagnostics provider 2' terminal
-
-```
-Received read request for "data_item_id1".
-Received read request for "data_item_id2".
-```
-
-#### In the 'Diagnostics manager' terminal
-
-See `$REPO_ROOT/automotive_services/diagnostics/integration_test/tests/manager_stdout.txt`
+If the Diagnostics data exchange is working, you should see in the 'Diagnostics
+manager' terminal the output (order of logs may be different) as in
+`$REPO_ROOT/automotive_services/diagnostics/integration_test/tests/manager_stdout.txt`
 
 ## Known issues
 
-- See general Middleware known issues at `$REPO_ROOT/core_services/samples/vsidl/implementation_example/README.md`
+-   See general Middleware known issues at
+    `$REPO_ROOT/core_services/samples/vsidl/implementation_example/README.md`
