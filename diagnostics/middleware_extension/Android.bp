@@ -15,7 +15,6 @@ rust_defaults {
     edition: "2021",
     lints: "android",
     clippy_lints: "android",
-    vendor: true,
 }
 
 rust_library {
@@ -24,6 +23,7 @@ rust_library {
     defaults: [
         "sdv_middleware_extension_diagnostics@rust_defaults",
     ],
+    vendor_available: true,
 }
 
 rust_test {

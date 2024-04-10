@@ -107,7 +107,6 @@ impl DataItem for DataItemServer {
     fn read(&self, request: ReadRequest) -> RpcResult<ReadResponse> {
         match request.id.as_str() {
             "data_item_id1" => Ok(self.data_item_id1_handler.lock().unwrap().read_untyped()),
-
             _ => Ok(ReadResponse { error_code: REQUEST_OUT_OF_RANGE.into(), ..Default::default() }),
         }
     }
@@ -117,7 +116,6 @@ impl DataItem for DataItemServer {
             "data_item_id1" => {
                 Ok(self.data_item_id1_handler.lock().unwrap().write_untyped(&request.value))
             }
-
             _ => {
                 Ok(EmptyResponse { error_code: REQUEST_OUT_OF_RANGE.into(), ..Default::default() })
             }
