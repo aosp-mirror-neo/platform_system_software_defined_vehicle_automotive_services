@@ -297,9 +297,26 @@ impl UserProfileAdminService for UserProfileServiceImpl {
 
     fn get_user_settings(
         &self,
-        _request: GetUserSettingsRequest,
+        request: GetUserSettingsRequest,
     ) -> RpcResult<GetUserSettingsResponse> {
-        todo!()
+        let profiles = acquire_lock_or_return_err!(self.user_profiles, GetUserSettingsResponse);
+
+        let profile = match profiles.get(&request.user_id) {
+            Some(profile) => profile,
+            None => {
+                return error_response!(
+                    GetUserSettingsResponse,
+                    ResponseCode::INVALID_REQUEST,
+                    "Profile {} does not exist",
+                    request.user_id
+                )
+            }
+        };
+
+        return Ok(GetUserSettingsResponse {
+            groups: profile.settings_groups.values().cloned().map_into().collect(),
+            ..Default::default()
+        });
     }
 }
 

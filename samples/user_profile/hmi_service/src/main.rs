@@ -10,20 +10,18 @@ use protobuf::{Enum, MessageField};
 use sdvgenerated::hmi_service::HmiService;
 use sdvgenerated::user_profile_admin_service_interface::UserProfileAdminService;
 use sdvgenerated::user_profile_management_service_interface::UserProfileManagementService;
-use user_profile_api::setting::setting::Value;
-use user_profile_api::setting::Setting;
-use user_profile_api::user_profile_admin_service::CreateUserRequest;
-use user_profile_api::user_profile_admin_service::DeleteUserRequest;
-use user_profile_api::user_profile_admin_service::FactoryResetRequest;
-use user_profile_api::user_profile_admin_service::ListUsersRequest;
-use user_profile_api::user_profile_admin_service::SelectUserRequest;
-use user_profile_api::user_profile_management_service::RequestSettingsChangeRequest;
-use user_profile_api::{
-    user::user::UserFlags, user::User,
-    user_profile_management_service::SubscribeToSettingsChangeAndGetSettingsRequest,
+use user_profile_api::setting::{setting::Value, Setting};
+use user_profile_api::user::{user::UserFlags, User};
+use user_profile_api::user_profile_admin_service::{
+    CreateUserRequest, DeleteUserRequest, FactoryResetRequest, GetUserSettingsRequest,
+    ListUsersRequest, SelectUserRequest,
+};
+use user_profile_api::user_profile_management_service::{
+    RequestSettingsChangeRequest, SubscribeToSettingsChangeAndGetSettingsRequest,
 };
 
 use hmi_service_impl::HmiServiceImpl;
+use user_profile_utils::print_settings;
 use user_profile_utils::print_settings_and_constraints;
 
 pub const SETTINGS_GROUP_NAME: &str = "HVAC";
@@ -142,6 +140,7 @@ fn main() {
     if let Some(error) = response.error.into_option() {
         panic!("Failed to select profile with ID {}: {:?}", profile_id_2, error);
     }
+    println!("Switched to profile {}", profile_id_2);
 
     let response = user_profile_admin_client
         .list_users(ListUsersRequest::new())
@@ -150,15 +149,26 @@ fn main() {
         panic!("Failed to list users: {}", error.message);
     }
     println!(
-        "List of current user ids: \"{}\"\n",
+        "List of available profiles: \"{}\"\n",
         response.users.into_iter().map(|user| format!("{}", user.id)).join(",")
     );
-
-    println!("Switched to profile {}", profile_id_2);
 
     // Switching profile will result in a callback for settings change, sleep until we receive the callback
     // to avoid mixing the order of the messages in the standard output
     std::thread::sleep(std::time::Duration::from_secs(5));
+
+    println!("Retrieving settings within user profile {}", profile_id_2);
+    let response = user_profile_admin_client
+        .get_user_settings(GetUserSettingsRequest { user_id: profile_id_2, ..Default::default() })
+        .expect("Failed to perform request to get user settings");
+    if let Some(error) = response.error.into_option() {
+        panic!("Failed to retrieve user settings: {}", error.message);
+    }
+
+    for setting_group in response.groups {
+        println!("Settings Group: {}", setting_group.name);
+        print_settings(&setting_group.settings);
+    }
 
     let profile_id_3 = 3_u64;
     println!("Testing profile deletion, creating profile with ID {}", profile_id_3);
