@@ -49,6 +49,11 @@ message SubscribeToSettingsChangeAndGetSettingsRequest {
   // The name of the settings group that a service wants to receive callbacks for
   // when it is updated.
   string group_name = 1;
+
+  // Temporary parameter to expose the identity of the caller of the subscribe
+  // API to the service. SDV Comms stack will expose the identity of callers of GRPC
+  // to services in the future
+  string service_bundle_name = 2;
 }
 
 message SubscribeToSettingsChangeAndGetSettingsResponse {
@@ -65,6 +70,11 @@ message SubscribeToSettingsChangeAndGetSettingsResponse {
 message UnsubscribeToSettingsChangeRequest {
   // The name of the settings group that a service wants to stop receiving callbacks for.
   string group_name = 1;
+
+  // Temporary parameter to expose the identity of the caller of the subscribe
+  // API to the service. SDV Comms stack will expose the identity of callers of GRPC
+  // to services in the future
+  string service_bundle_name = 2;
 }
 
 message UnsubscribeToSettingsChangeResponse {

@@ -18,6 +18,7 @@ use user_profile_api::user_profile_admin_service::{
 };
 use user_profile_api::user_profile_management_service::{
     RequestSettingsChangeRequest, SubscribeToSettingsChangeAndGetSettingsRequest,
+    UnsubscribeToSettingsChangeRequest,
 };
 
 use hmi_service_impl::HmiServiceImpl;
@@ -69,6 +70,7 @@ fn main() {
         .subscribe_to_settings_change_and_get_settings(
             SubscribeToSettingsChangeAndGetSettingsRequest {
                 group_name: "HVAC".to_string(),
+                service_bundle_name: String::from("HmiService"),
                 ..Default::default()
             },
         )
@@ -196,13 +198,25 @@ fn main() {
     }
     println!("Deleted user profile {}", profile_id_3);
 
+    println!("Unsubscribing from setting changes");
+    let response = user_profile_management_client
+        .unsubscribe_from_settings_change(UnsubscribeToSettingsChangeRequest {
+            group_name: SETTINGS_GROUP_NAME.to_string(),
+            service_bundle_name: String::from("HmiService::user_profile_view"),
+            ..Default::default()
+        })
+        .expect("Failed to perform request to unsubscribe from settings changes");
+    if let Some(error) = response.error.into_option() {
+        panic!("Failed to unsubscribe from settings group: {:?}", error);
+    }
+
+    println!("Performing factory reset");
     let response = user_profile_admin_client
         .factory_reset(FactoryResetRequest::new())
         .expect("Failed to perform request to factory reset");
     if let Some(error) = response.error.into_option() {
         panic!("Failed to perform factory reset: {:?}", error);
     }
-    println!("Performed factory reset");
 
     loop {
         std::thread::park()
