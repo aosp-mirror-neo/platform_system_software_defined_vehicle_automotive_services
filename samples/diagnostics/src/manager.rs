@@ -133,8 +133,9 @@ fn main() {
     // Uds bytes are for the following proto definition:
     //
     // message DataItemOne {
-    //     int32 code = 1 [(sdv.vsidl.primitive_byte_size) = ONE];
-    //     string name = 2 [(sdv.vsidl.variable_type_max_size) = 5];
+    //   int32 code = 1 [(sdv.vsidl.primitive_byte_size) = ONE];
+    //   bool enabled = 2;
+    //   string name = 3 [(sdv.vsidl.variable_type_max_size) = 5];
     // }
     //
     // fields:
@@ -142,7 +143,7 @@ fn main() {
     // - `name`: next five bytes, with `\0` padding
     println!("Fields parsed from UDS bytes: code = '{}'", uds_bytes_for_initial_value[0]);
     let mut name_value = vec![];
-    for char in uds_bytes_for_initial_value.iter().skip(1) {
+    for char in uds_bytes_for_initial_value.iter().skip(2) {
         if *char != b'\0' {
             name_value.push(*char);
         }
@@ -152,10 +153,11 @@ fn main() {
     // Construct uds bytes for the following proto definition:
     //
     // message DataItemOne {
-    //     int32 code = 1 [(sdv.vsidl.primitive_byte_size) = ONE];
-    //     string name = 2 [(sdv.vsidl.variable_type_max_size) = 5];
+    //   int32 code = 1 [(sdv.vsidl.primitive_byte_size) = ONE];
+    //   bool enabled = 2;
+    //   string name = 3 [(sdv.vsidl.variable_type_max_size) = 5];
     // }
-    let uds_bytes_for_new_value = vec![15, b'h', b'i', 0, 0, 0];
+    let uds_bytes_for_new_value = vec![15, 0, b'h', b'i', 0, 0, 0];
     let new_value = translator
         .translate_from_uds_to_protobuf(
             &data_items[first_data_item],
