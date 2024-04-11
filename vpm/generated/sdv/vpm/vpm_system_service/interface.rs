@@ -4,6 +4,8 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use protobuf::well_known_types::empty::Empty;
+use sdv_vpm_api::vpm::PowerStateChangeRequest;
+use sdv_vpm_api::vpm::PowerStateChangeResponse;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
 use sdvmiddleware_rpc::RpcResult;
 
@@ -11,4 +13,9 @@ use sdvmiddleware_rpc::RpcResult;
 pub trait VpmSystemService: Send + Sync {
     /// RPC method declared in the interface.
     fn set_vehicle_state(&self, request: SetVehicleStateRequest) -> RpcResult<Empty>;
+    /// RPC method declared in the interface.
+    fn set_power_state(
+        &self,
+        request: PowerStateChangeRequest,
+    ) -> RpcResult<PowerStateChangeResponse>;
 }
