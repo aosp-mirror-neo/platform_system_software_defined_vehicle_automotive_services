@@ -77,7 +77,7 @@ impl From<SettingDefinition> for Setting {
         Self {
             name: setting.key,
             value: value.clone(),
-            kind: Arc::new(def.type_.unwrap()),
+            kind: Arc::new(def.kind.unwrap()),
             default_value: Arc::new(value),
             constraints,
         }

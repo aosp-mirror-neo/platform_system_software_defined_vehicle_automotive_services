@@ -15,15 +15,17 @@ import "error.proto";
 import "user.proto";
 
 service UserProfileManagementService {
-  // Requests the change in the current user profile for the given service.
-  // There are no guarantees that the changes will be applied since services owning the
-  // settings may reject the request. The request returns once the request has been received as
-  // opposed to once the change has been made. The SubscribeToSettingsChangeAndGetSettings API can
-  // be used to listen to setting changes.
+  // Initiates a request to modify settings of a specific service with the current user's profile.
+  // Note:
+  //   * The service that owns the settings ultimately determines if the change is accepted.
+  //   * This function returns when the request is received, not when the change is applied.
+  //   * Use the SubscribeToSettingsChangeAndGetSettings API to monitor actual setting changes.
   rpc RequestSettingsChange(RequestSettingsChangeRequest) returns (RequestSettingsChangeResponse) {}
 
-  // Registers the caller for setting update notifications and returns the settings.
-  // The caller must implement an interface UserProfileView containing a method OnSettingsChange.
+  // Subscribes the caller to receive notifications when settings change, and immediately returns
+  // the current settings. Requirements:
+  //   * The caller must implement the UserProfileView interface, including the OnSettingsChange
+  //   method (which will be called upon updates).
   rpc SubscribeToSettingsChangeAndGetSettings(SubscribeToSettingsChangeAndGetSettingsRequest)
       returns (SubscribeToSettingsChangeAndGetSettingsResponse) {}
 
@@ -33,10 +35,10 @@ service UserProfileManagementService {
 }
 
 message RequestSettingsChangeRequest {
-  // The name of the settings group that needs to be updated.
+  // The name of the settings group to be modified.
   string group_name = 1;
 
-  // The list of settings along with the new values they should be set too
+  // The list of settings to update, with their desired new values.
   repeated Setting settings = 2;
 }
 
@@ -57,10 +59,10 @@ message SubscribeToSettingsChangeAndGetSettingsRequest {
 }
 
 message SubscribeToSettingsChangeAndGetSettingsResponse {
-  // The version number of schema used by the settings.
+  // Schema version of the provided settings
   string version = 1;
 
-  // The list of settings along with their current values
+  // The current settings in the group, including any constraints.
   repeated SettingAndConstraints setting_and_constraints = 2;
 
   // Error message if request fails.
