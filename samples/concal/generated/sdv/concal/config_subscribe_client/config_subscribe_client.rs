@@ -3,6 +3,7 @@
     dead_code,
     missing_docs,
     unused_variables,
+    clippy::blocks_in_conditions,
     clippy::extra_unused_lifetimes,
     clippy::derivable_impls,
     clippy::new_without_default
@@ -55,8 +56,7 @@ impl ConfigSubscribeClient {
         Ok(())
     }
 
-    /// Returns the read lock guard of a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    /// Please explicitly drop the returned read lock guard.
+    /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
     pub fn get_config_subscriber_service_client(
         &self,
         target_service_bundle: &str,

@@ -3,6 +3,7 @@
     dead_code,
     missing_docs,
     unused_variables,
+    clippy::blocks_in_conditions,
     clippy::extra_unused_lifetimes,
     clippy::derivable_impls,
     clippy::new_without_default
@@ -34,10 +35,10 @@ pub struct CalibratableServer {
 impl CalibratableServer {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
+        let rpc_transport = GrpcServerTransport::new("CalibratableServer");
+
         CalibratableServer {
-            calibratable_service_server: CalibratableServiceServer::new(GrpcServerTransport::new(
-                "CalibratableServer",
-            )),
+            calibratable_service_server: CalibratableServiceServer::new(rpc_transport.clone()),
         }
     }
 

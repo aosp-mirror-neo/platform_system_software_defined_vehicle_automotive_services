@@ -19,6 +19,7 @@ rust_library {
         "libsdvmiddleware_rpc_grpc_transport",
         "libsdvgenerated_rpc_con_cal_service",
         "libsdv_middleware_pubsub",
+        "libsdvmiddleware_common",
     ],
     apex_available: [
         "//apex_available:platform",
