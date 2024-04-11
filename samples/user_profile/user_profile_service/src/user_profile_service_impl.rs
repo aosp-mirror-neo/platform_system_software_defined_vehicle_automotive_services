@@ -48,7 +48,7 @@ type Profiles = HashMap<u64, VehicleConfiguration>;
 pub struct UserProfileServiceImpl {
     vehicle_state: Mutex<VehicleConfiguration>,
     user_profiles: Mutex<Profiles>,
-    active_profile: Mutex<Option<u64>>,
+    active_profile_id: Mutex<Option<u64>>,
     change_subscribers: Mutex<HashMap<String, HashSet<String>>>,
 }
 
@@ -57,7 +57,7 @@ impl UserProfileServiceImpl {
         UserProfileServiceImpl {
             vehicle_state: Mutex::new(VehicleConfiguration::new(User::new())),
             user_profiles: Mutex::new(Profiles::new()),
-            active_profile: Mutex::new(None),
+            active_profile_id: Mutex::new(None),
             change_subscribers: Mutex::new(HashMap::new()),
         }
     }
@@ -198,8 +198,8 @@ impl UserProfileAdminService for UserProfileServiceImpl {
 
     fn select_user(&self, request: SelectUserRequest) -> RpcResult<SelectUserResponse> {
         let mut profiles = acquire_lock_or_return_err!(self.user_profiles, SelectUserResponse);
-        let mut active_profile =
-            acquire_lock_or_return_err!(self.active_profile, SelectUserResponse);
+        let mut active_profile_id =
+            acquire_lock_or_return_err!(self.active_profile_id, SelectUserResponse);
 
         let target_profile = match profiles.get(&request.user_id) {
             Some(x) => x,
@@ -231,19 +231,20 @@ impl UserProfileAdminService for UserProfileServiceImpl {
 
         // If the previous profile is ephemeral, then delete it
         if let Some(id) =
-            active_profile.filter(|&id| profiles.get(&id).map_or(false, |p| p.is_ephemeral()))
+            active_profile_id.filter(|&id| profiles.get(&id).map_or(false, |p| p.is_ephemeral()))
         {
             profiles.remove(&id);
             println!("Deleted ephemeral profile: {}", id);
         }
-        *active_profile = Some(request.user_id);
+        *active_profile_id = Some(request.user_id);
 
         Ok(SelectUserResponse::new())
     }
 
     fn delete_user(&self, request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
         let mut profiles = acquire_lock_or_return_err!(self.user_profiles, DeleteUserResponse);
-        let active_profile = acquire_lock_or_return_err!(self.active_profile, DeleteUserResponse);
+        let active_profile_id =
+            acquire_lock_or_return_err!(self.active_profile_id, DeleteUserResponse);
 
         if !profiles.contains_key(&request.user_id) {
             return Ok(DeleteUserResponse {
@@ -255,7 +256,7 @@ impl UserProfileAdminService for UserProfileServiceImpl {
                 ..Default::default()
             });
         }
-        if active_profile.is_some_and(|id| id == request.user_id) {
+        if active_profile_id.is_some_and(|id| id == request.user_id) {
             return Ok(DeleteUserResponse {
                 error: MessageField::some(Error {
                     error_code: EnumOrUnknown::new(ResponseCode::INVALID_REQUEST),
@@ -275,6 +276,10 @@ impl UserProfileAdminService for UserProfileServiceImpl {
     fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
         let mut profiles = acquire_lock_or_return_err!(self.user_profiles, FactoryResetResponse);
         profiles.clear();
+
+        let mut active_profile_id =
+            acquire_lock_or_return_err!(self.active_profile_id, FactoryResetResponse);
+        *active_profile_id = None;
 
         let resp = match Self::reset_services() {
             Ok(_) => FactoryResetResponse::new(),
@@ -520,7 +525,7 @@ impl UserProfileRegistryService for UserProfileServiceImpl {
         print_settings(&request.settings);
 
         let active_profile_id =
-            acquire_lock_or_return_err!(self.active_profile, UpdateSettingsResponse);
+            acquire_lock_or_return_err!(self.active_profile_id, UpdateSettingsResponse);
 
         if let Some(active_profile_id) = *active_profile_id {
             let mut profiles =
