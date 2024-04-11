@@ -35,7 +35,7 @@ pub fn setting_definitions() -> HashMap<String, SettingDefinition> {
     settings.insert(
         FAN_SPEED.to_string(),
         SettingDefinition {
-            type_: EnumOrUnknown::new(SettingKind::PER_USER),
+            kind: EnumOrUnknown::new(SettingKind::PER_USER),
             setting_and_constraints: MessageField::some(SettingAndConstraints {
                 setting: MessageField::some(Setting {
                     key: FAN_SPEED.to_string(),
@@ -56,7 +56,7 @@ pub fn setting_definitions() -> HashMap<String, SettingDefinition> {
     settings.insert(
         TEMPERATURE.to_string(),
         SettingDefinition {
-            type_: EnumOrUnknown::new(SettingKind::PER_USER),
+            kind: EnumOrUnknown::new(SettingKind::PER_USER),
             setting_and_constraints: MessageField::some(SettingAndConstraints {
                 setting: MessageField::some(Setting {
                     key: TEMPERATURE.to_string(),
@@ -77,7 +77,7 @@ pub fn setting_definitions() -> HashMap<String, SettingDefinition> {
     settings.insert(
         ENABLED.to_string(),
         SettingDefinition {
-            type_: EnumOrUnknown::new(SettingKind::PER_USER),
+            kind: EnumOrUnknown::new(SettingKind::PER_USER),
             setting_and_constraints: MessageField::some(SettingAndConstraints {
                 setting: MessageField::some(Setting {
                     key: ENABLED.to_string(),

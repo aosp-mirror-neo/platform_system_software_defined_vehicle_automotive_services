@@ -14,7 +14,7 @@ import "error.proto";
 
 service UserControllableService {
   // Submits a request to update settings with the provided values. The method returns successfully
-  // while the change is dome asynchronously. The service will notify the UserProfileRegistryService
+  // while the change is done asynchronously. The service will notify the UserProfileRegistryService
   // of the actual setting values via the UpdateSettings API after the changes are applied or
   // rejected.
   rpc RequestSettingsChange(RequestSettingsChangeRequest) returns (RequestSettingsChangeResponse) {}
@@ -31,7 +31,7 @@ message RequestSettingsChangeRequest {
 
   // A unique id for this change request.
   // Once the change is made, the transaction_id should be used in UpdateSettings sent to
-  // UserProfileRegistryService
+  // UserProfileRegistryService.
   uint64 transaction_id = 2;
 
   // The list of settings along with the new values they should be set too.

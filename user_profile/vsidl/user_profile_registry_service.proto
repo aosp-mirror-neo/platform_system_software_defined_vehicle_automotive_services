@@ -13,21 +13,22 @@ import "setting.proto";
 import "error.proto";
 
 service UserProfileRegistryService {
-  // Registers settings of user controllable services along with their default values.
+  // Registers a new settings group for a user-controllable service, including default values.
   rpc RegisterSettings(RegisterSettingsRequest) returns (RegisterSettingsResponse) {}
 
-  // Updates the set of settings within the selected SettingGroup.
+  // Updates the value of existing  settings within a specified group for a user-controllable
+  // service.
   rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse) {}
 }
 
 message RegisterSettingsRequest {
-  // The name of the group in which the settings will be stored.
+  // The name of the settings group to create.
   string group_name = 1;
 
-  // The version number of the settings group.
+  // Schema version for the settings.
   string version = 2;
 
-  // The list of settings within the group.
+  // Definitions of the settings within the group.
   repeated SettingDefinition settings_definitions = 3;
 }
 

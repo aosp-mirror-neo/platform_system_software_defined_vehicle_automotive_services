@@ -11,13 +11,15 @@ import "settings_group.proto";
 import "setting.proto";
 import "error.proto";
 
+// Interface for receiving notifications about changes to user settings.
+// Services that want to react to these changes must implement this interface.
 service UserProfileView {
-  // Notifies a service ofsettings change.
+  // Notifies a service of settings change.
   rpc OnSettingsChange(OnSettingsChangeRequest) returns (OnSettingsChangeResponse) {}
 }
 
 message OnSettingsChangeRequest {
-  // The list of settings that have been updated.
+  // The updated settings group, containing the modified settings and their values.
   SettingsGroup group = 1;
 }
 

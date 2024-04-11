@@ -28,7 +28,7 @@ message Setting {
 // The definition of a setting, along with its properties such as type and constraints
 message SettingDefinition {
   // Required.
-  SettingKind type = 1;
+  SettingKind kind = 1;
 
   // Required.
   SettingAndConstraints setting_and_constraints = 2;
@@ -61,20 +61,29 @@ message SettingAndConstraints {
 }
 
 message Int32Constraints {
+  // The minimum value that a setting can have.
   optional int32 min_value = 1;
+  // The maximum value that a setting can have.
   optional int32 max_value = 2;
+  // The steps by which a setting's value can be increased or decreased.
   optional int32 step = 3;
 }
 
 message Int64Constraints {
+  // The minimum value that a setting can have.
   optional int64 min_value = 1;
+  // The maximum value that a setting can have.
   optional int64 max_value = 2;
+  // The steps by which a setting's value can be increased or decreased.
   optional int64 step = 3;
 }
 
 message FloatConstraints {
+  // The minimum value that a setting can have.
   optional float min_value = 1;
+  // The maximum value that a setting can have.
   optional float max_value = 2;
+  // The steps by which a setting's value can be increased or decreased.
   optional float step = 3;
 }
 
