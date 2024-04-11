@@ -4,9 +4,7 @@
 use log::info;
 use protobuf::well_known_types::empty::Empty;
 use sdv_vpm_api::vehicle::VpmVehicleState;
-use sdv_vpm_api::vpm::PowerStateChangeRequest;
-use sdv_vpm_api::vpm::PowerStateChangeResponse;
-use sdv_vpm_api::vpm::SetVehicleStateRequest;
+use sdv_vpm_api::vpm::{PowerStateChangeRequest, PowerStateChangeResponse, SetVehicleStateRequest};
 use sdvgenerated::vpm_system_service_interface::VpmSystemService;
 use sdvmiddleware_rpc::error::RpcError;
 use sdvmiddleware_rpc::RpcResult;
