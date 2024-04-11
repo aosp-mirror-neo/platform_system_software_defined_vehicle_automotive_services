@@ -1,6 +1,8 @@
 use crate::setting::Setting;
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::vec::Vec;
+use user_profile_api::settings_group::SettingsGroup as SettingsGroupProto;
 
 #[derive(Clone)]
 pub(crate) struct SettingsGroup {
@@ -18,5 +20,16 @@ impl SettingsGroup {
         }
 
         group
+    }
+}
+
+impl From<SettingsGroup> for SettingsGroupProto {
+    fn from(val: SettingsGroup) -> Self {
+        SettingsGroupProto {
+            name: val.name,
+            version: val.version,
+            settings: val.settings.into_values().map_into().collect_vec(),
+            ..Default::default()
+        }
     }
 }
