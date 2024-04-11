@@ -5,6 +5,8 @@
 
 use crate::interface::VpmSystemService;
 use protobuf::well_known_types::empty::Empty;
+use sdv_vpm_api::vpm::PowerStateChangeRequest;
+use sdv_vpm_api::vpm::PowerStateChangeResponse;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
@@ -29,6 +31,12 @@ impl VpmSystemServiceServer {
         serve_method::<SetVehicleStateRequest, Empty>(
             Box::new(move |req| callback.set_vehicle_state(req)),
             "VpmSystemService::set_vehicle_state",
+            self.transport.as_ref(),
+        );
+        let callback = service.clone();
+        serve_method::<PowerStateChangeRequest, PowerStateChangeResponse>(
+            Box::new(move |req| callback.set_power_state(req)),
+            "VpmSystemService::set_power_state",
             self.transport.as_ref(),
         );
     }
