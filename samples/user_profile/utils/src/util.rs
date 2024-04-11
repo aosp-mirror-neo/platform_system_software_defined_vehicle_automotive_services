@@ -8,7 +8,7 @@ pub fn print_setting_definition(settings_definitions: &[SettingDefinition]) {
 
         let value = option_to_string(&setting.value);
 
-        println!("Key {:<15}, Type: {:<10?}, Value: {:<10}", setting.key, definition.type_, value)
+        println!("Key {:<15}, Type: {:<10?}, Value: {:<10}", setting.key, definition.kind, value)
     });
 
     println!("\n\n");

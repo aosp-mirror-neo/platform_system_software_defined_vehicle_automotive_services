@@ -39,7 +39,7 @@ service UserProfileAdminService {
   // Returns a list of users stored within the User Profile.
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
 
-  // Returns setting for given user profile or an error if the profile doesn't exist.
+  // Returns settings for a given user profile or an error if the profile doesn't exist.
   rpc GetUserSettings(GetUserSettingsRequest) returns (GetUserSettingsResponse) {}
 }
 
