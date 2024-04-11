@@ -1,5 +1,8 @@
 // Copyright 2023 Google LLC
+
 use itertools::Itertools;
+use std::collections::HashSet;
+
 use sdvgenerated::user_profile_admin_service_interface::UserProfileAdminService;
 use sdvgenerated::user_profile_management_service_interface::UserProfileManagementService;
 use sdvgenerated::user_profile_registry_service_interface::UserProfileRegistryService;
@@ -46,7 +49,7 @@ pub struct UserProfileServiceImpl {
     vehicle_state: Mutex<VehicleConfiguration>,
     user_profiles: Mutex<Profiles>,
     active_profile: Mutex<Option<u64>>,
-    change_subscribers: Mutex<HashMap<String, Vec<String>>>,
+    change_subscribers: Mutex<HashMap<String, HashSet<String>>>,
 }
 
 impl UserProfileServiceImpl {
@@ -297,9 +300,26 @@ impl UserProfileAdminService for UserProfileServiceImpl {
 
     fn get_user_settings(
         &self,
-        _request: GetUserSettingsRequest,
+        request: GetUserSettingsRequest,
     ) -> RpcResult<GetUserSettingsResponse> {
-        todo!()
+        let profiles = acquire_lock_or_return_err!(self.user_profiles, GetUserSettingsResponse);
+
+        let profile = match profiles.get(&request.user_id) {
+            Some(profile) => profile,
+            None => {
+                return error_response!(
+                    GetUserSettingsResponse,
+                    ResponseCode::INVALID_REQUEST,
+                    "Profile {} does not exist",
+                    request.user_id
+                )
+            }
+        };
+
+        return Ok(GetUserSettingsResponse {
+            groups: profile.settings_groups.values().cloned().map_into().collect(),
+            ..Default::default()
+        });
     }
 }
 
@@ -363,9 +383,10 @@ impl UserProfileManagementService for UserProfileServiceImpl {
             self.change_subscribers,
             SubscribeToSettingsChangeAndGetSettingsResponse
         );
-        //TODO: Once middleware exposes the identity of the caller, we need to
-        //register their identity. For now we will rely on a client that is hardcoded to call a specific service bundle
-        change_subscribers.insert(request.group_name.clone(), vec![String::from("HmiService")]);
+        change_subscribers
+            .entry(request.group_name.clone())
+            .or_default()
+            .insert(request.service_bundle_name);
 
         if let Some(settings_group) = vehicle_state.settings_groups.get(&request.group_name) {
             let result = SubscribeToSettingsChangeAndGetSettingsResponse {
@@ -398,9 +419,25 @@ impl UserProfileManagementService for UserProfileServiceImpl {
 
     fn unsubscribe_from_settings_change(
         &self,
-        _request: UnsubscribeToSettingsChangeRequest,
+        request: UnsubscribeToSettingsChangeRequest,
     ) -> RpcResult<UnsubscribeToSettingsChangeResponse> {
-        todo!()
+        let mut change_subscribers = acquire_lock_or_return_err!(
+            self.change_subscribers,
+            UnsubscribeToSettingsChangeResponse
+        );
+
+        if let Some(settings_group_subscribers) = change_subscribers.get_mut(&request.group_name) {
+            settings_group_subscribers.remove(&request.service_bundle_name);
+        } else {
+            return error_response!(
+                UnsubscribeToSettingsChangeResponse,
+                ResponseCode::INVALID_REQUEST,
+                "Settings group {} does not exist",
+                request.group_name
+            );
+        }
+
+        Ok(UnsubscribeToSettingsChangeResponse::new())
     }
 }
 
@@ -504,7 +541,12 @@ impl UserProfileRegistryService for UserProfileServiceImpl {
         Self::notify_subscribers(
             &request.group_name,
             &request.settings,
-            change_subscribers.get(&request.group_name).unwrap_or(&vec![]),
+            &change_subscribers
+                .get(&request.group_name)
+                .unwrap_or(&HashSet::new())
+                .iter()
+                .cloned()
+                .collect_vec(),
         );
 
         Ok(UpdateSettingsResponse::new())

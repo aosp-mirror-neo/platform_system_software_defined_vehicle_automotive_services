@@ -65,9 +65,9 @@ Creating an ephemeral user profile
 Successfully created profile with ID 1
 
 Current HVAC settings
-Key ENABLED        , Value: Bool(false), Constraint: "None"
-Key TEMPERATURE    , Value: Int64(16) , Constraint: "Int64Constraints(Int64Constraints { min_value: Some(16), max_value: Some(32), step: None, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })"
 Key FAN_SPEED      , Value: Int64(1)  , Constraint: "Int64Constraints(Int64Constraints { min_value: Some(1), max_value: Some(5), step: None, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })"
+Key TEMPERATURE    , Value: Int64(16) , Constraint: "Int64Constraints(Int64Constraints { min_value: Some(16), max_value: Some(32), step: None, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })"
+Key ENABLED        , Value: Bool(false), Constraint: "None"
 
 
 
@@ -82,20 +82,29 @@ Received error "Int64(\n    100,\n) is not a valid value for Setting TEMPERATURE
 
 Creating another user profile
 Successfully created profile with ID 2
-List of current user ids: "2"
-
 Switched to profile 2
+List of available profiles: "2"
+
 Received settings change notification HVAC
-Key ENABLED         Value: Bool(false)
-Key TEMPERATURE     Value: Int64(16)
 Key FAN_SPEED       Value: Int64(1)
+Key TEMPERATURE     Value: Int64(16)
+Key ENABLED         Value: Bool(false)
+
+
+
+Retrieving settings within user profile 2
+Settings Group: HVAC
+Key FAN_SPEED       Value: Int64(1)
+Key TEMPERATURE     Value: Int64(16)
+Key ENABLED         Value: Bool(false)
 
 
 
 Testing profile deletion, creating profile with ID 3
 Successfully created profile with ID 3
 Deleted user profile 3
-Performed factory reset
+Unsubscribing from setting changes
+Performing factory reset
 ```
 
 #### HVAC Service Output
@@ -106,9 +115,9 @@ Additionally HVAC service will get requests to change settings and will respond 
 ```bash
 Registering settings group with name: HVAC,
 Version: 1.0
-Key ENABLED        , Type: PER_USER, Value: Bool(false)
 Key FAN_SPEED      , Type: PER_USER, Value: Int64(1)
 Key TEMPERATURE    , Type: PER_USER, Value: Int64(16)
+Key ENABLED        , Type: PER_USER, Value: Bool(false)
 
 
 
@@ -118,7 +127,7 @@ Registering the same settings again
 Settings change request, simulating setting change delay
 
 
-Applied changes from request with transaction ID: 726
+Applied changes from request with transaction ID: 539
 Current settings
 Key FAN_SPEED       Value Int64(1         )
 Key TEMPERATURE     Value Int64(16        )
@@ -126,7 +135,7 @@ Key ENABLED         Value Bool(false     )
 Settings change request, simulating setting change delay
 
 
-Applied changes from request with transaction ID: 841
+Applied changes from request with transaction ID: 756
 Current settings
 Key FAN_SPEED       Value Int64(1         )
 Key TEMPERATURE     Value Int64(32        )
@@ -134,26 +143,28 @@ Key ENABLED         Value Bool(false     )
 Settings change request, simulating setting change delay
 
 
-Applied changes from request with transaction ID: 977
+Applied changes from request with transaction ID: 419
 Current settings
 Key FAN_SPEED       Value Int64(1         )
 Key TEMPERATURE     Value Int64(16        )
 Key ENABLED         Value Bool(false     )
 
 Performed factory reset
-Key FAN_SPEED       Value Int64(1         )
 Key ENABLED         Value Bool(false     )
+Key FAN_SPEED       Value Int64(1         )
 Key TEMPERATURE     Value Int64(16        )
 ```
 
 #### User Profile Service output
 
 ```bash
+adb shell sdv_user_profile_service
+restarting adbd as root
 UserProfileServer service bundle started.
 Registered settings HVAC
-Key ENABLED        , Type: PER_USER, Value: Bool(false)
 Key FAN_SPEED      , Type: PER_USER, Value: Int64(1)
 Key TEMPERATURE    , Type: PER_USER, Value: Int64(16)
+Key ENABLED        , Type: PER_USER, Value: Bool(false)
 
 
 
@@ -162,9 +173,9 @@ Created profile with ID: 1
 Loading profile of user 1
 
 Updated the following settings
-Key ENABLED         Value: Bool(false)
-Key TEMPERATURE     Value: Int64(16)
 Key FAN_SPEED       Value: Int64(1)
+Key TEMPERATURE     Value: Int64(16)
+Key ENABLED         Value: Bool(false)
 
 
 
@@ -180,20 +191,20 @@ Key TEMPERATURE     Value: Int64(32)
 
 
 
-Notifying HmiService::user_profile_view of settings change
+Notifying HmiService of settings change
 
 Created profile with ID: 2
 Loading profile of user 2
 
 Deleted ephemeral profile: 1
 Updated the following settings
-Key ENABLED         Value: Bool(false)
-Key TEMPERATURE     Value: Int64(16)
 Key FAN_SPEED       Value: Int64(1)
+Key TEMPERATURE     Value: Int64(16)
+Key ENABLED         Value: Bool(false)
 
 
 
-Notifying HmiService::user_profile_view of settings change
+Notifying HmiService of settings change
 
 Created profile with ID: 3
 Deleted profile with ID: 3
