@@ -7,7 +7,6 @@ The sample contains a reference implementation for the User Profile service, alo
 The Middleware code is already generated and placed in the `generated/` folder. If you would like to regenerate the code run the following command from this folder:
 
 ```bash
-# Please note as of now, Middleware generated code does not allow multiple servers to be implemented in the same service bundle, manual patches have been done to the generated code.
 vsidl_code_generator \
     --vsidl-path ../../../core_services/vsidl/protos/syntax/ \
     --catalog-path ./catalog/ \
