@@ -5,6 +5,7 @@ mod hmi_service_impl;
 
 use std::sync::Arc;
 
+use itertools::Itertools;
 use protobuf::{Enum, MessageField};
 use sdvgenerated::hmi_service::HmiService;
 use sdvgenerated::user_profile_admin_service_interface::UserProfileAdminService;
@@ -14,6 +15,7 @@ use user_profile_api::setting::Setting;
 use user_profile_api::user_profile_admin_service::CreateUserRequest;
 use user_profile_api::user_profile_admin_service::DeleteUserRequest;
 use user_profile_api::user_profile_admin_service::FactoryResetRequest;
+use user_profile_api::user_profile_admin_service::ListUsersRequest;
 use user_profile_api::user_profile_admin_service::SelectUserRequest;
 use user_profile_api::user_profile_management_service::RequestSettingsChangeRequest;
 use user_profile_api::{
@@ -38,7 +40,7 @@ fn main() {
         hmi_service.get_user_profile_management_service_client("UserProfileServer");
 
     let profile_id = 1_u64;
-    println!("Creating a user profile");
+    println!("Creating an ephemeral user profile");
     let response = user_profile_admin_client
         .create_user(CreateUserRequest {
             user: MessageField::some(User {
@@ -140,6 +142,17 @@ fn main() {
     if let Some(error) = response.error.into_option() {
         panic!("Failed to select profile with ID {}: {:?}", profile_id_2, error);
     }
+
+    let response = user_profile_admin_client
+        .list_users(ListUsersRequest::new())
+        .expect("Failed to perform request to list users");
+    if let Some(error) = response.error.into_option() {
+        panic!("Failed to list users: {}", error.message);
+    }
+    println!(
+        "List of current user ids: \"{}\"\n",
+        response.users.into_iter().map(|user| format!("{}", user.id)).join(",")
+    );
 
     println!("Switched to profile {}", profile_id_2);
 
