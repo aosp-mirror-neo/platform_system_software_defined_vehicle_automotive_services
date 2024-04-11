@@ -39,10 +39,10 @@ pub struct DiagnosticsManagerService {
 impl DiagnosticsManagerService {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
+        let rpc_transport = GrpcServerTransport::new("DiagnosticsManagerService");
+
         DiagnosticsManagerService {
-            diagnostics_manager_server: DiagnosticsManagerServer::new(GrpcServerTransport::new(
-                "DiagnosticsManagerService",
-            )),
+            diagnostics_manager_server: DiagnosticsManagerServer::new(rpc_transport.clone()),
 
             data_item_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
         }

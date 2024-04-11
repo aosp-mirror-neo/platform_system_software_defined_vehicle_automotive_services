@@ -3,6 +3,7 @@
     dead_code,
     missing_docs,
     unused_variables,
+    clippy::blocks_in_conditions,
     clippy::extra_unused_lifetimes,
     clippy::derivable_impls,
     clippy::new_without_default
@@ -34,9 +35,11 @@ pub struct ConfigSubscriberServer {
 impl ConfigSubscriberServer {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
+        let rpc_transport = GrpcServerTransport::new("ConfigSubscriberServer");
+
         ConfigSubscriberServer {
             config_subscriber_service_server: ConfigSubscriberServiceServer::new(
-                GrpcServerTransport::new("ConfigSubscriberServer"),
+                rpc_transport.clone(),
             ),
         }
     }
