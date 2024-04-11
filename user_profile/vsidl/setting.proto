@@ -31,7 +31,7 @@ message SettingDefinition {
   SettingKind type = 1;
 
   // Required.
-  SettingAndConstraints setting_and_constaints = 2;
+  SettingAndConstraints setting_and_constraints = 2;
 }
 
 enum SettingKind {

@@ -6,15 +6,11 @@ mod user_controllable_service_impl;
 
 use std::sync::Arc;
 
-use protobuf::EnumOrUnknown;
-use protobuf::MessageField;
 use sdvgenerated::hvac_service::HvacService;
 use sdvgenerated::user_profile_registry_service_interface::UserProfileRegistryService;
-use user_profile_api::setting::SettingAndConstraints;
-use user_profile_api::setting::{Setting, SettingDefinition, SettingKind};
 use user_profile_api::user_profile_registry_service::RegisterSettingsRequest;
 
-use crate::settings::{default_settings, SETTINGS_GROUP_NAME};
+use crate::settings::{setting_definitions, SETTINGS_GROUP_NAME};
 use crate::user_controllable_service_impl::UserControllableServiceImpl;
 use user_profile_utils::print_setting_definition;
 
@@ -30,21 +26,8 @@ fn main() {
     register_settings_request.group_name = SETTINGS_GROUP_NAME.to_string();
     register_settings_request.version = String::from("1.0");
 
-    register_settings_request.settings_definitions = default_settings()
-        .iter()
-        .map(|(key, value)| SettingDefinition {
-            type_: EnumOrUnknown::new(SettingKind::PER_USER),
-            setting_and_constaints: MessageField::some(SettingAndConstraints {
-                setting: MessageField::some(Setting {
-                    key: key.clone(),
-                    value: Some(value.clone()),
-                    ..Default::default()
-                }),
-                ..Default::default()
-            }),
-            ..Default::default()
-        })
-        .collect();
+    register_settings_request.settings_definitions =
+        setting_definitions().values().cloned().collect();
 
     println!(
         "Registering settings group with name: {},\nVersion: {}",
