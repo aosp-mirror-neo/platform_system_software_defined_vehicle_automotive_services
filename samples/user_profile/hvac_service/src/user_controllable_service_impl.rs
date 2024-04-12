@@ -1,5 +1,8 @@
+use itertools::Itertools;
+use protobuf::MessageField;
 use sdvgenerated::user_controllable_service_interface::UserControllableService;
-use user_profile_api::user_profile_registry_service;
+use user_profile_api::error::Error;
+use user_profile_api::{setting::Setting, user_profile_registry_service};
 
 use sdvgenerated::user_profile_registry_service_interface::UserProfileRegistryService;
 use sdvgenerated_rpc_user_profile_registry_service::client::UserProfileRegistryServiceClient;
@@ -12,7 +15,7 @@ use user_profile_api::user_controllable_service::{
     RequestSettingsChangeResponse,
 };
 
-use crate::settings::{default_settings, SETTINGS};
+use crate::settings::{default_settings, SETTINGS, SETTINGS_GROUP_NAME};
 
 pub(crate) struct UserControllableServiceImpl {}
 
@@ -73,13 +76,30 @@ impl UserControllableService for UserControllableServiceImpl {
     }
 
     fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
-        let mut settings = SETTINGS.lock().unwrap();
+        let default_settings = default_settings()
+            .into_iter()
+            .map(|(name, value)| Setting { key: name, value: Some(value), ..Default::default() })
+            .collect_vec();
 
-        *settings = default_settings();
+        let result = self
+            .request_settings_change(RequestSettingsChangeRequest {
+                group_name: SETTINGS_GROUP_NAME.to_string(),
+                settings: default_settings,
+                ..Default::default()
+            })
+            .unwrap();
 
-        println!("\nPerformed factory reset");
-        settings.iter().for_each(|(key, value)| println!("Key {:<15} Value {:<10?}", key, value));
+        let mut response = FactoryResetResponse::new();
 
-        Ok(FactoryResetResponse::new())
+        if let Some(err) = result.error.into_option() {
+            response.error = MessageField::some(Error {
+                error_code: err.error_code,
+                message: format!("Failed to perform factory reset: {}", err),
+                ..Default::default()
+            });
+        } else {
+            println!("\nPerformed factory reset");
+        }
+        Ok(response)
     }
 }

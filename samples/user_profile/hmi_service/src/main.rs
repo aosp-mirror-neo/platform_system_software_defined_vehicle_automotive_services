@@ -202,7 +202,7 @@ fn main() {
     let response = user_profile_management_client
         .unsubscribe_from_settings_change(UnsubscribeToSettingsChangeRequest {
             group_name: SETTINGS_GROUP_NAME.to_string(),
-            service_bundle_name: String::from("HmiService::user_profile_view"),
+            service_bundle_name: String::from("HmiService"),
             ..Default::default()
         })
         .expect("Failed to perform request to unsubscribe from settings changes");
