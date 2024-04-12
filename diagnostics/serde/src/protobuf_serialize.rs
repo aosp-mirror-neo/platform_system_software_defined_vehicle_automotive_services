@@ -6,6 +6,7 @@ use protobuf::reflect::{
     ReflectFieldRef::{self, *},
     ReflectRepeatedRef,
     ReflectValueRef::{self, *},
+    RuntimeFieldType, RuntimeType,
 };
 use serde::ser::{Error, SerializeSeq, SerializeTuple};
 use serde::{Serialize, Serializer};
@@ -60,13 +61,54 @@ impl<'lt> Serialize for FieldSerialize<'lt> {
                 Some(value) => {
                     serializer.serialize_some(&ValueSerialize::new(&self.descriptor, value))
                 }
-                _ => serializer.serialize_none(),
+                None => match self.descriptor.runtime_field_type() {
+                    RuntimeFieldType::Singular(runtime_type) => serializer.serialize_some(
+                        &DefaultValueSerialize::new(&self.descriptor, &runtime_type),
+                    ),
+                    _ => serializer.serialize_none(),
+                },
             },
             Repeated(repeated_field) => {
                 RepeatedValueSerialize::new(&self.descriptor, repeated_field).serialize(serializer)
             }
             Map(_) => todo!("map fields are not supported yet"),
         }
+    }
+}
+
+struct DefaultValueSerialize<'lt> {
+    options: &'lt dyn FieldOptions,
+    runtime_type: &'lt RuntimeType,
+}
+
+impl<'lt> DefaultValueSerialize<'lt> {
+    fn new(options: &'lt dyn FieldOptions, runtime_type: &'lt RuntimeType) -> Self {
+        Self { options, runtime_type }
+    }
+}
+
+impl<'lt> Serialize for DefaultValueSerialize<'lt> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let default_field_value = match self.runtime_type {
+            RuntimeType::I32 => ReflectValueRef::I32(0),
+            RuntimeType::I64 => ReflectValueRef::I64(0),
+            RuntimeType::U32 => ReflectValueRef::U32(0),
+            RuntimeType::U64 => ReflectValueRef::U64(0),
+            RuntimeType::F32 => ReflectValueRef::F32(0.0),
+            RuntimeType::F64 => ReflectValueRef::F64(0.0),
+            RuntimeType::Bool => ReflectValueRef::Bool(false),
+            RuntimeType::String => ReflectValueRef::String(""),
+            RuntimeType::VecU8 => ReflectValueRef::Bytes(&[]),
+            RuntimeType::Enum(descriptor) => ReflectValueRef::Enum(descriptor.clone(), 0),
+            RuntimeType::Message(descriptor) => {
+                ReflectValueRef::Message(MessageRef::default_instance(descriptor))
+            }
+        };
+
+        ValueSerialize::new(self.options, default_field_value).serialize(serializer)
     }
 }
 
@@ -1194,6 +1236,118 @@ mod tests {
                 Token::I8(0),
                 Token::Some,
                 Token::I16(0),
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_default_values() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+            import "syntax/diagnostics.proto";
+
+            message TestProto {
+                int64 my_i64 = 1;
+                int32 my_i32 = 2;
+                uint64 my_u64 = 3;
+                uint32 my_u32 = 4;
+                double my_f64 = 5;
+                float my_f32 = 6;
+                bool my_bool = 7;
+                InnerProto my_inner_proto = 8;
+                int32 my_one_byte_i32 = 9 [(sdv.vsidl.primitive_byte_size) = ONE];
+                uint32 my_two_bytes_u32 = 10 [(sdv.vsidl.primitive_byte_size) = TWO];
+                float my_fixed_f32 = 12 [(sdv.vsidl.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 12
+                }];
+                double my_fixed_f64 = 13 [(sdv.vsidl.fixed_point_encoding) = {
+                    scale: 0.0001
+                    offset: -13
+                }];
+                OneByteEnum my_one_byte_enum = 14;
+                float my_one_byte_fixed_float = 15 [(sdv.vsidl.fixed_point_encoding) = {
+                    scale: 0.1
+                    offset: 1.5
+                }, (sdv.vsidl.primitive_byte_size) = ONE];
+                float my_two_byte_fixed_float = 16 [(sdv.vsidl.fixed_point_encoding) = {
+                    scale: 0.1
+                    offset: -16
+                }, (sdv.vsidl.primitive_byte_size) = TWO];
+            }
+
+            message InnerProto {
+                repeated bool my_fixed_array = 1 [(sdv.vsidl.repeated_field_max_count) = 0];
+                string my_fixed_string = 2 [(sdv.vsidl.variable_type_max_size) = 0];
+                TestEnum my_enum = 3;
+            }
+
+            enum OneByteEnum {
+                option (sdv.vsidl.enum_byte_size) = ONE;
+
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+
+            enum TestEnum {
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+
+        let message = &MessageRef::default_instance(&message_descriptor);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 15 },
+                Token::Some,
+                Token::I64(0),
+                Token::Some,
+                Token::I32(0),
+                Token::Some,
+                Token::U64(0),
+                Token::Some,
+                Token::U32(0),
+                Token::Some,
+                Token::F64(0.0),
+                Token::Some,
+                Token::F32(0.0),
+                Token::Some,
+                Token::Bool(false),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::Tuple { len: 0 },
+                Token::TupleEnd,
+                Token::Some,
+                Token::Tuple { len: 0 },
+                Token::TupleEnd,
+                Token::Some,
+                Token::I32(0),
+                Token::TupleEnd,
+                Token::Some,
+                Token::I8(0),
+                Token::Some,
+                Token::U16(0),
+                Token::Some,
+                Token::I32(-12000),
+                Token::Some,
+                Token::I64(130000),
+                Token::Some,
+                Token::I8(0),
+                Token::Some,
+                Token::I8(-15),
+                Token::Some,
+                Token::I16(160),
                 Token::TupleEnd,
             ],
         )

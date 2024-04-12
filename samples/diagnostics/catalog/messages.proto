@@ -15,7 +15,8 @@ import "syntax/diagnostics.proto";
 
 message DataItemOne {
   int32 code = 1 [(sdv.vsidl.primitive_byte_size) = ONE];
-  string name = 2 [(sdv.vsidl.variable_type_max_size) = 5];
+  bool enabled = 2;
+  string name = 3 [(sdv.vsidl.variable_type_max_size) = 5];
 }
 
 message DataItemTwo {

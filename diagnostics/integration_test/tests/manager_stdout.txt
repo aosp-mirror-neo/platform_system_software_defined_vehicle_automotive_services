@@ -1,9 +1,9 @@
 Diagnostics Manager service bundle started.
-Fetch "data_item_id1": Ok(ReadResponse { value: [8, 1, 18, 3, 104, 101, 121], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Fetch "data_item_id1": Ok(ReadResponse { value: [8, 1, 16, 1, 26, 3, 104, 101, 121], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 Fields parsed from UDS bytes: code = '1'
 Fields parsed from UDS bytes: name = 'hey'
-Update "data_item_id1" to a new value [8, 15, 18, 5, 104, 105, 0, 0, 0]. Response: Ok(EmptyResponse { error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
-Fetch "data_item_id1" data item after update: Ok(ReadResponse { value: [8, 15, 18, 5, 104, 105, 0, 0, 0], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Update "data_item_id1" to a new value [8, 15, 26, 5, 104, 105, 0, 0, 0]. Response: Ok(EmptyResponse { error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Fetch "data_item_id1" data item after update: Ok(ReadResponse { value: [8, 15, 26, 5, 104, 105, 0, 0, 0], error_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 Fields parsed from UDS bytes: code = '15'
 Fields parsed from UDS bytes: name = 'hi'
 Trying to fetch "data_item_id1" from the second provider, fails with response: Ok(ReadResponse { value: [], error_code: REQUEST_OUT_OF_RANGE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
