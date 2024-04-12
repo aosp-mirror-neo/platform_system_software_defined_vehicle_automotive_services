@@ -8,16 +8,18 @@ use diagnostics_api::diagnostics_manager::{
 };
 use diagnostics_api::event::Event;
 use diagnostics_api::negative_response_code::NegativeResponseCode;
+use diagnostics_api::routine_control::RoutineControlRequest;
 use diagnostics_api::session_type::SessionType;
 use protobuf::EnumOrUnknown;
 use protobuf::MessageField;
 use sdv_config_provider::{VsidlConfigProvider, VsidlProvider};
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
 use sdv_uds_serde::diagnostics_translator::DiagnosticsTranslator;
-use sdv_uds_serde::entity_id::EntityId;
+use sdv_uds_serde::entity_id::{EntityId, MethodMessage, RoutineMethod};
 use sdvgenerated::data_item_interface::DataItem;
 use sdvgenerated::diagnostics_manager_interface::DiagnosticsManager;
 use sdvgenerated::diagnostics_manager_service::DiagnosticsManagerService;
+use sdvgenerated::routine_control_interface::RoutineControl;
 use sdvmiddleware_rpc::error::RpcError;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -207,6 +209,64 @@ fn main() {
     println!(
         "Trying to write {:?} to the second provider, fails with response: {:?}.",
         second_data_item, response
+    );
+
+    // Diagnostics routines communication:
+    let routine_client = service.get_routine_control_client("DiagnosticsProviderService1");
+
+    println!(
+        "Starting routine: {:?}",
+        routine_client.start(RoutineControlRequest {
+            id: "routine1".to_string(),
+            request: translator
+                .translate_from_uds_to_protobuf(
+                    &data_items[first_data_item],
+                    EntityId::Routine {
+                        id: "routine1".to_string(),
+                        method: RoutineMethod::Start,
+                        message: MethodMessage::Request
+                    },
+                    &[b's', b't', b'a', b'r', b't', 0, 0, 0, 0, 0],
+                )
+                .unwrap(),
+            ..Default::default()
+        })
+    );
+    println!(
+        "Stopping routine: {:?}",
+        routine_client.stop(RoutineControlRequest {
+            id: "routine1".to_string(),
+            request: translator
+                .translate_from_uds_to_protobuf(
+                    &data_items[first_data_item],
+                    EntityId::Routine {
+                        id: "routine1".to_string(),
+                        method: RoutineMethod::Stop,
+                        message: MethodMessage::Request
+                    },
+                    &[b's', b't', b'o', b'p', 0, 0, 0, 0, 0, 0],
+                )
+                .unwrap(),
+            ..Default::default()
+        })
+    );
+    println!(
+        "Requesting result from routine: {:?}",
+        routine_client.request_result(RoutineControlRequest {
+            id: "routine1".to_string(),
+            request: translator
+                .translate_from_uds_to_protobuf(
+                    &data_items[first_data_item],
+                    EntityId::Routine {
+                        id: "routine1".to_string(),
+                        method: RoutineMethod::RequestResult,
+                        message: MethodMessage::Request
+                    },
+                    &[b'r', b'e', b's', b'u', b'l', b't', 0, 0, 0, 0],
+                )
+                .unwrap(),
+            ..Default::default()
+        })
     );
 
     // Print full diagnostics declaration of "DiagnosticsProviderService1" to verify that

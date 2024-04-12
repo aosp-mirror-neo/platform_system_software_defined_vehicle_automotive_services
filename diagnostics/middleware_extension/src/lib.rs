@@ -8,6 +8,9 @@ pub mod event;
 /// Data item API related utilities.
 pub mod data_item;
 
+/// Routine control API related utilities.
+pub mod routine;
+
 use diagnostics_api::negative_response_code::NegativeResponseCode;
 use sdvmiddleware_rpc::RpcResult;
 

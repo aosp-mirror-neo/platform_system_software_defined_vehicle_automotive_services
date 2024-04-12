@@ -25,9 +25,13 @@ message DataItemTwo {
 
 message IOControllableData {}
 
-message RoutineRequestParameter {}
+message RoutineRequestParameter {
+  string value = 1 [(sdv.vsidl.variable_type_max_size) = 10];
+}
 
-message RoutineResponseParameter {}
+message RoutineResponseParameter {
+  string echo = 1 [(sdv.vsidl.variable_type_max_size) = 20];
+}
 
 message FirstEventExt {}
 
