@@ -19,9 +19,11 @@ use diagnostics_api::data_item::{ReadRequest, ReadResponse, WriteRequest};
 use diagnostics_api::event::Event as EventMessage;
 use diagnostics_api::negative_response_code::EmptyResponse;
 use diagnostics_api::negative_response_code::NegativeResponseCode::REQUEST_OUT_OF_RANGE;
+use diagnostics_api::routine_control::{RoutineControlRequest, RoutineControlResponse};
 use sdv_middleware_extension_diagnostics::{
     data_item::{DataItemHandler, ReadOnlyDataItemHandler},
     event::Event,
+    routine::RoutineHandler,
 };
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::{error::Error, Result};

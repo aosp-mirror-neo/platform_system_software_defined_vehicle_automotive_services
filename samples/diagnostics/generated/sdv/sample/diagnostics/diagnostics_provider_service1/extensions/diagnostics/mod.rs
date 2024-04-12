@@ -15,13 +15,16 @@
 
 use crate::data_item_interface::DataItem;
 use crate::diagnostics_provider_service1::DiagnosticsProviderService1;
+use crate::routine_control_interface::RoutineControl;
 use diagnostics_api::data_item::{ReadRequest, ReadResponse, WriteRequest};
 use diagnostics_api::event::Event as EventMessage;
 use diagnostics_api::negative_response_code::EmptyResponse;
 use diagnostics_api::negative_response_code::NegativeResponseCode::REQUEST_OUT_OF_RANGE;
+use diagnostics_api::routine_control::{RoutineControlRequest, RoutineControlResponse};
 use sdv_middleware_extension_diagnostics::{
     data_item::{DataItemHandler, ReadOnlyDataItemHandler},
     event::Event,
+    routine::RoutineHandler,
 };
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::{error::Error, Result};
@@ -80,6 +83,22 @@ impl Diagnostics {
     ) -> Arc<dyn DataItem> {
         Arc::new(DataItemServer { data_item_id1_handler: Mutex::new(data_item_id1_handler) })
     }
+
+    pub fn create_routine_server(
+        &self,
+        routine1_handler: Box<
+            dyn RoutineHandler<
+                diagnostics_sample_catalog::messages::RoutineRequestParameter,
+                diagnostics_sample_catalog::messages::RoutineResponseParameter,
+                diagnostics_sample_catalog::messages::RoutineRequestParameter,
+                diagnostics_sample_catalog::messages::RoutineResponseParameter,
+                diagnostics_sample_catalog::messages::RoutineRequestParameter,
+                diagnostics_sample_catalog::messages::RoutineResponseParameter,
+            >,
+        >,
+    ) -> Arc<dyn RoutineControl> {
+        Arc::new(RoutineServer { routine1_handler: Mutex::new(routine1_handler) })
+    }
 }
 
 #[derive(Clone, Eq, Hash, PartialEq, Debug)]
@@ -119,6 +138,55 @@ impl DataItem for DataItemServer {
             _ => {
                 Ok(EmptyResponse { error_code: REQUEST_OUT_OF_RANGE.into(), ..Default::default() })
             }
+        }
+    }
+}
+
+struct RoutineServer {
+    routine1_handler: Mutex<
+        Box<
+            dyn RoutineHandler<
+                diagnostics_sample_catalog::messages::RoutineRequestParameter,
+                diagnostics_sample_catalog::messages::RoutineResponseParameter,
+                diagnostics_sample_catalog::messages::RoutineRequestParameter,
+                diagnostics_sample_catalog::messages::RoutineResponseParameter,
+                diagnostics_sample_catalog::messages::RoutineRequestParameter,
+                diagnostics_sample_catalog::messages::RoutineResponseParameter,
+            >,
+        >,
+    >,
+}
+
+impl RoutineControl for RoutineServer {
+    fn start(&self, request: RoutineControlRequest) -> RpcResult<RoutineControlResponse> {
+        match request.id.as_str() {
+            "routine1" => Ok(self.routine1_handler.lock().unwrap().start_untyped(&request.request)),
+            _ => Ok(RoutineControlResponse {
+                error_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
+        }
+    }
+
+    fn stop(&self, request: RoutineControlRequest) -> RpcResult<RoutineControlResponse> {
+        match request.id.as_str() {
+            "routine1" => Ok(self.routine1_handler.lock().unwrap().stop_untyped(&request.request)),
+            _ => Ok(RoutineControlResponse {
+                error_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
+        }
+    }
+
+    fn request_result(&self, request: RoutineControlRequest) -> RpcResult<RoutineControlResponse> {
+        match request.id.as_str() {
+            "routine1" => {
+                Ok(self.routine1_handler.lock().unwrap().request_result_untyped(&request.request))
+            }
+            _ => Ok(RoutineControlResponse {
+                error_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
         }
     }
 }

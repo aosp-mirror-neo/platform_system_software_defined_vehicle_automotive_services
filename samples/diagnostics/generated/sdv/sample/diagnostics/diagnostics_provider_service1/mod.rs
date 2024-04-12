@@ -8,4 +8,6 @@ pub mod topics;
 
 pub use sdvgenerated_rpc_data_item::interface as data_item_interface;
 
+pub use sdvgenerated_rpc_routine_control::interface as routine_control_interface;
+
 pub mod extensions;
