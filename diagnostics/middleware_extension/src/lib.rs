@@ -11,6 +11,9 @@ pub mod data_item;
 /// Routine control API related utilities.
 pub mod routine;
 
+/// Input output data control API related utilities.
+pub mod io_control;
+
 use diagnostics_api::negative_response_code::NegativeResponseCode;
 use sdvmiddleware_rpc::RpcResult;
 

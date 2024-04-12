@@ -7,6 +7,7 @@ use diagnostics_api::diagnostics_manager::{
     GetConnectionMetadataRequest, GetConnectionMetadataResponse,
 };
 use diagnostics_api::event::Event;
+use diagnostics_api::io_control::IOControlRequestWithAdjustment as IoControlRequestWithAdjustment;
 use diagnostics_api::negative_response_code::NegativeResponseCode;
 use diagnostics_api::routine_control::RoutineControlRequest;
 use diagnostics_api::session_type::SessionType;
@@ -19,6 +20,7 @@ use sdv_uds_serde::entity_id::{EntityId, MethodMessage, RoutineMethod};
 use sdvgenerated::data_item_interface::DataItem;
 use sdvgenerated::diagnostics_manager_interface::DiagnosticsManager;
 use sdvgenerated::diagnostics_manager_service::DiagnosticsManagerService;
+use sdvgenerated::io_control_interface::IOControl as IoControl;
 use sdvgenerated::routine_control_interface::RoutineControl;
 use sdvmiddleware_rpc::error::RpcError;
 use std::collections::HashMap;
@@ -265,6 +267,17 @@ fn main() {
                     &[b'r', b'e', b's', b'u', b'l', b't', 0, 0, 0, 0],
                 )
                 .unwrap(),
+            ..Default::default()
+        })
+    );
+
+    // Diagnostics io control communication:
+    let io_control_client = service.get_io_control_client("DiagnosticsProviderService1");
+
+    println!(
+        "Requesting short term io data adjustment: {:?}",
+        io_control_client.short_term_adjustment(IoControlRequestWithAdjustment {
+            id: "io_control_data1".to_string(),
             ..Default::default()
         })
     );

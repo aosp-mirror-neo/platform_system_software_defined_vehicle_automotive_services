@@ -15,15 +15,22 @@
 
 use crate::data_item_interface::DataItem;
 use crate::diagnostics_provider_service1::DiagnosticsProviderService1;
+use crate::io_control_interface::IOControl as IoControl;
 use crate::routine_control_interface::RoutineControl;
 use diagnostics_api::data_item::{ReadRequest, ReadResponse, WriteRequest};
 use diagnostics_api::event::Event as EventMessage;
+use diagnostics_api::io_control::{
+    IOControlRequest as IoControlRequest,
+    IOControlRequestWithAdjustment as IoControlRequestWithAdjustment,
+    IOControlResponse as IoControlResponse,
+};
 use diagnostics_api::negative_response_code::EmptyResponse;
 use diagnostics_api::negative_response_code::NegativeResponseCode::REQUEST_OUT_OF_RANGE;
 use diagnostics_api::routine_control::{RoutineControlRequest, RoutineControlResponse};
 use sdv_middleware_extension_diagnostics::{
     data_item::{DataItemHandler, ReadOnlyDataItemHandler},
     event::Event,
+    io_control::IoControlHandler,
     routine::RoutineHandler,
 };
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
@@ -98,6 +105,14 @@ impl Diagnostics {
         >,
     ) -> Arc<dyn RoutineControl> {
         Arc::new(RoutineServer { routine1_handler: Mutex::new(routine1_handler) })
+    }
+    pub fn create_io_control_server(
+        &self,
+        io_control_data1_handler: Box<
+            dyn IoControlHandler<diagnostics_sample_catalog::messages::IOControllableData>,
+        >,
+    ) -> Arc<dyn IoControl> {
+        Arc::new(IoControlServer { io_control_data1_handler: Mutex::new(io_control_data1_handler) })
     }
 }
 
@@ -184,6 +199,72 @@ impl RoutineControl for RoutineServer {
                 Ok(self.routine1_handler.lock().unwrap().request_result_untyped(&request.request))
             }
             _ => Ok(RoutineControlResponse {
+                error_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
+        }
+    }
+}
+
+struct IoControlServer {
+    io_control_data1_handler:
+        Mutex<Box<dyn IoControlHandler<diagnostics_sample_catalog::messages::IOControllableData>>>,
+}
+
+impl IoControl for IoControlServer {
+    fn return_control_to_ecu(&self, request: IoControlRequest) -> RpcResult<IoControlResponse> {
+        match request.id.as_str() {
+            "io_control_data1" => Ok(self
+                .io_control_data1_handler
+                .lock()
+                .unwrap()
+                .return_control_to_ecu_untyped(&request.mask)),
+            _ => Ok(IoControlResponse {
+                error_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
+        }
+    }
+
+    fn reset_to_default(&self, request: IoControlRequest) -> RpcResult<IoControlResponse> {
+        match request.id.as_str() {
+            "io_control_data1" => Ok(self
+                .io_control_data1_handler
+                .lock()
+                .unwrap()
+                .reset_to_default_untyped(&request.mask)),
+            _ => Ok(IoControlResponse {
+                error_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
+        }
+    }
+
+    fn freeze_current_state(&self, request: IoControlRequest) -> RpcResult<IoControlResponse> {
+        match request.id.as_str() {
+            "io_control_data1" => Ok(self
+                .io_control_data1_handler
+                .lock()
+                .unwrap()
+                .freeze_current_state_untyped(&request.mask)),
+            _ => Ok(IoControlResponse {
+                error_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
+        }
+    }
+
+    fn short_term_adjustment(
+        &self,
+        request: IoControlRequestWithAdjustment,
+    ) -> RpcResult<IoControlResponse> {
+        match request.id.as_str() {
+            "io_control_data1" => Ok(self
+                .io_control_data1_handler
+                .lock()
+                .unwrap()
+                .short_term_adjustment_untyped(&request.adjusted_value, &request.mask)),
+            _ => Ok(IoControlResponse {
                 error_code: REQUEST_OUT_OF_RANGE.into(),
                 ..Default::default()
             }),

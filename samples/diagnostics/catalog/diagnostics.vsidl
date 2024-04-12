@@ -8,6 +8,7 @@ sdv_service_bundle {
     name: "DiagnosticsManagerService"
     client: "sdv.diagnostics.data_item.DataItem"
     client: "sdv.diagnostics.routine_control.RoutineControl"
+    client: "sdv.diagnostics.io_control.IOControl"
     server: "sdv.diagnostics.manager.DiagnosticsManager"
 }
 
@@ -15,6 +16,7 @@ sdv_service_bundle {
     name: "DiagnosticsProviderService1"
     server: "sdv.diagnostics.data_item.DataItem"
     server: "sdv.diagnostics.routine_control.RoutineControl"
+    server: "sdv.diagnostics.io_control.IOControl"
 
     diagnostics_declaration {
         data_item {

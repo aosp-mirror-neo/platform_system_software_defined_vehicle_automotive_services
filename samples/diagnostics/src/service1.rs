@@ -4,10 +4,12 @@
 use diagnostics_api::event::Status;
 use diagnostics_api::negative_response_code::NegativeResponseCode;
 use diagnostics_sample_catalog::messages::{
-    DataItemOne, FirstEventExt, RoutineRequestParameter, RoutineResponseParameter,
+    DataItemOne, FirstEventExt, IOControllableData as IoControllableData, RoutineRequestParameter,
+    RoutineResponseParameter,
 };
 use sdv_middleware_extension_diagnostics::data_item::DataItemHandler;
 use sdv_middleware_extension_diagnostics::event::Event;
+use sdv_middleware_extension_diagnostics::io_control::IoControlHandler;
 use sdv_middleware_extension_diagnostics::routine::{
     RoutineHandler, RoutineResponse, RoutineResult,
 };
@@ -76,6 +78,30 @@ impl
     }
 }
 
+struct IoControlData1Handler {}
+
+impl IoControlHandler<IoControllableData> for IoControlData1Handler {
+    fn return_control_to_ecu(&self, _mask: &[u8]) -> DiagnosticsResult<IoControllableData> {
+        Ok(IoControllableData { ..Default::default() })
+    }
+
+    fn reset_to_default(&self, _mask: &[u8]) -> DiagnosticsResult<IoControllableData> {
+        Ok(IoControllableData { ..Default::default() })
+    }
+
+    fn freeze_current_state(&self, _mask: &[u8]) -> DiagnosticsResult<IoControllableData> {
+        Ok(IoControllableData { ..Default::default() })
+    }
+
+    fn short_term_adjustment(
+        &self,
+        adjusted_value: IoControllableData,
+        _mask: &[u8],
+    ) -> DiagnosticsResult<IoControllableData> {
+        Ok(adjusted_value)
+    }
+}
+
 fn main() {
     let mut service = DiagnosticsProviderService1::new();
 
@@ -92,6 +118,12 @@ fn main() {
         service.diagnostics.create_routine_server(Box::new(Routine1Handler {}));
 
     service.routine_control_server.register_service_interface(routine_server_impl);
+
+    // Setup io control server.
+    let io_control_server_impl =
+        service.diagnostics.create_io_control_server(Box::new(IoControlData1Handler {}));
+
+    service.io_control_server.register_service_interface(io_control_server_impl);
 
     service.start().unwrap();
 
