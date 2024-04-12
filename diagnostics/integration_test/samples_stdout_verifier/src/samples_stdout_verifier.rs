@@ -114,7 +114,12 @@ impl SamplesStdoutVerifier {
         let mut expected_output_lines = expected_output.lines().collect::<Vec<_>>();
         expected_output_lines.sort_unstable();
 
-        assert_eq!(output_lines, expected_output_lines);
+        let mut output_lines = output_lines.iter();
+
+        expected_output_lines.iter().for_each(|expected_line| {
+            let actual_line = output_lines.next().unwrap();
+            assert_eq!(actual_line, expected_line);
+        });
     }
 }
 

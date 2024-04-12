@@ -36,7 +36,7 @@ fn main() {
 
     let data_item_server_impl =
         service.diagnostics.create_data_item_server(Box::new(DataItemOneHandler::new(
-            DataItemOne { code: 1, name: "hey".to_string(), ..Default::default() },
+            DataItemOne { code: 1, name: "hey".to_string(), enabled: true, ..Default::default() },
         )));
 
     service.data_item_server.register_service_interface(data_item_server_impl);
