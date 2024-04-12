@@ -22,6 +22,7 @@ rust_library {
         "libsdvgenerated_rpc_diagnostics_manager",
         "libsdvgenerated_rpc_data_item",
         "libsdvgenerated_rpc_routine_control",
+        "libsdvgenerated_rpc_io_control",
         "libsdv_middleware_pubsub",
         "libsdvmiddleware_common",
     ],

@@ -20,6 +20,7 @@ rust_library {
         "libsdvmiddleware_rpc_grpc_transport",
         "libsdvgenerated_rpc_data_item",
         "libsdvgenerated_rpc_routine_control",
+        "libsdvgenerated_rpc_io_control",
         "libsdv_middleware_pubsub",
         "libsdvmiddleware_common",
         "libsdv_middleware_extension_diagnostics",
