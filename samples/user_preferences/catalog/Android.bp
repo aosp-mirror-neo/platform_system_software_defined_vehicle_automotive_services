@@ -1,0 +1,19 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_protobuf {
+    name: "libuser_preferences_sample",
+    crate_name: "user_preferences_sample",
+    protos: [
+        "**/*.proto",
+        ":sdv_vsidl_protos",
+    ],
+    source_stem: "user_preferences_sample",
+    proto_flags: [
+        "-I external/protobuf/src",
+        "-I system/software_defined_vehicle/core_services/vsidl/protos",
+    ],
+    host_supported: true,
+    vendor_available: true,
+}

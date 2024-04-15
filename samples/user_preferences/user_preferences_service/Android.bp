@@ -1,0 +1,52 @@
+rust_binary {
+    name: "sdv_user_preferences_service",
+    crate_name: "sdv_user_preferences_service",
+    srcs: [
+        "src/main.rs",
+    ],
+    defaults: ["sdv_user_preferences@rust_defaults"],
+    rustlibs: [
+    ],
+    vendor: true,
+}
+
+rust_test {
+    name: "sdv_user_preferences_service_tests",
+    srcs: [
+        "src/main.rs",
+    ],
+    rustlibs: [
+
+    ],
+    defaults: ["sdv_user_preferences@rust_defaults"],
+    test_options: {
+        unit_test: true,
+    },
+    test_suites: [
+        "general-tests",
+        "automotive-sdv-tests",
+    ],
+    auto_gen_config: true,
+    vendor: true,
+}
+
+rust_defaults {
+    name: "sdv_user_preferences@rust_defaults",
+    defaults: [
+        "sdv@rust_defaults",
+    ],
+    rustlibs: [
+        "libprotobuf",
+        "libsdvgenerated_user_preferences_server",
+        "libuser_preferences_api",
+        "libbinder_rs",
+        "libsdvmiddleware_rpc",
+        "libitertools",
+        "librand",
+        "libuser_preferences_utils",
+        "libprotobuf_parse",
+        "libsdvmiddleware_rpc_grpc_transport",
+        "libsdvgenerated_rpc_user_controllable_service",
+        "libsdvgenerated_rpc_user_preferences_view",
+    ],
+}

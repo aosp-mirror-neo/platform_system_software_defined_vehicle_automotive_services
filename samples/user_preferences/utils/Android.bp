@@ -1,0 +1,21 @@
+rust_library {
+    name: "libuser_preferences_utils",
+    srcs: ["src/util.rs"],
+    crate_name: "user_preferences_utils",
+    rustlibs: [
+        "libprotobuf",
+        "libsdvgenerated_user_preferences_server",
+        "libuser_preferences_api",
+        "libbinder_rs",
+        "libsdvmiddleware_rpc",
+        "libitertools",
+        "librand",
+        "libprotobuf_parse",
+        "libsdvmiddleware_rpc_grpc_transport",
+        "libsdvgenerated_rpc_user_controllable_service",
+    ],
+    apex_available: [
+        "//apex_available:platform",
+    ],
+    vendor: true,
+}
