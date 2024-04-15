@@ -7,11 +7,12 @@ package sdv.diagnostics.fault;
 import "google/protobuf/empty.proto";
 import "syntax/diagnostics.proto";
 import "syntax/vsidl.proto";
+import "negative_response_code.proto";
 
 // Diagnostics interface to listen for fault status changes.
 service FaultListener {
   // Callback invoked by Diagnostics Manager when fault status changes.
-  rpc OnFaultStatusChange(OnFaultStatusChangeRequest) returns (google.protobuf.Empty) {}
+  rpc OnFaultStatusChange(OnFaultStatusChangeRequest) returns (nrc.EmptyResponse) {}
 }
 
 message OnFaultStatusChangeRequest {
