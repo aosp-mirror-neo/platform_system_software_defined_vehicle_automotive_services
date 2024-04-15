@@ -11,6 +11,7 @@ use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
 use sdvgenerated_rpc_data_item::client::DataItemClient;
 use sdvgenerated_rpc_diagnostics_manager::server::DiagnosticsManagerServer;
+use sdvgenerated_rpc_fault_listener::client::FaultListenerClient;
 use sdvgenerated_rpc_io_control::client::IOControlClient;
 use sdvgenerated_rpc_routine_control::client::RoutineControlClient;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
@@ -31,6 +32,8 @@ pub struct DiagnosticsManagerService {
         parking_lot::RwLock<std::collections::HashMap<String, Arc<RoutineControlClient>>>,
     io_control_clients:
         parking_lot::RwLock<std::collections::HashMap<String, Arc<IOControlClient>>>,
+    fault_listener_clients:
+        parking_lot::RwLock<std::collections::HashMap<String, Arc<FaultListenerClient>>>,
 }
 
 impl DiagnosticsManagerService {
@@ -44,6 +47,7 @@ impl DiagnosticsManagerService {
             data_item_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             routine_control_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             io_control_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+            fault_listener_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
         }
     }
 
@@ -87,6 +91,17 @@ impl DiagnosticsManagerService {
             &self.io_control_clients,
             target_service_bundle,
             Box::new(|target| IOControlClient::new(Box::new(GrpcClientTransport::new(target)))),
+        )
+    }
+    /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
+    pub fn get_fault_listener_client(
+        &self,
+        target_service_bundle: &str,
+    ) -> Arc<FaultListenerClient> {
+        sdvmiddleware_common::create_if_not_exist::<FaultListenerClient>(
+            &self.fault_listener_clients,
+            target_service_bundle,
+            Box::new(|target| FaultListenerClient::new(Box::new(GrpcClientTransport::new(target)))),
         )
     }
 }

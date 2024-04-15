@@ -23,6 +23,7 @@ rust_library {
         "libsdvgenerated_rpc_data_item",
         "libsdvgenerated_rpc_routine_control",
         "libsdvgenerated_rpc_io_control",
+        "libsdvgenerated_rpc_fault_listener",
         "libsdv_middleware_pubsub",
         "libsdvmiddleware_common",
     ],

@@ -14,6 +14,9 @@ pub mod routine;
 /// Input output data control API related utilities.
 pub mod io_control;
 
+/// Fault listener API related utilities.
+pub mod fault_listener;
+
 use diagnostics_api::negative_response_code::NegativeResponseCode;
 use sdvmiddleware_rpc::RpcResult;
 

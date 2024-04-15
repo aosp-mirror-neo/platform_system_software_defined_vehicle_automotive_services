@@ -12,4 +12,6 @@ pub use sdvgenerated_rpc_routine_control::interface as routine_control_interface
 
 pub use sdvgenerated_rpc_io_control::interface as io_control_interface;
 
+pub use sdvgenerated_rpc_fault_listener::interface as fault_listener_interface;
+
 pub mod extensions;

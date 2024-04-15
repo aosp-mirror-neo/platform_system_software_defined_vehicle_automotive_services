@@ -9,6 +9,7 @@ sdv_service_bundle {
     client: "sdv.diagnostics.data_item.DataItem"
     client: "sdv.diagnostics.routine_control.RoutineControl"
     client: "sdv.diagnostics.io_control.IOControl"
+    client: "sdv.diagnostics.fault.FaultListener"
     server: "sdv.diagnostics.manager.DiagnosticsManager"
 }
 
@@ -17,6 +18,7 @@ sdv_service_bundle {
     server: "sdv.diagnostics.data_item.DataItem"
     server: "sdv.diagnostics.routine_control.RoutineControl"
     server: "sdv.diagnostics.io_control.IOControl"
+    server: "sdv.diagnostics.fault.FaultListener"
 
     diagnostics_declaration {
         data_item {
@@ -57,6 +59,7 @@ sdv_service_bundle {
 sdv_service_bundle {
     name: "DiagnosticsProviderService2"
     server: "sdv.diagnostics.data_item.DataItem"
+    server: "sdv.diagnostics.fault.FaultListener"
 
     diagnostics_declaration {
         data_item {

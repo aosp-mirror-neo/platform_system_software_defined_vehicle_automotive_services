@@ -10,6 +10,7 @@ use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
 use sdvgenerated_rpc_data_item::server::DataItemServer;
+use sdvgenerated_rpc_fault_listener::server::FaultListenerServer;
 use sdvgenerated_rpc_io_control::server::IOControlServer;
 use sdvgenerated_rpc_routine_control::server::RoutineControlServer;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
@@ -25,6 +26,7 @@ pub struct DiagnosticsProviderService1 {
     pub data_item_server: DataItemServer,
     pub routine_control_server: RoutineControlServer,
     pub io_control_server: IOControlServer,
+    pub fault_listener_server: FaultListenerServer,
 
     pub diagnostics: crate::extensions::diagnostics::Diagnostics,
 }
@@ -38,6 +40,7 @@ impl DiagnosticsProviderService1 {
             data_item_server: DataItemServer::new(rpc_transport.clone()),
             routine_control_server: RoutineControlServer::new(rpc_transport.clone()),
             io_control_server: IOControlServer::new(rpc_transport.clone()),
+            fault_listener_server: FaultListenerServer::new(rpc_transport.clone()),
 
             diagnostics: crate::extensions::diagnostics::Diagnostics::new(),
         }

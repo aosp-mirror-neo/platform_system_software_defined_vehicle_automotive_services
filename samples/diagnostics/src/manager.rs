@@ -7,12 +7,14 @@ use diagnostics_api::diagnostics_manager::{
     GetConnectionMetadataRequest, GetConnectionMetadataResponse,
 };
 use diagnostics_api::event::Event;
+use diagnostics_api::fault::on_fault_status_change_request::StatusMask;
+use diagnostics_api::fault::OnFaultStatusChangeRequest;
 use diagnostics_api::io_control::IOControlRequestWithAdjustment as IoControlRequestWithAdjustment;
 use diagnostics_api::negative_response_code::NegativeResponseCode;
 use diagnostics_api::routine_control::RoutineControlRequest;
 use diagnostics_api::session_type::SessionType;
-use protobuf::EnumOrUnknown;
 use protobuf::MessageField;
+use protobuf::{Enum, EnumOrUnknown};
 use sdv_config_provider::{VsidlConfigProvider, VsidlProvider};
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
 use sdv_uds_serde::diagnostics_translator::DiagnosticsTranslator;
@@ -20,6 +22,7 @@ use sdv_uds_serde::entity_id::{EntityId, MethodMessage, RoutineMethod};
 use sdvgenerated::data_item_interface::DataItem;
 use sdvgenerated::diagnostics_manager_interface::DiagnosticsManager;
 use sdvgenerated::diagnostics_manager_service::DiagnosticsManagerService;
+use sdvgenerated::fault_listener_interface::FaultListener;
 use sdvgenerated::io_control_interface::IOControl as IoControl;
 use sdvgenerated::routine_control_interface::RoutineControl;
 use sdvmiddleware_rpc::error::RpcError;
@@ -278,6 +281,19 @@ fn main() {
         "Requesting short term io data adjustment: {:?}",
         io_control_client.short_term_adjustment(IoControlRequestWithAdjustment {
             id: "io_control_data1".to_string(),
+            ..Default::default()
+        })
+    );
+
+    // Diagnostics fault listener communication:
+    let fault_listener_client = service.get_fault_listener_client("DiagnosticsProviderService1");
+
+    println!(
+        "Sending fault status update without extended data: {:?}",
+        fault_listener_client.on_fault_status_change(OnFaultStatusChangeRequest {
+            id: "event1".to_string(),
+            status: (StatusMask::CONFIRMED.value() | StatusMask::WARNING_INDICATOR_ENABLED.value())
+                as u32,
             ..Default::default()
         })
     );

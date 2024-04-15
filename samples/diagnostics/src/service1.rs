@@ -9,6 +9,7 @@ use diagnostics_sample_catalog::messages::{
 };
 use sdv_middleware_extension_diagnostics::data_item::DataItemHandler;
 use sdv_middleware_extension_diagnostics::event::Event;
+use sdv_middleware_extension_diagnostics::fault_listener::FaultListenerHandler;
 use sdv_middleware_extension_diagnostics::io_control::IoControlHandler;
 use sdv_middleware_extension_diagnostics::routine::{
     RoutineHandler, RoutineResponse, RoutineResult,
@@ -102,6 +103,22 @@ impl IoControlHandler<IoControllableData> for IoControlData1Handler {
     }
 }
 
+struct Event1FaultListenerHandler {}
+
+impl FaultListenerHandler<FirstEventExt> for Event1FaultListenerHandler {
+    fn on_fault_status_change(
+        &self,
+        _status: u8,
+        extended_data: Option<FirstEventExt>,
+    ) -> NegativeResponseCode {
+        // Expect empty extended data
+        match extended_data {
+            Some(_) => NegativeResponseCode::GENERAL_REJECT,
+            None => NegativeResponseCode::POSITIVE_RESPONSE,
+        }
+    }
+}
+
 fn main() {
     let mut service = DiagnosticsProviderService1::new();
 
@@ -124,6 +141,12 @@ fn main() {
         service.diagnostics.create_io_control_server(Box::new(IoControlData1Handler {}));
 
     service.io_control_server.register_service_interface(io_control_server_impl);
+
+    // Setup fault listener server.
+    let fault_listener_server_impl =
+        service.diagnostics.create_fault_listener_server(Box::new(Event1FaultListenerHandler {}));
+
+    service.fault_listener_server.register_service_interface(fault_listener_server_impl);
 
     service.start().unwrap();
 
