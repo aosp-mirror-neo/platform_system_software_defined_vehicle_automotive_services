@@ -1,5 +1,6 @@
 // Copyright 2024 Google LLC
 //! Utility to run a setup of several samples, verifying their stdout.
+use googletest::{assert_that, matchers::pointwise, prelude::eq};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::option::Option::{None, Some};
@@ -46,16 +47,16 @@ impl SamplesStdoutVerifier {
 
     /// Runs registered samples in registration order, verifying their stdout outputs.
     pub fn run_and_assert_stdout(self) {
-        self.run_and_assert(Self::assert_eq_to_file)
+        self.run_and_assert(Self::assert_logs_eq)
     }
 
     /// Runs registered samples in registration order, verifying their stdout outputs with line order ignored.
     pub fn run_and_assert_stdout_ignore_order(self) {
-        self.run_and_assert(Self::assert_eq_to_file_ignore_order)
+        self.run_and_assert(Self::assert_logs_eq_ignore_order)
     }
 
     /// Runs registered samples in registration order, verifying their stdout outputs with the specific assert function.
-    fn run_and_assert(self, assert: fn(&str, &str)) {
+    fn run_and_assert(self, assert: fn(Vec<String>, Vec<String>)) {
         let mut children = Vec::new();
         let mut children_join_handles = Vec::new();
 
@@ -71,7 +72,16 @@ impl SamplesStdoutVerifier {
 
                         let child_string_output = String::from_utf8_lossy(&child_output.stdout);
 
-                        assert(&child_string_output, expected_stdout_file);
+                        let actual_output_lines =
+                            child_string_output.lines().map(String::from).collect::<Vec<String>>();
+                        let expected_output_lines = File::open(expected_stdout_file)
+                            .map(BufReader::new)
+                            .unwrap()
+                            .lines()
+                            .map(Result::unwrap)
+                            .collect::<Vec<String>>();
+
+                        assert(actual_output_lines, expected_output_lines);
                     }));
                 }
                 None => {
@@ -92,34 +102,18 @@ impl SamplesStdoutVerifier {
             .for_each(|mut child| child.kill().expect("Failed to kill child process"));
     }
 
-    fn assert_eq_to_file(output: &str, expected_output_file_path: &str) {
-        let expected_output = File::open(expected_output_file_path).unwrap();
-
-        let mut output_lines = output.lines();
-        let expected_output_lines = BufReader::new(expected_output).lines();
-
-        expected_output_lines.for_each(|expected_line| {
-            let actual_line = output_lines.next().unwrap();
-            let expected_line = expected_line.unwrap();
-            assert_eq!(actual_line, expected_line);
-        });
-
-        assert_eq!(output_lines.next(), None);
+    fn assert_logs_eq(actual_output: Vec<String>, expected_output: Vec<String>) {
+        assert_that!(actual_output, pointwise!(eq, expected_output))
     }
 
-    fn assert_eq_to_file_ignore_order(output: &str, expected_output_file_path: &str) {
-        let mut output_lines = output.lines().collect::<Vec<_>>();
-        output_lines.sort_unstable();
-        let expected_output = std::fs::read_to_string(expected_output_file_path).unwrap();
-        let mut expected_output_lines = expected_output.lines().collect::<Vec<_>>();
-        expected_output_lines.sort_unstable();
+    fn assert_logs_eq_ignore_order(
+        mut actual_output: Vec<String>,
+        mut expected_output: Vec<String>,
+    ) {
+        actual_output.sort_unstable();
+        expected_output.sort_unstable();
 
-        let mut output_lines = output_lines.iter();
-
-        expected_output_lines.iter().for_each(|expected_line| {
-            let actual_line = output_lines.next().unwrap();
-            assert_eq!(actual_line, expected_line);
-        });
+        assert_that!(actual_output, pointwise!(eq, expected_output))
     }
 }
 
