@@ -1,0 +1,23 @@
+rust_binary {
+    name: "sdv_hvac_service",
+    crate_name: "sdv_hvac_service",
+    srcs: [
+        "src/main.rs",
+    ],
+    rustlibs: [
+        "libprotobuf",
+        "liblazy_static",
+        "libsdvgenerated_hvac_service",
+        "libuser_preferences_api",
+        "libbinder_rs",
+        "libsdvmiddleware_rpc",
+        "libitertools",
+        "librand",
+        "libprotobuf_parse",
+        "libuser_preferences_utils",
+        "libsdvmiddleware_rpc_grpc_transport",
+        "libsdvgenerated_rpc_user_preferences_registry_service",
+        "libsdvgenerated_rpc_user_controllable_service",
+    ],
+    vendor: true,
+}

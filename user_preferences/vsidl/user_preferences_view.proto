@@ -1,0 +1,29 @@
+// Copyright 2023 Google LLC
+
+// The set of APIs that services must implement to be notified of settings change.
+//
+// These APIs are experimental at this point.
+
+syntax = "proto3";
+
+package sdv.user_preferences;
+import "settings_group.proto";
+import "setting.proto";
+import "error.proto";
+
+// Interface for receiving notifications about changes to user settings.
+// Services that want to react to these changes must implement this interface.
+service UserPreferencesView {
+  // Notifies a service of settings change.
+  rpc OnSettingsChange(OnSettingsChangeRequest) returns (OnSettingsChangeResponse) {}
+}
+
+message OnSettingsChangeRequest {
+  // The updated settings group, containing the modified settings and their values.
+  SettingsGroup group = 1;
+}
+
+message OnSettingsChangeResponse {
+  // Error message if request fails.
+  Error error = 1;
+}
