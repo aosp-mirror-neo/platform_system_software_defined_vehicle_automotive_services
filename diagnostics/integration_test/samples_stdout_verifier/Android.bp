@@ -6,5 +6,6 @@ rust_library {
     name: "libsdv_samples_stdout_verifier",
     crate_name: "sdv_samples_stdout_verifier",
     srcs: ["src/samples_stdout_verifier.rs"],
+    rustlibs: ["libgoogletest_rust"],
     vendor_available: true,
 }
