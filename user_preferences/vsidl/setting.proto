@@ -55,8 +55,7 @@ message SettingAndConstraints {
     FloatConstraints float_constraints = 2;
     Int32Constraints int32_constraints = 3;
     Int64Constraints int64_constraints = 4;
-    BytesConstraints blob_constraints = 5;
-    EnumConstraints enum_constraints = 6;
+    EnumConstraints enum_constraints = 5;
   }
 }
 
@@ -86,8 +85,6 @@ message FloatConstraints {
   // The steps by which a setting's value can be increased or decreased.
   optional float step = 3;
 }
-
-message BytesConstraints {}
 
 message EnumConstraints {
   // List of unique values sorted in ascending order.
