@@ -7,7 +7,6 @@ rust_defaults {
     defaults: ["sdv@rust_defaults"],
     crate_name: "diag_samples",
     rustlibs: [
-        "libsdvgenerated_rpc_data_item",
         "libdiagnostics_api",
         "libprotobuf",
         "libanyhow",

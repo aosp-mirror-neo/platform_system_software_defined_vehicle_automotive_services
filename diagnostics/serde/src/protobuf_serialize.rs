@@ -1352,4 +1352,116 @@ mod tests {
             ],
         )
     }
+
+    #[test]
+    fn serialize_proto_with_optional_fields_with_default_values() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+            import "syntax/diagnostics.proto";
+
+            message TestProto {
+                optional int64 my_i64 = 1;
+                optional int32 my_i32 = 2;
+                optional uint64 my_u64 = 3;
+                optional uint32 my_u32 = 4;
+                optional double my_f64 = 5;
+                optional float my_f32 = 6;
+                optional bool my_bool = 7;
+                optional InnerProto my_inner_proto = 8;
+                optional int32 my_one_byte_i32 = 9 [(sdv.vsidl.primitive_byte_size) = ONE];
+                optional uint32 my_two_bytes_u32 = 10 [(sdv.vsidl.primitive_byte_size) = TWO];
+                optional float my_fixed_f32 = 12 [(sdv.vsidl.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 12
+                }];
+                optional double my_fixed_f64 = 13 [(sdv.vsidl.fixed_point_encoding) = {
+                    scale: 0.0001
+                    offset: -13
+                }];
+                optional OneByteEnum my_one_byte_enum = 14;
+                optional float my_one_byte_fixed_float = 15 [(sdv.vsidl.fixed_point_encoding) = {
+                    scale: 0.1
+                    offset: 1.5
+                }, (sdv.vsidl.primitive_byte_size) = ONE];
+                optional float my_two_byte_fixed_float = 16 [(sdv.vsidl.fixed_point_encoding) = {
+                    scale: 0.1
+                    offset: -16
+                }, (sdv.vsidl.primitive_byte_size) = TWO];
+            }
+
+            message InnerProto {
+                repeated bool my_fixed_array = 1 [(sdv.vsidl.repeated_field_max_count) = 0];
+                optional string my_fixed_string = 2 [(sdv.vsidl.variable_type_max_size) = 0];
+                optional TestEnum my_enum = 3;
+            }
+
+            enum OneByteEnum {
+                option (sdv.vsidl.enum_byte_size) = ONE;
+
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+
+            enum TestEnum {
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+
+        let message = &MessageRef::default_instance(&message_descriptor);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 15 },
+                Token::Some,
+                Token::I64(0),
+                Token::Some,
+                Token::I32(0),
+                Token::Some,
+                Token::U64(0),
+                Token::Some,
+                Token::U32(0),
+                Token::Some,
+                Token::F64(0.0),
+                Token::Some,
+                Token::F32(0.0),
+                Token::Some,
+                Token::Bool(false),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::Tuple { len: 0 },
+                Token::TupleEnd,
+                Token::Some,
+                Token::Tuple { len: 0 },
+                Token::TupleEnd,
+                Token::Some,
+                Token::I32(0),
+                Token::TupleEnd,
+                Token::Some,
+                Token::I8(0),
+                Token::Some,
+                Token::U16(0),
+                Token::Some,
+                Token::I32(-12000),
+                Token::Some,
+                Token::I64(130000),
+                Token::Some,
+                Token::I8(0),
+                Token::Some,
+                Token::I8(-15),
+                Token::Some,
+                Token::I16(160),
+                Token::TupleEnd,
+            ],
+        )
+    }
 }
