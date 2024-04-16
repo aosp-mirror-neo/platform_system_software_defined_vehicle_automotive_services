@@ -248,7 +248,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for SingularFieldDeserializeSeed<'lt> {
         /// Singular protobuf field visitor.
         ///
         /// Forwards to `ValueDeserializeSeed` if the field is present (Some(_)),
-        /// or skips the field if it's empty (None).
+        /// or panics if it's empty (None).
         struct OptionVisitor<'lt> {
             descriptor: &'lt FieldDescriptor,
             runtime_type: &'lt RuntimeType,
@@ -281,7 +281,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for SingularFieldDeserializeSeed<'lt> {
             where
                 E: Error,
             {
-                Ok(None)
+                unimplemented!()
             }
         }
 
@@ -1286,7 +1286,9 @@ mod tests {
             ],
         )
     }
+
     #[test]
+    #[should_panic(expected = "not implemented")]
     fn deserialize_proto_empty_optionals() {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
@@ -2071,6 +2073,68 @@ mod tests {
                 Token::I8(0),
                 Token::Some,
                 Token::I16(0),
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn deserialize_proto_with_optional_fields() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+            import "syntax/diagnostics.proto";
+
+            message TestProto {
+                optional int64 my_i64 = 1;
+                optional InnerProto my_inner_proto = 2;
+            }
+
+            message InnerProto {
+                optional uint32 my_u32 = 1;
+            }
+            "#,
+            ".TestProto",
+            file_descriptor,
+            message_descriptor
+        );
+        let inner_descriptor = file_descriptor.message_by_full_name(".InnerProto").unwrap();
+
+        let mut expected_message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => I64(-64),
+                1 => {
+                    let mut inner_message = inner_descriptor.new_instance();
+                    for (index, field) in inner_descriptor.fields().enumerate() {
+                        let value = match index {
+                            0 => U32(32),
+                            _ => unreachable!(),
+                        };
+
+                        field.set_singular_field(&mut *inner_message, value);
+                    }
+                    Message(inner_message)
+                }
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *expected_message, value);
+        }
+        let message_deserialize = DeserializeSeedWrapper { message: expected_message };
+
+        assert_de_tokens(
+            &message_deserialize,
+            &[
+                Token::Tuple { len: 2 },
+                Token::Some,
+                Token::I64(-64),
+                Token::Some,
+                Token::Tuple { len: 1 },
+                Token::Some,
+                Token::U32(32),
+                Token::TupleEnd,
                 Token::TupleEnd,
             ],
         )
