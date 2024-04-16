@@ -14,6 +14,8 @@ use crate::settings::{setting_definitions, SETTINGS_GROUP_NAME};
 use crate::user_controllable_service_impl::UserControllableServiceImpl;
 use user_preferences_utils::print_setting_definition;
 
+pub(crate) const SERVICE_FQIN: &str = "HvacService";
+
 fn main() {
     let user_controllable_service_impl = UserControllableServiceImpl::new();
 
@@ -22,13 +24,13 @@ fn main() {
         .user_controllable_service_server
         .register_service_interface(Arc::new(user_controllable_service_impl));
 
-    let mut register_settings_request = RegisterSettingsRequest::new();
-    register_settings_request.group_name = SETTINGS_GROUP_NAME.to_string();
-    register_settings_request.version = String::from("1.0");
-
-    register_settings_request.settings_definitions =
-        setting_definitions().values().cloned().collect();
-
+    let register_settings_request = RegisterSettingsRequest {
+        group_name: SETTINGS_GROUP_NAME.to_string(),
+        version: String::from("1.0"),
+        settings_definitions: setting_definitions().values().cloned().collect(),
+        caller_fqin: SERVICE_FQIN.to_string(),
+        ..Default::default()
+    };
     println!(
         "Registering settings group with name: {},\nVersion: {}",
         register_settings_request.group_name, register_settings_request.version,

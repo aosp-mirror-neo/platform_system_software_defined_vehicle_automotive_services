@@ -30,6 +30,11 @@ message RegisterSettingsRequest {
 
   // Definitions of the settings within the group.
   repeated SettingDefinition settings_definitions = 3;
+
+  // Temporary parameter to expose the identity of the caller of the Register Settings API
+  // to the user preferences service. Once service discovery exposes this information to
+  // SDV services, this parameter will be removed
+  string caller_fqin = 4;
 }
 
 message RegisterSettingsResponse {
@@ -52,6 +57,11 @@ message UpdateSettingsRequest {
 
   // The list of keys to update along with their respective values.
   repeated Setting settings = 3;
+
+  // Temporary parameter to expose the identity of the caller of the Register Settings API
+  // to the user preferences service. Once service discovery exposes this information to
+  // SDV services, this parameter will be removed
+  string caller_fqin = 4;
 }
 
 message UpdateSettingsResponse {

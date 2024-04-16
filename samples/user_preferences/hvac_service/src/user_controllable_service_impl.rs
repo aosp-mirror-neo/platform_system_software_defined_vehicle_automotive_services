@@ -16,6 +16,7 @@ use user_preferences_api::user_controllable_service::{
 };
 
 use crate::settings::{default_settings, SETTINGS, SETTINGS_GROUP_NAME};
+use crate::SERVICE_FQIN;
 
 pub(crate) struct UserControllableServiceImpl {}
 
@@ -64,6 +65,7 @@ impl UserControllableService for UserControllableServiceImpl {
                     group_name: request.group_name,
                     transaction_id: request.transaction_id,
                     settings: request.settings,
+                    caller_fqin: SERVICE_FQIN.to_string(),
                     ..Default::default()
                 })
                 .expect("Failed to perform GRPC to update settings");

@@ -1,14 +1,13 @@
-use std::collections::HashMap;
-
 use protobuf::Enum;
+use std::collections::HashMap;
 use user_preferences_api::user::{user::UserFlags, User};
 
-use crate::settings_group::SettingsGroup;
+use crate::{settings_group::SettingsGroup, settings_group_id::SettingsGroupId};
 
 #[derive(Clone)]
 pub(crate) struct VehicleConfiguration {
     pub user: User,
-    pub settings_groups: HashMap<String, SettingsGroup>,
+    pub settings_groups: HashMap<SettingsGroupId, SettingsGroup>,
 }
 
 impl VehicleConfiguration {

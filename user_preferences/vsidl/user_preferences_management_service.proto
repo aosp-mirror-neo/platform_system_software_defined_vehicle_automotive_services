@@ -11,6 +11,7 @@ syntax = "proto3";
 package sdv.user_preferences;
 
 import "setting.proto";
+import "settings_group.proto";
 import "error.proto";
 import "user.proto";
 
@@ -35,8 +36,8 @@ service UserPreferencesManagementService {
 }
 
 message RequestSettingsChangeRequest {
-  // The name of the settings group to be modified.
-  string group_name = 1;
+  // The ID of the settings group to be modified.
+  SettingsGroupId settings_group_id = 1;
 
   // The list of settings to update, with their desired new values.
   repeated Setting settings = 2;
@@ -48,14 +49,14 @@ message RequestSettingsChangeResponse {
 }
 
 message SubscribeToSettingsChangeAndGetSettingsRequest {
-  // The name of the settings group that a service wants to receive callbacks for
+  // The ID of the settings group that a service wants to receive callbacks for
   // when it is updated.
-  string group_name = 1;
+  SettingsGroupId settings_group_id = 1;
 
   // Temporary parameter to expose the identity of the caller of the subscribe
   // API to the service. SDV Comms stack will expose the identity of callers of GRPC
   // to services in the future
-  string service_bundle_name = 2;
+  string caller_fqin = 2;
 }
 
 message SubscribeToSettingsChangeAndGetSettingsResponse {
@@ -70,13 +71,13 @@ message SubscribeToSettingsChangeAndGetSettingsResponse {
 }
 
 message UnsubscribeToSettingsChangeRequest {
-  // The name of the settings group that a service wants to stop receiving callbacks for.
-  string group_name = 1;
+  // The ID of the settings group that a service wants to stop receiving callbacks for.
+  SettingsGroupId settings_group_id = 1;
 
   // Temporary parameter to expose the identity of the caller of the subscribe
   // API to the service. SDV Comms stack will expose the identity of callers of GRPC
   // to services in the future
-  string service_bundle_name = 2;
+  string caller_fqin = 2;
 }
 
 message UnsubscribeToSettingsChangeResponse {

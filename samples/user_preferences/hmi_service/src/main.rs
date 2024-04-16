@@ -11,6 +11,7 @@ use sdvgenerated::hmi_service::HmiService;
 use sdvgenerated::user_preferences_admin_service_interface::UserPreferencesAdminService;
 use sdvgenerated::user_preferences_management_service_interface::UserPreferencesManagementService;
 use user_preferences_api::setting::{setting::Value, Setting};
+use user_preferences_api::settings_group::SettingsGroupId;
 use user_preferences_api::user::{user::UserFlags, User};
 use user_preferences_api::user_preferences_admin_service::{
     CreateUserRequest, DeleteUserRequest, FactoryResetRequest, GetUserSettingsRequest,
@@ -25,6 +26,7 @@ use hmi_service_impl::HmiServiceImpl;
 use user_preferences_utils::print_settings;
 use user_preferences_utils::print_settings_and_constraints;
 
+pub(crate) const HVAC_SERVICE_FQIN: &str = "HvacService";
 pub const SETTINGS_GROUP_NAME: &str = "HVAC";
 pub const TEMPERATURE: &str = "TEMPERATURE";
 
@@ -69,8 +71,12 @@ fn main() {
     let response = user_preferences_management_client
         .subscribe_to_settings_change_and_get_settings(
             SubscribeToSettingsChangeAndGetSettingsRequest {
-                group_name: "HVAC".to_string(),
-                service_bundle_name: String::from("HmiService"),
+                settings_group_id: MessageField::some(SettingsGroupId {
+                    service_fqin: HVAC_SERVICE_FQIN.to_string(),
+                    name: SETTINGS_GROUP_NAME.to_string(),
+                    ..Default::default()
+                }),
+                caller_fqin: String::from("HmiService"),
                 ..Default::default()
             },
         )
@@ -84,7 +90,11 @@ fn main() {
     println!("Adjusting HVAC temperature to 32");
     let response = user_preferences_management_client
         .request_settings_change(RequestSettingsChangeRequest {
-            group_name: SETTINGS_GROUP_NAME.to_string(),
+            settings_group_id: MessageField::some(SettingsGroupId {
+                service_fqin: HVAC_SERVICE_FQIN.to_string(),
+                name: SETTINGS_GROUP_NAME.to_string(),
+                ..Default::default()
+            }),
             settings: vec![Setting {
                 key: TEMPERATURE.to_string(),
                 value: Some(Value::Int64(32)),
@@ -103,7 +113,11 @@ fn main() {
     println!("Attempting to Adjust HVAC temperature to invalid value 100");
     let response = user_preferences_management_client
         .request_settings_change(RequestSettingsChangeRequest {
-            group_name: SETTINGS_GROUP_NAME.to_string(),
+            settings_group_id: MessageField::some(SettingsGroupId {
+                service_fqin: HVAC_SERVICE_FQIN.to_string(),
+                name: SETTINGS_GROUP_NAME.to_string(),
+                ..Default::default()
+            }),
             settings: vec![Setting {
                 key: TEMPERATURE.to_string(),
                 value: Some(Value::Int64(100)),
@@ -168,7 +182,7 @@ fn main() {
     }
 
     for setting_group in response.groups {
-        println!("Settings Group: {}", setting_group.name);
+        println!("Settings Group: {}", setting_group.id.name);
         print_settings(&setting_group.settings);
     }
 
@@ -201,8 +215,12 @@ fn main() {
     println!("Unsubscribing from setting changes");
     let response = user_preferences_management_client
         .unsubscribe_from_settings_change(UnsubscribeToSettingsChangeRequest {
-            group_name: SETTINGS_GROUP_NAME.to_string(),
-            service_bundle_name: String::from("HmiService"),
+            settings_group_id: MessageField::some(SettingsGroupId {
+                service_fqin: HVAC_SERVICE_FQIN.to_string(),
+                name: SETTINGS_GROUP_NAME.to_string(),
+                ..Default::default()
+            }),
+            caller_fqin: String::from("HmiService"),
             ..Default::default()
         })
         .expect("Failed to perform request to unsubscribe from settings changes");
