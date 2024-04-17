@@ -50,8 +50,8 @@ message UpdateSettingsRequest {
   string group_name = 1;
 
   // Optional field.
-  // Whenever a setting has been changed due to a request from the User Profile service, the
-  // original transaction_id should be included. This allows the User Profile service to map
+  // Whenever a setting has been changed due to a request from the User Preferences service, the
+  // original transaction_id should be included. This allows the User Preferences service to map
   // incoming changes to the original requests.
   uint64 transaction_id = 2;
 

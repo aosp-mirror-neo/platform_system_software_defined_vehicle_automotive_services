@@ -40,8 +40,9 @@ enum SettingKind {
   // Store the value of the setting for each vehicle user separately.
   PER_USER = 1;
   // UserControllableService is fully responsible for the storage of PASSTHROUGH setting.
-  // User Profile only notifies UserControllableService when the value is explicitly set by user.
-  // User Profile does not attempt to request changes based on user change or service registration.
+  // User Preferences only notifies UserControllableService when the value is explicitly set by
+  // user. User Preferences does not attempt to request changes based on user change or service
+  // registration.
   PASSTHROUGH = 2;
 };
 

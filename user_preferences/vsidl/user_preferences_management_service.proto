@@ -1,6 +1,6 @@
 // Copyright 2023 Google LLC
 
-// User Profile RPC APIs available to SDV services
+// User Preferences RPC APIs available to SDV services
 //
 // Allows SDV-Services to manage user configurable settings on per vehicle user basis.
 //
