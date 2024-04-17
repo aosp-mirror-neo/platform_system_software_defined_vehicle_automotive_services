@@ -40,32 +40,32 @@ fn main() {
     let user_preferences_management_client =
         hmi_service.get_user_preferences_management_service_client("UserPreferencesServer");
 
-    let profile_id = 1_u64;
-    println!("Creating an ephemeral user profile");
+    let user_id = 1_u64;
+    println!("Creating an ephemeral user");
     let response = user_preferences_admin_client
         .create_user(CreateUserRequest {
             user: MessageField::some(User {
-                id: profile_id,
+                id: user_id,
                 flags: UserFlags::DRIVER.value() | UserFlags::EPHEMERAL.value(),
                 ..Default::default()
             }),
             ..Default::default()
         })
-        .expect("Failed to perform request to create user profile");
+        .expect("Failed to perform request to create user");
     if let Some(error) = response.error.into_option() {
-        panic!("Failed to create profile with ID {}: {:?}", profile_id, error);
+        panic!("Failed to create user {}: {:?}", user_id, error);
     } else {
-        println!("Successfully created profile with ID {}\n", profile_id);
+        println!("Successfully created user {}\n", user_id);
     }
 
     let response = user_preferences_admin_client
-        .select_user(SelectUserRequest { user_id: profile_id, ..Default::default() })
-        .expect("Failed to perform request to select user profile");
+        .select_user(SelectUserRequest { user_id, ..Default::default() })
+        .expect("Failed to perform request to select user");
     if let Some(error) = response.error.into_option() {
-        panic!("Failed to select profile with ID {}: {:?}", profile_id, error);
+        panic!("Failed to select user {}: {:?}", user_id, error);
     }
 
-    // HVAC requires 3 seconds to make the change, lets wait for 5 seconds before changing the profile
+    // HVAC requires 3 seconds to make the change, lets wait for 5 seconds before changing the user
     std::thread::sleep(std::time::Duration::from_secs(5));
 
     let response = user_preferences_management_client
@@ -107,7 +107,7 @@ fn main() {
         panic!("Failed to perform setting change {:?}", error);
     }
 
-    // HVAC requires 3 seconds to make the change, lets wait for 5 seconds before changing the profile
+    // HVAC requires 3 seconds to make the change, lets wait for 5 seconds before changing the user
     std::thread::sleep(std::time::Duration::from_secs(5));
 
     println!("Attempting to Adjust HVAC temperature to invalid value 100");
@@ -132,31 +132,31 @@ fn main() {
         panic!("Expected request to fail");
     }
 
-    println!("Creating another user profile");
-    let profile_id_2 = 2_u64;
+    println!("Creating another user");
+    let user_id_2 = 2_u64;
     let response = user_preferences_admin_client
         .create_user(CreateUserRequest {
             user: MessageField::some(User {
-                id: profile_id_2,
+                id: user_id_2,
                 flags: UserFlags::DRIVER.value(),
                 ..Default::default()
             }),
             ..Default::default()
         })
-        .expect("Failed to perform request to create user profile");
+        .expect("Failed to perform request to create user");
     if let Some(error) = response.error.into_option() {
-        panic!("Failed to create profile with ID {}: {:?}", profile_id_2, error);
+        panic!("Failed to create user {}: {:?}", user_id_2, error);
     } else {
-        println!("Successfully created profile with ID {}", profile_id_2);
+        println!("Successfully created user {}", user_id_2);
     }
 
     let response = user_preferences_admin_client
-        .select_user(SelectUserRequest { user_id: profile_id_2, ..Default::default() })
-        .expect("Failed to perform request to select user profile");
+        .select_user(SelectUserRequest { user_id: user_id_2, ..Default::default() })
+        .expect("Failed to perform request to select user");
     if let Some(error) = response.error.into_option() {
-        panic!("Failed to select profile with ID {}: {:?}", profile_id_2, error);
+        panic!("Failed to select user {}: {:?}", user_id_2, error);
     }
-    println!("Switched to profile {}", profile_id_2);
+    println!("Switched to user {}", user_id_2);
 
     let response = user_preferences_admin_client
         .list_users(ListUsersRequest::new())
@@ -165,17 +165,17 @@ fn main() {
         panic!("Failed to list users: {}", error.message);
     }
     println!(
-        "List of available profiles: \"{}\"\n",
+        "List of available users: \"{}\"\n",
         response.users.into_iter().map(|user| format!("{}", user.id)).join(",")
     );
 
-    // Switching profile will result in a callback for settings change, sleep until we receive the callback
+    // Switching user will result in a callback for settings change, sleep until we receive the callback
     // to avoid mixing the order of the messages in the standard output
     std::thread::sleep(std::time::Duration::from_secs(5));
 
-    println!("Retrieving settings within user profile {}", profile_id_2);
+    println!("Retrieving settings for user {}", user_id_2);
     let response = user_preferences_admin_client
-        .get_user_settings(GetUserSettingsRequest { user_id: profile_id_2, ..Default::default() })
+        .get_user_settings(GetUserSettingsRequest { user_id: user_id_2, ..Default::default() })
         .expect("Failed to perform request to get user settings");
     if let Some(error) = response.error.into_option() {
         panic!("Failed to retrieve user settings: {}", error.message);
@@ -186,31 +186,31 @@ fn main() {
         print_settings(&setting_group.settings);
     }
 
-    let profile_id_3 = 3_u64;
-    println!("Testing profile deletion, creating profile with ID {}", profile_id_3);
+    let user_id_3 = 3_u64;
+    println!("Testing user deletion, creating user {}", user_id_3);
     let response = user_preferences_admin_client
         .create_user(CreateUserRequest {
             user: MessageField::some(User {
-                id: profile_id_3,
+                id: user_id_3,
                 flags: UserFlags::DRIVER.value(),
                 ..Default::default()
             }),
             ..Default::default()
         })
-        .expect("Failed to perform request to create user profile");
+        .expect("Failed to perform request to create user");
     if let Some(error) = response.error.into_option() {
-        panic!("Failed to create profile with ID {}: {:?}", profile_id_3, error);
+        panic!("Failed to create user {}: {:?}", user_id_3, error);
     } else {
-        println!("Successfully created profile with ID {}", profile_id_3);
+        println!("Successfully created user {}", user_id_3);
     }
 
     let response = user_preferences_admin_client
-        .delete_user(DeleteUserRequest { user_id: profile_id_3, ..Default::default() })
-        .expect("Failed to perform request to delete profile");
+        .delete_user(DeleteUserRequest { user_id: user_id_3, ..Default::default() })
+        .expect("Failed to perform request to delete user");
     if let Some(error) = response.error.into_option() {
-        panic!("Failed to delete profile with ID {}: {:?}", profile_id_3, error);
+        panic!("Failed to delete user {}: {:?}", user_id_3, error);
     }
-    println!("Deleted user profile {}", profile_id_3);
+    println!("Deleted user {}", user_id_3);
 
     println!("Unsubscribing from setting changes");
     let response = user_preferences_management_client

@@ -60,8 +60,8 @@ The HMI service perform the following steps:
     5. Delete the first profile with ID 1
 
 ```bash
-Creating an ephemeral user profile
-Successfully created profile with ID 1
+Creating an ephemeral user
+Successfully created user 1
 
 Current HVAC settings
 Key ENABLED        , Value: Bool(false), Constraint: "None"
@@ -71,7 +71,7 @@ Key TEMPERATURE    , Value: Int64(16) , Constraint: "Int64Constraints(Int64Const
 
 
 Adjusting HVAC temperature to 32
-Received settings change notification HVAC
+The following settings were changed in settings group HvacService/HVAC
 Key TEMPERATURE     Value: Int64(32)
 
 
@@ -79,19 +79,19 @@ Key TEMPERATURE     Value: Int64(32)
 Attempting to Adjust HVAC temperature to invalid value 100
 Received error "Int64(\n    100,\n) is not a valid value for Setting TEMPERATURE"
 
-Creating another user profile
-Successfully created profile with ID 2
-Switched to profile 2
-List of available profiles: "2"
+Creating another user
+Successfully created user 2
+Switched to user 2
+List of available users: "2"
 
-Received settings change notification HVAC
+The following settings were changed in settings group HvacService/HVAC
 Key ENABLED         Value: Bool(false)
 Key FAN_SPEED       Value: Int64(1)
 Key TEMPERATURE     Value: Int64(16)
 
 
 
-Retrieving settings within user profile 2
+Retrieving settings for user 2
 Settings Group: HVAC
 Key ENABLED         Value: Bool(false)
 Key FAN_SPEED       Value: Int64(1)
@@ -99,9 +99,9 @@ Key TEMPERATURE     Value: Int64(16)
 
 
 
-Testing profile deletion, creating profile with ID 3
-Successfully created profile with ID 3
-Deleted user profile 3
+Testing user deletion, creating user 3
+Successfully created user 3
+Deleted user 3
 Unsubscribing from setting changes
 Performing factory reset
 ```
@@ -171,8 +171,8 @@ Key TEMPERATURE    , Type: PER_USER, Value: Int64(16)
 
 
 Settings group HvacService/HVAC with version 1.0 is already registered
-Created profile with ID: 1
-Loading profile of user 1
+Created user 1
+Loading user 1
 
 Updated the following settings
 Key ENABLED         Value: Bool(false)
@@ -195,10 +195,10 @@ Key TEMPERATURE     Value: Int64(32)
 
 Notifying HmiService of settings change
 
-Created profile with ID: 2
-Loading profile of user 2
+Created user 2
+Loading user 2
 
-Deleted ephemeral profile: 1
+Deleted ephemeral user: 1
 Updated the following settings
 Key ENABLED         Value: Bool(false)
 Key FAN_SPEED       Value: Int64(1)
@@ -208,8 +208,8 @@ Key TEMPERATURE     Value: Int64(16)
 
 Notifying HmiService of settings change
 
-Created profile with ID: 3
-Deleted profile with ID: 3
+Created user 3
+Deleted user 3
 Updated the following settings
 Key FAN_SPEED       Value: Int64(1)
 Key ENABLED         Value: Bool(false)

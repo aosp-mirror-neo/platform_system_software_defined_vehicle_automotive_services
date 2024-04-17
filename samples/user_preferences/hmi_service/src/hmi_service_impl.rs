@@ -19,11 +19,13 @@ impl UserPreferencesView for HmiServiceImpl {
     ) -> sdvmiddleware_rpc::RpcResult<OnSettingsChangeResponse> {
         if request.settings_group.is_some() {
             println!(
-                "Received settings change notification {}/{}",
+                "The following settings were changed in settings group {}/{}",
                 request.settings_group.id.service_fqin, request.settings_group.id.name
             );
             print_settings(&request.settings_group.settings);
         }
+        print_settings(&request.settings_group.settings);
+
         Ok(OnSettingsChangeResponse::new())
     }
 }

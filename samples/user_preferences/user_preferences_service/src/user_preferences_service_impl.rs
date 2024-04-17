@@ -47,11 +47,11 @@ use user_preferences_utils::{print_setting_definition, print_settings};
 
 use rand::Rng;
 
-type Profiles = HashMap<u64, VehicleConfiguration>;
+type Users = HashMap<u64, VehicleConfiguration>;
 pub struct UserPreferencesServiceImpl {
     vehicle_state: Mutex<VehicleConfiguration>,
-    user_preferencess: Mutex<Profiles>,
-    active_profile_id: Mutex<Option<u64>>,
+    users: Mutex<Users>,
+    current_user_id: Mutex<Option<u64>>,
     change_subscribers: Mutex<HashMap<SettingsGroupId, HashSet<String>>>,
 }
 
@@ -59,8 +59,8 @@ impl UserPreferencesServiceImpl {
     pub fn new() -> Self {
         UserPreferencesServiceImpl {
             vehicle_state: Mutex::new(VehicleConfiguration::new(User::new())),
-            user_preferencess: Mutex::new(Profiles::new()),
-            active_profile_id: Mutex::new(None),
+            users: Mutex::new(Users::new()),
+            current_user_id: Mutex::new(None),
             change_subscribers: Mutex::new(HashMap::new()),
         }
     }
@@ -186,8 +186,8 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
         }
         let user = request.user.unwrap();
 
-        let mut profiles = acquire_lock_or_return_err!(self.user_preferencess, CreateUserResponse);
-        if profiles.contains_key(&user.id) {
+        let mut users = acquire_lock_or_return_err!(self.users, CreateUserResponse);
+        if users.contains_key(&user.id) {
             println!("Invalid create user request, ID {} is already in use", user.id);
             return error_response!(
                 CreateUserResponse,
@@ -197,25 +197,25 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
             );
         }
 
-        // Initialize profile with default values
+        // Initialize user with default values
         let vehicle_state = acquire_lock_or_return_err!(self.vehicle_state, CreateUserResponse);
-        let mut new_profile = vehicle_state.clone();
-        new_profile.reset_settings();
-        new_profile.user = User { id: user.id, flags: user.flags, ..Default::default() };
+        let mut new_user = vehicle_state.clone();
+        new_user.reset_settings();
+        new_user.user = User { id: user.id, flags: user.flags, ..Default::default() };
 
-        println!("Created profile with ID: {}", user.id);
+        println!("Created user {}", user.id);
 
-        profiles.insert(user.id, new_profile);
+        users.insert(user.id, new_user);
 
         Ok(CreateUserResponse::new())
     }
 
     fn select_user(&self, request: SelectUserRequest) -> RpcResult<SelectUserResponse> {
-        let mut profiles = acquire_lock_or_return_err!(self.user_preferencess, SelectUserResponse);
-        let mut active_profile_id =
-            acquire_lock_or_return_err!(self.active_profile_id, SelectUserResponse);
+        let mut users = acquire_lock_or_return_err!(self.users, SelectUserResponse);
+        let mut current_user_id =
+            acquire_lock_or_return_err!(self.current_user_id, SelectUserResponse);
 
-        let target_profile = match profiles.get(&request.user_id) {
+        let target_user = match users.get(&request.user_id) {
             Some(x) => x,
             None => {
                 return error_response!(
@@ -227,9 +227,9 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
             }
         };
 
-        println!("Loading profile of user {}\n", request.user_id);
+        println!("Loading user {}\n", request.user_id);
 
-        for (settings_group_id, settings_group) in target_profile.settings_groups.iter() {
+        for (settings_group_id, settings_group) in target_user.settings_groups.iter() {
             let settings = settings_group
                 .settings
                 .values()
@@ -243,24 +243,23 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
             }
         }
 
-        // If the previous profile is ephemeral, then delete it
+        // If the previous user is ephemeral, then delete it
         if let Some(id) =
-            active_profile_id.filter(|&id| profiles.get(&id).map_or(false, |p| p.is_ephemeral()))
+            current_user_id.filter(|&id| users.get(&id).map_or(false, |p| p.is_ephemeral()))
         {
-            profiles.remove(&id);
-            println!("Deleted ephemeral profile: {}", id);
+            users.remove(&id);
+            println!("Deleted ephemeral user: {}", id);
         }
-        *active_profile_id = Some(request.user_id);
+        *current_user_id = Some(request.user_id);
 
         Ok(SelectUserResponse::new())
     }
 
     fn delete_user(&self, request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
-        let mut profiles = acquire_lock_or_return_err!(self.user_preferencess, DeleteUserResponse);
-        let active_profile_id =
-            acquire_lock_or_return_err!(self.active_profile_id, DeleteUserResponse);
+        let mut users = acquire_lock_or_return_err!(self.users, DeleteUserResponse);
+        let current_user_id = acquire_lock_or_return_err!(self.current_user_id, DeleteUserResponse);
 
-        if !profiles.contains_key(&request.user_id) {
+        if !users.contains_key(&request.user_id) {
             return Ok(DeleteUserResponse {
                 error: MessageField::some(Error {
                     error_code: EnumOrUnknown::new(ResponseCode::NOT_FOUND_ERROR),
@@ -270,7 +269,7 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
                 ..Default::default()
             });
         }
-        if active_profile_id.is_some_and(|id| id == request.user_id) {
+        if current_user_id.is_some_and(|id| id == request.user_id) {
             return Ok(DeleteUserResponse {
                 error: MessageField::some(Error {
                     error_code: EnumOrUnknown::new(ResponseCode::INVALID_REQUEST),
@@ -281,20 +280,19 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
             });
         }
 
-        profiles.remove(&request.user_id);
-        println!("Deleted profile with ID: {}", &request.user_id);
+        users.remove(&request.user_id);
+        println!("Deleted user {}", &request.user_id);
 
         Ok(DeleteUserResponse::new())
     }
 
     fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
-        let mut profiles =
-            acquire_lock_or_return_err!(self.user_preferencess, FactoryResetResponse);
-        profiles.clear();
+        let mut users = acquire_lock_or_return_err!(self.users, FactoryResetResponse);
+        users.clear();
 
-        let mut active_profile_id =
-            acquire_lock_or_return_err!(self.active_profile_id, FactoryResetResponse);
-        *active_profile_id = None;
+        let mut current_user_id =
+            acquire_lock_or_return_err!(self.current_user_id, FactoryResetResponse);
+        *current_user_id = None;
 
         let resp = match Self::reset_services() {
             Ok(_) => FactoryResetResponse::new(),
@@ -312,8 +310,8 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
     }
 
     fn list_users(&self, _request: ListUsersRequest) -> RpcResult<ListUsersResponse> {
-        let profiles = acquire_lock_or_return_err!(self.user_preferencess, ListUsersResponse);
-        let users = profiles.iter().map(|(_, config)| config.user.clone()).collect_vec();
+        let users = acquire_lock_or_return_err!(self.users, ListUsersResponse);
+        let users = users.iter().map(|(_, config)| config.user.clone()).collect_vec();
 
         Ok(ListUsersResponse { users, ..Default::default() })
     }
@@ -322,22 +320,22 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
         &self,
         request: GetUserSettingsRequest,
     ) -> RpcResult<GetUserSettingsResponse> {
-        let profiles = acquire_lock_or_return_err!(self.user_preferencess, GetUserSettingsResponse);
+        let users = acquire_lock_or_return_err!(self.users, GetUserSettingsResponse);
 
-        let profile = match profiles.get(&request.user_id) {
-            Some(profile) => profile,
+        let user = match users.get(&request.user_id) {
+            Some(user) => user,
             None => {
                 return error_response!(
                     GetUserSettingsResponse,
                     ResponseCode::INVALID_REQUEST,
-                    "Profile {} does not exist",
+                    "user {} does not exist",
                     request.user_id
                 )
             }
         };
 
         return Ok(GetUserSettingsResponse {
-            groups: profile.settings_groups.values().cloned().map_into().collect(),
+            groups: user.settings_groups.values().cloned().map_into().collect(),
             ..Default::default()
         });
     }
@@ -547,15 +545,14 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
         println!("Updated the following settings");
         print_settings(&request.settings);
 
-        let active_profile_id =
-            acquire_lock_or_return_err!(self.active_profile_id, UpdateSettingsResponse);
+        let current_user_id =
+            acquire_lock_or_return_err!(self.current_user_id, UpdateSettingsResponse);
 
-        if let Some(active_profile_id) = *active_profile_id {
-            let mut profiles =
-                acquire_lock_or_return_err!(self.user_preferencess, UpdateSettingsResponse);
-            let active_profile = profiles.get_mut(&active_profile_id).unwrap();
+        if let Some(current_user_id) = *current_user_id {
+            let mut users = acquire_lock_or_return_err!(self.users, UpdateSettingsResponse);
+            let current_user = users.get_mut(&current_user_id).unwrap();
             let current_settings_group =
-                active_profile.settings_groups.get_mut(&settings_group_id).unwrap();
+                current_user.settings_groups.get_mut(&settings_group_id).unwrap();
 
             request.settings.iter().cloned().for_each(|x| {
                 if let Some(setting) = current_settings_group.settings.get_mut(&x.key) {

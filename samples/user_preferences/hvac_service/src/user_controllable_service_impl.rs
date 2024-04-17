@@ -38,7 +38,7 @@ impl UserControllableService for UserControllableServiceImpl {
         request: RequestSettingsChangeRequest,
     ) -> RpcResult<RequestSettingsChangeResponse> {
         // Typically services controlling hardware components take some time to reconfigure a device, to simulate the time delay
-        // we spawn a thread that notifies User Profile asynchronously of the setting changes after a couple of seconds
+        // we spawn a thread that notifies User Preferences asynchronously of the setting changes after a couple of seconds
         thread::spawn(move || {
             let mut settings = SETTINGS.lock().unwrap();
 
@@ -70,7 +70,7 @@ impl UserControllableService for UserControllableServiceImpl {
                 })
                 .expect("Failed to perform GRPC to update settings");
             if response.error.is_some() {
-                panic!("Failed update settings within user profile {:#?}", response.error.unwrap());
+                panic!("Failed update settings of current user {:#?}", response.error.unwrap());
             }
         });
 
