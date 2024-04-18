@@ -23,7 +23,9 @@ fn main() {
     let data_item_server_impl =
         service.diagnostics.create_data_item_server(Box::new(DataItemTwoHandler {}));
 
-    service.data_item_server.register_service_interface(data_item_server_impl);
+    service
+        .sdv_diagnostics_data_item_data_item_server
+        .register_service_interface(data_item_server_impl);
     service.start().unwrap();
 
     println!("Diagnostics provider service bundle started.");

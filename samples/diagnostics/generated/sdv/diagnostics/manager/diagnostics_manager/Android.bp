@@ -6,8 +6,8 @@ package {
 }
 
 rust_library {
-    name: "libsdvgenerated_rpc_diagnostics_manager",
-    crate_name: "sdvgenerated_rpc_diagnostics_manager",
+    name: "libsdvgenerated_rpc_sdv_diagnostics_manager_diagnostics_manager",
+    crate_name: "sdvgenerated_rpc_sdv_diagnostics_manager_diagnostics_manager",
     srcs: [
         "mod.rs",
     ],

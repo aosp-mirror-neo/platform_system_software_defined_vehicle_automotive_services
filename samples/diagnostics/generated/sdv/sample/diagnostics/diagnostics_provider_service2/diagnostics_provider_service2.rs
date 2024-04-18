@@ -9,8 +9,6 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdvgenerated_rpc_data_item::server::DataItemServer;
-use sdvgenerated_rpc_fault_listener::server::FaultListenerServer;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -21,8 +19,10 @@ pub struct DiagnosticsProviderService2Callbacks {}
 struct Subscriptions {}
 
 pub struct DiagnosticsProviderService2 {
-    pub data_item_server: DataItemServer,
-    pub fault_listener_server: FaultListenerServer,
+    pub sdv_diagnostics_data_item_data_item_server:
+        sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::server::DataItemServer,
+    pub sdv_diagnostics_fault_fault_listener_server:
+        sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::server::FaultListenerServer,
 
     pub diagnostics: crate::extensions::diagnostics::Diagnostics,
 }
@@ -33,10 +33,14 @@ impl DiagnosticsProviderService2 {
         let rpc_transport = GrpcServerTransport::new("DiagnosticsProviderService2");
 
         DiagnosticsProviderService2 {
-            data_item_server: DataItemServer::new(rpc_transport.clone()),
-            fault_listener_server: FaultListenerServer::new(rpc_transport.clone()),
+
+
+            sdv_diagnostics_data_item_data_item_server: sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::server::DataItemServer::new(rpc_transport.clone()),
+            sdv_diagnostics_fault_fault_listener_server: sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::server::FaultListenerServer::new(rpc_transport.clone()),
+
 
             diagnostics: crate::extensions::diagnostics::Diagnostics::new(),
+
         }
     }
 

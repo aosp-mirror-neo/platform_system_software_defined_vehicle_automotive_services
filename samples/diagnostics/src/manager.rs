@@ -19,12 +19,12 @@ use sdv_config_provider::{VsidlConfigProvider, VsidlProvider};
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
 use sdv_uds_serde::diagnostics_translator::DiagnosticsTranslator;
 use sdv_uds_serde::entity_id::{EntityId, MethodMessage, RoutineMethod};
-use sdvgenerated::data_item_interface::DataItem;
-use sdvgenerated::diagnostics_manager_interface::DiagnosticsManager;
 use sdvgenerated::diagnostics_manager_service::DiagnosticsManagerService;
-use sdvgenerated::fault_listener_interface::FaultListener;
-use sdvgenerated::io_control_interface::IOControl as IoControl;
-use sdvgenerated::routine_control_interface::RoutineControl;
+use sdvgenerated::sdv_diagnostics_data_item_data_item_interface::DataItem;
+use sdvgenerated::sdv_diagnostics_fault_fault_listener_interface::FaultListener;
+use sdvgenerated::sdv_diagnostics_io_control_io_control_interface::IOControl as IoControl;
+use sdvgenerated::sdv_diagnostics_manager_diagnostics_manager_interface::DiagnosticsManager;
+use sdvgenerated::sdv_diagnostics_routine_control_routine_control_interface::RoutineControl;
 use sdvmiddleware_rpc::error::RpcError;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -114,7 +114,7 @@ fn main() {
     // Create service instance and register DiagnosticsManagerServer
     let mut service = DiagnosticsManagerService::new();
     service
-        .diagnostics_manager_server
+        .sdv_diagnostics_manager_diagnostics_manager_server
         .register_service_interface(Arc::new(DiagnosticsManagerImpl::new()));
     service.start().unwrap();
 
@@ -123,7 +123,8 @@ fn main() {
 
     println!("Diagnostics Manager service bundle started.");
 
-    let first_data_item_client = service.get_data_item_client(&data_items[first_data_item]);
+    let first_data_item_client =
+        service.get_sdv_diagnostics_data_item_data_item_client(&data_items[first_data_item]);
 
     let response = first_data_item_client.read(read_data_item_request(first_data_item));
     println!("Fetch {:?}: {:?}.", first_data_item, response);
@@ -198,7 +199,8 @@ fn main() {
     }
     println!("Fields parsed from UDS bytes: name = '{}'", String::from_utf8(name_value).unwrap());
 
-    let second_data_item_client = service.get_data_item_client(&data_items[second_data_item]);
+    let second_data_item_client =
+        service.get_sdv_diagnostics_data_item_data_item_client(&data_items[second_data_item]);
 
     let response = second_data_item_client.read(read_data_item_request(first_data_item));
     println!(
@@ -217,7 +219,8 @@ fn main() {
     );
 
     // Diagnostics routines communication:
-    let routine_client = service.get_routine_control_client("DiagnosticsProviderService1");
+    let routine_client = service
+        .get_sdv_diagnostics_routine_control_routine_control_client("DiagnosticsProviderService1");
 
     println!(
         "Starting routine: {:?}",
@@ -275,7 +278,8 @@ fn main() {
     );
 
     // Diagnostics io control communication:
-    let io_control_client = service.get_io_control_client("DiagnosticsProviderService1");
+    let io_control_client =
+        service.get_sdv_diagnostics_io_control_io_control_client("DiagnosticsProviderService1");
 
     println!(
         "Requesting short term io data adjustment: {:?}",
@@ -286,7 +290,8 @@ fn main() {
     );
 
     // Diagnostics fault listener communication:
-    let fault_listener_client = service.get_fault_listener_client("DiagnosticsProviderService1");
+    let fault_listener_client =
+        service.get_sdv_diagnostics_fault_fault_listener_client("DiagnosticsProviderService1");
 
     println!(
         "Sending fault status update without extended data: {:?}",
