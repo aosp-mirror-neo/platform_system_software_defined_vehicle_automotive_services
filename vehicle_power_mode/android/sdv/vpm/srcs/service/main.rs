@@ -77,9 +77,7 @@ fn create_system_api_binder_in_service_discovery(
     )?
     .start();
 
-    let service_definition = ServiceDefinitionBuilder::new(SERVICE_NAME)
-        .add_endpoint("binder_rpc/vsock".into(), "1".to_owned(), 0)
-        .build();
+    let service_definition = ServiceDefinitionBuilder::new(SERVICE_NAME).build();
     let sm = ServiceManager::default_service_manager();
     sm.add_service(&service_definition)?;
     info!("VPM registered to service discovery.");
