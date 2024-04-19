@@ -19,3 +19,8 @@ rust_protobuf {
     vendor_available: true,
     host_supported: true,
 }
+
+filegroup {
+    name: "libsdv_vpm_protos",
+    srcs: ["**/*.proto"],
+}
