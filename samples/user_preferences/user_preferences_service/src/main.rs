@@ -4,6 +4,7 @@
 mod macros;
 mod setting;
 mod settings_group;
+mod settings_group_id;
 mod user_preferences_service_impl;
 mod vehicle_configuration;
 

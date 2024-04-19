@@ -7,12 +7,20 @@ package sdv.user_preferences;
 import "setting.proto";
 
 message SettingsGroup {
-  // A unique name for this setting group.
-  string name = 1;
+  // A the identifier for this group.
+  SettingsGroupId id = 1;
 
   // The version number of schema used by this setting group.
   string version = 2;
 
   // The list of settings within the setting group.
   repeated Setting settings = 3;
+}
+
+message SettingsGroupId {
+  // FQIN of the service that declared the settings group.
+  string service_fqin = 1;
+
+  // The name of the settings group.
+  string name = 2;
 }

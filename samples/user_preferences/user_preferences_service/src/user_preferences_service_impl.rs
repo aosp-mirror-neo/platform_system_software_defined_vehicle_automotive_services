@@ -13,7 +13,9 @@ use sdvgenerated_rpc_user_preferences_view::interface::UserPreferencesView;
 use sdvgenerated_rpc_user_preferences_view::client::UserPreferencesViewClient;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 
-use user_preferences_api::settings_group::SettingsGroup as SettingsGroupProto;
+use user_preferences_api::settings_group::{
+    SettingsGroup as SettingsGroupProto, SettingsGroupId as SettingsGroupIdProto,
+};
 use user_preferences_api::user::User;
 use user_preferences_api::user_preferences_registry_service::{
     RegisterSettingsRequest, RegisterSettingsResponse,
@@ -39,43 +41,48 @@ use user_preferences_api::user_controllable_service;
 use crate::macros::{acquire_lock_or_return_err, error_response};
 use crate::setting::Setting;
 use crate::settings_group::SettingsGroup;
+use crate::settings_group_id::SettingsGroupId;
 use crate::vehicle_configuration::VehicleConfiguration;
 use user_preferences_utils::{print_setting_definition, print_settings};
 
 use rand::Rng;
 
-type Profiles = HashMap<u64, VehicleConfiguration>;
+type Users = HashMap<u64, VehicleConfiguration>;
 pub struct UserPreferencesServiceImpl {
     vehicle_state: Mutex<VehicleConfiguration>,
-    user_preferencess: Mutex<Profiles>,
-    active_profile_id: Mutex<Option<u64>>,
-    change_subscribers: Mutex<HashMap<String, HashSet<String>>>,
+    users: Mutex<Users>,
+    current_user_id: Mutex<Option<u64>>,
+    change_subscribers: Mutex<HashMap<SettingsGroupId, HashSet<String>>>,
 }
 
 impl UserPreferencesServiceImpl {
     pub fn new() -> Self {
         UserPreferencesServiceImpl {
             vehicle_state: Mutex::new(VehicleConfiguration::new(User::new())),
-            user_preferencess: Mutex::new(Profiles::new()),
-            active_profile_id: Mutex::new(None),
+            users: Mutex::new(Users::new()),
+            current_user_id: Mutex::new(None),
             change_subscribers: Mutex::new(HashMap::new()),
         }
     }
 
-    fn apply_settings(group_name: String, settings: Vec<SettingProto>) -> Result<(), String> {
+    fn apply_settings(
+        settings_group_id: SettingsGroupIdProto,
+        settings: Vec<SettingProto>,
+    ) -> Result<(), String> {
         // Ideally the client should be created via the get_user_controllable_service_client method
         // that is present in the UserPreferencesServer, for now manually create it since the rust
         // compiler cannot determine the correctness of the program if UserPreferencesServiceImpl & UserPreferencesServer
         // have references to each other
-        let client: UserControllableServiceClient =
-            UserControllableServiceClient::new(Box::new(GrpcClientTransport::new("HvacService")));
+        let client: UserControllableServiceClient = UserControllableServiceClient::new(Box::new(
+            GrpcClientTransport::new(&settings_group_id.service_fqin),
+        ));
 
         let mut rng = rand::thread_rng();
         let transaction_id: u64 = rng.gen_range(0..1000);
 
         let resp = client
             .request_settings_change(user_controllable_service::RequestSettingsChangeRequest {
-                group_name,
+                group_name: settings_group_id.name,
                 transaction_id,
                 settings,
                 ..Default::default()
@@ -107,7 +114,12 @@ impl UserPreferencesServiceImpl {
         }
     }
 
-    fn notify_subscribers(settings: &str, setting: &[SettingProto], subscribers: &[String]) {
+    fn notify_subscribers(
+        settings_group_id: &SettingsGroupId,
+        version: &String,
+        setting: &[SettingProto],
+        subscribers: &[String],
+    ) {
         // Ideally the client should be created via the get_user_controllable_service_client method
         // that is present in the UserPreferencesServer, for now manually create it since the rust
         // compiler cannot determine the correctness of the program if UserPreferencesServiceImpl & UserPreferencesServer
@@ -119,8 +131,9 @@ impl UserPreferencesServiceImpl {
             println!("Notifying {} of settings change\n", subscriber);
             client
                 .on_settings_change(OnSettingsChangeRequest {
-                    group: MessageField::some(SettingsGroupProto {
-                        name: settings.to_string(),
+                    settings_group: MessageField::some(SettingsGroupProto {
+                        id: MessageField::some(settings_group_id.clone().into()),
+                        version: version.to_string(),
                         settings: setting.to_vec(),
                         ..Default::default()
                     }),
@@ -141,7 +154,7 @@ impl UserPreferencesServiceImpl {
                 None => {
                     return Err(format!(
                         "Setting {} cannot be found within setting group {}",
-                        setting.key, current_settings.name
+                        setting.key, current_settings.id
                     ))
                 }
             };
@@ -173,8 +186,8 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
         }
         let user = request.user.unwrap();
 
-        let mut profiles = acquire_lock_or_return_err!(self.user_preferencess, CreateUserResponse);
-        if profiles.contains_key(&user.id) {
+        let mut users = acquire_lock_or_return_err!(self.users, CreateUserResponse);
+        if users.contains_key(&user.id) {
             println!("Invalid create user request, ID {} is already in use", user.id);
             return error_response!(
                 CreateUserResponse,
@@ -184,25 +197,25 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
             );
         }
 
-        // Initialize profile with default values
+        // Initialize user with default values
         let vehicle_state = acquire_lock_or_return_err!(self.vehicle_state, CreateUserResponse);
-        let mut new_profile = vehicle_state.clone();
-        new_profile.reset_settings();
-        new_profile.user = User { id: user.id, flags: user.flags, ..Default::default() };
+        let mut new_user = vehicle_state.clone();
+        new_user.reset_settings();
+        new_user.user = User { id: user.id, flags: user.flags, ..Default::default() };
 
-        println!("Created profile with ID: {}", user.id);
+        println!("Created user {}", user.id);
 
-        profiles.insert(user.id, new_profile);
+        users.insert(user.id, new_user);
 
         Ok(CreateUserResponse::new())
     }
 
     fn select_user(&self, request: SelectUserRequest) -> RpcResult<SelectUserResponse> {
-        let mut profiles = acquire_lock_or_return_err!(self.user_preferencess, SelectUserResponse);
-        let mut active_profile_id =
-            acquire_lock_or_return_err!(self.active_profile_id, SelectUserResponse);
+        let mut users = acquire_lock_or_return_err!(self.users, SelectUserResponse);
+        let mut current_user_id =
+            acquire_lock_or_return_err!(self.current_user_id, SelectUserResponse);
 
-        let target_profile = match profiles.get(&request.user_id) {
+        let target_user = match users.get(&request.user_id) {
             Some(x) => x,
             None => {
                 return error_response!(
@@ -214,9 +227,9 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
             }
         };
 
-        println!("Loading profile of user {}\n", request.user_id);
+        println!("Loading user {}\n", request.user_id);
 
-        for settings_group in target_profile.settings_groups.values() {
+        for (settings_group_id, settings_group) in target_user.settings_groups.iter() {
             let settings = settings_group
                 .settings
                 .values()
@@ -225,29 +238,28 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
                 .map(SettingProto::from)
                 .collect();
 
-            if let Err(result) = Self::apply_settings(settings_group.name.clone(), settings) {
+            if let Err(result) = Self::apply_settings(settings_group_id.clone().into(), settings) {
                 println!("Failed to apply settings changes: {}", result);
             }
         }
 
-        // If the previous profile is ephemeral, then delete it
+        // If the previous user is ephemeral, then delete it
         if let Some(id) =
-            active_profile_id.filter(|&id| profiles.get(&id).map_or(false, |p| p.is_ephemeral()))
+            current_user_id.filter(|&id| users.get(&id).map_or(false, |p| p.is_ephemeral()))
         {
-            profiles.remove(&id);
-            println!("Deleted ephemeral profile: {}", id);
+            users.remove(&id);
+            println!("Deleted ephemeral user: {}", id);
         }
-        *active_profile_id = Some(request.user_id);
+        *current_user_id = Some(request.user_id);
 
         Ok(SelectUserResponse::new())
     }
 
     fn delete_user(&self, request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
-        let mut profiles = acquire_lock_or_return_err!(self.user_preferencess, DeleteUserResponse);
-        let active_profile_id =
-            acquire_lock_or_return_err!(self.active_profile_id, DeleteUserResponse);
+        let mut users = acquire_lock_or_return_err!(self.users, DeleteUserResponse);
+        let current_user_id = acquire_lock_or_return_err!(self.current_user_id, DeleteUserResponse);
 
-        if !profiles.contains_key(&request.user_id) {
+        if !users.contains_key(&request.user_id) {
             return Ok(DeleteUserResponse {
                 error: MessageField::some(Error {
                     error_code: EnumOrUnknown::new(ResponseCode::NOT_FOUND_ERROR),
@@ -257,7 +269,7 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
                 ..Default::default()
             });
         }
-        if active_profile_id.is_some_and(|id| id == request.user_id) {
+        if current_user_id.is_some_and(|id| id == request.user_id) {
             return Ok(DeleteUserResponse {
                 error: MessageField::some(Error {
                     error_code: EnumOrUnknown::new(ResponseCode::INVALID_REQUEST),
@@ -268,20 +280,19 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
             });
         }
 
-        profiles.remove(&request.user_id);
-        println!("Deleted profile with ID: {}", &request.user_id);
+        users.remove(&request.user_id);
+        println!("Deleted user {}", &request.user_id);
 
         Ok(DeleteUserResponse::new())
     }
 
     fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
-        let mut profiles =
-            acquire_lock_or_return_err!(self.user_preferencess, FactoryResetResponse);
-        profiles.clear();
+        let mut users = acquire_lock_or_return_err!(self.users, FactoryResetResponse);
+        users.clear();
 
-        let mut active_profile_id =
-            acquire_lock_or_return_err!(self.active_profile_id, FactoryResetResponse);
-        *active_profile_id = None;
+        let mut current_user_id =
+            acquire_lock_or_return_err!(self.current_user_id, FactoryResetResponse);
+        *current_user_id = None;
 
         let resp = match Self::reset_services() {
             Ok(_) => FactoryResetResponse::new(),
@@ -299,8 +310,8 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
     }
 
     fn list_users(&self, _request: ListUsersRequest) -> RpcResult<ListUsersResponse> {
-        let profiles = acquire_lock_or_return_err!(self.user_preferencess, ListUsersResponse);
-        let users = profiles.iter().map(|(_, config)| config.user.clone()).collect_vec();
+        let users = acquire_lock_or_return_err!(self.users, ListUsersResponse);
+        let users = users.iter().map(|(_, config)| config.user.clone()).collect_vec();
 
         Ok(ListUsersResponse { users, ..Default::default() })
     }
@@ -309,22 +320,22 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
         &self,
         request: GetUserSettingsRequest,
     ) -> RpcResult<GetUserSettingsResponse> {
-        let profiles = acquire_lock_or_return_err!(self.user_preferencess, GetUserSettingsResponse);
+        let users = acquire_lock_or_return_err!(self.users, GetUserSettingsResponse);
 
-        let profile = match profiles.get(&request.user_id) {
-            Some(profile) => profile,
+        let user = match users.get(&request.user_id) {
+            Some(user) => user,
             None => {
                 return error_response!(
                     GetUserSettingsResponse,
                     ResponseCode::INVALID_REQUEST,
-                    "Profile {} does not exist",
+                    "user {} does not exist",
                     request.user_id
                 )
             }
         };
 
         return Ok(GetUserSettingsResponse {
-            groups: profile.settings_groups.values().cloned().map_into().collect(),
+            groups: user.settings_groups.values().cloned().map_into().collect(),
             ..Default::default()
         });
     }
@@ -338,14 +349,16 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
         let vehicle_state =
             acquire_lock_or_return_err!(self.vehicle_state, RequestSettingsChangeResponse);
 
-        let current_settings = match vehicle_state.settings_groups.get(&request.group_name) {
+        let settings_group_id: SettingsGroupId = request.settings_group_id.unwrap().into();
+
+        let current_settings = match vehicle_state.settings_groups.get(&settings_group_id) {
             Some(settings) => settings,
             None => {
                 return error_response!(
                     RequestSettingsChangeResponse,
                     ResponseCode::INVALID_REQUEST,
                     "Settings group {} not found",
-                    request.group_name
+                    settings_group_id
                 )
             }
         };
@@ -361,10 +374,10 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
             );
         }
 
-        println!("Settings Change request to {} with the following settings: ", request.group_name);
+        println!("Updating the following settings within {}:", settings_group_id);
         print_settings(&request.settings);
 
-        let resp = match Self::apply_settings(request.group_name, request.settings) {
+        let resp = match Self::apply_settings(settings_group_id.clone().into(), request.settings) {
             Ok(_) => RequestSettingsChangeResponse::new(),
             Err(err) => RequestSettingsChangeResponse {
                 error: MessageField::some(Error {
@@ -390,12 +403,14 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
             self.change_subscribers,
             SubscribeToSettingsChangeAndGetSettingsResponse
         );
-        change_subscribers
-            .entry(request.group_name.clone())
-            .or_default()
-            .insert(request.service_bundle_name);
+        let settings_group_id: SettingsGroupId = request.settings_group_id.unwrap().into();
 
-        if let Some(settings_group) = vehicle_state.settings_groups.get(&request.group_name) {
+        change_subscribers
+            .entry(settings_group_id.clone())
+            .or_default()
+            .insert(request.caller_fqin);
+
+        if let Some(settings_group) = vehicle_state.settings_groups.get(&settings_group_id) {
             let result = SubscribeToSettingsChangeAndGetSettingsResponse {
                 setting_and_constraints: settings_group
                     .settings
@@ -407,20 +422,17 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
                 ..Default::default()
             };
 
-            println!("Successfully registered subscriber to settings: {}\n", request.group_name);
+            println!("Successfully registered subscriber to settings: {}\n", settings_group_id);
             return Ok(result);
         }
 
-        println!(
-            "Received request to subscribe to non existent settings: {:?}",
-            request.group_name
-        );
+        println!("Received request to subscribe to non existent settings: {}", settings_group_id);
 
         error_response!(
             SubscribeToSettingsChangeAndGetSettingsResponse,
             ResponseCode::INVALID_REQUEST,
-            "Settings {:?} does not exist",
-            request.group_name
+            "Settings {} does not exist",
+            settings_group_id
         )
     }
 
@@ -433,14 +445,16 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
             UnsubscribeToSettingsChangeResponse
         );
 
-        if let Some(settings_group_subscribers) = change_subscribers.get_mut(&request.group_name) {
-            settings_group_subscribers.remove(&request.service_bundle_name);
+        let settings_group_id: SettingsGroupId = request.settings_group_id.unwrap().into();
+
+        if let Some(settings_group_subscribers) = change_subscribers.get_mut(&settings_group_id) {
+            settings_group_subscribers.remove(&request.caller_fqin);
         } else {
             return error_response!(
                 UnsubscribeToSettingsChangeResponse,
                 ResponseCode::INVALID_REQUEST,
                 "Settings group {} does not exist",
-                request.group_name
+                settings_group_id
             );
         }
 
@@ -456,18 +470,21 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
         let mut vehicle_state =
             acquire_lock_or_return_err!(self.vehicle_state, RegisterSettingsResponse);
 
-        if !vehicle_state.settings_groups.contains_key(&request.group_name)
-            || vehicle_state.settings_groups.get(&request.group_name).unwrap().version
+        let settings_group_id =
+            SettingsGroupId::new(request.caller_fqin.clone(), request.group_name.clone());
+
+        if !vehicle_state.settings_groups.contains_key(&settings_group_id)
+            || vehicle_state.settings_groups.get(&settings_group_id).unwrap().version
                 != request.version
         {
-            println!("Registered settings {}", request.group_name);
+            println!("Registered settings {}", settings_group_id);
 
             print_setting_definition(&request.settings_definitions);
 
             // Also register the settings in the vehicle state
             let settings_group =
-                vehicle_state.settings_groups.entry(request.group_name.clone()).or_insert(
-                    SettingsGroup::new(request.group_name.clone(), request.version.clone(), vec![]),
+                vehicle_state.settings_groups.entry(settings_group_id.clone()).or_insert(
+                    SettingsGroup::new(settings_group_id.clone(), request.version.clone(), vec![]),
                 );
 
             request.settings_definitions.iter().cloned().for_each(|setting_definition| {
@@ -479,8 +496,8 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
             });
         } else {
             println!(
-                "Settings {} with version {} is already registered",
-                request.group_name, request.version
+                "Settings group {} with version {} is already registered",
+                settings_group_id, request.version
             );
         }
 
@@ -493,18 +510,20 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
         let change_subscribers =
             acquire_lock_or_return_err!(self.change_subscribers, UpdateSettingsResponse);
 
-        let service_settings_group =
-            match vehicle_state.settings_groups.get_mut(&request.group_name) {
-                Some(x) => x,
-                None => {
-                    return error_response!(
-                        UpdateSettingsResponse,
-                        ResponseCode::NOT_FOUND_ERROR,
-                        "Settings with {} not found",
-                        request.group_name
-                    )
-                }
-            };
+        let settings_group_id = SettingsGroupId::new(request.caller_fqin, request.group_name);
+
+        let service_settings_group = match vehicle_state.settings_groups.get_mut(&settings_group_id)
+        {
+            Some(x) => x,
+            None => {
+                return error_response!(
+                    UpdateSettingsResponse,
+                    ResponseCode::NOT_FOUND_ERROR,
+                    "Settings group {} not found",
+                    settings_group_id
+                )
+            }
+        };
 
         if request.settings.iter().any(|setting| setting.value.is_none()) {
             return error_response!(
@@ -526,15 +545,14 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
         println!("Updated the following settings");
         print_settings(&request.settings);
 
-        let active_profile_id =
-            acquire_lock_or_return_err!(self.active_profile_id, UpdateSettingsResponse);
+        let current_user_id =
+            acquire_lock_or_return_err!(self.current_user_id, UpdateSettingsResponse);
 
-        if let Some(active_profile_id) = *active_profile_id {
-            let mut profiles =
-                acquire_lock_or_return_err!(self.user_preferencess, UpdateSettingsResponse);
-            let active_profile = profiles.get_mut(&active_profile_id).unwrap();
+        if let Some(current_user_id) = *current_user_id {
+            let mut users = acquire_lock_or_return_err!(self.users, UpdateSettingsResponse);
+            let current_user = users.get_mut(&current_user_id).unwrap();
             let current_settings_group =
-                active_profile.settings_groups.get_mut(&request.group_name).unwrap();
+                current_user.settings_groups.get_mut(&settings_group_id).unwrap();
 
             request.settings.iter().cloned().for_each(|x| {
                 if let Some(setting) = current_settings_group.settings.get_mut(&x.key) {
@@ -546,10 +564,11 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
         }
 
         Self::notify_subscribers(
-            &request.group_name,
+            &settings_group_id,
+            &service_settings_group.version,
             &request.settings,
             &change_subscribers
-                .get(&request.group_name)
+                .get(&settings_group_id)
                 .unwrap_or(&HashSet::new())
                 .iter()
                 .cloned()

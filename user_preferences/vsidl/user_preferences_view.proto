@@ -20,7 +20,7 @@ service UserPreferencesView {
 
 message OnSettingsChangeRequest {
   // The updated settings group, containing the modified settings and their values.
-  SettingsGroup group = 1;
+  SettingsGroup settings_group = 1;
 }
 
 message OnSettingsChangeResponse {

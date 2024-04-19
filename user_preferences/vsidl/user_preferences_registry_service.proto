@@ -30,6 +30,11 @@ message RegisterSettingsRequest {
 
   // Definitions of the settings within the group.
   repeated SettingDefinition settings_definitions = 3;
+
+  // Temporary parameter to expose the identity of the caller of the Register Settings API
+  // to the user preferences service. Once service discovery exposes this information to
+  // SDV services, this parameter will be removed
+  string caller_fqin = 4;
 }
 
 message RegisterSettingsResponse {
@@ -45,13 +50,18 @@ message UpdateSettingsRequest {
   string group_name = 1;
 
   // Optional field.
-  // Whenever a setting has been changed due to a request from the User Profile service, the
-  // original transaction_id should be included. This allows the User Profile service to map
+  // Whenever a setting has been changed due to a request from the User Preferences service, the
+  // original transaction_id should be included. This allows the User Preferences service to map
   // incoming changes to the original requests.
   uint64 transaction_id = 2;
 
   // The list of keys to update along with their respective values.
   repeated Setting settings = 3;
+
+  // Temporary parameter to expose the identity of the caller of the Register Settings API
+  // to the user preferences service. Once service discovery exposes this information to
+  // SDV services, this parameter will be removed
+  string caller_fqin = 4;
 }
 
 message UpdateSettingsResponse {
