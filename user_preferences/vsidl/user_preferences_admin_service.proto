@@ -1,6 +1,6 @@
 // Copyright 2023 Google LLC
 
-// User Profile RPC APIs available to SDV services
+// User Preferences RPC APIs available to SDV services
 //
 // Allows SDV-Services to manage user configurable settings on per vehicle user basis.
 //
@@ -31,15 +31,15 @@ service UserPreferencesAdminService {
   // Returns an error if the profile could not be deleted or does not exist.
   rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {}
 
-  // Deletes all user profiles, resets all UserControllableService to the default settings and
+  // Deletes all users, resets all UserControllableService to the default settings and
   // switches to the guest profile.
   // Returns an error if the reset process failed.
   rpc FactoryReset(FactoryResetRequest) returns (FactoryResetResponse) {}
 
-  // Returns a list of users stored within the User Profile.
+  // Returns a list of users stored within User Preferences service.
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse) {}
 
-  // Returns settings for a given user profile or an error if the profile doesn't exist.
+  // Returns settings for a given User or an error if the user doesn't exist.
   rpc GetUserSettings(GetUserSettingsRequest) returns (GetUserSettingsResponse) {}
 }
 
