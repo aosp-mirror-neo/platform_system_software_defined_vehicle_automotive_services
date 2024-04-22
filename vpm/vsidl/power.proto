@@ -6,7 +6,6 @@
  */
 
 syntax = "proto3";
-import "syntax/vsidl.proto";
 package sdv.vpm.power;
 
 /* This API is available to OEM and SDV agents only. */

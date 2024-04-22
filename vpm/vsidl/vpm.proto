@@ -1,6 +1,7 @@
 // Copyright 2024 Google LLC
 
 syntax = "proto3";
+import "power.proto";
 import "vehicle.proto";
 import "google/protobuf/empty.proto";
 package sdv.vpm;
@@ -36,12 +37,14 @@ message PowerStateChangeRequest {
 // OEM-facing representation of the power state change response message.
 message PowerStateChangeResponse {
   PowerStateChangeRequestError error = 1;
-}
+  // OEM-facing representation of the errors that could occur during power state change requests.
+  enum PowerStateChangeRequestError {
+    // Default value, no error occurred and power state change request was received.
+    NO_ERROR = 0;
 
-// OEM-facing representation of the errors that could occur during power state change.
-enum PowerStateChangeRequestError {
-  // Transition for the current state to the requested one is invalid
-  INVALID_TRANSITION = 0;
+    // Transition for the current state to the requested one is invalid.
+    INVALID_TRANSITION = 1;
+  }
 }
 
 /**
@@ -52,18 +55,44 @@ enum PowerStateChangeRequestError {
 service VpmSystemService {
   // RPC request that allows the OEM to set the vehicle state in the SDV VM.
 
-  // If the request is successful, the new vehicle state is set and is broadcasted to the vehicle
+  // * If the request is successful, the new vehicle state is set and is broadcasted to the vehicle
   // state listeners in the SDV VM
 
-  // If the request fails, an error is returned with the corresponding response code.
+  // * If the request fails, an error is returned with the corresponding response code.
   rpc SetVehicleState(SetVehicleStateRequest) returns (google.protobuf.Empty) {};
 
   // RPC request that allows the OEM to set the power state in the SDV VM.
 
-  // If the request is successful, the new power state is sent to the Orchestrator and SDV agents.
-  // OEM will receive a callback either after successful callback execution from Orchestrator and
-  // SDV agents or after timeout. If the request fails, an error is returned with the corresponding
-  // response code.
+  // * If the request is successful, the new power state is sent to the Orchestrator and SDV agents.
+  // OEM will receive a callback via PowerNotificationService either after successful execution of
+  // the power state changes or after a timeout.
 
+  // * If the request fails, an error is returned with the corresponding response code.
   rpc SetPowerState(PowerStateChangeRequest) returns (PowerStateChangeResponse) {};
+}
+
+message PowerStateNotificationRequest {
+  power.PowerStateReport power_state = 1;
+  PowerStateChangeReason reason = 2;
+  // OEM-facing representation of the reasons why the state has been tranisitoned.
+  enum PowerStateChangeReason {
+    // Default value, power state changed because host requested it either by VePSM power state
+    // change request or through cold boot or resume from disk/ram.
+    HOST_REQUESTED = 0;
+
+    // The given timeout for the power state change has been exceeded.
+    // If this error occurs the state transition is executed but a timeout is reported.
+    TIMEOUT = 1;
+  }
+}
+
+/**
+ * Experimental SDV VPM Power Notification API.
+ * Unstable until API council approval.
+ */
+// VPM RPC API available only to the OEM.
+service PowerNotificationService {
+  // RPC request that notifies the OEM when a state update has been successfully executed or a
+  // timeout has occurred.
+  rpc NotifyPowerState(PowerStateNotificationRequest) returns (google.protobuf.Empty) {};
 }

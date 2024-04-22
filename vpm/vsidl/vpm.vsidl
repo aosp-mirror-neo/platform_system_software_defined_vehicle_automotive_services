@@ -11,6 +11,9 @@ sdv_service_bundle {
     # OEM-facing RPC server that allows the OEM to set the vehicle state [Not to third party applications and services].
     server: "sdv.vpm.VpmSystemService"
 
+    # OEM-facing RPC client that notifies the OEM with power state update [Not to third party applications and services].
+    client: "sdv.vpm.PowerNotificationService"
+
     # Public Data tunnel publisher for vehicle state.
     publisher: "sdv.vpm.vehicle.VehicleStateChange::VehicleStateChange"
 }
