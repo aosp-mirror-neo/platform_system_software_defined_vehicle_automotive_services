@@ -10,7 +10,7 @@ package sdv.user_preferences;
 
 message User {
   // A unique ID for the profile.
-  uint64 id = 1;
+  int32 id = 1;
 
   // Bit flags that define properties of user. Integer values have to be powers of 2 as they used as
   // a bit mask.

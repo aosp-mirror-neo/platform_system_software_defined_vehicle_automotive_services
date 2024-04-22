@@ -47,11 +47,11 @@ use user_preferences_utils::{print_setting_definition, print_settings};
 
 use rand::Rng;
 
-type Users = HashMap<u64, VehicleConfiguration>;
+type Users = HashMap<i32, VehicleConfiguration>;
 pub struct UserPreferencesServiceImpl {
     vehicle_state: Mutex<VehicleConfiguration>,
     users: Mutex<Users>,
-    current_user_id: Mutex<Option<u64>>,
+    current_user_id: Mutex<Option<i32>>,
     change_subscribers: Mutex<HashMap<SettingsGroupId, HashSet<String>>>,
 }
 

@@ -40,7 +40,7 @@ fn main() {
     let user_preferences_management_client =
         hmi_service.get_user_preferences_management_service_client("UserPreferencesServer");
 
-    let user_id = 1_u64;
+    let user_id = 1_i32;
     println!("Creating an ephemeral user");
     let response = user_preferences_admin_client
         .create_user(CreateUserRequest {
@@ -133,7 +133,7 @@ fn main() {
     }
 
     println!("Creating another user");
-    let user_id_2 = 2_u64;
+    let user_id_2 = 2_i32;
     let response = user_preferences_admin_client
         .create_user(CreateUserRequest {
             user: MessageField::some(User {
@@ -186,7 +186,7 @@ fn main() {
         print_settings(&setting_group.settings);
     }
 
-    let user_id_3 = 3_u64;
+    let user_id_3 = 3_i32;
     println!("Testing user deletion, creating user {}", user_id_3);
     let response = user_preferences_admin_client
         .create_user(CreateUserRequest {
