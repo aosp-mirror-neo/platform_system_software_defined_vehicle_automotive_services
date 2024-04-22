@@ -55,7 +55,7 @@ message CreateUserResponse {
 
 message SelectUserRequest {
   // The ID of the profile that should be loaded.
-  uint64 user_id = 1;
+  int32 user_id = 1;
 }
 
 message SelectUserResponse {
@@ -65,7 +65,7 @@ message SelectUserResponse {
 
 message DeleteUserRequest {
   // The ID of the profile that should be deleted.
-  uint64 user_id = 1;
+  int32 user_id = 1;
 }
 
 message DeleteUserResponse {
@@ -91,7 +91,7 @@ message ListUsersResponse {
 
 message GetUserSettingsRequest {
   // The ID of the profile that should be retrieved
-  uint64 user_id = 1;
+  int32 user_id = 1;
 }
 
 message GetUserSettingsResponse {
