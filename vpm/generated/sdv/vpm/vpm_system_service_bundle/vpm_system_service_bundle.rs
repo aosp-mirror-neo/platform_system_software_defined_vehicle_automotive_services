@@ -9,6 +9,7 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
+use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -19,11 +20,10 @@ pub struct VpmSystemServiceBundleCallbacks {}
 struct Subscriptions {}
 
 pub struct VpmSystemServiceBundle {
-    sdv_vpm_vehicle_vehicle_state_change_publisher:
-        DataTunnelPublisher<publisher::sdv_vpm_vehicle::VehicleStateChangeTopics>,
+    sdv_vpm_vehicle_vehicle_state_change_publisher: DataTunnelPublisher<publisher::sdv_vpm_vehicle::VehicleStateChangeTopics>,
+    pub sdv_vpm_vpm_system_service_server: sdvgenerated_rpc_sdv_vpm_vpm_system_service::server::VpmSystemServiceServer,
+    sdv_vpm_power_notification_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_vpm_power_notification_service::client::PowerNotificationServiceClient>>>,
 
-    pub sdv_vpm_vpm_system_service_server:
-        sdvgenerated_rpc_sdv_vpm_vpm_system_service::server::VpmSystemServiceServer,
 }
 
 impl VpmSystemServiceBundle {
@@ -33,11 +33,13 @@ impl VpmSystemServiceBundle {
 
         VpmSystemServiceBundle {
             sdv_vpm_vehicle_vehicle_state_change_publisher: DataTunnelPublisher::new(11),
-
             sdv_vpm_vpm_system_service_server:
                 sdvgenerated_rpc_sdv_vpm_vpm_system_service::server::VpmSystemServiceServer::new(
                     rpc_transport.clone(),
                 ),
+            sdv_vpm_power_notification_service_clients: parking_lot::RwLock::new(
+                std::collections::HashMap::new(),
+            ),
         }
     }
 
@@ -74,5 +76,19 @@ impl VpmSystemServiceBundle {
 
         self.sdv_vpm_vehicle_vehicle_state_change_publisher
             .publish(&publisher::sdv_vpm_vehicle::VehicleStateChangeTopics {}, message)
+    }
+
+    /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
+    pub fn get_sdv_vpm_power_notification_service_client(
+        &self,
+        target_service_bundle: &str,
+    ) -> Arc<
+        sdvgenerated_rpc_sdv_vpm_power_notification_service::client::PowerNotificationServiceClient,
+    > {
+        sdvmiddleware_common::create_if_not_exist::<sdvgenerated_rpc_sdv_vpm_power_notification_service::client::PowerNotificationServiceClient>(
+            &self.sdv_vpm_power_notification_service_clients,
+            target_service_bundle,
+            Box::new(|target| sdvgenerated_rpc_sdv_vpm_power_notification_service::client::PowerNotificationServiceClient::new(Box::new(GrpcClientTransport::new(target)))),
+        )
     }
 }

@@ -31,7 +31,6 @@ pub struct VpmIntegrationTestBundle {
     subscription_thread_handle: Option<thread::JoinHandle<()>>,
     callbacks: Arc<VpmIntegrationTestBundleCallbacks>,
     subscriptions: Arc<Mutex<Subscriptions>>,
-
     sdv_vpm_vpm_system_service_clients: parking_lot::RwLock<
         std::collections::HashMap<
             String,
@@ -49,7 +48,6 @@ impl VpmIntegrationTestBundle {
                 sdv_vpm_vehicle_vehicle_state_change_subscriber: DataTunnelSubscriber::new(),
             })),
             callbacks: Arc::new(callbacks),
-
             sdv_vpm_vpm_system_service_clients: parking_lot::RwLock::new(
                 std::collections::HashMap::new(),
             ),
