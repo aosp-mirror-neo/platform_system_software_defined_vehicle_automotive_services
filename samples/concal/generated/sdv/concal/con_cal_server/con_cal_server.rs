@@ -9,7 +9,6 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdvgenerated_rpc_con_cal_service::server::ConCalServiceServer;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -20,7 +19,8 @@ pub struct ConCalServerCallbacks {}
 struct Subscriptions {}
 
 pub struct ConCalServer {
-    pub con_cal_service_server: ConCalServiceServer,
+    pub sdv_concal_con_cal_service_server:
+        sdvgenerated_rpc_sdv_concal_con_cal_service::server::ConCalServiceServer,
 }
 
 impl ConCalServer {
@@ -28,7 +28,12 @@ impl ConCalServer {
     pub fn new() -> Self {
         let rpc_transport = GrpcServerTransport::new("ConCalServer");
 
-        ConCalServer { con_cal_service_server: ConCalServiceServer::new(rpc_transport.clone()) }
+        ConCalServer {
+            sdv_concal_con_cal_service_server:
+                sdvgenerated_rpc_sdv_concal_con_cal_service::server::ConCalServiceServer::new(
+                    rpc_transport.clone(),
+                ),
+        }
     }
 
     /// Triggers publishing and subscription to all the topics defined

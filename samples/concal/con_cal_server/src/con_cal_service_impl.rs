@@ -7,7 +7,7 @@ use protobuf::EnumOrUnknown;
 use protobuf::Message;
 use protobuf::MessageField;
 use rand::Rng;
-use sdvgenerated::con_cal_service_interface::ConCalService;
+use sdvgenerated::sdv_concal_con_cal_service_interface::ConCalService;
 use sdvmiddleware_rpc::RpcResult;
 use std::collections::HashMap;
 use std::hash::Hash;

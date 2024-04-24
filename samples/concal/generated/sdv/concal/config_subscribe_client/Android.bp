@@ -19,7 +19,7 @@ rust_library {
         "libsdv_log_rust",
         "libparking_lot",
         "libsdvmiddleware_rpc_grpc_transport",
-        "libsdvgenerated_rpc_config_subscriber_service",
+        "libsdvgenerated_rpc_sdv_concal_config_subscriber_service",
         "libsdv_middleware_pubsub",
         "libsdvmiddleware_common",
     ],

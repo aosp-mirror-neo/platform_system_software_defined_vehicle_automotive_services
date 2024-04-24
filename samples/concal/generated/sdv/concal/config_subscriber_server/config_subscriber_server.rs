@@ -9,7 +9,6 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdvgenerated_rpc_config_subscriber_service::server::ConfigSubscriberServiceServer;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -20,7 +19,12 @@ pub struct ConfigSubscriberServerCallbacks {}
 struct Subscriptions {}
 
 pub struct ConfigSubscriberServer {
-    pub config_subscriber_service_server: ConfigSubscriberServiceServer,
+
+
+    pub sdv_concal_config_subscriber_service_server: sdvgenerated_rpc_sdv_concal_config_subscriber_service::server::ConfigSubscriberServiceServer,
+
+
+
 }
 
 impl ConfigSubscriberServer {
@@ -29,9 +33,12 @@ impl ConfigSubscriberServer {
         let rpc_transport = GrpcServerTransport::new("ConfigSubscriberServer");
 
         ConfigSubscriberServer {
-            config_subscriber_service_server: ConfigSubscriberServiceServer::new(
-                rpc_transport.clone(),
-            ),
+
+
+            sdv_concal_config_subscriber_service_server: sdvgenerated_rpc_sdv_concal_config_subscriber_service::server::ConfigSubscriberServiceServer::new(rpc_transport.clone()),
+
+
+
         }
     }
 

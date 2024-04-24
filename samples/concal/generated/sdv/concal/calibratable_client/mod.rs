@@ -6,4 +6,4 @@
 pub mod calibratable_client;
 pub mod topics;
 
-pub use sdvgenerated_rpc_calibratable_service::interface as calibratable_service_interface;
+pub use sdvgenerated_rpc_sdv_concal_calibratable_service::interface as sdv_concal_calibratable_service_interface;

@@ -6,4 +6,4 @@
 pub mod con_cal_server;
 pub mod topics;
 
-pub use sdvgenerated_rpc_con_cal_service::interface as con_cal_service_interface;
+pub use sdvgenerated_rpc_sdv_concal_con_cal_service::interface as sdv_concal_con_cal_service_interface;

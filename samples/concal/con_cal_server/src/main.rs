@@ -18,7 +18,9 @@ use sdvgenerated::con_cal_server::ConCalServer;
 
 fn main() {
     let service = ConCalServer::new();
-    service.con_cal_service_server.register_service_interface(Arc::new(ConCalServiceImpl::new()));
+    service
+        .sdv_concal_con_cal_service_server
+        .register_service_interface(Arc::new(ConCalServiceImpl::new()));
 
     println!("ConCalServer service bundle started.");
     loop {
