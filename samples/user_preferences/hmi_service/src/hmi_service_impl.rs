@@ -17,14 +17,13 @@ impl UserPreferencesView for HmiServiceImpl {
         &self,
         request: OnSettingsChangeRequest,
     ) -> sdvmiddleware_rpc::RpcResult<OnSettingsChangeResponse> {
-        if request.settings_group.is_some() {
+        if request.settings_group_id.is_some() {
             println!(
                 "The following settings were changed in settings group {}/{}",
-                request.settings_group.id.service_fqin, request.settings_group.id.name
+                request.settings_group_id.service_fqin, request.settings_group_id.name
             );
-            print_settings(&request.settings_group.settings);
+            print_settings(&request.settings);
         }
-        print_settings(&request.settings_group.settings);
 
         Ok(OnSettingsChangeResponse::new())
     }

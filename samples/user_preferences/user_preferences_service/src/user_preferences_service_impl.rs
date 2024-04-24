@@ -13,9 +13,7 @@ use sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::interface::User
 use sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::client::UserPreferencesViewClient;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 
-use user_preferences_api::settings_group::{
-    SettingsGroup as SettingsGroupProto, SettingsGroupId as SettingsGroupIdProto,
-};
+use user_preferences_api::settings_group::SettingsGroupId as SettingsGroupIdProto;
 use user_preferences_api::user::User;
 use user_preferences_api::user_preferences_registry_service::{
     RegisterSettingsRequest, RegisterSettingsResponse,
@@ -44,8 +42,6 @@ use crate::settings_group::SettingsGroup;
 use crate::settings_group_id::SettingsGroupId;
 use crate::vehicle_configuration::VehicleConfiguration;
 use user_preferences_utils::{print_setting_definition, print_settings};
-
-use rand::Rng;
 
 type Users = HashMap<i32, VehicleConfiguration>;
 pub struct UserPreferencesServiceImpl {
@@ -77,13 +73,9 @@ impl UserPreferencesServiceImpl {
             GrpcClientTransport::new(&settings_group_id.service_fqin),
         ));
 
-        let mut rng = rand::thread_rng();
-        let transaction_id: u64 = rng.gen_range(0..1000);
-
         let resp = client
             .request_settings_change(user_controllable_service::RequestSettingsChangeRequest {
                 group_name: settings_group_id.name,
-                transaction_id,
                 settings,
                 ..Default::default()
             })
@@ -131,12 +123,10 @@ impl UserPreferencesServiceImpl {
             println!("Notifying {} of settings change\n", subscriber);
             client
                 .on_settings_change(OnSettingsChangeRequest {
-                    settings_group: MessageField::some(SettingsGroupProto {
-                        id: MessageField::some(settings_group_id.clone().into()),
-                        version: version.to_string(),
-                        settings: setting.to_vec(),
-                        ..Default::default()
-                    }),
+                    settings_group_id: MessageField::some(settings_group_id.clone().into()),
+                    version: version.to_string(),
+                    settings: setting.to_vec(),
+                    //TODO: Expose pending and persisted settings for the user to subscribers
                     ..Default::default()
                 })
                 .expect("Failed to notify clients of settings changes");

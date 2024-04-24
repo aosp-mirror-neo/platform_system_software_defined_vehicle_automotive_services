@@ -19,8 +19,19 @@ service UserPreferencesView {
 }
 
 message OnSettingsChangeRequest {
-  // The updated settings group, containing the modified settings and their values.
-  SettingsGroup settings_group = 1;
+  SettingsGroupId settings_group_id = 1;
+
+  // Schema version of the provided settings
+  string version = 2;
+
+  // Current settings applied
+  repeated Setting settings = 3;
+
+  // Setting changes that will be attempted when possible
+  repeated Setting pending_changes = 4;
+
+  // Changes to the user's persisted settings
+  repeated Setting persisted_settings = 5;
 }
 
 message OnSettingsChangeResponse {
