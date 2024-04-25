@@ -5,20 +5,22 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 pub mod publisher {
+    pub mod sdv_vpm_vehicle {
 
-    #[derive(Clone, Eq, Hash, PartialEq, Debug)]
-    pub struct VehicleStateChangeTopics {}
+        #[derive(Clone, Eq, Hash, PartialEq, Debug)]
+        pub struct VehicleStateChangeTopics {}
 
-    impl sdv_middleware_pubsub::EnumTopic for VehicleStateChangeTopics {
-        /// Returns iterator over all available topics
-        fn iterator() -> std::slice::Iter<'static, Self> {
-            static TOPICS: [VehicleStateChangeTopics; 1] = [VehicleStateChangeTopics {}];
-            TOPICS.iter()
-        }
+        impl sdv_middleware_pubsub::EnumTopic for VehicleStateChangeTopics {
+            /// Returns iterator over all available topics
+            fn iterator() -> std::slice::Iter<'static, Self> {
+                static TOPICS: [VehicleStateChangeTopics; 1] = [VehicleStateChangeTopics {}];
+                TOPICS.iter()
+            }
 
-        /// Returns string name of the topic
-        fn get_name(&self) -> &str {
-            "sdv.vpm.vehicle.VehicleStateChange"
+            /// Returns string name of the topic
+            fn get_name(&self) -> &str {
+                "sdv.vpm.vehicle.VehicleStateChange"
+            }
         }
     }
 }

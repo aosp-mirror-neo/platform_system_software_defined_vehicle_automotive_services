@@ -35,7 +35,7 @@ impl VpmService for VpmServiceImpl {
         self.vpm_service_bundle
             .lock()
             .unwrap()
-            .vpm_system_service_server
+            .sdv_vpm_vpm_system_service_server
             .register_service_interface(Arc::new(rpc_server));
     }
 
@@ -50,7 +50,7 @@ impl VpmService for VpmServiceImpl {
                     cloned_bundle
                         .lock()
                         .unwrap()
-                        .vehicle_state_change_publish(&vehicle_state_change_message)
+                        .sdv_vpm_vehicle_vehicle_state_change_publish(&vehicle_state_change_message)
                         .unwrap();
                 }
                 Err(err) => {

@@ -9,20 +9,22 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdv_vpm_api::vehicle::VehicleStateChange;
-use sdvgenerated_rpc_vpm_system_service::client::VpmSystemServiceClient;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 
 pub struct VpmIntegrationTestBundleCallbacks {
-    pub vehicle_state_change_cb:
-        Box<dyn Fn(sdv_middleware_pubsub::Result<VehicleStateChange>) + Sync + Send>,
+    pub sdv_vpm_vehicle_vehicle_state_change_cb: Box<
+        dyn Fn(sdv_middleware_pubsub::Result<sdv_vpm_api::vehicle::VehicleStateChange>)
+            + Sync
+            + Send,
+    >,
 }
 
 struct Subscriptions {
-    vehicle_state_change_subscriber: DataTunnelSubscriber<subscriber::VehicleStateChangeTopics>,
+    sdv_vpm_vehicle_vehicle_state_change_subscriber:
+        DataTunnelSubscriber<subscriber::sdv_vpm_vehicle::VehicleStateChangeTopics>,
 }
 
 pub struct VpmIntegrationTestBundle {
@@ -30,8 +32,12 @@ pub struct VpmIntegrationTestBundle {
     callbacks: Arc<VpmIntegrationTestBundleCallbacks>,
     subscriptions: Arc<Mutex<Subscriptions>>,
 
-    vpm_system_service_clients:
-        parking_lot::RwLock<std::collections::HashMap<String, Arc<VpmSystemServiceClient>>>,
+    sdv_vpm_vpm_system_service_clients: parking_lot::RwLock<
+        std::collections::HashMap<
+            String,
+            Arc<sdvgenerated_rpc_sdv_vpm_vpm_system_service::client::VpmSystemServiceClient>,
+        >,
+    >,
 }
 
 impl VpmIntegrationTestBundle {
@@ -40,11 +46,13 @@ impl VpmIntegrationTestBundle {
         VpmIntegrationTestBundle {
             subscription_thread_handle: None,
             subscriptions: Arc::new(Mutex::new(Subscriptions {
-                vehicle_state_change_subscriber: DataTunnelSubscriber::new(),
+                sdv_vpm_vehicle_vehicle_state_change_subscriber: DataTunnelSubscriber::new(),
             })),
             callbacks: Arc::new(callbacks),
 
-            vpm_system_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+            sdv_vpm_vpm_system_service_clients: parking_lot::RwLock::new(
+                std::collections::HashMap::new(),
+            ),
         }
     }
 
@@ -65,7 +73,7 @@ impl VpmIntegrationTestBundle {
 
     fn subscribe_to_topics(&self) -> sdv_middleware_pubsub::Result<()> {
         let mut subs = self.subscriptions.lock().unwrap();
-        subs.vehicle_state_change_subscriber.subscribe()?;
+        subs.sdv_vpm_vehicle_vehicle_state_change_subscriber.subscribe()?;
 
         Ok(())
     }
@@ -98,8 +106,8 @@ impl VpmIntegrationTestBundle {
         loop {
             thread::sleep_ms(POLL_TIMEOUT_MS);
             let mut subs = subscriptions.lock().unwrap();
-            subs.vehicle_state_change_subscriber
-                .poll_unique_topic(&callbacks.vehicle_state_change_cb);
+            subs.sdv_vpm_vehicle_vehicle_state_change_subscriber
+                .poll_unique_topic(&callbacks.sdv_vpm_vehicle_vehicle_state_change_cb);
         }
     }
 
@@ -118,15 +126,19 @@ impl VpmIntegrationTestBundle {
     }
 
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_vpm_system_service_client(
+    pub fn get_sdv_vpm_vpm_system_service_client(
         &self,
         target_service_bundle: &str,
-    ) -> Arc<VpmSystemServiceClient> {
-        sdvmiddleware_common::create_if_not_exist::<VpmSystemServiceClient>(
-            &self.vpm_system_service_clients,
+    ) -> Arc<sdvgenerated_rpc_sdv_vpm_vpm_system_service::client::VpmSystemServiceClient> {
+        sdvmiddleware_common::create_if_not_exist::<
+            sdvgenerated_rpc_sdv_vpm_vpm_system_service::client::VpmSystemServiceClient,
+        >(
+            &self.sdv_vpm_vpm_system_service_clients,
             target_service_bundle,
             Box::new(|target| {
-                VpmSystemServiceClient::new(Box::new(GrpcClientTransport::new(target)))
+                sdvgenerated_rpc_sdv_vpm_vpm_system_service::client::VpmSystemServiceClient::new(
+                    Box::new(GrpcClientTransport::new(target)),
+                )
             }),
         )
     }

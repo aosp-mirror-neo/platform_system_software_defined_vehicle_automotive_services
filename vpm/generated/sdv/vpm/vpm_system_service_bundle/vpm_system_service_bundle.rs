@@ -9,8 +9,6 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdv_vpm_api::vehicle::VehicleStateChange;
-use sdvgenerated_rpc_vpm_system_service::server::VpmSystemServiceServer;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -21,9 +19,11 @@ pub struct VpmSystemServiceBundleCallbacks {}
 struct Subscriptions {}
 
 pub struct VpmSystemServiceBundle {
-    vehicle_state_change_publisher: DataTunnelPublisher<publisher::VehicleStateChangeTopics>,
+    sdv_vpm_vehicle_vehicle_state_change_publisher:
+        DataTunnelPublisher<publisher::sdv_vpm_vehicle::VehicleStateChangeTopics>,
 
-    pub vpm_system_service_server: VpmSystemServiceServer,
+    pub sdv_vpm_vpm_system_service_server:
+        sdvgenerated_rpc_sdv_vpm_vpm_system_service::server::VpmSystemServiceServer,
 }
 
 impl VpmSystemServiceBundle {
@@ -32,9 +32,12 @@ impl VpmSystemServiceBundle {
         let rpc_transport = GrpcServerTransport::new("VpmSystemServiceBundle");
 
         VpmSystemServiceBundle {
-            vehicle_state_change_publisher: DataTunnelPublisher::new(11),
+            sdv_vpm_vehicle_vehicle_state_change_publisher: DataTunnelPublisher::new(11),
 
-            vpm_system_service_server: VpmSystemServiceServer::new(rpc_transport.clone()),
+            sdv_vpm_vpm_system_service_server:
+                sdvgenerated_rpc_sdv_vpm_vpm_system_service::server::VpmSystemServiceServer::new(
+                    rpc_transport.clone(),
+                ),
         }
     }
 
@@ -48,14 +51,14 @@ impl VpmSystemServiceBundle {
     }
 
     fn register_all_topics(&mut self) -> sdv_middleware_pubsub::Result<()> {
-        self.vehicle_state_change_publisher.register_topics()?;
+        self.sdv_vpm_vehicle_vehicle_state_change_publisher.register_topics()?;
 
         Ok(())
     }
 
-    pub fn vehicle_state_change_publish(
+    pub fn sdv_vpm_vehicle_vehicle_state_change_publish(
         &mut self,
-        message: &VehicleStateChange,
+        message: &sdv_vpm_api::vehicle::VehicleStateChange,
     ) -> sdv_middleware_pubsub::Result<()> {
         use protobuf::Message;
         use sdvmiddleware_common::size_utils::LenOf;
@@ -69,7 +72,7 @@ impl VpmSystemServiceBundle {
             ));
         }
 
-        self.vehicle_state_change_publisher
-            .publish(&publisher::VehicleStateChangeTopics {}, message)
+        self.sdv_vpm_vehicle_vehicle_state_change_publisher
+            .publish(&publisher::sdv_vpm_vehicle::VehicleStateChangeTopics {}, message)
     }
 }
