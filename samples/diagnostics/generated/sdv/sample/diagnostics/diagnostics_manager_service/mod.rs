@@ -6,12 +6,12 @@
 pub mod diagnostics_manager_service;
 pub mod topics;
 
-pub use sdvgenerated_rpc_diagnostics_manager::interface as diagnostics_manager_interface;
+pub use sdvgenerated_rpc_sdv_diagnostics_manager_diagnostics_manager::interface as sdv_diagnostics_manager_diagnostics_manager_interface;
 
-pub use sdvgenerated_rpc_data_item::interface as data_item_interface;
+pub use sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::interface as sdv_diagnostics_data_item_data_item_interface;
 
-pub use sdvgenerated_rpc_routine_control::interface as routine_control_interface;
+pub use sdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control::interface as sdv_diagnostics_routine_control_routine_control_interface;
 
-pub use sdvgenerated_rpc_io_control::interface as io_control_interface;
+pub use sdvgenerated_rpc_sdv_diagnostics_io_control_io_control::interface as sdv_diagnostics_io_control_io_control_interface;
 
-pub use sdvgenerated_rpc_fault_listener::interface as fault_listener_interface;
+pub use sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::interface as sdv_diagnostics_fault_fault_listener_interface;

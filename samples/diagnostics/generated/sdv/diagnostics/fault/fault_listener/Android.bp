@@ -6,8 +6,8 @@ package {
 }
 
 rust_library {
-    name: "libsdvgenerated_rpc_fault_listener",
-    crate_name: "sdvgenerated_rpc_fault_listener",
+    name: "libsdvgenerated_rpc_sdv_diagnostics_fault_fault_listener",
+    crate_name: "sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener",
     srcs: [
         "mod.rs",
     ],

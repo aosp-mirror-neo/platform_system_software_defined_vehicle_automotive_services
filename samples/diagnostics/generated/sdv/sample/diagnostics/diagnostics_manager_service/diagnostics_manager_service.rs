@@ -9,11 +9,6 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdvgenerated_rpc_data_item::client::DataItemClient;
-use sdvgenerated_rpc_diagnostics_manager::server::DiagnosticsManagerServer;
-use sdvgenerated_rpc_fault_listener::client::FaultListenerClient;
-use sdvgenerated_rpc_io_control::client::IOControlClient;
-use sdvgenerated_rpc_routine_control::client::RoutineControlClient;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
@@ -25,15 +20,16 @@ pub struct DiagnosticsManagerServiceCallbacks {}
 struct Subscriptions {}
 
 pub struct DiagnosticsManagerService {
-    pub diagnostics_manager_server: DiagnosticsManagerServer,
 
-    data_item_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<DataItemClient>>>,
-    routine_control_clients:
-        parking_lot::RwLock<std::collections::HashMap<String, Arc<RoutineControlClient>>>,
-    io_control_clients:
-        parking_lot::RwLock<std::collections::HashMap<String, Arc<IOControlClient>>>,
-    fault_listener_clients:
-        parking_lot::RwLock<std::collections::HashMap<String, Arc<FaultListenerClient>>>,
+
+    pub sdv_diagnostics_manager_diagnostics_manager_server: sdvgenerated_rpc_sdv_diagnostics_manager_diagnostics_manager::server::DiagnosticsManagerServer,
+
+    sdv_diagnostics_data_item_data_item_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::client::DataItemClient>>>,
+    sdv_diagnostics_routine_control_routine_control_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control::client::RoutineControlClient>>>,
+    sdv_diagnostics_io_control_io_control_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_io_control_io_control::client::IOControlClient>>>,
+    sdv_diagnostics_fault_fault_listener_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::client::FaultListenerClient>>>,
+
+
 }
 
 impl DiagnosticsManagerService {
@@ -42,12 +38,16 @@ impl DiagnosticsManagerService {
         let rpc_transport = GrpcServerTransport::new("DiagnosticsManagerService");
 
         DiagnosticsManagerService {
-            diagnostics_manager_server: DiagnosticsManagerServer::new(rpc_transport.clone()),
 
-            data_item_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
-            routine_control_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
-            io_control_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
-            fault_listener_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+
+            sdv_diagnostics_manager_diagnostics_manager_server: sdvgenerated_rpc_sdv_diagnostics_manager_diagnostics_manager::server::DiagnosticsManagerServer::new(rpc_transport.clone()),
+
+            sdv_diagnostics_data_item_data_item_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+            sdv_diagnostics_routine_control_routine_control_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+            sdv_diagnostics_io_control_io_control_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+            sdv_diagnostics_fault_fault_listener_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+
+
         }
     }
 
@@ -65,43 +65,61 @@ impl DiagnosticsManagerService {
     }
 
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_data_item_client(&self, target_service_bundle: &str) -> Arc<DataItemClient> {
-        sdvmiddleware_common::create_if_not_exist::<DataItemClient>(
-            &self.data_item_clients,
-            target_service_bundle,
-            Box::new(|target| DataItemClient::new(Box::new(GrpcClientTransport::new(target)))),
-        )
-    }
-    /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_routine_control_client(
+    pub fn get_sdv_diagnostics_data_item_data_item_client(
         &self,
         target_service_bundle: &str,
-    ) -> Arc<RoutineControlClient> {
-        sdvmiddleware_common::create_if_not_exist::<RoutineControlClient>(
-            &self.routine_control_clients,
+    ) -> Arc<sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::client::DataItemClient> {
+        sdvmiddleware_common::create_if_not_exist::<
+            sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::client::DataItemClient,
+        >(
+            &self.sdv_diagnostics_data_item_data_item_clients,
             target_service_bundle,
             Box::new(|target| {
-                RoutineControlClient::new(Box::new(GrpcClientTransport::new(target)))
+                sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::client::DataItemClient::new(
+                    Box::new(GrpcClientTransport::new(target)),
+                )
             }),
         )
     }
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_io_control_client(&self, target_service_bundle: &str) -> Arc<IOControlClient> {
-        sdvmiddleware_common::create_if_not_exist::<IOControlClient>(
-            &self.io_control_clients,
+    pub fn get_sdv_diagnostics_routine_control_routine_control_client(&self, target_service_bundle: &str) -> Arc<sdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control::client::RoutineControlClient>{
+        sdvmiddleware_common::create_if_not_exist::<sdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control::client::RoutineControlClient>(
+            &self.sdv_diagnostics_routine_control_routine_control_clients,
             target_service_bundle,
-            Box::new(|target| IOControlClient::new(Box::new(GrpcClientTransport::new(target)))),
+            Box::new(|target| sdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control::client::RoutineControlClient::new(Box::new(GrpcClientTransport::new(target)))),
         )
     }
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_fault_listener_client(
+    pub fn get_sdv_diagnostics_io_control_io_control_client(
         &self,
         target_service_bundle: &str,
-    ) -> Arc<FaultListenerClient> {
-        sdvmiddleware_common::create_if_not_exist::<FaultListenerClient>(
-            &self.fault_listener_clients,
+    ) -> Arc<sdvgenerated_rpc_sdv_diagnostics_io_control_io_control::client::IOControlClient> {
+        sdvmiddleware_common::create_if_not_exist::<
+            sdvgenerated_rpc_sdv_diagnostics_io_control_io_control::client::IOControlClient,
+        >(
+            &self.sdv_diagnostics_io_control_io_control_clients,
             target_service_bundle,
-            Box::new(|target| FaultListenerClient::new(Box::new(GrpcClientTransport::new(target)))),
+            Box::new(|target| {
+                sdvgenerated_rpc_sdv_diagnostics_io_control_io_control::client::IOControlClient::new(
+                    Box::new(GrpcClientTransport::new(target)),
+                )
+            }),
+        )
+    }
+    /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
+    pub fn get_sdv_diagnostics_fault_fault_listener_client(
+        &self,
+        target_service_bundle: &str,
+    ) -> Arc<sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::client::FaultListenerClient>
+    {
+        sdvmiddleware_common::create_if_not_exist::<
+            sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::client::FaultListenerClient,
+        >(
+            &self.sdv_diagnostics_fault_fault_listener_clients,
+            target_service_bundle,
+            Box::new(|target| {
+                sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::client::FaultListenerClient::new(Box::new(GrpcClientTransport::new(target)))
+            }),
         )
     }
 }

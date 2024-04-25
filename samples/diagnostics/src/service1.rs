@@ -128,25 +128,33 @@ fn main() {
             DataItemOne { code: 1, name: "hey".to_string(), enabled: true, ..Default::default() },
         )));
 
-    service.data_item_server.register_service_interface(data_item_server_impl);
+    service
+        .sdv_diagnostics_data_item_data_item_server
+        .register_service_interface(data_item_server_impl);
 
     // Setup routine server.
     let routine_server_impl =
         service.diagnostics.create_routine_server(Box::new(Routine1Handler {}));
 
-    service.routine_control_server.register_service_interface(routine_server_impl);
+    service
+        .sdv_diagnostics_routine_control_routine_control_server
+        .register_service_interface(routine_server_impl);
 
     // Setup io control server.
     let io_control_server_impl =
         service.diagnostics.create_io_control_server(Box::new(IoControlData1Handler {}));
 
-    service.io_control_server.register_service_interface(io_control_server_impl);
+    service
+        .sdv_diagnostics_io_control_io_control_server
+        .register_service_interface(io_control_server_impl);
 
     // Setup fault listener server.
     let fault_listener_server_impl =
         service.diagnostics.create_fault_listener_server(Box::new(Event1FaultListenerHandler {}));
 
-    service.fault_listener_server.register_service_interface(fault_listener_server_impl);
+    service
+        .sdv_diagnostics_fault_fault_listener_server
+        .register_service_interface(fault_listener_server_impl);
 
     service.start().unwrap();
 
