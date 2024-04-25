@@ -12,7 +12,7 @@ rust_library {
         "librand",
         "libprotobuf_parse",
         "libsdvmiddleware_rpc_grpc_transport",
-        "libsdvgenerated_rpc_user_controllable_service",
+        "libsdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service",
     ],
     apex_available: [
         "//apex_available:platform",

@@ -9,8 +9,6 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdvgenerated_rpc_user_controllable_service::server::UserControllableServiceServer;
-use sdvgenerated_rpc_user_preferences_registry_service::client::UserPreferencesRegistryServiceClient;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
@@ -22,11 +20,13 @@ pub struct HvacServiceCallbacks {}
 struct Subscriptions {}
 
 pub struct HvacService {
-    pub user_controllable_service_server: UserControllableServiceServer,
 
-    user_preferences_registry_service_clients: parking_lot::RwLock<
-        std::collections::HashMap<String, Arc<UserPreferencesRegistryServiceClient>>,
-    >,
+
+    pub sdv_user_preferences_user_controllable_user_controllable_service_server: sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::server::UserControllableServiceServer,
+
+    sdv_user_preferences_user_preferences_registry_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::client::UserPreferencesRegistryServiceClient>>>,
+
+
 }
 
 impl HvacService {
@@ -35,13 +35,13 @@ impl HvacService {
         let rpc_transport = GrpcServerTransport::new("HvacService");
 
         HvacService {
-            user_controllable_service_server: UserControllableServiceServer::new(
-                rpc_transport.clone(),
-            ),
 
-            user_preferences_registry_service_clients: parking_lot::RwLock::new(
-                std::collections::HashMap::new(),
-            ),
+
+            sdv_user_preferences_user_controllable_user_controllable_service_server: sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::server::UserControllableServiceServer::new(rpc_transport.clone()),
+
+            sdv_user_preferences_user_preferences_registry_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+
+
         }
     }
 
@@ -59,18 +59,11 @@ impl HvacService {
     }
 
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_user_preferences_registry_service_client(
-        &self,
-        target_service_bundle: &str,
-    ) -> Arc<UserPreferencesRegistryServiceClient> {
-        sdvmiddleware_common::create_if_not_exist::<UserPreferencesRegistryServiceClient>(
-            &self.user_preferences_registry_service_clients,
+    pub fn get_sdv_user_preferences_user_preferences_registry_service_client(&self, target_service_bundle: &str) -> Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::client::UserPreferencesRegistryServiceClient>{
+        sdvmiddleware_common::create_if_not_exist::<sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::client::UserPreferencesRegistryServiceClient>(
+            &self.sdv_user_preferences_user_preferences_registry_service_clients,
             target_service_bundle,
-            Box::new(|target| {
-                UserPreferencesRegistryServiceClient::new(Box::new(GrpcClientTransport::new(
-                    target,
-                )))
-            }),
+            Box::new(|target| sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::client::UserPreferencesRegistryServiceClient::new(Box::new(GrpcClientTransport::new(target)))),
         )
     }
 }

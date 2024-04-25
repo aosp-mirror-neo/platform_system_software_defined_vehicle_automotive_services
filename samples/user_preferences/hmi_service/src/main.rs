@@ -8,8 +8,8 @@ use std::sync::Arc;
 use itertools::Itertools;
 use protobuf::{Enum, MessageField};
 use sdvgenerated::hmi_service::HmiService;
-use sdvgenerated::user_preferences_admin_service_interface::UserPreferencesAdminService;
-use sdvgenerated::user_preferences_management_service_interface::UserPreferencesManagementService;
+use sdvgenerated::sdv_user_preferences_user_preferences_admin_service_interface::UserPreferencesAdminService;
+use sdvgenerated::sdv_user_preferences_user_preferences_management_service_interface::UserPreferencesManagementService;
 use user_preferences_api::setting::{setting::Value, Setting};
 use user_preferences_api::settings_group::SettingsGroupId;
 use user_preferences_api::user::{user::UserFlags, User};
@@ -33,12 +33,16 @@ pub const TEMPERATURE: &str = "TEMPERATURE";
 fn main() {
     let hmi_service_impl = Arc::new(HmiServiceImpl::new());
     let hmi_service = HmiService::new();
-    hmi_service.user_preferences_view_server.register_service_interface(hmi_service_impl);
+    hmi_service
+        .sdv_user_preferences_user_preferences_view_server
+        .register_service_interface(hmi_service_impl);
 
-    let user_preferences_admin_client =
-        hmi_service.get_user_preferences_admin_service_client("UserPreferencesServer");
-    let user_preferences_management_client =
-        hmi_service.get_user_preferences_management_service_client("UserPreferencesServer");
+    let user_preferences_admin_client = hmi_service
+        .get_sdv_user_preferences_user_preferences_admin_service_client("UserPreferencesServer");
+    let user_preferences_management_client = hmi_service
+        .get_sdv_user_preferences_user_preferences_management_service_client(
+            "UserPreferencesServer",
+        );
 
     let user_id = 1_i32;
     println!("Creating an ephemeral user");

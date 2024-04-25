@@ -1,11 +1,11 @@
 use itertools::Itertools;
 use protobuf::MessageField;
-use sdvgenerated::user_controllable_service_interface::UserControllableService;
 use user_preferences_api::error::Error;
 use user_preferences_api::{setting::Setting, user_preferences_registry_service};
 
-use sdvgenerated::user_preferences_registry_service_interface::UserPreferencesRegistryService;
-use sdvgenerated_rpc_user_preferences_registry_service::client::UserPreferencesRegistryServiceClient;
+use sdvgenerated::sdv_user_preferences_user_controllable_user_controllable_service_interface::UserControllableService;
+use sdvgenerated::sdv_user_preferences_user_preferences_registry_service_interface::UserPreferencesRegistryService;
+use sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::client::UserPreferencesRegistryServiceClient;
 use sdvmiddleware_rpc::RpcResult;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 use std::thread;

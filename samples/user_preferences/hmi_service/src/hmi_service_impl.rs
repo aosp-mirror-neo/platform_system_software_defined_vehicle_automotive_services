@@ -1,4 +1,4 @@
-use sdvgenerated::user_preferences_view_interface::UserPreferencesView;
+use sdvgenerated::sdv_user_preferences_user_preferences_view_interface::UserPreferencesView;
 use user_preferences_api::user_preferences_view::{
     OnSettingsChangeRequest, OnSettingsChangeResponse,
 };
