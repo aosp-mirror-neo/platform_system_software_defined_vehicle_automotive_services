@@ -9,7 +9,6 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdvgenerated_rpc_vpm_system_service::client::VpmSystemServiceClient;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -20,15 +19,21 @@ pub struct VpmSystemClientCallbacks {}
 struct Subscriptions {}
 
 pub struct VpmSystemClient {
-    vpm_system_service_clients:
-        parking_lot::RwLock<std::collections::HashMap<String, Arc<VpmSystemServiceClient>>>,
+    sdv_vpm_vpm_system_service_clients: parking_lot::RwLock<
+        std::collections::HashMap<
+            String,
+            Arc<sdvgenerated_rpc_sdv_vpm_vpm_system_service::client::VpmSystemServiceClient>,
+        >,
+    >,
 }
 
 impl VpmSystemClient {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         VpmSystemClient {
-            vpm_system_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+            sdv_vpm_vpm_system_service_clients: parking_lot::RwLock::new(
+                std::collections::HashMap::new(),
+            ),
         }
     }
 
@@ -46,15 +51,19 @@ impl VpmSystemClient {
     }
 
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_vpm_system_service_client(
+    pub fn get_sdv_vpm_vpm_system_service_client(
         &self,
         target_service_bundle: &str,
-    ) -> Arc<VpmSystemServiceClient> {
-        sdvmiddleware_common::create_if_not_exist::<VpmSystemServiceClient>(
-            &self.vpm_system_service_clients,
+    ) -> Arc<sdvgenerated_rpc_sdv_vpm_vpm_system_service::client::VpmSystemServiceClient> {
+        sdvmiddleware_common::create_if_not_exist::<
+            sdvgenerated_rpc_sdv_vpm_vpm_system_service::client::VpmSystemServiceClient,
+        >(
+            &self.sdv_vpm_vpm_system_service_clients,
             target_service_bundle,
             Box::new(|target| {
-                VpmSystemServiceClient::new(Box::new(GrpcClientTransport::new(target)))
+                sdvgenerated_rpc_sdv_vpm_vpm_system_service::client::VpmSystemServiceClient::new(
+                    Box::new(GrpcClientTransport::new(target)),
+                )
             }),
         )
     }

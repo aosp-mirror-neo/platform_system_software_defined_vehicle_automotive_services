@@ -14,7 +14,7 @@ fn main() {
     info!("Vehicle State subscriber is starting client starting");
 
     let mut subscriber = VehicleStateSubscriber::new(VehicleStateSubscriberCallbacks {
-        vehicle_state_change_cb: Box::new(on_vehicle_state),
+        sdv_vpm_vehicle_vehicle_state_change_cb: Box::new(on_vehicle_state),
     });
 
     if let Err(err) = subscriber.start() {

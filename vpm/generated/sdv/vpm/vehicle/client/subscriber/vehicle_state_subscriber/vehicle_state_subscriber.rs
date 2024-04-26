@@ -9,18 +9,21 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdv_vpm_api::vehicle::VehicleStateChange;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 
 pub struct VehicleStateSubscriberCallbacks {
-    pub vehicle_state_change_cb:
-        Box<dyn Fn(sdv_middleware_pubsub::Result<VehicleStateChange>) + Sync + Send>,
+    pub sdv_vpm_vehicle_vehicle_state_change_cb: Box<
+        dyn Fn(sdv_middleware_pubsub::Result<sdv_vpm_api::vehicle::VehicleStateChange>)
+            + Sync
+            + Send,
+    >,
 }
 
 struct Subscriptions {
-    vehicle_state_change_subscriber: DataTunnelSubscriber<subscriber::VehicleStateChangeTopics>,
+    sdv_vpm_vehicle_vehicle_state_change_subscriber:
+        DataTunnelSubscriber<subscriber::sdv_vpm_vehicle::VehicleStateChangeTopics>,
 }
 
 pub struct VehicleStateSubscriber {
@@ -35,7 +38,7 @@ impl VehicleStateSubscriber {
         VehicleStateSubscriber {
             subscription_thread_handle: None,
             subscriptions: Arc::new(Mutex::new(Subscriptions {
-                vehicle_state_change_subscriber: DataTunnelSubscriber::new(),
+                sdv_vpm_vehicle_vehicle_state_change_subscriber: DataTunnelSubscriber::new(),
             })),
             callbacks: Arc::new(callbacks),
         }
@@ -58,7 +61,7 @@ impl VehicleStateSubscriber {
 
     fn subscribe_to_topics(&self) -> sdv_middleware_pubsub::Result<()> {
         let mut subs = self.subscriptions.lock().unwrap();
-        subs.vehicle_state_change_subscriber.subscribe()?;
+        subs.sdv_vpm_vehicle_vehicle_state_change_subscriber.subscribe()?;
 
         Ok(())
     }
@@ -91,8 +94,8 @@ impl VehicleStateSubscriber {
         loop {
             thread::sleep_ms(POLL_TIMEOUT_MS);
             let mut subs = subscriptions.lock().unwrap();
-            subs.vehicle_state_change_subscriber
-                .poll_unique_topic(&callbacks.vehicle_state_change_cb);
+            subs.sdv_vpm_vehicle_vehicle_state_change_subscriber
+                .poll_unique_topic(&callbacks.sdv_vpm_vehicle_vehicle_state_change_cb);
         }
     }
 

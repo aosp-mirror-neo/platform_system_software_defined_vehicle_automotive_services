@@ -4,9 +4,9 @@ mod tests {
     use sdv_vpm_api::vehicle::VehicleStateChange;
     use sdv_vpm_api::vehicle::VpmVehicleState;
     use sdv_vpm_api::vpm::SetVehicleStateRequest;
+    use sdvgenerated::sdv_vpm_vpm_system_service_interface::VpmSystemService;
     use sdvgenerated::vpm_integration_test_bundle::VpmIntegrationTestBundle;
     use sdvgenerated::vpm_integration_test_bundle::VpmIntegrationTestBundleCallbacks;
-    use sdvgenerated::vpm_system_service_interface::VpmSystemService;
     use std::sync::mpsc::{channel, Receiver, Sender};
     use std::time::Duration;
 
@@ -19,7 +19,7 @@ mod tests {
             tx.send(message.unwrap().vehicle_state.unwrap()).unwrap();
         };
         let mut test_bundle = VpmIntegrationTestBundle::new(VpmIntegrationTestBundleCallbacks {
-            vehicle_state_change_cb: Box::new(callback),
+            sdv_vpm_vehicle_vehicle_state_change_cb: Box::new(callback),
         });
 
         // When a new vehicle state is sent via RPC.
@@ -28,7 +28,7 @@ mod tests {
             ..Default::default()
         };
         test_bundle
-            .get_vpm_system_service_client("VpmSystemServiceBundle")
+            .get_sdv_vpm_vpm_system_service_client("VpmSystemServiceBundle")
             .set_vehicle_state(request)
             .unwrap();
         test_bundle.start().unwrap();

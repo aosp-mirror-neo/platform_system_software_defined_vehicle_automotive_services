@@ -6,8 +6,8 @@ package {
 }
 
 rust_library {
-    name: "libsdvgenerated_rpc_vpm_system_service",
-    crate_name: "sdvgenerated_rpc_vpm_system_service",
+    name: "libsdvgenerated_rpc_sdv_vpm_vpm_system_service",
+    crate_name: "sdvgenerated_rpc_sdv_vpm_vpm_system_service",
     srcs: [
         "mod.rs",
     ],
