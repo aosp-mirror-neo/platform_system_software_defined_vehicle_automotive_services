@@ -9,7 +9,6 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdvgenerated_rpc_config_subscriber_service::client::ConfigSubscriberServiceClient;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -20,15 +19,19 @@ pub struct ConfigSubscribeClientCallbacks {}
 struct Subscriptions {}
 
 pub struct ConfigSubscribeClient {
-    config_subscriber_service_clients:
-        parking_lot::RwLock<std::collections::HashMap<String, Arc<ConfigSubscriberServiceClient>>>,
+
+
+
+    sdv_concal_config_subscriber_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_concal_config_subscriber_service::client::ConfigSubscriberServiceClient>>>,
+
+
 }
 
 impl ConfigSubscribeClient {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         ConfigSubscribeClient {
-            config_subscriber_service_clients: parking_lot::RwLock::new(
+            sdv_concal_config_subscriber_service_clients: parking_lot::RwLock::new(
                 std::collections::HashMap::new(),
             ),
         }
@@ -48,16 +51,11 @@ impl ConfigSubscribeClient {
     }
 
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_config_subscriber_service_client(
-        &self,
-        target_service_bundle: &str,
-    ) -> Arc<ConfigSubscriberServiceClient> {
-        sdvmiddleware_common::create_if_not_exist::<ConfigSubscriberServiceClient>(
-            &self.config_subscriber_service_clients,
+    pub fn get_sdv_concal_config_subscriber_service_client(&self, target_service_bundle: &str) -> Arc<sdvgenerated_rpc_sdv_concal_config_subscriber_service::client::ConfigSubscriberServiceClient>{
+        sdvmiddleware_common::create_if_not_exist::<sdvgenerated_rpc_sdv_concal_config_subscriber_service::client::ConfigSubscriberServiceClient>(
+            &self.sdv_concal_config_subscriber_service_clients,
             target_service_bundle,
-            Box::new(|target| {
-                ConfigSubscriberServiceClient::new(Box::new(GrpcClientTransport::new(target)))
-            }),
+            Box::new(|target| sdvgenerated_rpc_sdv_concal_config_subscriber_service::client::ConfigSubscriberServiceClient::new(Box::new(GrpcClientTransport::new(target)))),
         )
     }
 }

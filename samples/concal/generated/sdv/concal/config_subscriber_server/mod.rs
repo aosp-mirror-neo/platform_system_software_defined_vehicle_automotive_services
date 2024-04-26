@@ -6,4 +6,4 @@
 pub mod config_subscriber_server;
 pub mod topics;
 
-pub use sdvgenerated_rpc_config_subscriber_service::interface as config_subscriber_service_interface;
+pub use sdvgenerated_rpc_sdv_concal_config_subscriber_service::interface as sdv_concal_config_subscriber_service_interface;

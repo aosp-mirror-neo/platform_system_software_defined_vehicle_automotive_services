@@ -9,7 +9,6 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdvgenerated_rpc_con_cal_service::client::ConCalServiceClient;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -20,15 +19,21 @@ pub struct ConCalClientCallbacks {}
 struct Subscriptions {}
 
 pub struct ConCalClient {
-    con_cal_service_clients:
-        parking_lot::RwLock<std::collections::HashMap<String, Arc<ConCalServiceClient>>>,
+    sdv_concal_con_cal_service_clients: parking_lot::RwLock<
+        std::collections::HashMap<
+            String,
+            Arc<sdvgenerated_rpc_sdv_concal_con_cal_service::client::ConCalServiceClient>,
+        >,
+    >,
 }
 
 impl ConCalClient {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         ConCalClient {
-            con_cal_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+            sdv_concal_con_cal_service_clients: parking_lot::RwLock::new(
+                std::collections::HashMap::new(),
+            ),
         }
     }
 
@@ -46,14 +51,20 @@ impl ConCalClient {
     }
 
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_con_cal_service_client(
+    pub fn get_sdv_concal_con_cal_service_client(
         &self,
         target_service_bundle: &str,
-    ) -> Arc<ConCalServiceClient> {
-        sdvmiddleware_common::create_if_not_exist::<ConCalServiceClient>(
-            &self.con_cal_service_clients,
+    ) -> Arc<sdvgenerated_rpc_sdv_concal_con_cal_service::client::ConCalServiceClient> {
+        sdvmiddleware_common::create_if_not_exist::<
+            sdvgenerated_rpc_sdv_concal_con_cal_service::client::ConCalServiceClient,
+        >(
+            &self.sdv_concal_con_cal_service_clients,
             target_service_bundle,
-            Box::new(|target| ConCalServiceClient::new(Box::new(GrpcClientTransport::new(target)))),
+            Box::new(|target| {
+                sdvgenerated_rpc_sdv_concal_con_cal_service::client::ConCalServiceClient::new(
+                    Box::new(GrpcClientTransport::new(target)),
+                )
+            }),
         )
     }
 }

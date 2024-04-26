@@ -9,7 +9,6 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdvgenerated_rpc_calibratable_service::server::CalibratableServiceServer;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -20,7 +19,8 @@ pub struct CalibratableServerCallbacks {}
 struct Subscriptions {}
 
 pub struct CalibratableServer {
-    pub calibratable_service_server: CalibratableServiceServer,
+    pub sdv_concal_calibratable_service_server:
+        sdvgenerated_rpc_sdv_concal_calibratable_service::server::CalibratableServiceServer,
 }
 
 impl CalibratableServer {
@@ -29,7 +29,12 @@ impl CalibratableServer {
         let rpc_transport = GrpcServerTransport::new("CalibratableServer");
 
         CalibratableServer {
-            calibratable_service_server: CalibratableServiceServer::new(rpc_transport.clone()),
+
+
+            sdv_concal_calibratable_service_server: sdvgenerated_rpc_sdv_concal_calibratable_service::server::CalibratableServiceServer::new(rpc_transport.clone()),
+
+
+
         }
     }
 

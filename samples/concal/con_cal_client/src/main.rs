@@ -12,7 +12,7 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use std::vec::Vec;
 
-use sdvgenerated::con_cal_service_interface::ConCalService;
+use sdvgenerated::sdv_concal_con_cal_service_interface::ConCalService;
 use sdvtestconcal_proto_rust::rear_view_camera::RearViewCamera;
 
 macro_rules! panic_if_failed {
@@ -114,7 +114,7 @@ fn register_config(
     };
 
     let resp = client
-        .get_con_cal_service_client("ConCalServer")
+        .get_sdv_concal_con_cal_service_client("ConCalServer")
         .register_config_metadata(RegisterConfigMetadataRequest {
             config_id: MessageField::some(config_id.clone()),
             metadata: MessageField::some(config_metadata),
@@ -127,7 +127,7 @@ fn register_config(
 }
 
 fn update_config(client: &ConCalClient, overrides: &[ConfigOverride]) {
-    let rpc_client = client.get_con_cal_service_client("ConCalServer");
+    let rpc_client = client.get_sdv_concal_con_cal_service_client("ConCalServer");
     let resp = rpc_client
         .start_config_update(StartConfigUpdateRequest::new())
         .expect("start_config_update failed");
@@ -202,7 +202,7 @@ fn overrides(config_id: &ConfigId) -> Vec<ConfigOverride> {
 
 fn get_config(client: &ConCalClient, config_id: &ConfigId) -> Vec<u8> {
     let resp = client
-        .get_con_cal_service_client("ConCalServer")
+        .get_sdv_concal_con_cal_service_client("ConCalServer")
         .get_config(GetConfigRequest {
             config_id: MessageField::some(config_id.clone()),
             ..Default::default()
@@ -221,7 +221,7 @@ fn parse_test_config_from_bytes(bytes: &[u8]) -> RearViewCamera {
 
 fn rollback(client: &ConCalClient) {
     let resp = client
-        .get_con_cal_service_client("ConCalServer")
+        .get_sdv_concal_con_cal_service_client("ConCalServer")
         .rollback(RollbackRequest::new())
         .expect("rollback failed");
     panic_if_failed!(resp, "rollback failed: {:?}");
