@@ -17,13 +17,13 @@ fn main() {
     let service = UserPreferencesServer::new();
 
     service
-        .user_preferences_registry_service_server
+        .sdv_user_preferences_user_preferences_registry_service_server
         .register_service_interface(user_preferences_impl.clone());
     service
-        .user_preferences_admin_service_server
+        .sdv_user_preferences_user_preferences_admin_service_server
         .register_service_interface(user_preferences_impl.clone());
     service
-        .user_preferences_management_service_server
+        .sdv_user_preferences_user_preferences_management_service_server
         .register_service_interface(user_preferences_impl.clone());
 
     println!("UserPreferencesServer service bundle started.");

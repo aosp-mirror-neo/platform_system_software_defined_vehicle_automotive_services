@@ -9,11 +9,6 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdvgenerated_rpc_user_controllable_service::client::UserControllableServiceClient;
-use sdvgenerated_rpc_user_preferences_admin_service::server::UserPreferencesAdminServiceServer;
-use sdvgenerated_rpc_user_preferences_management_service::server::UserPreferencesManagementServiceServer;
-use sdvgenerated_rpc_user_preferences_registry_service::server::UserPreferencesRegistryServiceServer;
-use sdvgenerated_rpc_user_preferences_view::client::UserPreferencesViewClient;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
@@ -25,14 +20,16 @@ pub struct UserPreferencesServerCallbacks {}
 struct Subscriptions {}
 
 pub struct UserPreferencesServer {
-    pub user_preferences_admin_service_server: UserPreferencesAdminServiceServer,
-    pub user_preferences_management_service_server: UserPreferencesManagementServiceServer,
-    pub user_preferences_registry_service_server: UserPreferencesRegistryServiceServer,
 
-    user_preferences_view_clients:
-        parking_lot::RwLock<std::collections::HashMap<String, Arc<UserPreferencesViewClient>>>,
-    user_controllable_service_clients:
-        parking_lot::RwLock<std::collections::HashMap<String, Arc<UserControllableServiceClient>>>,
+
+    pub sdv_user_preferences_user_preferences_admin_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service::server::UserPreferencesAdminServiceServer,
+    pub sdv_user_preferences_user_preferences_management_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service::server::UserPreferencesManagementServiceServer,
+    pub sdv_user_preferences_user_preferences_registry_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::server::UserPreferencesRegistryServiceServer,
+
+    sdv_user_preferences_user_preferences_view_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::client::UserPreferencesViewClient>>>,
+    sdv_user_preferences_user_controllable_user_controllable_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::client::UserControllableServiceClient>>>,
+
+
 }
 
 impl UserPreferencesServer {
@@ -41,22 +38,16 @@ impl UserPreferencesServer {
         let rpc_transport = GrpcServerTransport::new("UserPreferencesServer");
 
         UserPreferencesServer {
-            user_preferences_admin_service_server: UserPreferencesAdminServiceServer::new(
-                rpc_transport.clone(),
-            ),
-            user_preferences_management_service_server: UserPreferencesManagementServiceServer::new(
-                rpc_transport.clone(),
-            ),
-            user_preferences_registry_service_server: UserPreferencesRegistryServiceServer::new(
-                rpc_transport.clone(),
-            ),
 
-            user_preferences_view_clients: parking_lot::RwLock::new(
-                std::collections::HashMap::new(),
-            ),
-            user_controllable_service_clients: parking_lot::RwLock::new(
-                std::collections::HashMap::new(),
-            ),
+
+            sdv_user_preferences_user_preferences_admin_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service::server::UserPreferencesAdminServiceServer::new(rpc_transport.clone()),
+            sdv_user_preferences_user_preferences_management_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service::server::UserPreferencesManagementServiceServer::new(rpc_transport.clone()),
+            sdv_user_preferences_user_preferences_registry_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::server::UserPreferencesRegistryServiceServer::new(rpc_transport.clone()),
+
+            sdv_user_preferences_user_preferences_view_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+            sdv_user_preferences_user_controllable_user_controllable_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+
+
         }
     }
 
@@ -74,29 +65,19 @@ impl UserPreferencesServer {
     }
 
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_user_preferences_view_client(
-        &self,
-        target_service_bundle: &str,
-    ) -> Arc<UserPreferencesViewClient> {
-        sdvmiddleware_common::create_if_not_exist::<UserPreferencesViewClient>(
-            &self.user_preferences_view_clients,
+    pub fn get_sdv_user_preferences_user_preferences_view_client(&self, target_service_bundle: &str) -> Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::client::UserPreferencesViewClient>{
+        sdvmiddleware_common::create_if_not_exist::<sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::client::UserPreferencesViewClient>(
+            &self.sdv_user_preferences_user_preferences_view_clients,
             target_service_bundle,
-            Box::new(|target| {
-                UserPreferencesViewClient::new(Box::new(GrpcClientTransport::new(target)))
-            }),
+            Box::new(|target| sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::client::UserPreferencesViewClient::new(Box::new(GrpcClientTransport::new(target)))),
         )
     }
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_user_controllable_service_client(
-        &self,
-        target_service_bundle: &str,
-    ) -> Arc<UserControllableServiceClient> {
-        sdvmiddleware_common::create_if_not_exist::<UserControllableServiceClient>(
-            &self.user_controllable_service_clients,
+    pub fn get_sdv_user_preferences_user_controllable_user_controllable_service_client(&self, target_service_bundle: &str) -> Arc<sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::client::UserControllableServiceClient>{
+        sdvmiddleware_common::create_if_not_exist::<sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::client::UserControllableServiceClient>(
+            &self.sdv_user_preferences_user_controllable_user_controllable_service_clients,
             target_service_bundle,
-            Box::new(|target| {
-                UserControllableServiceClient::new(Box::new(GrpcClientTransport::new(target)))
-            }),
+            Box::new(|target| sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::client::UserControllableServiceClient::new(Box::new(GrpcClientTransport::new(target)))),
         )
     }
 }

@@ -6,8 +6,8 @@ package {
 }
 
 rust_library {
-    name: "libsdvgenerated_rpc_user_preferences_registry_service",
-    crate_name: "sdvgenerated_rpc_user_preferences_registry_service",
+    name: "libsdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service",
+    crate_name: "sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service",
     srcs: [
         "mod.rs",
     ],

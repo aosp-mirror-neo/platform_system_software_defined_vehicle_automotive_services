@@ -9,9 +9,6 @@ use crate::topics::subscriber;
 use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
-use sdvgenerated_rpc_user_preferences_admin_service::client::UserPreferencesAdminServiceClient;
-use sdvgenerated_rpc_user_preferences_management_service::client::UserPreferencesManagementServiceClient;
-use sdvgenerated_rpc_user_preferences_view::server::UserPreferencesViewServer;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
@@ -23,14 +20,14 @@ pub struct HmiServiceCallbacks {}
 struct Subscriptions {}
 
 pub struct HmiService {
-    pub user_preferences_view_server: UserPreferencesViewServer,
 
-    user_preferences_management_service_clients: parking_lot::RwLock<
-        std::collections::HashMap<String, Arc<UserPreferencesManagementServiceClient>>,
-    >,
-    user_preferences_admin_service_clients: parking_lot::RwLock<
-        std::collections::HashMap<String, Arc<UserPreferencesAdminServiceClient>>,
-    >,
+
+    pub sdv_user_preferences_user_preferences_view_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::server::UserPreferencesViewServer,
+
+    sdv_user_preferences_user_preferences_management_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service::client::UserPreferencesManagementServiceClient>>>,
+    sdv_user_preferences_user_preferences_admin_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service::client::UserPreferencesAdminServiceClient>>>,
+
+
 }
 
 impl HmiService {
@@ -39,14 +36,14 @@ impl HmiService {
         let rpc_transport = GrpcServerTransport::new("HmiService");
 
         HmiService {
-            user_preferences_view_server: UserPreferencesViewServer::new(rpc_transport.clone()),
 
-            user_preferences_management_service_clients: parking_lot::RwLock::new(
-                std::collections::HashMap::new(),
-            ),
-            user_preferences_admin_service_clients: parking_lot::RwLock::new(
-                std::collections::HashMap::new(),
-            ),
+
+            sdv_user_preferences_user_preferences_view_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::server::UserPreferencesViewServer::new(rpc_transport.clone()),
+
+            sdv_user_preferences_user_preferences_management_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+            sdv_user_preferences_user_preferences_admin_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+
+
         }
     }
 
@@ -64,31 +61,19 @@ impl HmiService {
     }
 
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_user_preferences_management_service_client(
-        &self,
-        target_service_bundle: &str,
-    ) -> Arc<UserPreferencesManagementServiceClient> {
-        sdvmiddleware_common::create_if_not_exist::<UserPreferencesManagementServiceClient>(
-            &self.user_preferences_management_service_clients,
+    pub fn get_sdv_user_preferences_user_preferences_management_service_client(&self, target_service_bundle: &str) -> Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service::client::UserPreferencesManagementServiceClient>{
+        sdvmiddleware_common::create_if_not_exist::<sdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service::client::UserPreferencesManagementServiceClient>(
+            &self.sdv_user_preferences_user_preferences_management_service_clients,
             target_service_bundle,
-            Box::new(|target| {
-                UserPreferencesManagementServiceClient::new(Box::new(GrpcClientTransport::new(
-                    target,
-                )))
-            }),
+            Box::new(|target| sdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service::client::UserPreferencesManagementServiceClient::new(Box::new(GrpcClientTransport::new(target)))),
         )
     }
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_user_preferences_admin_service_client(
-        &self,
-        target_service_bundle: &str,
-    ) -> Arc<UserPreferencesAdminServiceClient> {
-        sdvmiddleware_common::create_if_not_exist::<UserPreferencesAdminServiceClient>(
-            &self.user_preferences_admin_service_clients,
+    pub fn get_sdv_user_preferences_user_preferences_admin_service_client(&self, target_service_bundle: &str) -> Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service::client::UserPreferencesAdminServiceClient>{
+        sdvmiddleware_common::create_if_not_exist::<sdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service::client::UserPreferencesAdminServiceClient>(
+            &self.sdv_user_preferences_user_preferences_admin_service_clients,
             target_service_bundle,
-            Box::new(|target| {
-                UserPreferencesAdminServiceClient::new(Box::new(GrpcClientTransport::new(target)))
-            }),
+            Box::new(|target| sdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service::client::UserPreferencesAdminServiceClient::new(Box::new(GrpcClientTransport::new(target)))),
         )
     }
 }

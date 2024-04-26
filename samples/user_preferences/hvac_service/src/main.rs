@@ -7,7 +7,7 @@ mod user_controllable_service_impl;
 use std::sync::Arc;
 
 use sdvgenerated::hvac_service::HvacService;
-use sdvgenerated::user_preferences_registry_service_interface::UserPreferencesRegistryService;
+use sdvgenerated::sdv_user_preferences_user_preferences_registry_service_interface::UserPreferencesRegistryService;
 use user_preferences_api::user_preferences_registry_service::RegisterSettingsRequest;
 
 use crate::settings::{setting_definitions, SETTINGS_GROUP_NAME};
@@ -21,7 +21,7 @@ fn main() {
 
     let hvac_service = HvacService::new();
     hvac_service
-        .user_controllable_service_server
+        .sdv_user_preferences_user_controllable_user_controllable_service_server
         .register_service_interface(Arc::new(user_controllable_service_impl));
 
     let register_settings_request = RegisterSettingsRequest {
@@ -38,8 +38,8 @@ fn main() {
 
     print_setting_definition(&register_settings_request.settings_definitions);
 
-    let registry_service_client =
-        hvac_service.get_user_preferences_registry_service_client("UserPreferencesServer");
+    let registry_service_client = hvac_service
+        .get_sdv_user_preferences_user_preferences_registry_service_client("UserPreferencesServer");
 
     let response = registry_service_client
         .register_settings(register_settings_request.clone())
