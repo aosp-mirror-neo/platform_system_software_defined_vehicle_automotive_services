@@ -20,12 +20,8 @@ pub struct HvacServiceCallbacks {}
 struct Subscriptions {}
 
 pub struct HvacService {
-
-
     pub sdv_user_preferences_user_controllable_user_controllable_service_server: sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::server::UserControllableServiceServer,
-
     sdv_user_preferences_user_preferences_registry_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::client::UserPreferencesRegistryServiceClient>>>,
-
 
 }
 
@@ -34,13 +30,9 @@ impl HvacService {
     pub fn new() -> Self {
         let rpc_transport = GrpcServerTransport::new("HvacService");
 
-        HvacService {
-
-
+        HvacService{
             sdv_user_preferences_user_controllable_user_controllable_service_server: sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::server::UserControllableServiceServer::new(rpc_transport.clone()),
-
             sdv_user_preferences_user_preferences_registry_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
-
 
         }
     }

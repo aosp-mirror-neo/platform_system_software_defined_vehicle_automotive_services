@@ -20,13 +20,9 @@ pub struct HmiServiceCallbacks {}
 struct Subscriptions {}
 
 pub struct HmiService {
-
-
     pub sdv_user_preferences_user_preferences_view_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::server::UserPreferencesViewServer,
-
     sdv_user_preferences_user_preferences_management_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service::client::UserPreferencesManagementServiceClient>>>,
     sdv_user_preferences_user_preferences_admin_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service::client::UserPreferencesAdminServiceClient>>>,
-
 
 }
 
@@ -35,14 +31,10 @@ impl HmiService {
     pub fn new() -> Self {
         let rpc_transport = GrpcServerTransport::new("HmiService");
 
-        HmiService {
-
-
+        HmiService{
             sdv_user_preferences_user_preferences_view_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::server::UserPreferencesViewServer::new(rpc_transport.clone()),
-
             sdv_user_preferences_user_preferences_management_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_user_preferences_user_preferences_admin_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
-
 
         }
     }

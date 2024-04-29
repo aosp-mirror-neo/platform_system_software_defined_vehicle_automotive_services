@@ -16,6 +16,7 @@ enum ResponseCode {
   ACCESS_DENIED = 0x05;
   INVALID_REQUEST = 0x06;
   RUNTIME_ERROR = 0x07;
+  ALREADY_EXISTS = 0x08;
 }
 
 message Error {

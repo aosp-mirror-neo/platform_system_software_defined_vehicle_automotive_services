@@ -20,15 +20,11 @@ pub struct UserPreferencesServerCallbacks {}
 struct Subscriptions {}
 
 pub struct UserPreferencesServer {
-
-
     pub sdv_user_preferences_user_preferences_admin_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service::server::UserPreferencesAdminServiceServer,
     pub sdv_user_preferences_user_preferences_management_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service::server::UserPreferencesManagementServiceServer,
     pub sdv_user_preferences_user_preferences_registry_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::server::UserPreferencesRegistryServiceServer,
-
     sdv_user_preferences_user_preferences_view_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::client::UserPreferencesViewClient>>>,
     sdv_user_preferences_user_controllable_user_controllable_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::client::UserControllableServiceClient>>>,
-
 
 }
 
@@ -37,16 +33,12 @@ impl UserPreferencesServer {
     pub fn new() -> Self {
         let rpc_transport = GrpcServerTransport::new("UserPreferencesServer");
 
-        UserPreferencesServer {
-
-
+        UserPreferencesServer{
             sdv_user_preferences_user_preferences_admin_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service::server::UserPreferencesAdminServiceServer::new(rpc_transport.clone()),
             sdv_user_preferences_user_preferences_management_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service::server::UserPreferencesManagementServiceServer::new(rpc_transport.clone()),
             sdv_user_preferences_user_preferences_registry_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::server::UserPreferencesRegistryServiceServer::new(rpc_transport.clone()),
-
             sdv_user_preferences_user_preferences_view_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_user_preferences_user_controllable_user_controllable_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
-
 
         }
     }
