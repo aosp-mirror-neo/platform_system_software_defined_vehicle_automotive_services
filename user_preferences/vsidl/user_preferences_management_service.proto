@@ -41,6 +41,18 @@ message RequestSettingsChangeRequest {
 
   // The list of settings to update, with their desired new values.
   repeated Setting settings = 2;
+
+  // Determines whether the change will be persisted in the user's account
+  // or only applied to the Vehicle for this session. Note this parameter
+  // only applies to settings of type PER_USER.
+  enum ChangePersistencePolicy {
+    PERSISTENT_CHANGE = 0;
+    NON_PERSISTENT_CHANGE = 1;
+  }
+
+  // Optional parameter
+  // if not specified, all changes will be persisted
+  ChangePersistencePolicy change_persistence_policy = 3;
 }
 
 message RequestSettingsChangeResponse {
@@ -63,11 +75,20 @@ message SubscribeToSettingsChangeAndGetSettingsResponse {
   // Schema version of the provided settings
   string version = 1;
 
-  // The current settings in the group, including any constraints.
+  // The current settings that applied to the vehicle, including any constraints.
   repeated SettingAndConstraints setting_and_constraints = 2;
 
+  // Setting changes that will be attempted when possible
+  repeated Setting pending_changes = 4;
+
+  // These settings reflect the user's persisted setting which my differ from the current setting
+  // applied. For instance, if the user manually adjusts the seat, these changes don't automatically
+  // update their saved preferences. The OEM can then prompt the user to save these adjustments as
+  // their new persisted settings
+  repeated Setting persisted_settings = 5;
+
   // Error message if request fails.
-  Error error = 3;
+  Error error = 6;
 }
 
 message UnsubscribeToSettingsChangeRequest {

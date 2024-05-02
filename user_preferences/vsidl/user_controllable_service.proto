@@ -13,10 +13,7 @@ import "setting.proto";
 import "error.proto";
 
 service UserControllableService {
-  // Submits a request to update settings with the provided values. The method returns successfully
-  // while the change is done asynchronously. The service will notify the
-  // UserPreferencesRegistryService of the actual setting values via the UpdateSettings API after
-  // the changes are applied or rejected.
+  // Submits a request to update settings with the provided values.
   rpc RequestSettingsChange(RequestSettingsChangeRequest) returns (RequestSettingsChangeResponse) {}
 
   // Resets the service to its default settings.
@@ -29,18 +26,17 @@ message RequestSettingsChangeRequest {
   // The name of the settings group that needs to be updated.
   string group_name = 1;
 
-  // A unique id for this change request.
-  // Once the change is made, the transaction_id should be used in UpdateSettings sent to
-  // UserPreferencesRegistryService.
-  uint64 transaction_id = 2;
-
   // The list of settings along with the new values they should be set too.
-  repeated Setting settings = 3;
+  repeated Setting settings = 2;
 }
 
 message RequestSettingsChangeResponse {
+  // The actual value of the settings, this may be different from the values requested by
+  // the caller of RequestSettingsChange due to hardware issues, or invalid requested values.
+  repeated Setting settings = 1;
+
   // Error message if request fails.
-  Error error = 1;
+  Error error = 2;
 }
 
 message FactoryResetRequest {}

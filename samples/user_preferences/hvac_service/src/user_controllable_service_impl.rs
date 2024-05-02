@@ -49,11 +49,6 @@ impl UserControllableService for UserControllableServiceImpl {
                 settings.insert(setting.key.clone(), setting.value.clone().unwrap());
             });
 
-            println!(
-                "Applied changes from request with transaction ID: {}",
-                request.transaction_id
-            );
-
             println!("Current settings");
             settings
                 .iter()
@@ -63,7 +58,6 @@ impl UserControllableService for UserControllableServiceImpl {
             let response = client
                 .update_settings(user_preferences_registry_service::UpdateSettingsRequest {
                     group_name: request.group_name,
-                    transaction_id: request.transaction_id,
                     settings: request.settings,
                     caller_fqin: SERVICE_FQIN.to_string(),
                     ..Default::default()
