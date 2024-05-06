@@ -1,0 +1,22 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+    default_team: "trendy_team_automotive",
+}
+
+rust_test {
+    name: "sdv_concal_integration_test",
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+    srcs: ["src/main.rs"],
+    rustlibs: [
+        "liblog_rust",
+        "libsdv_log_rust",
+        "libsdv_samples_stdout_verifier",
+    ],
+    data: [
+        "tests/client_stdout.txt",
+    ],
+    vendor: true,
+}

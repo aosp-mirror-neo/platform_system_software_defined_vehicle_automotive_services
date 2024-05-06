@@ -6,6 +6,7 @@ use std::io::{BufRead, BufReader};
 use std::option::Option::{None, Some};
 use std::process::Command;
 use std::thread;
+use std::time::Duration;
 use std::vec::Vec;
 
 // Information about registered sample.
@@ -61,6 +62,10 @@ impl SamplesStdoutVerifier {
         let mut children_join_handles = Vec::new();
 
         self.samples.iter().for_each(|sample_info| {
+            // TODO(@tantoshchuk): remove this when the MW API for waiting for RPC server is available.
+            // Wait 2 seconds to allow for RPC servers registration with Service Discovery.
+            thread::sleep(Duration::from_secs(2));
+
             let sample_name = sample_info.binary_path;
 
             match sample_info.expected_stdout_file {

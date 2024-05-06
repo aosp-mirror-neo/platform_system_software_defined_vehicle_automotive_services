@@ -1,0 +1,159 @@
+Registering config:
+RearViewCamera {
+    model: "model 1",
+    horizontal_resolution: 720,
+    vertical_resolution: 720,
+    x_axis_field_of_view: 70.0,
+    y_axis_field_of_view: 70.0,
+    is_rgb: false,
+    special_fields: SpecialFields {
+        unknown_fields: UnknownFields {
+            fields: None,
+        },
+        cached_size: CachedSize {
+            size: 0,
+        },
+    },
+}
+
+Applying the following overrides:
+[
+    ConfigOverride {
+        override_id: "1",
+        config_id: MessageField(
+            Some(
+                ConfigId {
+                    service_fqin: "company_domain.domain.apex.service.instance",
+                    config_name: "config",
+                    special_fields: SpecialFields {
+                        unknown_fields: UnknownFields {
+                            fields: None,
+                        },
+                        cached_size: CachedSize {
+                            size: 0,
+                        },
+                    },
+                },
+            ),
+        ),
+        pairs: [
+            ConfigOverrideKeyValue {
+                key: "model",
+                value_txtproto: "\"model 2\"",
+                special_fields: SpecialFields {
+                    unknown_fields: UnknownFields {
+                        fields: None,
+                    },
+                    cached_size: CachedSize {
+                        size: 0,
+                    },
+                },
+            },
+            ConfigOverrideKeyValue {
+                key: "horizontal_resolution",
+                value_txtproto: "1920",
+                special_fields: SpecialFields {
+                    unknown_fields: UnknownFields {
+                        fields: None,
+                    },
+                    cached_size: CachedSize {
+                        size: 0,
+                    },
+                },
+            },
+            ConfigOverrideKeyValue {
+                key: "vertical_resolution",
+                value_txtproto: "1080",
+                special_fields: SpecialFields {
+                    unknown_fields: UnknownFields {
+                        fields: None,
+                    },
+                    cached_size: CachedSize {
+                        size: 0,
+                    },
+                },
+            },
+            ConfigOverrideKeyValue {
+                key: "x_axis_field_of_view",
+                value_txtproto: "90.0",
+                special_fields: SpecialFields {
+                    unknown_fields: UnknownFields {
+                        fields: None,
+                    },
+                    cached_size: CachedSize {
+                        size: 0,
+                    },
+                },
+            },
+            ConfigOverrideKeyValue {
+                key: "y_axis_field_of_view",
+                value_txtproto: "90.0",
+                special_fields: SpecialFields {
+                    unknown_fields: UnknownFields {
+                        fields: None,
+                    },
+                    cached_size: CachedSize {
+                        size: 0,
+                    },
+                },
+            },
+            ConfigOverrideKeyValue {
+                key: "is_rgb",
+                value_txtproto: "true",
+                special_fields: SpecialFields {
+                    unknown_fields: UnknownFields {
+                        fields: None,
+                    },
+                    cached_size: CachedSize {
+                        size: 0,
+                    },
+                },
+            },
+        ],
+        special_fields: SpecialFields {
+            unknown_fields: UnknownFields {
+                fields: None,
+            },
+            cached_size: CachedSize {
+                size: 0,
+            },
+        },
+    },
+]
+
+Modified configuration:
+RearViewCamera {
+    model: "model 2",
+    horizontal_resolution: 1920,
+    vertical_resolution: 1080,
+    x_axis_field_of_view: 90.0,
+    y_axis_field_of_view: 90.0,
+    is_rgb: true,
+    special_fields: SpecialFields {
+        unknown_fields: UnknownFields {
+            fields: None,
+        },
+        cached_size: CachedSize {
+            size: 0,
+        },
+    },
+}
+
+Rolling back previous changes
+
+RearViewCamera {
+    model: "model 1",
+    horizontal_resolution: 720,
+    vertical_resolution: 720,
+    x_axis_field_of_view: 70.0,
+    y_axis_field_of_view: 70.0,
+    is_rgb: false,
+    special_fields: SpecialFields {
+        unknown_fields: UnknownFields {
+            fields: None,
+        },
+        cached_size: CachedSize {
+            size: 0,
+        },
+    },
+}

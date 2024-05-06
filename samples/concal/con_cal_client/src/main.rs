@@ -7,8 +7,6 @@ use protobuf::descriptor::FileDescriptorSet as FdSet;
 use protobuf::well_known_types::any::Any;
 use protobuf::{Message, MessageField};
 use sdvgenerated::con_cal_client::ConCalClient;
-use std::io;
-use std::io::prelude::*;
 use std::path::PathBuf;
 use std::vec::Vec;
 
@@ -37,20 +35,14 @@ fn main() {
 
     register_config(&client, &config_id, &config, &fds);
 
-    wait_for_key_press();
-
     let overrides = overrides(&config_id);
     println!("\nApplying the following overrides:\n{:#?}", &overrides);
     update_config(&client, &overrides);
-
-    wait_for_key_press();
 
     let config = get_config(&client, &config_id);
     let config = parse_test_config_from_bytes(&config);
 
     println!("\nModified configuration:\n{:#?}", config);
-
-    wait_for_key_press();
 
     println!("\nRolling back previous changes");
 
@@ -225,16 +217,4 @@ fn rollback(client: &ConCalClient) {
         .rollback(RollbackRequest::new())
         .expect("rollback failed");
     panic_if_failed!(resp, "rollback failed: {:?}");
-}
-
-fn wait_for_key_press() {
-    let mut stdin = io::stdin();
-    let mut stdout = io::stdout();
-
-    // We want the cursor to stay at the end of the line, so we print without a newline and flush manually.
-    write!(stdout, "Press any key to continue...").unwrap();
-    stdout.flush().unwrap();
-
-    // Read a single byte and discard
-    let _ = stdin.read(&mut [0u8]).unwrap();
 }
