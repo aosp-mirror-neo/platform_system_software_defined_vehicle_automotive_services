@@ -32,16 +32,11 @@ impl DiagnosticsProviderService2 {
     pub fn new() -> Self {
         let rpc_transport = GrpcServerTransport::new("DiagnosticsProviderService2");
 
-        DiagnosticsProviderService2 {
-
-
+        DiagnosticsProviderService2{
             sdv_diagnostics_data_item_data_item_server: sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::server::DataItemServer::new(rpc_transport.clone()),
             sdv_diagnostics_fault_fault_listener_server: sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::server::FaultListenerServer::new(rpc_transport.clone()),
 
-
-            diagnostics: crate::extensions::diagnostics::Diagnostics::new(),
-
-        }
+        diagnostics: crate::extensions::diagnostics::Diagnostics::new(),}
     }
 
     /// Triggers publishing and subscription to all the topics defined

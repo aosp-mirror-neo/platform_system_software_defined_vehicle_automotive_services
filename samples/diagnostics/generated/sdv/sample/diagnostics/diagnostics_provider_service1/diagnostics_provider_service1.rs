@@ -19,35 +19,25 @@ pub struct DiagnosticsProviderService1Callbacks {}
 struct Subscriptions {}
 
 pub struct DiagnosticsProviderService1 {
-
-
     pub sdv_diagnostics_data_item_data_item_server: sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::server::DataItemServer,
     pub sdv_diagnostics_routine_control_routine_control_server: sdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control::server::RoutineControlServer,
     pub sdv_diagnostics_io_control_io_control_server: sdvgenerated_rpc_sdv_diagnostics_io_control_io_control::server::IOControlServer,
     pub sdv_diagnostics_fault_fault_listener_server: sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::server::FaultListenerServer,
 
-
-    pub diagnostics: crate::extensions::diagnostics::Diagnostics,
-
-}
+pub diagnostics: crate::extensions::diagnostics::Diagnostics,}
 
 impl DiagnosticsProviderService1 {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         let rpc_transport = GrpcServerTransport::new("DiagnosticsProviderService1");
 
-        DiagnosticsProviderService1 {
-
-
+        DiagnosticsProviderService1{
             sdv_diagnostics_data_item_data_item_server: sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::server::DataItemServer::new(rpc_transport.clone()),
             sdv_diagnostics_routine_control_routine_control_server: sdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control::server::RoutineControlServer::new(rpc_transport.clone()),
             sdv_diagnostics_io_control_io_control_server: sdvgenerated_rpc_sdv_diagnostics_io_control_io_control::server::IOControlServer::new(rpc_transport.clone()),
             sdv_diagnostics_fault_fault_listener_server: sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::server::FaultListenerServer::new(rpc_transport.clone()),
 
-
-            diagnostics: crate::extensions::diagnostics::Diagnostics::new(),
-
-        }
+        diagnostics: crate::extensions::diagnostics::Diagnostics::new(),}
     }
 
     /// Triggers publishing and subscription to all the topics defined
