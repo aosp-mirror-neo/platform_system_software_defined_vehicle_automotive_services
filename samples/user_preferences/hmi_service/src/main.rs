@@ -89,7 +89,7 @@ fn main() {
         panic!("Failed to subscribe to settings change: {:?}", error);
     }
     println!("Current HVAC settings");
-    print_settings_and_constraints(&response.setting_and_constraints);
+    print_settings_and_constraints(&response.current_settings);
 
     println!("Adjusting HVAC temperature to 32");
     let response = user_preferences_management_client

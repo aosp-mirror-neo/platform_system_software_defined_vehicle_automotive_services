@@ -6,23 +6,11 @@ package {
 rust_binary {
     name: "sdv_user_preferences_service",
     crate_name: "sdv_user_preferences_service",
-    srcs: [
-        "src/main.rs",
-    ],
     defaults: ["sdv_user_preferences@rust_defaults"],
-    rustlibs: [
-    ],
-    vendor: true,
 }
 
 rust_test {
     name: "sdv_user_preferences_service_tests",
-    srcs: [
-        "src/main.rs",
-    ],
-    rustlibs: [
-
-    ],
     defaults: ["sdv_user_preferences@rust_defaults"],
     test_options: {
         unit_test: true,
@@ -32,11 +20,13 @@ rust_test {
         "automotive-sdv-tests",
     ],
     auto_gen_config: true,
-    vendor: true,
 }
 
 rust_defaults {
     name: "sdv_user_preferences@rust_defaults",
+    srcs: [
+        "src/main.rs",
+    ],
     defaults: [
         "sdv@rust_defaults",
     ],
@@ -54,4 +44,5 @@ rust_defaults {
         "libsdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service",
         "libsdvgenerated_rpc_sdv_user_preferences_user_preferences_view",
     ],
+    vendor: true,
 }

@@ -25,3 +25,12 @@ sdv_service_bundle {
     client: "sdv.user_preferences.UserPreferencesManagementService"
     client: "sdv.user_preferences.UserPreferencesAdminService"
 }
+
+sdv_service_bundle {
+    name: "MockUserPreferencesClient"
+    server: "sdv.user_preferences.user_controllable.UserControllableService"
+    server: "sdv.user_preferences.UserPreferencesView"
+    client: "sdv.user_preferences.UserPreferencesRegistryService"
+    client: "sdv.user_preferences.UserPreferencesManagementService"
+    client: "sdv.user_preferences.UserPreferencesAdminService"
+}
