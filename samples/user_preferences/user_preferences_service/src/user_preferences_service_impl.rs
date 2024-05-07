@@ -14,7 +14,7 @@ use sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::client::UserPre
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 
 use user_preferences_api::settings_group::SettingsGroupId as SettingsGroupIdProto;
-use user_preferences_api::user::User;
+use user_preferences_api::user::{user::UserFlags, User};
 use user_preferences_api::user_preferences_registry_service::{
     RegisterSettingsRequest, RegisterSettingsResponse,
 };
@@ -27,7 +27,7 @@ use user_preferences_api::user_preferences_registry_service::{
     UpdateSettingsRequest, UpdateSettingsResponse,
 };
 
-use protobuf::{EnumOrUnknown, MessageField};
+use protobuf::{Enum, EnumOrUnknown, MessageField};
 use sdvmiddleware_rpc::RpcResult;
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -106,6 +106,13 @@ impl UserPreferencesServiceImpl {
         }
     }
 
+    fn are_valid_user_flags(user_flags: i32) -> bool {
+        // Ensure driver flag is set since only driver is supported now
+        (user_flags & UserFlags::DRIVER.value()) == UserFlags::DRIVER.value() &&
+        // Ensure that no other bits are set other than ephemeral & driver
+        user_flags <=  (UserFlags::EPHEMERAL.value() | UserFlags::DRIVER.value())
+    }
+
     fn notify_subscribers(
         settings_group_id: &SettingsGroupId,
         version: &String,
@@ -181,9 +188,18 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
             println!("Invalid create user request, ID {} is already in use", user.id);
             return error_response!(
                 CreateUserResponse,
-                ResponseCode::INVALID_REQUEST,
+                ResponseCode::ALREADY_EXISTS,
                 "User ID '{}' is already in use",
                 user.id
+            );
+        }
+        if !Self::are_valid_user_flags(user.flags) {
+            println!("Invalid user flags set");
+            return error_response!(
+                CreateUserResponse,
+                ResponseCode::INVALID_REQUEST,
+                "User flags {} is not a valid value",
+                user.flags
             );
         }
 
@@ -402,7 +418,7 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
 
         if let Some(settings_group) = vehicle_state.settings_groups.get(&settings_group_id) {
             let result = SubscribeToSettingsChangeAndGetSettingsResponse {
-                setting_and_constraints: settings_group
+                current_settings: settings_group
                     .settings
                     .values()
                     .cloned()
