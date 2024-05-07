@@ -34,7 +34,4 @@ message OnSettingsChangeRequest {
   repeated Setting persisted_settings = 5;
 }
 
-message OnSettingsChangeResponse {
-  // Error message if request fails.
-  Error error = 1;
-}
+message OnSettingsChangeResponse {}
