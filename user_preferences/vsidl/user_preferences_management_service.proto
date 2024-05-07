@@ -42,9 +42,9 @@ message RequestSettingsChangeRequest {
   // The list of settings to update, with their desired new values.
   repeated Setting settings = 2;
 
-  // Determines whether the change will be persisted in the user's account
-  // or only applied to the Vehicle for this session. Note this parameter
-  // only applies to settings of type PER_USER.
+  // Specifies whether the setting change will last beyond the current Vehicle session
+  // or only apply during this session. This parameter is not used for PASSTHROUGH settings,
+  // as they are always temporary.
   enum ChangePersistencePolicy {
     PERSISTENT_CHANGE = 0;
     NON_PERSISTENT_CHANGE = 1;
