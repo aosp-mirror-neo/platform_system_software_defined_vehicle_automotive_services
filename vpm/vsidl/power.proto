@@ -8,7 +8,7 @@
 syntax = "proto3";
 package sdv.vpm.power;
 
-/* This API is available to OEM and SDV agents only. */
+/* This API is available only to OEM.*/
 enum PowerStateReport {
   /// VM is booting from cold boot.
   /// SDV agents will start with init.rc.
