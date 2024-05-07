@@ -162,13 +162,13 @@ fn main() {
 
     service
         .diagnostics
-        .publish_event1_event(Event::new(
+        .publish_event_1_event(Event::new(
             Status::PRE_FAIL,
             Some(FirstEventExt { ..Default::default() }),
         ))
         .unwrap();
 
-    service.diagnostics.publish_event1_event(Event::new(Status::PRE_PASS, None)).unwrap();
+    service.diagnostics.publish_event_1_event(Event::new(Status::PRE_PASS, None)).unwrap();
 
     loop {
         std::thread::park();

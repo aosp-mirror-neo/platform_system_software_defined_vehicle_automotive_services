@@ -34,21 +34,21 @@ use std::sync::Mutex;
 use std::thread;
 
 pub struct Diagnostics {
-    event1_publisher: DataTunnelPublisher<Event1EventTopic>,
+    event_1_publisher: DataTunnelPublisher<Event1EventTopic>,
 }
 
 impl Diagnostics {
     pub(crate) fn new() -> Self {
-        Self { event1_publisher: DataTunnelPublisher::new(100) }
+        Self { event_1_publisher: DataTunnelPublisher::new(100) }
     }
 
     pub(crate) fn start(&mut self) -> sdv_middleware_pubsub::Result<()> {
-        self.event1_publisher.register_topics()?;
+        self.event_1_publisher.register_topics()?;
 
         Ok(())
     }
 
-    pub fn publish_event1_event(
+    pub fn publish_event_1_event(
         &mut self,
         event: Event<diagnostics_sample_catalog::messages::FirstEventExt>,
     ) -> sdv_middleware_pubsub::Result<()> {
@@ -72,7 +72,7 @@ impl Diagnostics {
             return Err(Error::MessageMaxSizeViolation(error_message));
         }
 
-        self.event1_publisher.publish(&Event1EventTopic {}, &message)
+        self.event_1_publisher.publish(&Event1EventTopic {}, &message)
     }
 
     pub fn create_data_item_server(
@@ -109,12 +109,12 @@ impl Diagnostics {
     }
     pub fn create_fault_listener_server(
         &self,
-        event1_fault_listener_handler: Box<
+        event_1_fault_listener_handler: Box<
             dyn FaultListenerHandler<diagnostics_sample_catalog::messages::FirstEventExt>,
         >,
     ) -> Arc<dyn FaultListener> {
         Arc::new(FaultListenerServer {
-            event1_fault_listener_handler: Mutex::new(event1_fault_listener_handler),
+            event_1_fault_listener_handler: Mutex::new(event_1_fault_listener_handler),
         })
     }
 }
@@ -131,7 +131,7 @@ impl sdv_middleware_pubsub::EnumTopic for Event1EventTopic {
 
     /// Returns string name of the topic
     fn get_name(&self) -> &str {
-        "diagnostics_provider_service1.event.event1"
+        "diagnostics_provider_service1.event.event.1"
     }
 }
 
@@ -276,7 +276,7 @@ impl IoControl for IoControlServer {
 }
 
 struct FaultListenerServer {
-    event1_fault_listener_handler:
+    event_1_fault_listener_handler:
         Mutex<Box<dyn FaultListenerHandler<diagnostics_sample_catalog::messages::FirstEventExt>>>,
 }
 
@@ -286,8 +286,8 @@ impl FaultListener for FaultListenerServer {
         request: OnFaultStatusChangeRequest,
     ) -> RpcResult<EmptyResponse> {
         match request.id.as_str() {
-            "event1" => Ok(self
-                .event1_fault_listener_handler
+            "event.1" => Ok(self
+                .event_1_fault_listener_handler
                 .lock()
                 .unwrap()
                 .on_fault_status_change_untyped(
