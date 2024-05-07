@@ -75,16 +75,20 @@ message SubscribeToSettingsChangeAndGetSettingsResponse {
   // Schema version of the provided settings
   string version = 1;
 
-  // The current settings that applied to the vehicle, including any constraints.
-  repeated SettingAndConstraints setting_and_constraints = 2;
+  // The settings currently applied to User Controllable services, including any constraints.
+  repeated SettingAndConstraints current_settings = 2;
 
-  // Setting changes that will be attempted when possible
-  repeated Setting pending_changes = 4;
+  // Settings that have been requested but not yet applied by User Controllable services.
+  repeated Setting pending_settings = 4;
 
   // These settings reflect the user's persisted setting which my differ from the current setting
-  // applied. For instance, if the user manually adjusts the seat, these changes don't automatically
-  // update their saved preferences. The OEM can then prompt the user to save these adjustments as
-  // their new persisted settings
+  // applied. This may occur because of ChangePersistencePolicy. Additionally, this maybe occur
+  // if the User Controllable service makes a change to a setting which not of type PASSTHROUGH.
+
+  // These represent the user's stored settings, which could differ from the currently applied ones.
+  // Possible reasons include:
+  //  - ChangePersistencePolicy (e.g., non persistent changes being made)
+  //  - User Controllable service modifying non-PASSTHROUGH settings.
   repeated Setting persisted_settings = 5;
 
   // Error message if request fails.

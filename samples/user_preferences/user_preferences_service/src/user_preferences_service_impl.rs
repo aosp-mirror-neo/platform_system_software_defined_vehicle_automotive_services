@@ -418,7 +418,7 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
 
         if let Some(settings_group) = vehicle_state.settings_groups.get(&settings_group_id) {
             let result = SubscribeToSettingsChangeAndGetSettingsResponse {
-                setting_and_constraints: settings_group
+                current_settings: settings_group
                     .settings
                     .values()
                     .cloned()
