@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2024 Google LLC
 //! Vehicle Mode and Power Management Agent.
 
 use log::info;

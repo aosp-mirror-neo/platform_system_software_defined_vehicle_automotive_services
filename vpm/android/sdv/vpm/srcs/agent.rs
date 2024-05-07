@@ -1,17 +1,14 @@
-// Copyright 2023 Google LLC
+// Copyright 2024 Google LLC
 //! Vehicle and Power Mode Agent.
 
 #![allow(unused)]
-mod rpc_server;
-mod service;
+mod system_service;
 
-use crate::rpc_server::RpcServer;
-use crate::service::VpmService;
-use crate::service::VpmServiceImpl;
+use crate::system_service::RpcServer;
+use crate::system_service::VpmService;
+use crate::system_service::VpmServiceImpl;
 use log::{error, info};
 use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
-use std::sync::mpsc::channel;
-use std::sync::mpsc::sync_channel;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -34,9 +31,7 @@ impl VPM {
     pub fn new() -> Self {
         let mut vpm_bundle = VpmSystemServiceBundle::new();
         vpm_bundle.start().unwrap();
-        Self::new_with_services(Arc::new(VpmServiceImpl {
-            vpm_service_bundle: Arc::new(Mutex::new(vpm_bundle)),
-        }))
+        Self::new_with_services(Arc::new(VpmServiceImpl::new(Arc::new(Mutex::new(vpm_bundle)))))
     }
 
     fn new_with_services(system_service: Arc<dyn VpmService>) -> Self {
@@ -47,18 +42,14 @@ impl VPM {
     /// The agent will start the vehicle state service and the power mode state service.
     pub async fn start(&self) {
         info!("Starting VPM Agent.");
-        let (vehicle_state_sender, vehicle_state_receiver) = channel();
-        let rpc_server = RpcServer::new(vehicle_state_sender);
-        self.system_service.start_rpc_server(rpc_server);
-        self.system_service.start_vehicle_state_handler(vehicle_state_receiver).await;
+        self.system_service.start().await;
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::rpc_server::RpcServer;
-    use crate::service::MockVpmService;
+    use crate::system_service::MockVpmService;
     use crate::VPM;
     use mockall::predicate;
     use tokio::runtime::Handle;
@@ -70,8 +61,7 @@ mod tests {
         let mut mock_service = MockVpmService::default();
 
         // Expect: the publisher and the rpc server will be started.
-        mock_service.expect_start_rpc_server().times(1).return_const(());
-        mock_service.expect_start_vehicle_state_handler().times(1).return_const(());
+        mock_service.expect_start().times(1).return_const(());
 
         // When: the new agent is created, publisher and rpc servers are created.
         let agent = VPM::new_with_services(Arc::new(mock_service));
