@@ -18,7 +18,7 @@ rust_library {
         "liblog_rust",
         "libsdv_log_rust",
         "libsdvmiddleware_rpc_grpc_transport",
-        "libsdvgenerated_rpc_sdv_concal_calibratable_service",
+        "libsdvgenerated_rpc_sdv_concal_calib_calibratable_service",
         "libsdv_middleware_pubsub",
         "libsdvmiddleware_common",
     ],

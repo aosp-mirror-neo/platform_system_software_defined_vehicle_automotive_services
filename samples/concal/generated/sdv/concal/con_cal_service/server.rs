@@ -4,14 +4,12 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::ConCalService;
-use concal_api::calibration::StartCalibrationRequest;
-use concal_api::calibration::StartCalibrationResponse;
-use concal_api::calibration::StopCalibrationRequest;
-use concal_api::calibration::StopCalibrationResponse;
 use concal_api::concal_service::AddOrUpdateConfigOverrideRequest;
 use concal_api::concal_service::AddOrUpdateConfigOverrideResponse;
 use concal_api::concal_service::CancelConfigUpdateRequest;
 use concal_api::concal_service::CancelConfigUpdateResponse;
+use concal_api::concal_service::FinishCalibrationRequest;
+use concal_api::concal_service::FinishCalibrationResponse;
 use concal_api::concal_service::FinishConfigUpdateRequest;
 use concal_api::concal_service::FinishConfigUpdateResponse;
 use concal_api::concal_service::GetCalibrationConfigIdsRequest;
@@ -32,6 +30,8 @@ use concal_api::concal_service::ResetRequest;
 use concal_api::concal_service::ResetResponse;
 use concal_api::concal_service::RollbackRequest;
 use concal_api::concal_service::RollbackResponse;
+use concal_api::concal_service::StartCalibrationRequest;
+use concal_api::concal_service::StartCalibrationResponse;
 use concal_api::concal_service::StartConfigUpdateRequest;
 use concal_api::concal_service::StartConfigUpdateResponse;
 use concal_api::concal_service::UninstallConfigRequest;
@@ -146,9 +146,9 @@ impl ConCalServiceServer {
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<StopCalibrationRequest, StopCalibrationResponse>(
-            Box::new(move |req| callback.stop_calibration(req)),
-            "ConCalService::stop_calibration",
+        serve_method::<FinishCalibrationRequest, FinishCalibrationResponse>(
+            Box::new(move |req| callback.finish_calibration(req)),
+            "ConCalService::finish_calibration",
             self.transport.as_ref(),
         );
         let callback = service.clone();

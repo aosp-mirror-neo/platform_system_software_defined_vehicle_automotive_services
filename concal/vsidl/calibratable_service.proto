@@ -5,10 +5,10 @@
 
 syntax = "proto3";
 
-package sdv.concal;
+package sdv.concal.calib;
 
 import "configuration.proto";
-import "calibration.proto";
+import "status.proto";
 
 // Interface for SDV service bundles which want their configs to be calibrated.
 // The same CalibratableService can get multiple sequential calibration requests for the same config
@@ -28,6 +28,16 @@ service CalibratableService {
   rpc FinishCalibration(FinishCalibrationRequest) returns (FinishCalibrationResponse) {}
 }
 
+message StartCalibrationRequest {
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message StartCalibrationResponse {
+  // Status message if request fails.
+  Status status = 1;
+}
+
 message UpdateConfigRequest {
   // Unique config identifier, which has to be calibrated.
   ConfigId config_id = 1;
@@ -44,9 +54,11 @@ message FinishCalibrationRequest {
 }
 
 message FinishCalibrationResponse {
-  // Unique config identifier, whose calibration finished.
-  ConfigId config_id = 1;
+  // Status message if request fails.
+  // In case of failure, other message values are either not set or their correctness is not
+  // guaranteed.
+  Status status = 1;
 
-  // The last used calibration values.
+  // The last used calibration values, if the status is successful.
   bytes config = 2;
 }

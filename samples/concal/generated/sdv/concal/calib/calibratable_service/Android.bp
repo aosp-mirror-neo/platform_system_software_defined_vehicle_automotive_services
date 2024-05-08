@@ -6,8 +6,8 @@ package {
 }
 
 rust_library {
-    name: "libsdvgenerated_rpc_sdv_concal_calibratable_service",
-    crate_name: "sdvgenerated_rpc_sdv_concal_calibratable_service",
+    name: "libsdvgenerated_rpc_sdv_concal_calib_calibratable_service",
+    crate_name: "sdvgenerated_rpc_sdv_concal_calib_calibratable_service",
     srcs: [
         "mod.rs",
     ],

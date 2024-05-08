@@ -5,10 +5,10 @@
 
 use concal_api::calibratable_service::FinishCalibrationRequest;
 use concal_api::calibratable_service::FinishCalibrationResponse;
+use concal_api::calibratable_service::StartCalibrationRequest;
+use concal_api::calibratable_service::StartCalibrationResponse;
 use concal_api::calibratable_service::UpdateConfigRequest;
 use concal_api::calibratable_service::UpdateConfigResponse;
-use concal_api::calibration::StartCalibrationRequest;
-use concal_api::calibration::StartCalibrationResponse;
 use sdvmiddleware_rpc::RpcResult;
 
 /// An auto-generated RPC interface.

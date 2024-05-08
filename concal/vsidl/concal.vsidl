@@ -16,12 +16,12 @@ sdv_service_bundle {
 
 sdv_service_bundle {
     name: "CalibratableServer"
-    server: "CalibratableService"
+    server: "sdv.concal.calib.CalibratableService"
 }
 
 sdv_service_bundle {
     name: "CalibratableClient"
-    client: "CalibratableService"
+    client: "sdv.concal.calib.CalibratableService"
 }
 
 sdv_service_bundle {

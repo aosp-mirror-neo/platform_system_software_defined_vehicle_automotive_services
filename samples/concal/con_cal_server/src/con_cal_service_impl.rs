@@ -1,4 +1,3 @@
-use concal_api::calibration::*;
 use concal_api::concal_service::*;
 use concal_api::configuration::ConfigMetadata;
 use concal_api::configuration::ConfigOverride;
@@ -503,10 +502,10 @@ impl ConCalService for ConCalServiceImpl {
         todo!();
     }
 
-    fn stop_calibration(
+    fn finish_calibration(
         &self,
-        _request: StopCalibrationRequest,
-    ) -> RpcResult<StopCalibrationResponse> {
+        _request: FinishCalibrationRequest,
+    ) -> RpcResult<FinishCalibrationResponse> {
         todo!();
     }
 

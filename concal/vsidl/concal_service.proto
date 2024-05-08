@@ -8,7 +8,6 @@ syntax = "proto3";
 package sdv.concal;
 
 import "configuration.proto";
-import "calibration.proto";
 import "status.proto";
 
 import "google/protobuf/descriptor.proto";
@@ -86,17 +85,17 @@ service ConCalService {
   rpc GetCalibrationConfigIds(GetCalibrationConfigIdsRequest)
       returns (GetCalibrationConfigIdsResponse) {}
 
-  // Start calibration for a specified config.
+  // Starts calibration for a specified config.
   rpc StartCalibration(StartCalibrationRequest) returns (StartCalibrationResponse) {}
 
-  // Update a calibration config.
+  // Updates a calibration config.
   // New config values are stored in memory.
   rpc UpdateConfigForCalibration(UpdateConfigForCalibrationRequest)
       returns (UpdateConfigForCalibrationResponse) {}
 
-  // Stops calibration for a specified config
-  // and resets config to the original values.
-  rpc StopCalibration(StopCalibrationRequest) returns (StopCalibrationResponse) {}
+  // Finishes calibration for a specified config
+  // and resets the calibration config to the original values.
+  rpc FinishCalibration(FinishCalibrationRequest) returns (FinishCalibrationResponse) {}
 
   // Allows to register for config update and retrieve the current version of the config.
   // Returns an error:
@@ -328,6 +327,16 @@ message GetCalibrationConfigIdsResponse {
   Status status = 2;
 }
 
+message StartCalibrationRequest {
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message StartCalibrationResponse {
+  // Status message if request fails.
+  Status status = 1;
+}
+
 message UpdateConfigForCalibrationRequest {
   // Unique config identifier, which has to be calibrated.
   ConfigId config_id = 1;
@@ -339,4 +348,19 @@ message UpdateConfigForCalibrationRequest {
 message UpdateConfigForCalibrationResponse {
   // Status message if request fails.
   Status status = 1;
+}
+
+message FinishCalibrationRequest {
+  // Unique config identifier, whose calibration has to be finished.
+  ConfigId config_id = 1;
+}
+
+message FinishCalibrationResponse {
+  // Status message if request fails.
+  // In case of failure, other message values are either not set or their correctness is not
+  // guaranteed.
+  Status status = 1;
+
+  // The last used calibration values, if the status is successful.
+  bytes config = 2;
 }
