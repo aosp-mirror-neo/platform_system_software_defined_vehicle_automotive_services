@@ -2,6 +2,7 @@
 
 // This is an experimental version for the ConCal API.
 // It is unstable until API council approval.
+// This API can be changed when update story, unit types, and ACLs are defined.
 
 syntax = "proto3";
 
@@ -12,7 +13,7 @@ import "status.proto";
 
 import "google/protobuf/descriptor.proto";
 
-// Generally available Configuration/Calibration Service (ConCal) APIs for use by
+// Generally available Configuration/Calibration Service Bundle (ConCal) APIs for use by
 // SDV-Services.
 // ConCal delivers customized verhicle-specific service bundles' configurations.
 service ConCalService {
@@ -29,7 +30,7 @@ service ConCalService {
   rpc RegisterConfigMetadata(RegisterConfigMetadataRequest)
       returns (RegisterConfigMetadataResponse) {}
 
-  // Returns the config metadata for the service.
+  // Returns the config metadata for the defined config.
   rpc GetConfigMetadata(GetConfigMetadataRequest) returns (GetConfigMetadataResponse) {}
 
   // Starts a configuration update.
@@ -37,44 +38,52 @@ service ConCalService {
   // The method will return error if another update session is in progress.
   // Each update can include multiple overrides.
   // This API should be only available to the privileged service bundles.
+  // This API can be changed when update story is defined.
   rpc StartConfigUpdate(StartConfigUpdateRequest) returns (StartConfigUpdateResponse) {}
 
   // Adds or updates a config override.
   // Dependent on the sender of the message, configuration service should assign
   // a priority to it. Executed before StartConfigUpdate() and FinishConfigUpdate(). This API
   // should be only available to the privileged service bundles.
+  // This API can be changed when update story is defined.
   rpc AddOrUpdateConfigOverride(AddOrUpdateConfigOverrideRequest)
       returns (AddOrUpdateConfigOverrideResponse) {}
 
   // Removes a config override.
   // This API should be only available to the privileged service bundles.
+  // This API can be changed when update story is defined.
   rpc RemoveConfigOverride(RemoveConfigOverrideRequest) returns (RemoveConfigOverrideResponse) {}
 
   // Cancels an update. All ConfigOverrides sent after the last
-  // StartConfigUpdate() and now() are reverted.
+  // StartConfigUpdate() and now are reverted.
   // This API should be only available to the privileged service bundles.
+  // This API can be changed when update story is defined.
   rpc CancelConfigUpdate(CancelConfigUpdateRequest) returns (CancelConfigUpdateResponse) {}
 
   // Marks the end of configuration update.
   // A new configuration snapshot is calculated and stored persistently.
   // This API should be only available to the privileged service bundles.
+  // This API can be changed when update story is defined.
   rpc FinishConfigUpdate(FinishConfigUpdateRequest) returns (FinishConfigUpdateResponse) {}
 
   // Rolls back the last update to the previous configuration snapshot.
   // This API should be only available to the privileged service bundles.
   // Can't be performed while another update is in progress.
+  // This API can be changed when update story is defined.
   rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
 
   // Removes all configuration updates and default configurations.
   // This API should be only available to the privileged service bundles.
   // Cleans all services up to the factory state. Can't be
   // performed while another update is in progress.
+  // This API can be changed when update story is defined.
   rpc Reset(ResetRequest) returns (ResetResponse) {}
 
   // Removes a configuration.
   // Called when a service is uninstalled.
   // This API should be only available to the privileged service bundles.
   // Can't be performed while another update is in progress.
+  // This API can be changed when update story is defined.
   rpc UninstallConfig(UninstallConfigRequest) returns (UninstallConfigResponse) {}
 
   // Calibration functionality.
@@ -103,11 +112,13 @@ service ConCalService {
   // - if the config is not stored in the ConCal,
   // - if multiple configs match the request.
   // The caller should implement ConfigSubscriberService interface.
+  // This API can be changed when update story is defined.
   rpc GetConfigAndRegisterForConfigUpdate(GetConfigAndRegisterForConfigUpdateRequest)
       returns (GetConfigAndRegisterForConfigUpdateResponse) {}
 
   // Allows to unregister from config update.
   // Service should unregister from updates at shutdown.
+  // This API can be changed when update story is defined.
   rpc UnregisterFromConfigUpdate(UnregisterFromConfigUpdateRequest)
       returns (UnregisterFromConfigUpdateResponse) {}
 
@@ -195,7 +206,7 @@ message AddOrUpdateConfigOverrideRequest {
   // Random number which exists only during the update transaction.
   int64 update_id = 1;
 
-  // At least one.
+  // At least one value should be provided.
   repeated ConfigOverride configOverride = 2;
 }
 
