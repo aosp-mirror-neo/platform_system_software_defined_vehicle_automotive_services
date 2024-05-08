@@ -25,8 +25,8 @@ use tokio::task;
 #[async_trait]
 // The trait encapsulates the functions of the service bundle.
 // It also helps with testing the VPM agent while mocking the middleware generated code.
-pub trait VpmService {
-    // Starts the rpc server that receives incoming RPC requests from the OEM to set the vehicle state in the SDV VM.
+pub trait VpmService: Send + Sync {
+    // Starts the rpc server that receives incoming RPC requests from the OEM to set the vehicle and power state in the SDV VM.
     async fn start(&self);
 }
 
@@ -78,7 +78,7 @@ impl VpmService for VpmServiceImpl {
 }
 
 /// A listener struct that handles incoming RPC requests for setting the vpm.
-pub struct RpcServer {
+struct RpcServer {
     vehicle_state_sender: Sender<VpmVehicleState>,
 }
 
