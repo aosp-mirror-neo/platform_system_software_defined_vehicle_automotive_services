@@ -20,15 +20,11 @@ pub struct DiagnosticsManagerServiceCallbacks {}
 struct Subscriptions {}
 
 pub struct DiagnosticsManagerService {
-
-
     pub sdv_diagnostics_manager_diagnostics_manager_server: sdvgenerated_rpc_sdv_diagnostics_manager_diagnostics_manager::server::DiagnosticsManagerServer,
-
     sdv_diagnostics_data_item_data_item_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::client::DataItemClient>>>,
     sdv_diagnostics_routine_control_routine_control_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control::client::RoutineControlClient>>>,
     sdv_diagnostics_io_control_io_control_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_io_control_io_control::client::IOControlClient>>>,
     sdv_diagnostics_fault_fault_listener_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::client::FaultListenerClient>>>,
-
 
 }
 
@@ -37,16 +33,12 @@ impl DiagnosticsManagerService {
     pub fn new() -> Self {
         let rpc_transport = GrpcServerTransport::new("DiagnosticsManagerService");
 
-        DiagnosticsManagerService {
-
-
+        DiagnosticsManagerService{
             sdv_diagnostics_manager_diagnostics_manager_server: sdvgenerated_rpc_sdv_diagnostics_manager_diagnostics_manager::server::DiagnosticsManagerServer::new(rpc_transport.clone()),
-
             sdv_diagnostics_data_item_data_item_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_diagnostics_routine_control_routine_control_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_diagnostics_io_control_io_control_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_diagnostics_fault_fault_listener_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
-
 
         }
     }
