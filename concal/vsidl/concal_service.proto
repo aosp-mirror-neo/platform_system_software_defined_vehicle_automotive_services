@@ -73,10 +73,10 @@ service ConCalService {
   rpc Reset(ResetRequest) returns (ResetResponse) {}
 
   // Removes a configuration.
-  // Called when a service is deinstalled.
+  // Called when a service is uninstalled.
   // This API should be only available to the privileged service bundles.
   // Can't be performed while another update is in progress.
-  rpc DeinstallConfig(DeinstallConfigRequest) returns (DeinstallConfigResponse) {}
+  rpc UninstallConfig(UninstallConfigRequest) returns (UninstallConfigResponse) {}
 
   // Calibration functionality.
   // Should be disabled for the user builds.
@@ -255,12 +255,12 @@ message ResetResponse {
   Status status = 1;
 }
 
-message DeinstallConfigRequest {
+message UninstallConfigRequest {
   // Unique config identifier.
   ConfigId config_id = 1;
 }
 
-message DeinstallConfigResponse {
+message UninstallConfigResponse {
   // Status message if request fails.
   Status status = 1;
 }

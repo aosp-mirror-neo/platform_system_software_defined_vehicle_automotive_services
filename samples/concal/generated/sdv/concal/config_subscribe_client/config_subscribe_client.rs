@@ -19,11 +19,7 @@ pub struct ConfigSubscribeClientCallbacks {}
 struct Subscriptions {}
 
 pub struct ConfigSubscribeClient {
-
-
-
     sdv_concal_config_subscriber_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_concal_config_subscriber_service::client::ConfigSubscriberServiceClient>>>,
-
 
 }
 

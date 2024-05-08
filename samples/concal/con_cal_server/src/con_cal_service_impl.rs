@@ -482,10 +482,10 @@ impl ConCalService for ConCalServiceImpl {
         })
     }
 
-    fn deinstall_config(
+    fn uninstall_config(
         &self,
-        _request: DeinstallConfigRequest,
-    ) -> RpcResult<DeinstallConfigResponse> {
+        _request: UninstallConfigRequest,
+    ) -> RpcResult<UninstallConfigResponse> {
         todo!();
     }
 

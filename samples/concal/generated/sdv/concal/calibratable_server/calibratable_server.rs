@@ -28,12 +28,8 @@ impl CalibratableServer {
     pub fn new() -> Self {
         let rpc_transport = GrpcServerTransport::new("CalibratableServer");
 
-        CalibratableServer {
-
-
+        CalibratableServer{
             sdv_concal_calibratable_service_server: sdvgenerated_rpc_sdv_concal_calibratable_service::server::CalibratableServiceServer::new(rpc_transport.clone()),
-
-
 
         }
     }
