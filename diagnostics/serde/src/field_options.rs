@@ -2,6 +2,7 @@
 use protobuf::reflect::FieldDescriptor;
 use protobuf::Message;
 use protobuf::UnknownValueRef::{self, *};
+use sdv_vsidl_common::field_options::FieldOptions as VsidlFieldOptions;
 use std::num::TryFromIntError;
 use std::result::Result;
 use vsidl_syntax::diagnostics::{ByteSize, FixedPointEncoding};
@@ -25,18 +26,6 @@ pub(crate) trait FieldOptions {
     }
 }
 
-/// Helper function for retrieving `usize` value of a field option by its id.
-fn get_size_option(
-    field_descriptor: &FieldDescriptor,
-    option_id: u32,
-) -> Result<Option<usize>, TryFromIntError> {
-    if let Some(value) = get_varint_option(field_descriptor, option_id) {
-        value.try_into().map(Some)
-    } else {
-        Ok(None)
-    }
-}
-
 /// Helper function for retrieving `u64` value of a field option by its id.
 fn get_varint_option(field_descriptor: &FieldDescriptor, option_id: u32) -> Option<u64> {
     get_option_by_id(field_descriptor, option_id).and_then(|unknown_value| {
@@ -55,15 +44,11 @@ fn get_option_by_id(field_descriptor: &FieldDescriptor, option_id: u32) -> Optio
 
 impl FieldOptions for FieldDescriptor {
     fn repeated_field_count(&self) -> Result<Option<usize>, TryFromIntError> {
-        // id of sdv.vsidl.repeated_field_max_count field option
-        const REPEATED_FIELD_COUNT: u32 = 50050;
-        get_size_option(self, REPEATED_FIELD_COUNT)
+        VsidlFieldOptions::repeated_field_max_count(self)
     }
 
     fn variable_type_size(&self) -> Result<Option<usize>, TryFromIntError> {
-        // id of sdv.vsidl.variable_type_max_size field option
-        const VARIABLE_TYPE_SIZE: u32 = 50051;
-        get_size_option(self, VARIABLE_TYPE_SIZE)
+        VsidlFieldOptions::variable_type_max_size(self)
     }
 
     fn primitive_byte_size(&self) -> Option<ByteSize> {

@@ -13,6 +13,7 @@ rust_defaults {
         "libprotobuf",
         "libserde",
         "libvsidl_syntax",
+        "libsdv_vsidl_common",
         "libmockall",
         "libsdv_config_provider",
     ],
