@@ -19,21 +19,15 @@ pub struct CalibratableClientCallbacks {}
 struct Subscriptions {}
 
 pub struct CalibratableClient {
-    sdv_concal_calibratable_service_clients: parking_lot::RwLock<
-        std::collections::HashMap<
-            String,
-            Arc<
-                sdvgenerated_rpc_sdv_concal_calibratable_service::client::CalibratableServiceClient,
-            >,
-        >,
-    >,
+    sdv_concal_calib_calibratable_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_concal_calib_calibratable_service::client::CalibratableServiceClient>>>,
+
 }
 
 impl CalibratableClient {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
         CalibratableClient {
-            sdv_concal_calibratable_service_clients: parking_lot::RwLock::new(
+            sdv_concal_calib_calibratable_service_clients: parking_lot::RwLock::new(
                 std::collections::HashMap::new(),
             ),
         }
@@ -53,19 +47,16 @@ impl CalibratableClient {
     }
 
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_sdv_concal_calibratable_service_client(
+    pub fn get_sdv_concal_calib_calibratable_service_client(
         &self,
         target_service_bundle: &str,
-    ) -> Arc<sdvgenerated_rpc_sdv_concal_calibratable_service::client::CalibratableServiceClient>
-    {
-        sdvmiddleware_common::create_if_not_exist::<
-            sdvgenerated_rpc_sdv_concal_calibratable_service::client::CalibratableServiceClient,
-        >(
-            &self.sdv_concal_calibratable_service_clients,
+    ) -> Arc<
+        sdvgenerated_rpc_sdv_concal_calib_calibratable_service::client::CalibratableServiceClient,
+    > {
+        sdvmiddleware_common::create_if_not_exist::<sdvgenerated_rpc_sdv_concal_calib_calibratable_service::client::CalibratableServiceClient>(
+            &self.sdv_concal_calib_calibratable_service_clients,
             target_service_bundle,
-            Box::new(|target| {
-                sdvgenerated_rpc_sdv_concal_calibratable_service::client::CalibratableServiceClient::new(Box::new(GrpcClientTransport::new(target)))
-            }),
+            Box::new(|target| sdvgenerated_rpc_sdv_concal_calib_calibratable_service::client::CalibratableServiceClient::new(Box::new(GrpcClientTransport::new(target)))),
         )
     }
 }

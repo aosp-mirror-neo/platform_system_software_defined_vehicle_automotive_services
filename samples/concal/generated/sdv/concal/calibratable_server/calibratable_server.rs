@@ -19,8 +19,8 @@ pub struct CalibratableServerCallbacks {}
 struct Subscriptions {}
 
 pub struct CalibratableServer {
-    pub sdv_concal_calibratable_service_server:
-        sdvgenerated_rpc_sdv_concal_calibratable_service::server::CalibratableServiceServer,
+    pub sdv_concal_calib_calibratable_service_server:
+        sdvgenerated_rpc_sdv_concal_calib_calibratable_service::server::CalibratableServiceServer,
 }
 
 impl CalibratableServer {
@@ -29,7 +29,7 @@ impl CalibratableServer {
         let rpc_transport = GrpcServerTransport::new("CalibratableServer");
 
         CalibratableServer{
-            sdv_concal_calibratable_service_server: sdvgenerated_rpc_sdv_concal_calibratable_service::server::CalibratableServiceServer::new(rpc_transport.clone()),
+            sdv_concal_calib_calibratable_service_server: sdvgenerated_rpc_sdv_concal_calib_calibratable_service::server::CalibratableServiceServer::new(rpc_transport.clone()),
 
         }
     }
