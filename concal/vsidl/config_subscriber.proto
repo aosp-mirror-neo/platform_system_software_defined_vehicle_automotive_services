@@ -2,6 +2,7 @@
 
 // This is an experimental version for the ConCal API.
 // It is unstable until API council approval.
+// This API can be changed when update story is defined.
 
 // Interface for SDV services which want to get notified about changes to a specific config, before
 // the config change becomes active.
