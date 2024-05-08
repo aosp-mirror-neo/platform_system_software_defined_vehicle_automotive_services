@@ -33,7 +33,7 @@ sdv_service_bundle {
         }
 
         event {
-            id: "event1"
+            id: "event.1"
             extended_data_message_name: "sdv.sample.diagnostics.FirstEventExt"
             fault_listener_mask: 0x3
         }
@@ -68,7 +68,7 @@ sdv_service_bundle {
         }
 
         event {
-            id: "event2"
+            id: "event.2"
             extended_data_message_name: "sdv.sample.diagnostics.SecondEventExt"
             fault_listener_mask: 0x1
         }

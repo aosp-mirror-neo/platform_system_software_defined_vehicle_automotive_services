@@ -55,8 +55,8 @@ impl sdv_middleware_pubsub::EnumTopic for EventTopics {
     /// Returns string name of the topic
     fn get_name(&self) -> &str {
         match self {
-            EventTopics::Event1 => "diagnostics_provider_service1.event.event1",
-            EventTopics::Event2 => "diagnostics_provider_service2.event.event2",
+            EventTopics::Event1 => "diagnostics_provider_service1.event.event.1",
+            EventTopics::Event2 => "diagnostics_provider_service2.event.event.2",
         }
     }
 }
@@ -296,7 +296,7 @@ fn main() {
     println!(
         "Sending fault status update without extended data: {:?}",
         fault_listener_client.on_fault_status_change(OnFaultStatusChangeRequest {
-            id: "event1".to_string(),
+            id: "event.1".to_string(),
             status: (StatusMask::CONFIRMED.value() | StatusMask::WARNING_INDICATOR_ENABLED.value())
                 as u32,
             ..Default::default()

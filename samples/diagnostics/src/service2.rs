@@ -32,7 +32,7 @@ fn main() {
 
     service
         .diagnostics
-        .publish_event2_event(Event::new(
+        .publish_event_2_event(Event::new(
             Status::PRE_FAIL,
             Some(SecondEventExt { ..Default::default() }),
         ))
