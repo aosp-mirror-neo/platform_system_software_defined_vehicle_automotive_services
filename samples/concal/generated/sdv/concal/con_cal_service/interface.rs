@@ -11,8 +11,6 @@ use concal_api::concal_service::AddOrUpdateConfigOverrideRequest;
 use concal_api::concal_service::AddOrUpdateConfigOverrideResponse;
 use concal_api::concal_service::CancelConfigUpdateRequest;
 use concal_api::concal_service::CancelConfigUpdateResponse;
-use concal_api::concal_service::DeinstallConfigRequest;
-use concal_api::concal_service::DeinstallConfigResponse;
 use concal_api::concal_service::FinishConfigUpdateRequest;
 use concal_api::concal_service::FinishConfigUpdateResponse;
 use concal_api::concal_service::GetCalibrationConfigIdsRequest;
@@ -35,6 +33,8 @@ use concal_api::concal_service::RollbackRequest;
 use concal_api::concal_service::RollbackResponse;
 use concal_api::concal_service::StartConfigUpdateRequest;
 use concal_api::concal_service::StartConfigUpdateResponse;
+use concal_api::concal_service::UninstallConfigRequest;
+use concal_api::concal_service::UninstallConfigResponse;
 use concal_api::concal_service::UnregisterFromCalibrationUpdateRequest;
 use concal_api::concal_service::UnregisterFromCalibrationUpdateResponse;
 use concal_api::concal_service::UnregisterFromConfigUpdateRequest;
@@ -87,10 +87,10 @@ pub trait ConCalService: Send + Sync {
     /// RPC method declared in the interface.
     fn reset(&self, request: ResetRequest) -> RpcResult<ResetResponse>;
     /// RPC method declared in the interface.
-    fn deinstall_config(
+    fn uninstall_config(
         &self,
-        request: DeinstallConfigRequest,
-    ) -> RpcResult<DeinstallConfigResponse>;
+        request: UninstallConfigRequest,
+    ) -> RpcResult<UninstallConfigResponse>;
     /// RPC method declared in the interface.
     fn get_calibration_config_ids(
         &self,

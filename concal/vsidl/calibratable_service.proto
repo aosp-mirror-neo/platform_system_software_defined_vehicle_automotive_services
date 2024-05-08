@@ -13,7 +13,7 @@ import "calibration.proto";
 // Interface for SDV service bundles which want their configs to be calibrated.
 // The same CalibratableService can get multiple sequential calibration requests for the same config
 // and multiple configs can be calibrated in parallel.
-// Only ConCal can use call this API.
+// Only ConCal can use this API.
 service CalibratableService {
   // Creates a new calibration session, in which a calibrated config is temporarily changed as long
   // as the session is open. Returns an error if a calibration config
