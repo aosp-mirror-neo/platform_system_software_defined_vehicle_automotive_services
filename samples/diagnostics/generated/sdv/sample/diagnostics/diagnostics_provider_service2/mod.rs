@@ -7,7 +7,6 @@ pub mod diagnostics_provider_service2;
 pub mod topics;
 
 pub use sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::interface as sdv_diagnostics_data_item_data_item_interface;
-
 pub use sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::interface as sdv_diagnostics_fault_fault_listener_interface;
 
 pub mod extensions;
