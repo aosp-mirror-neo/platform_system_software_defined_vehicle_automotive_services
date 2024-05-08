@@ -12,8 +12,6 @@ use concal_api::concal_service::AddOrUpdateConfigOverrideRequest;
 use concal_api::concal_service::AddOrUpdateConfigOverrideResponse;
 use concal_api::concal_service::CancelConfigUpdateRequest;
 use concal_api::concal_service::CancelConfigUpdateResponse;
-use concal_api::concal_service::DeinstallConfigRequest;
-use concal_api::concal_service::DeinstallConfigResponse;
 use concal_api::concal_service::FinishConfigUpdateRequest;
 use concal_api::concal_service::FinishConfigUpdateResponse;
 use concal_api::concal_service::GetCalibrationConfigIdsRequest;
@@ -36,6 +34,8 @@ use concal_api::concal_service::RollbackRequest;
 use concal_api::concal_service::RollbackResponse;
 use concal_api::concal_service::StartConfigUpdateRequest;
 use concal_api::concal_service::StartConfigUpdateResponse;
+use concal_api::concal_service::UninstallConfigRequest;
+use concal_api::concal_service::UninstallConfigResponse;
 use concal_api::concal_service::UnregisterFromCalibrationUpdateRequest;
 use concal_api::concal_service::UnregisterFromCalibrationUpdateResponse;
 use concal_api::concal_service::UnregisterFromConfigUpdateRequest;
@@ -122,9 +122,9 @@ impl ConCalServiceServer {
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<DeinstallConfigRequest, DeinstallConfigResponse>(
-            Box::new(move |req| callback.deinstall_config(req)),
-            "ConCalService::deinstall_config",
+        serve_method::<UninstallConfigRequest, UninstallConfigResponse>(
+            Box::new(move |req| callback.uninstall_config(req)),
+            "ConCalService::uninstall_config",
             self.transport.as_ref(),
         );
         let callback = service.clone();

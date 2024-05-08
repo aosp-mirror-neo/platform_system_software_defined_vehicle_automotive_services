@@ -13,9 +13,6 @@ import "status.proto";
 message StartCalibrationRequest {
   // Unique config identifier.
   ConfigId config_id = 1;
-
-  // Serialized config.
-  bytes config = 2;
 }
 
 message StartCalibrationResponse {

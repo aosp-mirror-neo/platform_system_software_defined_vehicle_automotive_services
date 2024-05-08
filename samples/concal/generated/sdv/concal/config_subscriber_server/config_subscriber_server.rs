@@ -19,11 +19,7 @@ pub struct ConfigSubscriberServerCallbacks {}
 struct Subscriptions {}
 
 pub struct ConfigSubscriberServer {
-
-
     pub sdv_concal_config_subscriber_service_server: sdvgenerated_rpc_sdv_concal_config_subscriber_service::server::ConfigSubscriberServiceServer,
-
-
 
 }
 
@@ -32,12 +28,8 @@ impl ConfigSubscriberServer {
     pub fn new() -> Self {
         let rpc_transport = GrpcServerTransport::new("ConfigSubscriberServer");
 
-        ConfigSubscriberServer {
-
-
+        ConfigSubscriberServer{
             sdv_concal_config_subscriber_service_server: sdvgenerated_rpc_sdv_concal_config_subscriber_service::server::ConfigSubscriberServiceServer::new(rpc_transport.clone()),
-
-
 
         }
     }
