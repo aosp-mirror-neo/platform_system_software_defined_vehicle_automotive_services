@@ -33,8 +33,12 @@ message RoutineResponseParameter {
   string echo = 1 [(sdv.vsidl.variable_type_max_size) = 20];
 }
 
-message FirstEventExt {}
+message FirstEventExt {
+  int32 status = 1;
+}
 
-message SecondEventExt {}
+message SecondEventExt {
+  string status = 1 [(sdv.vsidl.variable_type_max_size) = 10];
+}
 
 message LowPressureEventExt {}
