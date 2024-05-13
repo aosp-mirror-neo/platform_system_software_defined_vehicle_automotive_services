@@ -30,13 +30,15 @@ fn main() {
 
     println!("Diagnostics provider service bundle started.");
 
-    service
-        .diagnostics
-        .publish_event_2_event(Event::new(
-            Status::PRE_FAIL,
-            Some(SecondEventExt { ..Default::default() }),
-        ))
-        .unwrap();
+    let publish_result = service.diagnostics.publish_event_2_event(Event::new(
+        Status::PRE_FAIL,
+        Some(SecondEventExt {
+            status: "too long status message".to_string(),
+            ..Default::default()
+        }),
+    ));
+
+    println!("Publishing result, expected failure, got {publish_result:#?}");
 
     loop {
         std::thread::park();
