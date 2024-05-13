@@ -9,6 +9,7 @@ syntax = "proto3";
 package sdv.concal;
 
 import "configuration.proto";
+import "config_override.proto";
 import "status.proto";
 
 import "google/protobuf/descriptor.proto";

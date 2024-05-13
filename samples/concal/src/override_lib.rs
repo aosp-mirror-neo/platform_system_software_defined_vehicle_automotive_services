@@ -61,7 +61,8 @@ impl ProtoManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use concal_api::configuration::ConfigOverrideKeyValue as CoPair;
+    use concal_api::config_override::config_override_key_value::Value;
+    use concal_api::config_override::ConfigOverrideKeyValue as CoPair;
     use protobuf::reflect::ReflectMapRef;
     use protobuf::reflect::{FieldDescriptor, MessageDescriptor, RuntimeType};
     use protobuf::text_format::merge_from_str;
@@ -72,6 +73,7 @@ mod tests {
     use regex::Regex;
     use sdvtestconcal_proto_rust::test_configuration::TestConfiguration as TestConfigurationProto;
     use std::collections::VecDeque;
+    use std::option::Option;
     use std::path::PathBuf;
 
     #[test]
@@ -465,14 +467,21 @@ mod tests {
             .filter(|s| !s.is_empty())
             .map(|s| s.to_string())
             .collect();
-
-        override_config_for_subkey(config, &mut subkeys, config_override.value_txtproto)
+        if config_override.has_value_txtproto() {
+            override_config_for_subkey(
+                config,
+                &mut subkeys,
+                config_override.value_txtproto().into(),
+            )
+        } else {
+            panic!("Support for Any as an override value is not implemented");
+        }
     }
 
     fn get_config_override_key_value(key: &str, value: &str) -> CoPair {
         let mut copair = CoPair::new();
         copair.key = key.into();
-        copair.value_txtproto = value.into();
+        copair.value = Option::Some(Value::ValueTxtproto(value.into()));
         copair
     }
 

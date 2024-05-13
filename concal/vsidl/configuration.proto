@@ -20,22 +20,6 @@ message ConfigMetadata {
   google.protobuf.Any default_config = 2;
 }
 
-// Key-value pair to update configuration.
-message ConfigOverrideKeyValue {
-  // A path to the config field, which will be overridden. Elements in the path are separated by
-  // dots. The last element shows which exact element should be rewritten. It might be a singular or
-  // complex field or a specific key in a map. Specifying a key as a path allows traversing to the
-  // deepest levels of the config and rewriting simple as well as complex structures.
-  // If the key is empty, the complete config will be modified.
-  string key = 1;
-
-  // A new value in the TextProto format.
-  // The provided value is merged into into the existing key's value.
-  // If no value is provided, the corresponding field, config, or a key in a map should be cleared.
-  // To change the value completely, all its fields should be redefined.
-  string value_txtproto = 2;
-}
-
 // Unique identifier for the config.
 message ConfigId {
   // The FQIN of the service bundle that owns the configuration.
@@ -43,17 +27,4 @@ message ConfigId {
 
   // The name of the config.
   string config_name = 2;
-}
-
-// A collection of changes for a specific config which should be atomically applied.
-message ConfigOverride {
-  // Override identifier defined by the caller.
-  // Unique per caller.
-  string override_id = 1;
-
-  // Unique config identifier.
-  ConfigId config_id = 2;
-
-  // Key-value pairs for keys to be updated in the config.
-  repeated ConfigOverrideKeyValue pairs = 3;
 }

@@ -1,6 +1,6 @@
 use concal_api::concal_service::*;
+use concal_api::config_override::ConfigOverride;
 use concal_api::configuration::ConfigMetadata;
-use concal_api::configuration::ConfigOverride;
 use concal_api::status::{ResponseCode, Status};
 use protobuf::EnumOrUnknown;
 use protobuf::Message;
@@ -549,8 +549,9 @@ impl ConCalService for ConCalServiceImpl {
 mod tests {
     #![allow(unused_imports)]
     use super::*;
+    use concal_api::config_override::config_override_key_value::Value;
+    use concal_api::config_override::ConfigOverrideKeyValue;
     use concal_api::configuration::ConfigId;
-    use concal_api::configuration::ConfigOverrideKeyValue;
     use protobuf::descriptor::FileDescriptorSet;
     use protobuf::well_known_types::any::Any;
     use sdvtestconcal_proto_rust::test_configuration::TestConfiguration;
@@ -803,12 +804,12 @@ mod tests {
             pairs: vec![
                 ConfigOverrideKeyValue {
                     key: String::from("bool_parameter"),
-                    value_txtproto: bool_parameter.to_string(),
+                    value: Option::Some(Value::ValueTxtproto(bool_parameter.to_string())),
                     ..Default::default()
                 },
                 ConfigOverrideKeyValue {
                     key: String::from("str_parameter"),
-                    value_txtproto: str_parameter,
+                    value: Option::Some(Value::ValueTxtproto(str_parameter)),
                     ..Default::default()
                 },
             ],
