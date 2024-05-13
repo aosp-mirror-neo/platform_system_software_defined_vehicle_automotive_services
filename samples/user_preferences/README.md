@@ -1,6 +1,29 @@
-# SDV User Profile reference implementation
+# SDV User Preferences reference implementation
 
-The sample contains a reference implementation for the User Profile service, along with sample clients that illustrate how the User Profile Service APIs can be used.
+This package provides a reference implementation for the SDV  User Preferences service. The included sample services demonstrate how to effectively utilize the User Preferences Service APIs.
+
+## Included Services
+
+1. HMIService (Human Machine Interface Service)
+
+    * Purpose: Simulates actions that an AAOS (Android Automotive OS) IVI (In-Vehicle Infotainment) system would perform to modify HVAC
+    temperature settings.
+
+    * Key Interactions: Communicates with the User Preferences service to modify the HVAC settings.
+
+2. HVACService
+
+    * Purpose: Represents a service that controls the vehicle's HVAC system, providing an interface to access and adjust temperature settings.
+
+    * Key Interactions: Registers its settings in the User Preferences Service & receives commands to change HVAC settings.
+
+3. CarSeatsService
+
+    * Purpose: Represents a service that controls the position of the driver's seat.
+
+    * Key Interactions: Registers its settings in the User Preferences Service & receives commands to change seat position.
+
+    * Note: This service is specifically used within the AAOS IVI sample Java application.
 
 ## VSIDL Code Generation
 
@@ -22,7 +45,7 @@ vsidl_code_generator \
     cvd start --guest-enforce-security=false
     ```
 
-2. Run the User Profile Service
+2. Run the User Preferences Service
 
     ```bash
 
@@ -53,11 +76,11 @@ vsidl_code_generator \
 #### HMI Service output
 
 The HMI service perform the following steps:
-    1. Create a user profile with ID 1 and switch to it
+    1. Create a user with ID 1 and switch to it
     2. Subscribe to changes in the HVAC config
     3. Change the TEMPERATURE from 16 to 32
-    4. Create a user profile with ID 2 and switch to it, therefore temperature will return to the profile's default 16.
-    5. Delete the first profile with ID 1
+    4. Create a user with ID 2 and switch to it, therefore temperature will change to the default value 16.
+    5. Delete the first user with ID 1
 
 ```bash
 Creating an ephemeral user
@@ -108,7 +131,7 @@ Performing factory reset
 
 #### HVAC Service Output
 
-The HVAC service attempts to register the same configuration twice, and we expect the user profile service to ignore the second request.
+The HVAC service attempts to register the same configuration twice, and we expect the user preferences service to ignore the second request.
 Additionally HVAC service will get requests to change settings and will respond successfully with the current state.
 
 ```bash
@@ -159,7 +182,7 @@ Key ENABLED         Value Bool(false     )
 Key TEMPERATURE     Value Int64(16        )
 ```
 
-#### User Profile Service output
+#### User Preferences Service output
 
 ```bash
 UserPreferencesServer service bundle started.
