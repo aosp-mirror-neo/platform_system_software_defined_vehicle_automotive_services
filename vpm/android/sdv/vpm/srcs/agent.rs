@@ -14,17 +14,20 @@ use crate::system_service::VpmService;
 use crate::system_service::VpmServiceImpl;
 
 use log::{error, info};
+use sdv_vpm_api::power::PowerStateReport;
 use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
-use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::sync::Mutex;
+use tokio::sync::mpsc::{channel, Receiver, Sender};
+
+const POWER_STATE_CHANNEL_QUEUE_SIZE: usize = 1;
 
 /// VPM agent.
 /// The agent contains service implementation for vehicle and power mode management.
 pub struct Agent {
     system_service: Arc<dyn VpmService>,
     power_service: Arc<Mutex<dyn PowerService>>,
-    power_state_notifier: Arc<dyn PowerStateNotifier>,
+    power_state_notifier: Box<dyn PowerStateNotifier>,
 }
 
 impl Default for Agent {
@@ -39,27 +42,29 @@ impl Agent {
     pub fn new() -> Self {
         let mut vpm_bundle = VpmSystemServiceBundle::new();
         vpm_bundle.start().unwrap();
-        let power_service = Arc::new(Mutex::new(PowerServiceImpl::new()));
+        let (sender, receiver) = channel::<PowerStateReport>(POWER_STATE_CHANNEL_QUEUE_SIZE);
+        let power_service = Arc::new(Mutex::new(PowerServiceImpl::new(sender)));
         let system_service = Arc::new(VpmServiceImpl::new(Arc::new(Mutex::new(vpm_bundle))));
-        let power_state_notifier = Arc::new(PowerStateNotifierImpl::new());
+        let power_state_notifier = Box::new(PowerStateNotifierImpl::new(receiver));
         Self::new_with_services(system_service, power_service, power_state_notifier)
     }
 
     fn new_with_services(
         system_service: Arc<dyn VpmService>,
         power_service: Arc<Mutex<dyn PowerService>>,
-        power_state_notifier: Arc<dyn PowerStateNotifier>,
+        power_state_notifier: Box<dyn PowerStateNotifier>,
     ) -> Self {
         Self { system_service, power_service, power_state_notifier }
     }
 
     /// Starts the VPM agent.
     /// The agent will start the vehicle state service and the power mode state service.
-    pub async fn start(&self) {
+    pub async fn start(&mut self) {
         info!("Starting VPM Agent.");
         self.power_state_notifier.create_binder_service();
-
-        self.system_service.start(self.power_service.clone()).await;
+        let notifier_handler = self.power_state_notifier.start();
+        let system_handler = self.system_service.start(self.power_service.clone());
+        tokio::join!(notifier_handler, system_handler);
     }
 }
 
@@ -85,12 +90,14 @@ mod tests {
         mock_power_state_notifier.expect_create_binder_service().times(1).returning(|| Ok(()));
         // Expect: the publisher and the rpc server will be started.return_const(())
         mock_vpm_service.expect_start().times(1).return_const(());
+        // Expect: the power state notifier to start
+        mock_power_state_notifier.expect_start().times(1).returning(|| Ok(()));
 
         // When: the new agent is created, publisher and rpc servers are created.
-        let agent = Agent::new_with_services(
+        let mut agent = Agent::new_with_services(
             Arc::new(mock_vpm_service),
             Arc::new(Mutex::new(mock_power_service)),
-            Arc::new(mock_power_state_notifier),
+            Box::new(mock_power_state_notifier),
         );
         let _test = agent.start().await;
     }
