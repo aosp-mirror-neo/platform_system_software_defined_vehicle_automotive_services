@@ -7,5 +7,4 @@ pub mod hvac_service;
 pub mod topics;
 
 pub use sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::interface as sdv_user_preferences_user_controllable_user_controllable_service_interface;
-
 pub use sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::interface as sdv_user_preferences_user_preferences_registry_service_interface;
