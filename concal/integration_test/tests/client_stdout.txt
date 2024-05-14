@@ -39,7 +39,11 @@ Applying the following overrides:
         pairs: [
             ConfigOverrideKeyValue {
                 key: "model",
-                value_txtproto: "\"model 2\"",
+                value: Some(
+                    ValueTxtproto(
+                        "\"model 2\"",
+                    ),
+                ),
                 special_fields: SpecialFields {
                     unknown_fields: UnknownFields {
                         fields: None,
@@ -51,7 +55,11 @@ Applying the following overrides:
             },
             ConfigOverrideKeyValue {
                 key: "horizontal_resolution",
-                value_txtproto: "1920",
+                value: Some(
+                    ValueTxtproto(
+                        "1920",
+                    ),
+                ),
                 special_fields: SpecialFields {
                     unknown_fields: UnknownFields {
                         fields: None,
@@ -63,7 +71,11 @@ Applying the following overrides:
             },
             ConfigOverrideKeyValue {
                 key: "vertical_resolution",
-                value_txtproto: "1080",
+                value: Some(
+                    ValueTxtproto(
+                        "1080",
+                    ),
+                ),
                 special_fields: SpecialFields {
                     unknown_fields: UnknownFields {
                         fields: None,
@@ -75,7 +87,11 @@ Applying the following overrides:
             },
             ConfigOverrideKeyValue {
                 key: "x_axis_field_of_view",
-                value_txtproto: "90.0",
+                value: Some(
+                    ValueTxtproto(
+                        "90.0",
+                    ),
+                ),
                 special_fields: SpecialFields {
                     unknown_fields: UnknownFields {
                         fields: None,
@@ -87,7 +103,11 @@ Applying the following overrides:
             },
             ConfigOverrideKeyValue {
                 key: "y_axis_field_of_view",
-                value_txtproto: "90.0",
+                value: Some(
+                    ValueTxtproto(
+                        "90.0",
+                    ),
+                ),
                 special_fields: SpecialFields {
                     unknown_fields: UnknownFields {
                         fields: None,
@@ -99,7 +119,11 @@ Applying the following overrides:
             },
             ConfigOverrideKeyValue {
                 key: "is_rgb",
-                value_txtproto: "true",
+                value: Some(
+                    ValueTxtproto(
+                        "true",
+                    ),
+                ),
                 special_fields: SpecialFields {
                     unknown_fields: UnknownFields {
                         fields: None,

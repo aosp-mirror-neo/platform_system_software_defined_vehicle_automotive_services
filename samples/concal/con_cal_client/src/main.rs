@@ -1,7 +1,9 @@
 // Copyright 2023 Google LLC
 #![allow(missing_docs)]
 use concal_api::concal_service::*;
-use concal_api::configuration::{ConfigId, ConfigMetadata, ConfigOverride, ConfigOverrideKeyValue};
+use concal_api::config_override::config_override_key_value::Value;
+use concal_api::config_override::{ConfigOverride, ConfigOverrideKeyValue};
+use concal_api::configuration::{ConfigId, ConfigMetadata};
 use concal_api::status::ResponseCode;
 use protobuf::descriptor::FileDescriptorSet as FdSet;
 use protobuf::well_known_types::any::Any;
@@ -155,37 +157,37 @@ fn overrides(config_id: &ConfigId) -> Vec<ConfigOverride> {
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("model"),
-        value_txtproto: String::from("\"model 2\""),
+        value: Option::Some(Value::ValueTxtproto(String::from("\"model 2\""))),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("horizontal_resolution"),
-        value_txtproto: String::from("1920"),
+        value: Option::Some(Value::ValueTxtproto(String::from("1920"))),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("vertical_resolution"),
-        value_txtproto: String::from("1080"),
+        value: Option::Some(Value::ValueTxtproto(String::from("1080"))),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("x_axis_field_of_view"),
-        value_txtproto: String::from("90.0"),
+        value: Option::Some(Value::ValueTxtproto(String::from("90.0"))),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("y_axis_field_of_view"),
-        value_txtproto: String::from("90.0"),
+        value: Option::Some(Value::ValueTxtproto(String::from("90.0"))),
         ..Default::default()
     });
 
     overrides.pairs.push(ConfigOverrideKeyValue {
         key: String::from("is_rgb"),
-        value_txtproto: String::from("true"),
+        value: Option::Some(Value::ValueTxtproto(String::from("true"))),
         ..Default::default()
     });
 

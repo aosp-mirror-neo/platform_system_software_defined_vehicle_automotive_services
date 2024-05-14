@@ -1,0 +1,44 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+// This is an experimental version for the ConCal API.
+// It is unstable until API council approval.
+
+syntax = "proto3";
+
+package sdv.concal;
+
+import "google/protobuf/any.proto";
+import "configuration.proto";
+
+// Key-value pair to update configuration.
+message ConfigOverrideKeyValue {
+  // A path to the config field, which will be overridden. Elements in the path are separated by
+  // dots. The last element shows which exact element should be rewritten. It might be a singular or
+  // complex field or a specific key in a map. Specifying a key as a path allows traversing to the
+  // deepest levels of the config and rewriting simple as well as complex structures.
+  // If the key is empty, the complete config will be modified.
+  string key = 1;
+
+  // New value.
+  // The provided value is merged into the existing key's value.
+  // If no value is provided, the corresponding field, config, or a key in a map should be cleared.
+  oneof value {
+    // New value in the TextProto format.
+    string value_txtproto = 2;
+    // A new value (Protobuf message) encoded as an Any message.
+    google.protobuf.Any value_any = 3;
+  }
+}
+
+// A collection of changes for a specific config which should be atomically applied.
+message ConfigOverride {
+  // Override identifier defined by the caller.
+  // Unique per caller.
+  string override_id = 1;
+
+  // Unique config identifier.
+  ConfigId config_id = 2;
+
+  // Key-value pairs for keys to be updated in the config.
+  repeated ConfigOverrideKeyValue pairs = 3;
+}
