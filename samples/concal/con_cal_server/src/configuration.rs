@@ -1,4 +1,4 @@
-use concal_api::configuration::ConfigOverride;
+use concal_api::config_override::ConfigOverride;
 use core::clone::Clone;
 use protobuf::descriptor::FileDescriptorSet;
 use protobuf::well_known_types::any::Any;
@@ -24,7 +24,11 @@ impl Configuration {
 
         for r#override in overrides {
             for kv in r#override.pairs.iter() {
-                message_editor.update_value(&kv.key, &kv.value_txtproto)?
+                if kv.has_value_txtproto() {
+                    message_editor.update_value(&kv.key, kv.value_txtproto())?
+                } else {
+                    panic!("Support for Any as an override value is not implemented");
+                }
             }
         }
 
@@ -51,13 +55,15 @@ mod tests {
     #![allow(unused_imports, dead_code)]
     use super::*;
     use crate::tests::utilities::{load_file_descriptors, test_config};
-    use concal_api::configuration::ConfigOverrideKeyValue;
+    use concal_api::config_override::config_override_key_value::Value;
+    use concal_api::config_override::ConfigOverrideKeyValue;
     use protobuf::Message;
     use sdvtestconcal_proto_rust::inner_test_configuration::InnerTestConfigurationDifferentFile as InnerTestConfigurationProto;
     use sdvtestconcal_proto_rust::inner_test_configuration_different_package::InnerTestConfigurationDifferentPackage as DifferentPackageProto;
     use sdvtestconcal_proto_rust::test_configuration::{
         ComplexParameterInFile as ComplexProto, TestConfiguration as TestConfigurationProto,
     };
+    use std::option::Option;
     use std::path::PathBuf;
 
     #[test]
@@ -69,12 +75,12 @@ mod tests {
                 pairs: vec![
                     ConfigOverrideKeyValue {
                         key: String::from("bool_parameter"),
-                        value_txtproto: String::from("true"),
+                        value: Option::Some(Value::ValueTxtproto("true".into())),
                         ..Default::default()
                     },
                     ConfigOverrideKeyValue {
                         key: String::from("str_parameter"),
-                        value_txtproto: String::from("\"new_value\""),
+                        value: Option::Some(Value::ValueTxtproto("\"new_value\"".into())),
                         ..Default::default()
                     },
                 ],
@@ -97,7 +103,7 @@ mod tests {
         let updated_config = config.with_overrides(&vec![ConfigOverride {
             pairs: vec![ConfigOverrideKeyValue {
                 key: String::from("none_existent_field"),
-                value_txtproto: String::from("true"),
+                value: Option::Some(Value::ValueTxtproto("true".into())),
                 ..Default::default()
             }],
             ..Default::default()
