@@ -1,34 +1,10 @@
-// Copyright 2023 Google LLC. All Rights Reserved.
+// Copyright 2024 Google LLC. All Rights Reserved.
 
 package {
     default_applicable_licenses: ["sdv_license"],
 }
 
-// build target for diagnostics API distribution
-// generates zip archive at [repo root]/out/dist/sdv-binary-pdk/automotive_services_diagnostics.zip
-genrule {
-    name: "sdv_libdiagnostics_api-dist",
-    defaults: ["sdv@binary_pdk_dist"],
-    srcs: [
-        "diagnostics/vsidl/**/*",
-        "diagnostics/README.md",
-    ],
-    out: ["automotive_services_diagnostics_api.zip"],
-}
-
-// build target for concal API distribution
-// generates zip archive at [repo root]/out/dist/sdv-binary-pdk/automotive_services_concal.zip
-genrule {
-    name: "sdv_libconcal_api-dist",
-    defaults: ["sdv@binary_pdk_dist"],
-    srcs: [
-        "concal/vsidl/**/*",
-        "README.md",
-    ],
-    out: ["automotive_services_concal_api.zip"],
-}
-
-// build target to archive sample code to be shared with Renault's partners
+// build target to archive sample code to be shared with OEMs's partners
 // with access only to the binary PDK.
 genrule {
     name: "automotive_services_samples-dist",
