@@ -5,8 +5,9 @@ mod macros;
 mod setting;
 mod settings_group;
 mod settings_group_id;
+mod settings_store;
+mod user_manager;
 mod user_preferences_service_impl;
-mod vehicle_configuration;
 
 use sdvgenerated::user_preferences_server::UserPreferencesServer;
 use std::sync::Arc;
