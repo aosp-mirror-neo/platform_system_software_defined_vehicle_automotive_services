@@ -16,6 +16,7 @@ rust_defaults {
         "libsdv_vpm_api",
         "libsdvmiddleware_rpc",
         "libsdvgenerated_vpm_system_service_bundle",
+        "google.sdv.vpm-aidl-rust",
     ],
     proc_macros: [
         "libasync_trait",
