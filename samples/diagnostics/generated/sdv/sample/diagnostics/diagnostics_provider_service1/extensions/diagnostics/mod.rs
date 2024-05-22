@@ -34,15 +34,20 @@ use std::thread;
 
 pub struct Diagnostics {
     event_1_publisher: DataTunnelPublisher<Event1EventTopic>,
+    event_2_publisher: DataTunnelPublisher<Event2EventTopic>,
 }
 
 impl Diagnostics {
     pub(crate) fn new() -> Self {
-        Self { event_1_publisher: DataTunnelPublisher::new(24) }
+        Self {
+            event_1_publisher: DataTunnelPublisher::new(24),
+            event_2_publisher: DataTunnelPublisher::new(25),
+        }
     }
 
     pub(crate) fn start(&mut self) -> sdv_middleware_pubsub::Result<()> {
         self.event_1_publisher.register_topics()?;
+        self.event_2_publisher.register_topics()?;
 
         Ok(())
     }
@@ -76,6 +81,40 @@ impl Diagnostics {
         let event_message =
             EventMessage { status: event.status.into(), extended_data, ..Default::default() };
         self.event_1_publisher.publish(&Event1EventTopic {}, &event_message)
+    }
+    pub fn publish_event_2_event(
+        &mut self,
+        event: Event<diagnostics_sample_catalog::messages::SecondEventExt>,
+    ) -> sdv_middleware_pubsub::Result<()> {
+        let message = event.extended_data;
+
+        if let Some(ref message) = message {
+            use protobuf::Message;
+            use sdvmiddleware_common::size_utils::LenOf;
+            let computed_message_size = message.compute_size();
+            if computed_message_size > 12 {
+                let mut error_message = String::new();
+                error_message += format!("Message size is bigger than defined maximum for this message. Current size: {computed_message_size}\n").as_str();
+                error_message += "Found the following violations\n";
+                if message.status.len_of() > 10 {
+                    error_message += "status field exceeded maximum defined size 10 in bytes\n";
+                }
+
+                return Err(sdv_middleware_pubsub::error::Error::MessageMaxSizeViolation(
+                    error_message,
+                ));
+            }
+        }
+
+        let extended_data = message
+            .as_ref()
+            .map(protobuf::Message::write_to_bytes)
+            .transpose()
+            .map_err(|_| sdv_middleware_pubsub::error::Error::Other)?;
+
+        let event_message =
+            EventMessage { status: event.status.into(), extended_data, ..Default::default() };
+        self.event_2_publisher.publish(&Event2EventTopic {}, &event_message)
     }
 
     pub fn create_data_item_server(
@@ -115,9 +154,13 @@ impl Diagnostics {
         event_1_fault_listener_handler: Box<
             dyn FaultListenerHandler<diagnostics_sample_catalog::messages::FirstEventExt>,
         >,
+        event_2_fault_listener_handler: Box<
+            dyn FaultListenerHandler<diagnostics_sample_catalog::messages::SecondEventExt>,
+        >,
     ) -> Arc<dyn FaultListener> {
         Arc::new(FaultListenerServer {
             event_1_fault_listener_handler: Mutex::new(event_1_fault_listener_handler),
+            event_2_fault_listener_handler: Mutex::new(event_2_fault_listener_handler),
         })
     }
 }
@@ -135,6 +178,21 @@ impl sdv_middleware_pubsub::EnumTopic for Event1EventTopic {
     /// Returns string name of the topic
     fn get_name(&self) -> &str {
         "diagnostics_provider_service1.event.event.1"
+    }
+}
+#[derive(Clone, Eq, Hash, PartialEq, Debug)]
+pub struct Event2EventTopic {}
+
+impl sdv_middleware_pubsub::EnumTopic for Event2EventTopic {
+    /// Returns iterator over all available topics
+    fn iterator() -> std::slice::Iter<'static, Self> {
+        static TOPICS: [Event2EventTopic; 1] = [Event2EventTopic {}];
+        TOPICS.iter()
+    }
+
+    /// Returns string name of the topic
+    fn get_name(&self) -> &str {
+        "diagnostics_provider_service1.event.event.2"
     }
 }
 
@@ -281,6 +339,8 @@ impl IoControl for IoControlServer {
 struct FaultListenerServer {
     event_1_fault_listener_handler:
         Mutex<Box<dyn FaultListenerHandler<diagnostics_sample_catalog::messages::FirstEventExt>>>,
+    event_2_fault_listener_handler:
+        Mutex<Box<dyn FaultListenerHandler<diagnostics_sample_catalog::messages::SecondEventExt>>>,
 }
 
 impl FaultListener for FaultListenerServer {
@@ -291,6 +351,14 @@ impl FaultListener for FaultListenerServer {
         match request.id.as_str() {
             "event.1" => Ok(self
                 .event_1_fault_listener_handler
+                .lock()
+                .unwrap()
+                .on_fault_status_change_untyped(
+                    request.status as u8,
+                    request.extended_data.as_deref(),
+                )),
+            "event.2" => Ok(self
+                .event_2_fault_listener_handler
                 .lock()
                 .unwrap()
                 .on_fault_status_change_untyped(

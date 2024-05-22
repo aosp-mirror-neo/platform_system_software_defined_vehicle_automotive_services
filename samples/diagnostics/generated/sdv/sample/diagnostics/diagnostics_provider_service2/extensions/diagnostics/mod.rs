@@ -5,7 +5,6 @@
 //! WARNING: PLEASE DO NOT EDIT.
 use crate::diagnostics_provider_service2::DiagnosticsProviderService2;
 use crate::sdv_diagnostics_data_item_data_item_interface::DataItem;
-use crate::sdv_diagnostics_fault_fault_listener_interface::FaultListener;
 use diagnostics_api::data_item::{ReadRequest, ReadResponse, WriteRequest};
 use diagnostics_api::event::Event as EventMessage;
 use diagnostics_api::fault::OnFaultStatusChangeRequest;
@@ -88,17 +87,6 @@ impl Diagnostics {
     ) -> Arc<dyn DataItem> {
         Arc::new(DataItemServer { data_item_id2_handler: Mutex::new(data_item_id2_handler) })
     }
-
-    pub fn create_fault_listener_server(
-        &self,
-        event_2_fault_listener_handler: Box<
-            dyn FaultListenerHandler<diagnostics_sample_catalog::messages::SecondEventExt>,
-        >,
-    ) -> Arc<dyn FaultListener> {
-        Arc::new(FaultListenerServer {
-            event_2_fault_listener_handler: Mutex::new(event_2_fault_listener_handler),
-        })
-    }
 }
 
 #[derive(Clone, Eq, Hash, PartialEq, Debug)]
@@ -132,32 +120,6 @@ impl DataItem for DataItemServer {
 
     fn write(&self, request: WriteRequest) -> RpcResult<EmptyResponse> {
         match request.id.as_str() {
-            _ => {
-                Ok(EmptyResponse { error_code: REQUEST_OUT_OF_RANGE.into(), ..Default::default() })
-            }
-        }
-    }
-}
-
-struct FaultListenerServer {
-    event_2_fault_listener_handler:
-        Mutex<Box<dyn FaultListenerHandler<diagnostics_sample_catalog::messages::SecondEventExt>>>,
-}
-
-impl FaultListener for FaultListenerServer {
-    fn on_fault_status_change(
-        &self,
-        request: OnFaultStatusChangeRequest,
-    ) -> RpcResult<EmptyResponse> {
-        match request.id.as_str() {
-            "event.2" => Ok(self
-                .event_2_fault_listener_handler
-                .lock()
-                .unwrap()
-                .on_fault_status_change_untyped(
-                    request.status as u8,
-                    request.extended_data.as_deref(),
-                )),
             _ => {
                 Ok(EmptyResponse { error_code: REQUEST_OUT_OF_RANGE.into(), ..Default::default() })
             }

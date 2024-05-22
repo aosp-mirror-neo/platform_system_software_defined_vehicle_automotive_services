@@ -5,7 +5,7 @@ use diagnostics_api::event::Status;
 use diagnostics_api::negative_response_code::NegativeResponseCode;
 use diagnostics_sample_catalog::messages::{
     DataItemOne, FirstEventExt, IOControllableData as IoControllableData, RoutineRequestParameter,
-    RoutineResponseParameter,
+    RoutineResponseParameter, SecondEventExt,
 };
 use sdv_middleware_extension_diagnostics::data_item::DataItemHandler;
 use sdv_middleware_extension_diagnostics::event::Event;
@@ -119,6 +119,22 @@ impl FaultListenerHandler<FirstEventExt> for Event1FaultListenerHandler {
     }
 }
 
+struct Event2FaultListenerHandler {}
+
+impl FaultListenerHandler<SecondEventExt> for Event2FaultListenerHandler {
+    fn on_fault_status_change(
+        &self,
+        _status: u8,
+        extended_data: Option<SecondEventExt>,
+    ) -> NegativeResponseCode {
+        // Expect empty extended data
+        match extended_data {
+            Some(_) => NegativeResponseCode::GENERAL_REJECT,
+            None => NegativeResponseCode::POSITIVE_RESPONSE,
+        }
+    }
+}
+
 fn main() {
     let mut service = DiagnosticsProviderService1::new();
 
@@ -149,8 +165,10 @@ fn main() {
         .register_service_interface(io_control_server_impl);
 
     // Setup fault listener server.
-    let fault_listener_server_impl =
-        service.diagnostics.create_fault_listener_server(Box::new(Event1FaultListenerHandler {}));
+    let fault_listener_server_impl = service.diagnostics.create_fault_listener_server(
+        Box::new(Event1FaultListenerHandler {}),
+        Box::new(Event2FaultListenerHandler {}),
+    );
 
     service
         .sdv_diagnostics_fault_fault_listener_server
