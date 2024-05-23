@@ -34,3 +34,9 @@ sdv_service_bundle {
     client: "sdv.user_preferences.UserPreferencesManagementService"
     client: "sdv.user_preferences.UserPreferencesAdminService"
 }
+
+sdv_service_bundle {
+    name: "CarSeatsService"
+    server: "sdv.user_preferences.user_controllable.UserControllableService"
+    client: "sdv.user_preferences.UserPreferencesRegistryService"
+}
