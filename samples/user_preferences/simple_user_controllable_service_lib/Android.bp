@@ -1,0 +1,17 @@
+rust_library {
+    name: "libuser_controllable_service_impl",
+    srcs: ["src/simple_user_controllable_service_impl.rs"],
+    crate_name: "user_controllable_service_impl",
+    rustlibs: [
+        "libprotobuf",
+        "libuser_preferences_api",
+        "libsdvmiddleware_rpc",
+        "libitertools",
+        "libsdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service",
+        "libsdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service",
+    ],
+    apex_available: [
+        "//apex_available:platform",
+    ],
+    vendor: true,
+}
