@@ -11,6 +11,7 @@ use sdv_vpm_api::vpm::power_state_change_response::PowerStateChangeRequestError;
 use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateChangeResponse;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
+use sdv_vpm_api::vpm::SetVehicleStateResponse;
 use sdvgenerated::sdv_vpm_vpm_system_service_interface::VpmSystemService;
 use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
 use sdvmiddleware_rpc::error::RpcError;
@@ -95,10 +96,13 @@ impl RpcServer {
 
 /// Middleware RPC server trait implementation for RPC server.
 impl VpmSystemService for RpcServer {
-    fn set_vehicle_state(&self, request: SetVehicleStateRequest) -> RpcResult<Empty, RpcError> {
+    fn set_vehicle_state(
+        &self,
+        request: SetVehicleStateRequest,
+    ) -> RpcResult<SetVehicleStateResponse, RpcError> {
         info!("Got Request! {}", request);
         self.vehicle_state_sender.send(request.vehicle_state.unwrap()).unwrap();
-        Ok(().into())
+        Ok(SetVehicleStateResponse::new())
     }
     fn set_power_state(
         &self,

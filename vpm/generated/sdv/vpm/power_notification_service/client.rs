@@ -4,8 +4,8 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::PowerNotificationService;
-use protobuf::well_known_types::empty::Empty;
 use sdv_vpm_api::vpm::PowerStateNotificationRequest;
+use sdv_vpm_api::vpm::PowerStateNotificationResponse;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;
 use sdvmiddleware_rpc::RpcResult;
@@ -23,8 +23,11 @@ impl PowerNotificationServiceClient {
 }
 
 impl PowerNotificationService for PowerNotificationServiceClient {
-    fn notify_power_state(&self, request: PowerStateNotificationRequest) -> RpcResult<Empty> {
-        call_method::<PowerStateNotificationRequest, Empty>(
+    fn notify_power_state(
+        &self,
+        request: PowerStateNotificationRequest,
+    ) -> RpcResult<PowerStateNotificationResponse> {
+        call_method::<PowerStateNotificationRequest, PowerStateNotificationResponse>(
             self.transport.as_ref(),
             "PowerNotificationService::notify_power_state",
             &request,
