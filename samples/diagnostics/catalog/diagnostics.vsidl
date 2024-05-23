@@ -38,6 +38,12 @@ sdv_service_bundle {
             fault_listener_mask: 0x3
         }
 
+        event {
+            id: "event.2"
+            extended_data_message_name: "sdv.sample.diagnostics.SecondEventExt"
+            fault_listener_mask: 0x1
+        }
+
         routine {
             id: "routine1"
             start {
@@ -70,7 +76,7 @@ sdv_service_bundle {
         event {
             id: "event.2"
             extended_data_message_name: "sdv.sample.diagnostics.SecondEventExt"
-            fault_listener_mask: 0x1
+            fault_listener_mask: 0x0
         }
     }
 }
