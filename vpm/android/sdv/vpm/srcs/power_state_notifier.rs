@@ -61,6 +61,7 @@ impl IPowerStateClientApiAsyncServer for BinderServer {
         callback: &Strong<dyn IPowerStateReportListener>,
     ) -> BinderResult<()> {
         info!("VPM Agent received client request to subscribe to power updates!");
+        //TODO: Notify subscribers about current state.
         //TODO: implement subscription handler
         Ok(())
     }
