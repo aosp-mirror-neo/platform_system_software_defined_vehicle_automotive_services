@@ -21,4 +21,5 @@ rust_test {
         "liblazy_static",
     ],
     vendor: true,
+    require_root: true,
 }

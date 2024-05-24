@@ -18,4 +18,5 @@ rust_test {
         "tests/manager_stdout.txt",
     ],
     vendor: true,
+    require_root: true,
 }
