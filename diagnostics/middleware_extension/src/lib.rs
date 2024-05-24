@@ -17,8 +17,8 @@ pub mod io_control;
 /// Fault listener API related utilities.
 pub mod fault_listener;
 
-use diagnostics_api::negative_response_code::NegativeResponseCode;
+use diagnostics_api::response_code::ResponseCode;
 use sdvmiddleware_rpc::RpcResult;
 
 /// RpcResult with diagnostics error.
-pub type DiagnosticsResult<T> = RpcResult<T, NegativeResponseCode>;
+pub type DiagnosticsResult<T> = RpcResult<T, ResponseCode>;

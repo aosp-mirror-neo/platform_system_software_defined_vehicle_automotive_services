@@ -1,11 +1,10 @@
 // Copyright 2024 Google LLC
 
 use crate::DiagnosticsResult;
-use diagnostics_api::data_item::ReadResponse;
-use diagnostics_api::negative_response_code::EmptyResponse;
-use diagnostics_api::negative_response_code::NegativeResponseCode;
-use diagnostics_api::negative_response_code::NegativeResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
-use diagnostics_api::negative_response_code::NegativeResponseCode::POSITIVE_RESPONSE;
+use diagnostics_api::data_item::{ReadResponse, WriteResponse};
+use diagnostics_api::response_code::ResponseCode;
+use diagnostics_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
+use diagnostics_api::response_code::ResponseCode::POSITIVE_RESPONSE;
 use protobuf::MessageFull;
 
 /// Typed trait that corresponds to read-only data item server
@@ -29,15 +28,17 @@ fn to_read_response<T: MessageFull>(result: DiagnosticsResult<T>) -> ReadRespons
             value_bytes
                 .map(|value_bytes| ReadResponse {
                     value: value_bytes,
-                    error_code: POSITIVE_RESPONSE.into(),
+                    response_code: POSITIVE_RESPONSE.into(),
                     ..Default::default()
                 })
                 .unwrap_or_else(|_| ReadResponse {
-                    error_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+                    response_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                     ..Default::default()
                 })
         }
-        Err(error_code) => ReadResponse { error_code: error_code.into(), ..Default::default() },
+        Err(response_code) => {
+            ReadResponse { response_code: response_code.into(), ..Default::default() }
+        }
     }
 }
 
@@ -62,17 +63,17 @@ where
     }
 
     /// Writes new value to the data item.
-    fn write(&self, value: T) -> NegativeResponseCode;
+    fn write(&self, value: T) -> ResponseCode;
 
     /// Write new value to the data item, parsing it from bytes input.
-    fn write_untyped(&self, value_bytes: &[u8]) -> EmptyResponse {
+    fn write_untyped(&self, value_bytes: &[u8]) -> WriteResponse {
         T::parse_from_bytes(value_bytes)
             .map(|value| {
                 let result = self.write(value);
-                EmptyResponse { error_code: result.into(), ..Default::default() }
+                WriteResponse { response_code: result.into(), ..Default::default() }
             })
-            .unwrap_or_else(|_| EmptyResponse {
-                error_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+            .unwrap_or_else(|_| WriteResponse {
+                response_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             })
     }
@@ -82,10 +83,10 @@ where
 mod tests {
     use crate::data_item::{DataItemHandler, ReadOnlyDataItemHandler};
     use crate::DiagnosticsResult;
-    use diagnostics_api::data_item::ReadResponse;
+    use diagnostics_api::data_item::{ReadResponse, WriteResponse};
     use diagnostics_api::event::Event as TestProto;
     use diagnostics_api::event::Status;
-    use diagnostics_api::negative_response_code::{EmptyResponse, NegativeResponseCode};
+    use diagnostics_api::response_code::ResponseCode;
     use protobuf::Message;
 
     struct TestReadOnlyHandler {
@@ -100,15 +101,15 @@ mod tests {
 
     struct TestHandler {
         read_result: DiagnosticsResult<TestProto>,
-        write_result: NegativeResponseCode,
+        write_result: ResponseCode,
     }
 
     impl TestHandler {
         fn new_with_read_result(read_result: DiagnosticsResult<TestProto>) -> Self {
-            Self { read_result, write_result: NegativeResponseCode::POSITIVE_RESPONSE }
+            Self { read_result, write_result: ResponseCode::POSITIVE_RESPONSE }
         }
 
-        fn new_with_write_result(write_result: NegativeResponseCode) -> Self {
+        fn new_with_write_result(write_result: ResponseCode) -> Self {
             Self { read_result: Ok(TestProto { ..Default::default() }), write_result }
         }
     }
@@ -118,7 +119,7 @@ mod tests {
             self.read_result.clone()
         }
 
-        fn write(&self, _value: TestProto) -> NegativeResponseCode {
+        fn write(&self, _value: TestProto) -> ResponseCode {
             self.write_result
         }
     }
@@ -137,13 +138,12 @@ mod tests {
 
     #[test]
     fn test_read_only_data_item_read_untyped_err() {
-        let handler =
-            TestReadOnlyHandler { read_result: Err(NegativeResponseCode::GENERAL_REJECT) };
+        let handler = TestReadOnlyHandler { read_result: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.read_untyped(),
             ReadResponse {
-                error_code: NegativeResponseCode::GENERAL_REJECT.into(),
+                response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
         );
@@ -163,14 +163,13 @@ mod tests {
 
     #[test]
     fn test_data_item_read_untyped_err() {
-        let handler = TestHandler::new_with_read_result(DiagnosticsResult::Err(
-            NegativeResponseCode::GENERAL_REJECT,
-        ));
+        let handler =
+            TestHandler::new_with_read_result(DiagnosticsResult::Err(ResponseCode::GENERAL_REJECT));
 
         assert_eq!(
             handler.read_untyped(),
             ReadResponse {
-                error_code: NegativeResponseCode::GENERAL_REJECT.into(),
+                response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
         );
@@ -182,9 +181,9 @@ mod tests {
             .write_to_bytes()
             .unwrap();
 
-        let handler = TestHandler::new_with_write_result(NegativeResponseCode::POSITIVE_RESPONSE);
+        let handler = TestHandler::new_with_write_result(ResponseCode::POSITIVE_RESPONSE);
 
-        assert_eq!(handler.write_untyped(&message_bytes), EmptyResponse { ..Default::default() });
+        assert_eq!(handler.write_untyped(&message_bytes), WriteResponse { ..Default::default() });
     }
 
     #[test]
@@ -193,12 +192,12 @@ mod tests {
             .write_to_bytes()
             .unwrap();
 
-        let handler = TestHandler::new_with_write_result(NegativeResponseCode::GENERAL_REJECT);
+        let handler = TestHandler::new_with_write_result(ResponseCode::GENERAL_REJECT);
 
         assert_eq!(
             handler.write_untyped(&message_bytes),
-            EmptyResponse {
-                error_code: NegativeResponseCode::GENERAL_REJECT.into(),
+            WriteResponse {
+                response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
         );
@@ -208,12 +207,12 @@ mod tests {
     fn test_data_item_write_untyped_format_err() {
         let invalid_message_bytes = vec![2, 1];
 
-        let handler = TestHandler::new_with_write_result(NegativeResponseCode::GENERAL_REJECT);
+        let handler = TestHandler::new_with_write_result(ResponseCode::GENERAL_REJECT);
 
         assert_eq!(
             handler.write_untyped(&invalid_message_bytes),
-            EmptyResponse {
-                error_code: NegativeResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+            WriteResponse {
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             }
         );

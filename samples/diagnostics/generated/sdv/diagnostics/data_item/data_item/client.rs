@@ -7,7 +7,7 @@ use crate::interface::DataItem;
 use diagnostics_api::data_item::ReadRequest;
 use diagnostics_api::data_item::ReadResponse;
 use diagnostics_api::data_item::WriteRequest;
-use diagnostics_api::negative_response_code::EmptyResponse;
+use diagnostics_api::data_item::WriteResponse;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;
 use sdvmiddleware_rpc::RpcResult;
@@ -32,8 +32,8 @@ impl DataItem for DataItemClient {
             &request,
         )
     }
-    fn write(&self, request: WriteRequest) -> RpcResult<EmptyResponse> {
-        call_method::<WriteRequest, EmptyResponse>(
+    fn write(&self, request: WriteRequest) -> RpcResult<WriteResponse> {
+        call_method::<WriteRequest, WriteResponse>(
             self.transport.as_ref(),
             "DataItem::write",
             &request,

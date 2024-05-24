@@ -4,15 +4,14 @@ syntax = "proto3";
 
 package sdv.diagnostics.fault;
 
-import "google/protobuf/empty.proto";
 import "syntax/diagnostics.proto";
 import "syntax/vsidl.proto";
-import "negative_response_code.proto";
+import "response_code.proto";
 
 // Diagnostics interface to listen for fault status changes.
 service FaultListener {
   // Callback invoked by Diagnostics Manager when fault status changes.
-  rpc OnFaultStatusChange(OnFaultStatusChangeRequest) returns (nrc.EmptyResponse) {}
+  rpc OnFaultStatusChange(OnFaultStatusChangeRequest) returns (OnFaultStatusChangeResponse) {}
 }
 
 message OnFaultStatusChangeRequest {
@@ -72,4 +71,9 @@ message OnFaultStatusChangeRequest {
   //
   // This corresponds to the extended data of the event that triggered the fault.
   optional bytes extended_data = 3 [(sdv.vsidl.variable_type_max_size) = 64];
+}
+
+message OnFaultStatusChangeResponse {
+  // Response code.
+  ResponseCode response_code = 1;
 }

@@ -1,7 +1,8 @@
 // Copyright 2024 Google LLC
 
-use diagnostics_api::negative_response_code::NegativeResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
-use diagnostics_api::negative_response_code::{EmptyResponse, NegativeResponseCode};
+use diagnostics_api::fault::OnFaultStatusChangeResponse;
+use diagnostics_api::response_code::ResponseCode;
+use diagnostics_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
 use protobuf::MessageFull;
 
 /// Typed trait that corresponds to FaultListener server
@@ -9,23 +10,23 @@ use protobuf::MessageFull;
 /// See sdv.diagnostics.fault.FaultListener service.
 pub trait FaultListenerHandler<T: MessageFull>: Send + Sync {
     /// See sdv.diagnostics.fault.FaultListener::OnFaultStatusChange.
-    fn on_fault_status_change(&self, status: u8, extended_data: Option<T>) -> NegativeResponseCode;
+    fn on_fault_status_change(&self, status: u8, extended_data: Option<T>) -> ResponseCode;
 
     /// Untyped version of `on_fault_status_change`.
     fn on_fault_status_change_untyped(
         &self,
         status: u8,
         extended_data_bytes: Option<&[u8]>,
-    ) -> EmptyResponse {
+    ) -> OnFaultStatusChangeResponse {
         extended_data_bytes
             .map(T::parse_from_bytes)
             .transpose()
             .map(|extended_data| {
                 let result = self.on_fault_status_change(status, extended_data);
-                EmptyResponse { error_code: result.into(), ..Default::default() }
+                OnFaultStatusChangeResponse { response_code: result.into(), ..Default::default() }
             })
-            .unwrap_or_else(|_| EmptyResponse {
-                error_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+            .unwrap_or_else(|_| OnFaultStatusChangeResponse {
+                response_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             })
     }
@@ -36,17 +37,18 @@ mod tests {
     use crate::fault_listener::FaultListenerHandler;
     use diagnostics_api::event::Event as TestProto;
     use diagnostics_api::event::Status;
-    use diagnostics_api::negative_response_code::{EmptyResponse, NegativeResponseCode};
+    use diagnostics_api::fault::OnFaultStatusChangeResponse;
+    use diagnostics_api::response_code::ResponseCode;
     use protobuf::Message;
 
     const STATUS: u8 = 1;
 
     struct TestFaultListenerHandler {
-        response: NegativeResponseCode,
+        response: ResponseCode,
     }
 
     impl FaultListenerHandler<TestProto> for TestFaultListenerHandler {
-        fn on_fault_status_change(&self, _: u8, _: Option<TestProto>) -> NegativeResponseCode {
+        fn on_fault_status_change(&self, _: u8, _: Option<TestProto>) -> ResponseCode {
             self.response
         }
     }
@@ -57,12 +59,11 @@ mod tests {
             .write_to_bytes()
             .unwrap();
 
-        let handler =
-            TestFaultListenerHandler { response: NegativeResponseCode::POSITIVE_RESPONSE };
+        let handler = TestFaultListenerHandler { response: ResponseCode::POSITIVE_RESPONSE };
 
         assert_eq!(
             handler.on_fault_status_change_untyped(STATUS, Some(&message_bytes)),
-            EmptyResponse { ..Default::default() }
+            OnFaultStatusChangeResponse { ..Default::default() }
         );
     }
 
@@ -72,12 +73,12 @@ mod tests {
             .write_to_bytes()
             .unwrap();
 
-        let handler = TestFaultListenerHandler { response: NegativeResponseCode::GENERAL_REJECT };
+        let handler = TestFaultListenerHandler { response: ResponseCode::GENERAL_REJECT };
 
         assert_eq!(
             handler.on_fault_status_change_untyped(STATUS, Some(&message_bytes)),
-            EmptyResponse {
-                error_code: NegativeResponseCode::GENERAL_REJECT.into(),
+            OnFaultStatusChangeResponse {
+                response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
         );
@@ -87,12 +88,12 @@ mod tests {
     fn test_on_fault_status_change_untyped_format_err() {
         let invalid_message_bytes = vec![2, 1];
 
-        let handler = TestFaultListenerHandler { response: NegativeResponseCode::GENERAL_REJECT };
+        let handler = TestFaultListenerHandler { response: ResponseCode::GENERAL_REJECT };
 
         assert_eq!(
             handler.on_fault_status_change_untyped(STATUS, Some(&invalid_message_bytes)),
-            EmptyResponse {
-                error_code: NegativeResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+            OnFaultStatusChangeResponse {
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             }
         );
@@ -100,13 +101,12 @@ mod tests {
 
     #[test]
     fn test_on_fault_status_change_untyped_empty_extended_data() {
-        let handler =
-            TestFaultListenerHandler { response: NegativeResponseCode::POSITIVE_RESPONSE };
+        let handler = TestFaultListenerHandler { response: ResponseCode::POSITIVE_RESPONSE };
 
         assert_eq!(
             handler.on_fault_status_change_untyped(STATUS, None),
-            EmptyResponse {
-                error_code: NegativeResponseCode::POSITIVE_RESPONSE.into(),
+            OnFaultStatusChangeResponse {
+                response_code: ResponseCode::POSITIVE_RESPONSE.into(),
                 ..Default::default()
             }
         );

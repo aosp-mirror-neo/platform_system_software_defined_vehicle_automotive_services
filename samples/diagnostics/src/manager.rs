@@ -10,7 +10,7 @@ use diagnostics_api::event::Event;
 use diagnostics_api::fault::on_fault_status_change_request::StatusMask;
 use diagnostics_api::fault::OnFaultStatusChangeRequest;
 use diagnostics_api::io_control::IOControlRequestWithAdjustment as IoControlRequestWithAdjustment;
-use diagnostics_api::negative_response_code::NegativeResponseCode;
+use diagnostics_api::response_code::ResponseCode;
 use diagnostics_api::routine_control::RoutineControlRequest;
 use diagnostics_api::session_type::SessionType;
 use protobuf::MessageField;
@@ -82,17 +82,17 @@ impl DiagnosticsManager for DiagnosticsManagerImpl {
                     session_type: SessionType::EXTENDED_DIAGNOSTIC_SESSION.into(),
                     ..Default::default()
                 }),
-                error_code: NegativeResponseCode::POSITIVE_RESPONSE.into(),
+                response_code: ResponseCode::POSITIVE_RESPONSE.into(),
                 ..Default::default()
             },
             2 => GetConnectionMetadataResponse {
-                error_code: NegativeResponseCode::GENERAL_REJECT.into(),
+                response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             },
             _ => {
                 GetConnectionMetadataResponse {
                     // Set OEM-specific negative response code
-                    error_code: EnumOrUnknown::<NegativeResponseCode>::from_i32(100),
+                    response_code: EnumOrUnknown::<ResponseCode>::from_i32(100),
                     ..Default::default()
                 }
             }

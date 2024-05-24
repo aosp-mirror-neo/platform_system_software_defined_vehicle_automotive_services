@@ -5,7 +5,7 @@
 
 use crate::interface::FaultListener;
 use diagnostics_api::fault::OnFaultStatusChangeRequest;
-use diagnostics_api::negative_response_code::EmptyResponse;
+use diagnostics_api::fault::OnFaultStatusChangeResponse;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;
 use sdvmiddleware_rpc::RpcResult;
@@ -26,8 +26,8 @@ impl FaultListener for FaultListenerClient {
     fn on_fault_status_change(
         &self,
         request: OnFaultStatusChangeRequest,
-    ) -> RpcResult<EmptyResponse> {
-        call_method::<OnFaultStatusChangeRequest, EmptyResponse>(
+    ) -> RpcResult<OnFaultStatusChangeResponse> {
+        call_method::<OnFaultStatusChangeRequest, OnFaultStatusChangeResponse>(
             self.transport.as_ref(),
             "FaultListener::on_fault_status_change",
             &request,

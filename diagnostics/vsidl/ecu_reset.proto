@@ -5,7 +5,7 @@ syntax = "proto3";
 package sdv.diagnostics.ecu_reset;
 
 import "connection.proto";
-import "negative_response_code.proto";
+import "response_code.proto";
 import "syntax/diagnostics.proto";
 
 // Diagnostic interface for ECUReset (UDS 0x11) service.
@@ -16,25 +16,52 @@ import "syntax/diagnostics.proto";
 // See ISO 14229-1:2020, section 10.3.4.
 service ECUReset {
   // Perform "hard reset", which simulates the power-on/start-up sequence.
-  rpc HardReset(connection.ConnectionId) returns (nrc.EmptyResponse) {}
+  rpc HardReset(HardResetRequest) returns (HardResetResponse) {}
 
   // Perform reset similar to the driver turning the ignition key off and back on.
-  rpc KeyOnOffReset(connection.ConnectionId) returns (nrc.EmptyResponse) {}
+  rpc KeyOnOffReset(KeyOnOffResetRequest) returns (KeyOnOffResetResponse) {}
 
   // Perform "soft reset", which causes the server to immediately restart the application
   // program if applicable.
-  rpc SoftReset(connection.ConnectionId) returns (nrc.EmptyResponse) {}
+  rpc SoftReset(SoftResetRequest) returns (SoftResetResponse) {}
 
   // Performs shutdown to a sleep mode rather that a power off.
   //
   // Applies to ECUs which a not ignition powered but battery powered only.
-  rpc EnableRapidPowerShutdown(connection.ConnectionId) returns (RapidPowerShutdownResponse) {}
+  rpc EnableRapidPowerShutdown(EnableRapidPowerShutdownRequest)
+      returns (EnableRapidPowerShutdownResponse) {}
 
   // Request to disable the previously enabled "rapid power shutdown".
-  rpc DisableRapidPowerShutdown(connection.ConnectionId) returns (nrc.EmptyResponse) {}
+  rpc DisableRapidPowerShutdown(DisableRapidPowerShutdownRequest)
+      returns (DisableRapidPowerShutdownResponse) {}
 
   // Perform vehicle manufacturer / system supplier specific ECU reset.
-  rpc CustomReset(CustomResetRequest) returns (nrc.EmptyResponse) {}
+  rpc CustomReset(CustomResetRequest) returns (CustomResetResponse) {}
+}
+
+message HardResetRequest {
+  // Diagnostic connection id.
+  connection.ConnectionId connection_id = 1;
+}
+
+message KeyOnOffResetRequest {
+  // Diagnostic connection id.
+  connection.ConnectionId connection_id = 1;
+}
+
+message SoftResetRequest {
+  // Diagnostic connection id.
+  connection.ConnectionId connection_id = 1;
+}
+
+message EnableRapidPowerShutdownRequest {
+  // Diagnostic connection id.
+  connection.ConnectionId connection_id = 1;
+}
+
+message DisableRapidPowerShutdownRequest {
+  // Diagnostic connection id.
+  connection.ConnectionId connection_id = 1;
 }
 
 message CustomResetRequest {
@@ -49,7 +76,27 @@ message CustomResetRequest {
   int32 reset_type = 2 [(sdv.vsidl.primitive_byte_size) = ONE];
 }
 
-message RapidPowerShutdownResponse {
+message HardResetResponse {
+  // Response code.
+  ResponseCode response_code = 1;
+}
+
+message KeyOnOffResetResponse {
+  // Response code.
+  ResponseCode response_code = 1;
+}
+
+message SoftResetResponse {
+  // Response code.
+  ResponseCode response_code = 1;
+}
+
+message DisableRapidPowerShutdownResponse {
+  // Response code.
+  ResponseCode response_code = 1;
+}
+
+message EnableRapidPowerShutdownResponse {
   // The minimum time of the stand-by sequence the server will remain in the power down.
   //
   // The resolution of this parameter is one second per count.
@@ -57,9 +104,11 @@ message RapidPowerShutdownResponse {
   // 0xFF: indicates a failure or time not available.
   int32 powerDownTime = 1;
 
-  // Error code.
-  //
-  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
-  // Other parts of response should be ignored in such case.
-  nrc.NegativeResponseCode error_code = 2;
+  // Response code.
+  ResponseCode response_code = 2;
+}
+
+message CustomResetResponse {
+  // Response code.
+  ResponseCode response_code = 1;
 }

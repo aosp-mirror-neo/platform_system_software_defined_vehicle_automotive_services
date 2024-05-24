@@ -5,7 +5,7 @@
 
 use crate::interface::FaultListener;
 use diagnostics_api::fault::OnFaultStatusChangeRequest;
-use diagnostics_api::negative_response_code::EmptyResponse;
+use diagnostics_api::fault::OnFaultStatusChangeResponse;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
@@ -26,7 +26,7 @@ impl FaultListenerServer {
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn FaultListener>) {
         let callback = service.clone();
-        serve_method::<OnFaultStatusChangeRequest, EmptyResponse>(
+        serve_method::<OnFaultStatusChangeRequest, OnFaultStatusChangeResponse>(
             Box::new(move |req| callback.on_fault_status_change(req)),
             "FaultListener::on_fault_status_change",
             self.transport.as_ref(),
