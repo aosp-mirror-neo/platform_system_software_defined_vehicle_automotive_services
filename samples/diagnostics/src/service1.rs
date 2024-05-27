@@ -106,33 +106,13 @@ impl IoControlHandler<IoControllableData> for IoControlData1Handler {
 struct Event1FaultListenerHandler {}
 
 impl FaultListenerHandler<FirstEventExt> for Event1FaultListenerHandler {
-    fn on_fault_status_change(
-        &self,
-        _status: u8,
-        extended_data: Option<FirstEventExt>,
-    ) -> ResponseCode {
-        // Expect empty extended data
-        match extended_data {
-            Some(_) => ResponseCode::GENERAL_REJECT,
-            None => ResponseCode::POSITIVE_RESPONSE,
-        }
-    }
+    fn on_fault_status_change(&self, _status: u8, _extended_data: Option<FirstEventExt>) {}
 }
 
 struct Event2FaultListenerHandler {}
 
 impl FaultListenerHandler<SecondEventExt> for Event2FaultListenerHandler {
-    fn on_fault_status_change(
-        &self,
-        _status: u8,
-        extended_data: Option<SecondEventExt>,
-    ) -> ResponseCode {
-        // Expect empty extended data
-        match extended_data {
-            Some(_) => ResponseCode::GENERAL_REJECT,
-            None => ResponseCode::POSITIVE_RESPONSE,
-        }
-    }
+    fn on_fault_status_change(&self, _status: u8, _extended_data: Option<SecondEventExt>) {}
 }
 
 fn main() {

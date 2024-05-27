@@ -57,6 +57,8 @@ message Event {
 //
 // See AUTOSAR Diagnostics Event Manager spec, section 7.7.6.
 message EnableCondition {
+  // TODO: this is a workaround and should be removed once it's possible to separate Service Unit
+  // and Unit Type declarations for Data Tunnel.
   option (sdv.vsidl.topic) = {
     typed_name: "ServiceBundles"
   };
@@ -82,6 +84,8 @@ message EnableCondition {
 // See AUTOSAR Diagnostics Event Manager spec, section 7.6.
 // See ISO 14229-1:2020, table D.2.
 message OperationCycle {
+  // TODO: this is a workaround and should be removed once it's possible to separate Service Unit
+  // and Unit Type declarations for Data Tunnel.
   option (sdv.vsidl.topic) = {
     typed_name: "ServiceBundles"
   };
@@ -108,6 +112,8 @@ message OperationCycle {
   Command command = 2;
 }
 
+// TODO: this is a workaround and should be removed once it's possible to separate Service Unit
+// and Unit Type declarations for Data Tunnel.
 enum ServiceBundles {
   option (sdv.vsidl.is_topic) = true;
 

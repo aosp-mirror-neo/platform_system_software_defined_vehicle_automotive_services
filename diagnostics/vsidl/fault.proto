@@ -70,7 +70,7 @@ message OnFaultStatusChangeRequest {
   // E.g. it may contain additional information on the type of failure.
   //
   // This corresponds to the extended data of the event that triggered the fault.
-  optional bytes extended_data = 3 [(sdv.vsidl.variable_type_max_size) = 64];
+  optional bytes extended_data = 3;
 }
 
 message OnFaultStatusChangeResponse {
