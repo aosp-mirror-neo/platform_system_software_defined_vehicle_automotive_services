@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 
-package sdv.diagnostics.manager;
+package sdv.diagnostics;
 
 import "connection.proto";
 import "response_code.proto";
@@ -27,14 +27,14 @@ service DiagnosticsManager {
 
 message GetConnectionMetadataRequest {
   // id of the connection which metadata is being queried.
-  connection.ConnectionId id = 1;
+  ConnectionId id = 1;
 }
 
 // Metadata of the underlying diagnostics connection.
 //
 // This data is retrieved from the UDS payload that triggered a service call.
 message GetConnectionMetadataResponse {
-  connection.ConnectionMetadata metadata = 1;
+  ConnectionMetadata metadata = 1;
   // Response code.
   ResponseCode response_code = 2;
 }

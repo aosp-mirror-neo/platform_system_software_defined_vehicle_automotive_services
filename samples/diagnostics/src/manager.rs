@@ -2,6 +2,7 @@
 // Copyright 2023 Google LLC
 
 use diagnostics_api::connection::ConnectionMetadata;
+use diagnostics_api::connection::SessionType;
 use diagnostics_api::data_item::{ReadRequest, WriteRequest};
 use diagnostics_api::diagnostics_manager::{
     GetConnectionMetadataRequest, GetConnectionMetadataResponse,
@@ -12,7 +13,6 @@ use diagnostics_api::fault::OnFaultStatusChangeRequest;
 use diagnostics_api::io_control::IOControlRequestWithAdjustment as IoControlRequestWithAdjustment;
 use diagnostics_api::response_code::ResponseCode;
 use diagnostics_api::routine_control::RoutineControlRequest;
-use diagnostics_api::session_type::SessionType;
 use protobuf::MessageField;
 use protobuf::{Enum, EnumOrUnknown};
 use sdv_config_provider::{VsidlConfigProvider, VsidlProvider};
@@ -21,9 +21,9 @@ use sdv_uds_serde::diagnostics_translator::DiagnosticsTranslator;
 use sdv_uds_serde::entity_id::{EntityId, MethodMessage, RoutineMethod};
 use sdvgenerated::diagnostics_manager_service::DiagnosticsManagerService;
 use sdvgenerated::sdv_diagnostics_data_item_data_item_interface::DataItem;
+use sdvgenerated::sdv_diagnostics_diagnostics_manager_interface::DiagnosticsManager;
 use sdvgenerated::sdv_diagnostics_fault_fault_listener_interface::FaultListener;
 use sdvgenerated::sdv_diagnostics_io_control_io_control_interface::IOControl as IoControl;
-use sdvgenerated::sdv_diagnostics_manager_diagnostics_manager_interface::DiagnosticsManager;
 use sdvgenerated::sdv_diagnostics_routine_control_routine_control_interface::RoutineControl;
 use sdvmiddleware_rpc::error::RpcError;
 use std::collections::HashMap;
@@ -114,7 +114,7 @@ fn main() {
     // Create service instance and register DiagnosticsManagerServer
     let mut service = DiagnosticsManagerService::new();
     service
-        .sdv_diagnostics_manager_diagnostics_manager_server
+        .sdv_diagnostics_diagnostics_manager_server
         .register_service_interface(Arc::new(DiagnosticsManagerImpl::new()));
     service.start().unwrap();
 

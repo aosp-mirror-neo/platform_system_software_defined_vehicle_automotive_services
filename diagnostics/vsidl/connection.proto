@@ -2,13 +2,31 @@
 
 syntax = "proto3";
 
-package sdv.diagnostics.connection;
-
-import "session_type.proto";
+package sdv.diagnostics;
 
 // Unique id of diagnostic connection.
 message ConnectionId {
   int32 id = 1;
+}
+
+// Diagnostic session types.
+//
+// Use `EnumOrUnknown::<SessionType>::from_i32(...)` to provide a non-standard
+// session type value.
+//
+// See ISO 14229-1:2020, section 10.2.2.2.
+enum SessionType {
+  RESERVED = 0x00;
+
+  DEFAULT_SESSION = 0x01;
+  PROGRAMMING_SESSION = 0x02;
+  EXTENDED_DIAGNOSTIC_SESSION = 0x03;
+  SAFETY_SYSTEM_DIAGNOSTIC_SESSION = 0x04;
+
+  // 0x05 to 0x3F: Reserved
+  // 0x40 to 0x5F: Vehicle manufacturer specific
+  // 0x60 to 0x7F: System supplier specific
+  // 0x7F: Reserved
 }
 
 // Connection metadata
@@ -26,5 +44,5 @@ message ConnectionMetadata {
   // Session type of the diagnostic session.
   //
   // See ISO 14229-1:2020 section 10.2.2.2.
-  session_type.SessionType session_type = 3;
+  SessionType session_type = 3;
 }
