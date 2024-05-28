@@ -8,16 +8,15 @@ use crate::sdv_diagnostics_data_item_data_item_interface::DataItem;
 use crate::sdv_diagnostics_fault_fault_listener_interface::FaultListener;
 use crate::sdv_diagnostics_io_control_io_control_interface::IOControl as IoControl;
 use crate::sdv_diagnostics_routine_control_routine_control_interface::RoutineControl;
-use diagnostics_api::data_item::{ReadRequest, ReadResponse, WriteRequest};
+use diagnostics_api::data_item::{ReadRequest, ReadResponse, WriteRequest, WriteResponse};
 use diagnostics_api::event::Event as EventMessage;
-use diagnostics_api::fault::OnFaultStatusChangeRequest;
+use diagnostics_api::fault::{OnFaultStatusChangeRequest, OnFaultStatusChangeResponse};
 use diagnostics_api::io_control::{
     IOControlRequest as IoControlRequest,
     IOControlRequestWithAdjustment as IoControlRequestWithAdjustment,
     IOControlResponse as IoControlResponse,
 };
-use diagnostics_api::negative_response_code::EmptyResponse;
-use diagnostics_api::negative_response_code::NegativeResponseCode::REQUEST_OUT_OF_RANGE;
+use diagnostics_api::response_code::ResponseCode::REQUEST_OUT_OF_RANGE;
 use diagnostics_api::routine_control::{RoutineControlRequest, RoutineControlResponse};
 use sdv_middleware_extension_diagnostics::{
     data_item::{DataItemHandler, ReadOnlyDataItemHandler},
@@ -205,18 +204,22 @@ impl DataItem for DataItemServer {
     fn read(&self, request: ReadRequest) -> RpcResult<ReadResponse> {
         match request.id.as_str() {
             "data_item_id1" => Ok(self.data_item_id1_handler.lock().unwrap().read_untyped()),
-            _ => Ok(ReadResponse { error_code: REQUEST_OUT_OF_RANGE.into(), ..Default::default() }),
+            _ => Ok(ReadResponse {
+                response_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
         }
     }
 
-    fn write(&self, request: WriteRequest) -> RpcResult<EmptyResponse> {
+    fn write(&self, request: WriteRequest) -> RpcResult<WriteResponse> {
         match request.id.as_str() {
             "data_item_id1" => {
                 Ok(self.data_item_id1_handler.lock().unwrap().write_untyped(&request.value))
             }
-            _ => {
-                Ok(EmptyResponse { error_code: REQUEST_OUT_OF_RANGE.into(), ..Default::default() })
-            }
+            _ => Ok(WriteResponse {
+                response_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
         }
     }
 }
@@ -241,7 +244,7 @@ impl RoutineControl for RoutineServer {
         match request.id.as_str() {
             "routine1" => Ok(self.routine1_handler.lock().unwrap().start_untyped(&request.request)),
             _ => Ok(RoutineControlResponse {
-                error_code: REQUEST_OUT_OF_RANGE.into(),
+                response_code: REQUEST_OUT_OF_RANGE.into(),
                 ..Default::default()
             }),
         }
@@ -251,7 +254,7 @@ impl RoutineControl for RoutineServer {
         match request.id.as_str() {
             "routine1" => Ok(self.routine1_handler.lock().unwrap().stop_untyped(&request.request)),
             _ => Ok(RoutineControlResponse {
-                error_code: REQUEST_OUT_OF_RANGE.into(),
+                response_code: REQUEST_OUT_OF_RANGE.into(),
                 ..Default::default()
             }),
         }
@@ -263,7 +266,7 @@ impl RoutineControl for RoutineServer {
                 Ok(self.routine1_handler.lock().unwrap().request_result_untyped(&request.request))
             }
             _ => Ok(RoutineControlResponse {
-                error_code: REQUEST_OUT_OF_RANGE.into(),
+                response_code: REQUEST_OUT_OF_RANGE.into(),
                 ..Default::default()
             }),
         }
@@ -284,7 +287,7 @@ impl IoControl for IoControlServer {
                 .unwrap()
                 .return_control_to_ecu_untyped(&request.mask)),
             _ => Ok(IoControlResponse {
-                error_code: REQUEST_OUT_OF_RANGE.into(),
+                response_code: REQUEST_OUT_OF_RANGE.into(),
                 ..Default::default()
             }),
         }
@@ -298,7 +301,7 @@ impl IoControl for IoControlServer {
                 .unwrap()
                 .reset_to_default_untyped(&request.mask)),
             _ => Ok(IoControlResponse {
-                error_code: REQUEST_OUT_OF_RANGE.into(),
+                response_code: REQUEST_OUT_OF_RANGE.into(),
                 ..Default::default()
             }),
         }
@@ -312,7 +315,7 @@ impl IoControl for IoControlServer {
                 .unwrap()
                 .freeze_current_state_untyped(&request.mask)),
             _ => Ok(IoControlResponse {
-                error_code: REQUEST_OUT_OF_RANGE.into(),
+                response_code: REQUEST_OUT_OF_RANGE.into(),
                 ..Default::default()
             }),
         }
@@ -329,7 +332,7 @@ impl IoControl for IoControlServer {
                 .unwrap()
                 .short_term_adjustment_untyped(&request.adjusted_value, &request.mask)),
             _ => Ok(IoControlResponse {
-                error_code: REQUEST_OUT_OF_RANGE.into(),
+                response_code: REQUEST_OUT_OF_RANGE.into(),
                 ..Default::default()
             }),
         }
@@ -347,7 +350,7 @@ impl FaultListener for FaultListenerServer {
     fn on_fault_status_change(
         &self,
         request: OnFaultStatusChangeRequest,
-    ) -> RpcResult<EmptyResponse> {
+    ) -> RpcResult<OnFaultStatusChangeResponse> {
         match request.id.as_str() {
             "event.1" => Ok(self
                 .event_1_fault_listener_handler
@@ -365,9 +368,10 @@ impl FaultListener for FaultListenerServer {
                     request.status as u8,
                     request.extended_data.as_deref(),
                 )),
-            _ => {
-                Ok(EmptyResponse { error_code: REQUEST_OUT_OF_RANGE.into(), ..Default::default() })
-            }
+            _ => Ok(OnFaultStatusChangeResponse {
+                response_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
         }
     }
 }

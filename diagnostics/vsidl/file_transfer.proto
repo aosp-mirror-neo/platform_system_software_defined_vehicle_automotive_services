@@ -5,7 +5,7 @@ syntax = "proto3";
 package sdv.diagnostics.file_transfer;
 
 import "connection.proto";
-import "negative_response_code.proto";
+import "response_code.proto";
 
 // Diagnostic interface for file transfer related services:
 // - RequestDownload (UDS 0x34)
@@ -42,13 +42,13 @@ service FileTransfer {
   rpc ReadFile(FileRequest) returns (FileReadResponse) {}
 
   // Delete the file defined by the file id in the request.
-  rpc DeleteFile(FileRequest) returns (nrc.EmptyResponse) {}
+  rpc DeleteFile(FileRequest) returns (DeleteFileResponse) {}
 
   // Finish file transfer operation.
   //
   // Called to indicate the finish of the file read/write operation initiated by one of
   // the other RPCs (`AddFile`/`ReplaceFile`/`ReadFile`/`ResumeFile`).
-  rpc ExitFileTransfer(FileRequest) returns (nrc.EmptyResponse) {}
+  rpc ExitFileTransfer(FileRequest) returns (ExitFileTransferResponse) {}
 }
 
 message FileRequest {
@@ -64,11 +64,8 @@ message FilePathResponse {
   // Path to the file.
   string path = 1;
 
-  // Error code.
-  //
-  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
-  // Other parts of response should be ignored in such case.
-  nrc.NegativeResponseCode error_code = 2;
+  // Response code.
+  ResponseCode response_code = 2;
 }
 
 message FileWriteRequest {
@@ -89,11 +86,8 @@ message ResumeFileResponse {
   // Position in the file to resume writing from.
   int64 file_position = 2;
 
-  // Error code.
-  //
-  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
-  // Other parts of response should be ignored in such case.
-  nrc.NegativeResponseCode error_code = 3;
+  // Response code.
+  ResponseCode response_code = 3;
 }
 
 message FileReadResponse {
@@ -103,9 +97,16 @@ message FileReadResponse {
   // Size of the file.
   int64 file_size = 2;
 
-  // Error code.
-  //
-  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
-  // Other parts of response should be ignored in such case.
-  nrc.NegativeResponseCode error_code = 3;
+  // Response code.
+  ResponseCode response_code = 3;
+}
+
+message DeleteFileResponse {
+  // Response code.
+  ResponseCode response_code = 1;
+}
+
+message ExitFileTransferResponse {
+  // Response code.
+  ResponseCode response_code = 1;
 }

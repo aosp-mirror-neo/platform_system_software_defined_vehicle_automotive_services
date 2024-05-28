@@ -2,15 +2,18 @@
 
 syntax = "proto3";
 
-package sdv.diagnostics.nrc;
+package sdv.diagnostics;
 
-// Response codes for diagnostic requests.
+// Response code, returned as part of a RPC response for most Diagnostics APIs.
 //
-// Use `EnumOrUnknown::<NegativeResponseCode>::from_i32(...)` to provide a non-standard
+// If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
+// Other parts of the response should be ignored in such case.
+//
+// Use `EnumOrUnknown::<ResponseCode>::from_i32(...)` to provide a non-standardized
 // error value.
 //
 // See ISO 14229-1:2020, table A.1.
-enum NegativeResponseCode {
+enum ResponseCode {
   POSITIVE_RESPONSE = 0x00;
 
   // 0x01 to 0x0F: Reserved.
@@ -78,10 +81,4 @@ enum NegativeResponseCode {
   // 0x79 to 0x7D: Reserved.
 
   SUB_FUNCTION_NOT_SUPPORTED_IN_ACTIVE_SESSION = 0x7E;
-}
-
-// Empty response for diagnostics requests.
-// Contains only response error code.
-message EmptyResponse {
-  NegativeResponseCode error_code = 1;
 }

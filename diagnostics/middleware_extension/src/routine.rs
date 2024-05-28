@@ -1,8 +1,8 @@
 // Copyright 2024 Google LLC
 
 use crate::DiagnosticsResult;
-use diagnostics_api::negative_response_code::NegativeResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
-use diagnostics_api::negative_response_code::NegativeResponseCode::POSITIVE_RESPONSE;
+use diagnostics_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
+use diagnostics_api::response_code::ResponseCode::POSITIVE_RESPONSE;
 use diagnostics_api::routine_control::RoutineControlResponse;
 use protobuf::MessageFull;
 
@@ -71,21 +71,22 @@ fn handle_routine_request<Request: MessageFull, Response: MessageFull>(
                         .map(|response_bytes| RoutineControlResponse {
                             routine_info: result.routine_info.into(),
                             response: response_bytes,
-                            error_code: POSITIVE_RESPONSE.into(),
+                            response_code: POSITIVE_RESPONSE.into(),
                             ..Default::default()
                         })
                         .unwrap_or_else(|_| RoutineControlResponse {
-                            error_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+                            response_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                             ..Default::default()
                         })
                 }
-                Err(error_code) => {
-                    RoutineControlResponse { error_code: error_code.into(), ..Default::default() }
-                }
+                Err(response_code) => RoutineControlResponse {
+                    response_code: response_code.into(),
+                    ..Default::default()
+                },
             }
         })
         .unwrap_or_else(|_| RoutineControlResponse {
-            error_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+            response_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
             ..Default::default()
         })
 }
@@ -95,7 +96,7 @@ mod tests {
     use crate::routine::{RoutineHandler, RoutineResponse, RoutineResult};
     use diagnostics_api::event::Event as TestProto;
     use diagnostics_api::event::Status;
-    use diagnostics_api::negative_response_code::NegativeResponseCode;
+    use diagnostics_api::response_code::ResponseCode;
     use diagnostics_api::routine_control::RoutineControlResponse;
     use protobuf::Message;
 
@@ -140,12 +141,12 @@ mod tests {
     fn test_routine_start_untyped_err() {
         let message = TestProto { status: Status::PASS.into(), ..Default::default() };
 
-        let handler = TestRoutineHandler { response: Err(NegativeResponseCode::GENERAL_REJECT) };
+        let handler = TestRoutineHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.start_untyped(&message.write_to_bytes().unwrap()),
             RoutineControlResponse {
-                error_code: NegativeResponseCode::GENERAL_REJECT.into(),
+                response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
         );
@@ -155,12 +156,12 @@ mod tests {
     fn test_routine_start_untyped_format_err() {
         let invalid_message_bytes = vec![2, 1];
 
-        let handler = TestRoutineHandler { response: Err(NegativeResponseCode::GENERAL_REJECT) };
+        let handler = TestRoutineHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.start_untyped(&invalid_message_bytes),
             RoutineControlResponse {
-                error_code: NegativeResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             }
         );
@@ -187,12 +188,12 @@ mod tests {
     fn test_routine_stop_untyped_err() {
         let message = TestProto { status: Status::PASS.into(), ..Default::default() };
 
-        let handler = TestRoutineHandler { response: Err(NegativeResponseCode::GENERAL_REJECT) };
+        let handler = TestRoutineHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.stop_untyped(&message.write_to_bytes().unwrap()),
             RoutineControlResponse {
-                error_code: NegativeResponseCode::GENERAL_REJECT.into(),
+                response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
         );
@@ -202,12 +203,12 @@ mod tests {
     fn test_routine_stop_untyped_format_err() {
         let invalid_message_bytes = vec![2, 1];
 
-        let handler = TestRoutineHandler { response: Err(NegativeResponseCode::GENERAL_REJECT) };
+        let handler = TestRoutineHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.stop_untyped(&invalid_message_bytes),
             RoutineControlResponse {
-                error_code: NegativeResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             }
         );
@@ -234,12 +235,12 @@ mod tests {
     fn test_routine_request_result_untyped_err() {
         let message = TestProto { status: Status::PASS.into(), ..Default::default() };
 
-        let handler = TestRoutineHandler { response: Err(NegativeResponseCode::GENERAL_REJECT) };
+        let handler = TestRoutineHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.request_result_untyped(&message.write_to_bytes().unwrap()),
             RoutineControlResponse {
-                error_code: NegativeResponseCode::GENERAL_REJECT.into(),
+                response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
         );
@@ -249,12 +250,12 @@ mod tests {
     fn test_routine_request_result_untyped_format_err() {
         let invalid_message_bytes = vec![2, 1];
 
-        let handler = TestRoutineHandler { response: Err(NegativeResponseCode::GENERAL_REJECT) };
+        let handler = TestRoutineHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.request_result_untyped(&invalid_message_bytes),
             RoutineControlResponse {
-                error_code: NegativeResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             }
         );
