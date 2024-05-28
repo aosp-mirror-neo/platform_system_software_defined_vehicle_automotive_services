@@ -2,7 +2,7 @@
 # proto-file: //system/software_defined_vehicle/core_services/vsidl/syntax/vsidl.proto
 # proto-message: VsidlEntry
 
-package: "sdv.user_preferences"
+package: "sdv.sample.user_preferences"
 
 sdv_service_bundle {
     name: "HVACService"
