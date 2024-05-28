@@ -11,6 +11,10 @@ impl SettingsGroupId {
     pub fn new(service_fqin: String, name: String) -> Self {
         ProtoSettingsGroupId { service_fqin, name, ..Default::default() }.into()
     }
+
+    pub fn service_fqin(&self) -> &String {
+        &self.0.service_fqin
+    }
 }
 
 impl Hash for SettingsGroupId {

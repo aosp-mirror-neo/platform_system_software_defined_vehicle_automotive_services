@@ -14,7 +14,7 @@ use sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::client::UserPre
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 
 use user_preferences_api::settings_group::SettingsGroupId as SettingsGroupIdProto;
-use user_preferences_api::user::{user::UserFlags, User};
+use user_preferences_api::user_preferences_management_service::request_settings_change_request::ChangePersistencePolicy;
 use user_preferences_api::user_preferences_registry_service::{
     RegisterSettingsRequest, RegisterSettingsResponse,
 };
@@ -27,10 +27,10 @@ use user_preferences_api::user_preferences_registry_service::{
     UpdateSettingsRequest, UpdateSettingsResponse,
 };
 
-use protobuf::{Enum, EnumOrUnknown, MessageField};
+use protobuf::{EnumOrUnknown, MessageField};
 use sdvmiddleware_rpc::RpcResult;
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::vec::Vec;
 use user_preferences_api::user_preferences_view::OnSettingsChangeRequest;
 
@@ -40,13 +40,13 @@ use crate::macros::{acquire_lock_or_return_err, error_response};
 use crate::setting::Setting;
 use crate::settings_group::SettingsGroup;
 use crate::settings_group_id::SettingsGroupId;
-use crate::vehicle_configuration::VehicleConfiguration;
+use crate::settings_store::SettingsStore;
+use crate::user_manager::UserManager;
 use user_preferences_utils::{print_setting_definition, print_settings};
 
-type Users = HashMap<i32, VehicleConfiguration>;
 pub struct UserPreferencesServiceImpl {
-    vehicle_state: Mutex<VehicleConfiguration>,
-    users: Mutex<Users>,
+    vehicle_state: Mutex<SettingsStore>,
+    user_manager: UserManager,
     current_user_id: Mutex<Option<i32>>,
     change_subscribers: Mutex<HashMap<SettingsGroupId, HashSet<String>>>,
 }
@@ -54,11 +54,101 @@ pub struct UserPreferencesServiceImpl {
 impl UserPreferencesServiceImpl {
     pub fn new() -> Self {
         UserPreferencesServiceImpl {
-            vehicle_state: Mutex::new(VehicleConfiguration::new(User::new())),
-            users: Mutex::new(Users::new()),
+            vehicle_state: Mutex::new(SettingsStore::new()),
+            user_manager: UserManager::new(),
             current_user_id: Mutex::new(None),
             change_subscribers: Mutex::new(HashMap::new()),
         }
+    }
+
+    fn get_settings_group_from_current_user(
+        &self,
+        settings_group_id: &SettingsGroupId,
+    ) -> Option<Arc<SettingsGroup>> {
+        let current_user_id = self.current_user_id.lock().unwrap();
+
+        current_user_id.and_then(|id| self.user_manager.get_user(id)).and_then(|user| {
+            user.vehicle_configuration.lock().unwrap().get_group(settings_group_id)
+        })
+    }
+
+    fn persist_to_current_user(
+        &self,
+        settings_group_id: SettingsGroupId,
+        new_settings: Vec<SettingProto>,
+    ) -> Result<(), Error> {
+        let current_user_id = self.current_user_id.lock().unwrap();
+
+        let user = current_user_id.and_then(|id| self.user_manager.get_user(id));
+
+        let user = match user {
+            Some(user) => user,
+            None => {
+                return Err(Error {
+                    error_code: ResponseCode::INVALID_REQUEST.into(),
+                    message: String::from("Could not find the user to persist the settings within"),
+                    ..Default::default()
+                })
+            }
+        };
+        let user_persisted_settings = user.vehicle_configuration.lock().unwrap();
+        let persisted_settings = user_persisted_settings.get_group(&settings_group_id).unwrap();
+
+        persisted_settings.update(new_settings)
+    }
+
+    fn get_subscribers(&self, settings_group_id: &SettingsGroupId) -> Result<Vec<String>, Error> {
+        let change_subscribers = self.change_subscribers.lock().unwrap();
+        Ok(change_subscribers
+            .get(settings_group_id)
+            .unwrap_or(&HashSet::new())
+            .iter()
+            .cloned()
+            .collect_vec())
+    }
+
+    fn notify_subscribers(
+        &self,
+        applied_settings_group: Arc<SettingsGroup>,
+        persisted_settings_group: Option<Arc<SettingsGroup>>,
+        changed_settings: &[String],
+    ) -> Result<(), Error> {
+        let current_settings_applied: Vec<SettingProto> = changed_settings
+            .iter()
+            .filter_map(|name| applied_settings_group.get(name))
+            .map(Setting::into)
+            .collect_vec();
+        let persisted_settings: Vec<SettingProto> = match persisted_settings_group {
+            None => vec![],
+            Some(persisted_settings_group) => changed_settings
+                .iter()
+                .filter_map(|name| persisted_settings_group.get(name))
+                .map(Setting::into)
+                .collect_vec(),
+        };
+        let subscribers = self.get_subscribers(&applied_settings_group.id)?;
+
+        // Ideally the client should be created via the get_user_controllable_service_client method
+        // that is present in the UserPreferencesServer, for now manually create it since the rust
+        // compiler cannot determine the correctness of the program if UserPreferencesServiceImpl & UserPreferencesServer
+        // have references to each other
+        for subscriber in subscribers {
+            let client =
+                UserPreferencesViewClient::new(Box::new(GrpcClientTransport::new(&subscriber)));
+
+            println!("Notifying {} of settings change\n", subscriber);
+            client
+                .on_settings_change(OnSettingsChangeRequest {
+                    settings_group_id: MessageField::some(applied_settings_group.id.clone().into()),
+                    settings: current_settings_applied.clone(),
+                    //TODO: Expose pending settings for the user to subscribers
+                    persisted_settings: persisted_settings.clone(),
+                    ..Default::default()
+                })
+                .expect("Failed to notify clients of settings changes");
+        }
+
+        Ok(())
     }
 
     fn apply_settings(
@@ -89,55 +179,28 @@ impl UserPreferencesServiceImpl {
         }
     }
 
-    fn reset_services() -> Result<(), String> {
-        let client =
-            UserControllableServiceClient::new(Box::new(GrpcClientTransport::new("HvacService")));
+    fn reset_services(services_fqin: Vec<String>) -> Result<(), String> {
+        for service_fqin in services_fqin {
+            let client = UserControllableServiceClient::new(Box::new(GrpcClientTransport::new(
+                &service_fqin,
+            )));
 
-        let resp =
-            client.factory_reset(user_controllable_service::FactoryResetRequest::new()).map_err(
-                |x| format!("Failed to perform GRPC request to request_settings_change: {}", x),
-            )?;
+            println!("Factory resetting {}", service_fqin);
+            let resp = client
+                .factory_reset(user_controllable_service::FactoryResetRequest::new())
+                .map_err(|x| {
+                    format!("Failed to perform GRPC request to request_settings_change: {}", x)
+                })?;
 
-        match resp.error.is_some() {
-            true => {
-                Err(format!("Failed to factory reset HvacService service: {}", resp.error.unwrap()))
+            if resp.error.is_some() {
+                return Err(format!(
+                    "Failed to factory reset {} service: {}",
+                    service_fqin,
+                    resp.error.unwrap()
+                ));
             }
-            false => Ok(()),
         }
-    }
-
-    fn are_valid_user_flags(user_flags: i32) -> bool {
-        // Ensure driver flag is set since only driver is supported now
-        (user_flags & UserFlags::DRIVER.value()) == UserFlags::DRIVER.value() &&
-        // Ensure that no other bits are set other than ephemeral & driver
-        user_flags <=  (UserFlags::EPHEMERAL.value() | UserFlags::DRIVER.value())
-    }
-
-    fn notify_subscribers(
-        settings_group_id: &SettingsGroupId,
-        version: &String,
-        setting: &[SettingProto],
-        subscribers: &[String],
-    ) {
-        // Ideally the client should be created via the get_user_controllable_service_client method
-        // that is present in the UserPreferencesServer, for now manually create it since the rust
-        // compiler cannot determine the correctness of the program if UserPreferencesServiceImpl & UserPreferencesServer
-        // have references to each other
-        for subscriber in subscribers {
-            let client =
-                UserPreferencesViewClient::new(Box::new(GrpcClientTransport::new(subscriber)));
-
-            println!("Notifying {} of settings change\n", subscriber);
-            client
-                .on_settings_change(OnSettingsChangeRequest {
-                    settings_group_id: MessageField::some(settings_group_id.clone().into()),
-                    version: version.to_string(),
-                    settings: setting.to_vec(),
-                    //TODO: Expose pending and persisted settings for the user to subscribers
-                    ..Default::default()
-                })
-                .expect("Failed to notify clients of settings changes");
-        }
+        Ok(())
     }
 
     fn validate_requested_setting_changes(
@@ -146,7 +209,7 @@ impl UserPreferencesServiceImpl {
         requested_setting_changes: &[SettingProto],
     ) -> Result<(), String> {
         for setting in requested_setting_changes.iter() {
-            let current_settings = match current_settings.settings.get(&setting.key) {
+            let current_settings = match current_settings.get(&setting.key) {
                 Some(x) => x,
                 None => {
                     return Err(format!(
@@ -183,128 +246,114 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
         }
         let user = request.user.unwrap();
 
-        let mut users = acquire_lock_or_return_err!(self.users, CreateUserResponse);
-        if users.contains_key(&user.id) {
-            println!("Invalid create user request, ID {} is already in use", user.id);
-            return error_response!(
-                CreateUserResponse,
-                ResponseCode::ALREADY_EXISTS,
-                "User ID '{}' is already in use",
-                user.id
-            );
-        }
-        if !Self::are_valid_user_flags(user.flags) {
-            println!("Invalid user flags set");
-            return error_response!(
-                CreateUserResponse,
-                ResponseCode::INVALID_REQUEST,
-                "User flags {} is not a valid value",
-                user.flags
-            );
-        }
-
         // Initialize user with default values
         let vehicle_state = acquire_lock_or_return_err!(self.vehicle_state, CreateUserResponse);
-        let mut new_user = vehicle_state.clone();
-        new_user.reset_settings();
-        new_user.user = User { id: user.id, flags: user.flags, ..Default::default() };
+        let mut user_persisted_configuration = vehicle_state.clone();
+        user_persisted_configuration.reset();
 
         println!("Created user {}", user.id);
 
-        users.insert(user.id, new_user);
-
-        Ok(CreateUserResponse::new())
+        match self.user_manager.create_user(user, user_persisted_configuration) {
+            Ok(_) => Ok(CreateUserResponse::new()),
+            Err(err) => Ok(CreateUserResponse { error: Some(err).into(), ..Default::default() }),
+        }
     }
 
     fn select_user(&self, request: SelectUserRequest) -> RpcResult<SelectUserResponse> {
-        let mut users = acquire_lock_or_return_err!(self.users, SelectUserResponse);
-        let mut current_user_id =
-            acquire_lock_or_return_err!(self.current_user_id, SelectUserResponse);
+        println!("Loading user {}\n", request.user_id);
 
-        let target_user = match users.get(&request.user_id) {
+        let user = match self.user_manager.get_user(request.user_id) {
             Some(x) => x,
             None => {
+                // return error_response!();
                 return error_response!(
                     SelectUserResponse,
-                    ResponseCode::NOT_FOUND_ERROR,
-                    "User ID '{}' does not exist",
+                    ResponseCode::INVALID_REQUEST,
+                    "User {} does not exist",
                     request.user_id
-                )
+                );
             }
         };
 
-        println!("Loading user {}\n", request.user_id);
-
-        for (settings_group_id, settings_group) in target_user.settings_groups.iter() {
-            let settings = settings_group
-                .settings
-                .values()
-                .filter(|x| x.kind.as_ref() == &SettingKind::PER_USER)
-                .cloned()
-                .map(SettingProto::from)
-                .collect();
-
-            if let Err(result) = Self::apply_settings(settings_group_id.clone().into(), settings) {
-                println!("Failed to apply settings changes: {}", result);
+        // If the previous user is ephemeral, then delete them
+        let mut current_user_id = self.current_user_id.lock().unwrap();
+        if let Some(previous_user) = current_user_id.and_then(|id| self.user_manager.get_user(id)) {
+            if previous_user.is_ephemeral() {
+                if let Err(err) = self.user_manager.delete_user(previous_user.id) {
+                    return Ok(SelectUserResponse {
+                        error: Some(err).into(),
+                        ..Default::default()
+                    });
+                }
+                println!("Deleted ephemeral user: {}", previous_user.id);
             }
         }
-
-        // If the previous user is ephemeral, then delete it
-        if let Some(id) =
-            current_user_id.filter(|&id| users.get(&id).map_or(false, |p| p.is_ephemeral()))
-        {
-            users.remove(&id);
-            println!("Deleted ephemeral user: {}", id);
-        }
+        // Specify new user
         *current_user_id = Some(request.user_id);
+        drop(current_user_id);
+
+        //TODO(b/340806032): Switch to async request once middleware supports async clients
+        let user_persisted_setting_groups =
+            user.vehicle_configuration.lock().unwrap().get_all_groups();
+
+        for settings_group in user_persisted_setting_groups.into_iter() {
+            let settings = settings_group
+                .get_all()
+                .into_iter()
+                .filter(|x| x.kind.as_ref() == &SettingKind::PER_USER)
+                .map(SettingProto::from)
+                .collect_vec();
+
+            // TODO, also handle non RPC error
+            match self.request_settings_change(RequestSettingsChangeRequest {
+                settings_group_id: Some(settings_group.id.clone().into()).into(),
+                settings,
+                // Non persist as we are simply applying changes that are already persisted
+                change_persistence_policy: ChangePersistencePolicy::NON_PERSISTENT_CHANGE.into(),
+                ..Default::default()
+            }) {
+                Ok(response) => {
+                    if let Some(err) = response.error.into_option() {
+                        println!("Failed to apply settings changes: {}", err)
+                    }
+                }
+                Err(err) => println!("Failed to apply settings changes: {}", err),
+            };
+        }
+        //END of async part
 
         Ok(SelectUserResponse::new())
     }
 
     fn delete_user(&self, request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
-        let mut users = acquire_lock_or_return_err!(self.users, DeleteUserResponse);
-        let current_user_id = acquire_lock_or_return_err!(self.current_user_id, DeleteUserResponse);
-
-        if !users.contains_key(&request.user_id) {
-            return Ok(DeleteUserResponse {
-                error: MessageField::some(Error {
-                    error_code: EnumOrUnknown::new(ResponseCode::NOT_FOUND_ERROR),
-                    message: format!("User {} does not exist", request.user_id),
-                    ..Default::default()
-                }),
-                ..Default::default()
-            });
-        }
-        if current_user_id.is_some_and(|id| id == request.user_id) {
-            return Ok(DeleteUserResponse {
-                error: MessageField::some(Error {
-                    error_code: EnumOrUnknown::new(ResponseCode::INVALID_REQUEST),
-                    message: format!("Cannot delete User {} since it is in use", request.user_id),
-                    ..Default::default()
-                }),
-                ..Default::default()
-            });
-        }
-
-        users.remove(&request.user_id);
-        println!("Deleted user {}", &request.user_id);
-
-        Ok(DeleteUserResponse::new())
+        Ok(DeleteUserResponse {
+            error: self.user_manager.delete_user(request.user_id).err().into(),
+            ..Default::default()
+        })
     }
 
     fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
-        let mut users = acquire_lock_or_return_err!(self.users, FactoryResetResponse);
-        users.clear();
+        self.user_manager.delete_all();
 
         let mut current_user_id =
             acquire_lock_or_return_err!(self.current_user_id, FactoryResetResponse);
         *current_user_id = None;
+        drop(current_user_id);
 
-        let resp = match Self::reset_services() {
+        let services_fqin = self
+            .vehicle_state
+            .lock()
+            .unwrap()
+            .get_all_groups()
+            .iter()
+            .map(|x| x.id.service_fqin().clone())
+            .collect_vec();
+
+        let resp = match Self::reset_services(services_fqin) {
             Ok(_) => FactoryResetResponse::new(),
             Err(err) => FactoryResetResponse {
                 error: MessageField::some(Error {
-                    error_code: EnumOrUnknown::new(ResponseCode::INTERNAL_ERROR),
+                    error_code: ResponseCode::INTERNAL_ERROR.into(),
                     message: err,
                     ..Default::default()
                 }),
@@ -316,8 +365,7 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
     }
 
     fn list_users(&self, _request: ListUsersRequest) -> RpcResult<ListUsersResponse> {
-        let users = acquire_lock_or_return_err!(self.users, ListUsersResponse);
-        let users = users.iter().map(|(_, config)| config.user.clone()).collect_vec();
+        let users = self.user_manager.list_users();
 
         Ok(ListUsersResponse { users, ..Default::default() })
     }
@@ -326,24 +374,27 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
         &self,
         request: GetUserSettingsRequest,
     ) -> RpcResult<GetUserSettingsResponse> {
-        let users = acquire_lock_or_return_err!(self.users, GetUserSettingsResponse);
-
-        let user = match users.get(&request.user_id) {
-            Some(user) => user,
+        let user = match self.user_manager.get_user(request.user_id) {
+            Some(x) => x,
             None => {
                 return error_response!(
                     GetUserSettingsResponse,
                     ResponseCode::INVALID_REQUEST,
-                    "user {} does not exist",
+                    "User {} does not exist",
                     request.user_id
                 )
             }
         };
-
-        return Ok(GetUserSettingsResponse {
-            groups: user.settings_groups.values().cloned().map_into().collect(),
+        let user_settings_store = user.vehicle_configuration.lock().unwrap();
+        Ok(GetUserSettingsResponse {
+            groups: user_settings_store
+                .get_all_groups()
+                .into_iter()
+                .map(|s| s.as_ref().clone())
+                .map_into()
+                .collect_vec(),
             ..Default::default()
-        });
+        })
     }
 }
 
@@ -357,7 +408,7 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
 
         let settings_group_id: SettingsGroupId = request.settings_group_id.unwrap().into();
 
-        let current_settings = match vehicle_state.settings_groups.get(&settings_group_id) {
+        let current_settings = match vehicle_state.get_group(&settings_group_id) {
             Some(settings) => settings,
             None => {
                 return error_response!(
@@ -370,7 +421,7 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
         };
 
         if let Err(err) =
-            self.validate_requested_setting_changes(current_settings, &request.settings)
+            self.validate_requested_setting_changes(current_settings.as_ref(), &request.settings)
         {
             return error_response!(
                 RequestSettingsChangeResponse,
@@ -380,20 +431,52 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
             );
         }
 
+        if request.change_persistence_policy.enum_value_or_default()
+            == ChangePersistencePolicy::PERSISTENT_CHANGE
+        {
+            if let Err(err) =
+                self.persist_to_current_user(settings_group_id.clone(), request.settings.clone())
+            {
+                return Ok(RequestSettingsChangeResponse {
+                    error: MessageField::some(err),
+                    ..Default::default()
+                });
+            };
+        }
+
         println!("Updating the following settings within {}:", settings_group_id);
         print_settings(&request.settings);
 
-        let resp = match Self::apply_settings(settings_group_id.clone().into(), request.settings) {
+        //TODO(b/340806032): Switch to async request once middleware supports async clients
+        let resp = match Self::apply_settings(
+            settings_group_id.clone().into(),
+            request.settings.clone(),
+        ) {
             Ok(_) => RequestSettingsChangeResponse::new(),
-            Err(err) => RequestSettingsChangeResponse {
-                error: MessageField::some(Error {
-                    error_code: EnumOrUnknown::new(ResponseCode::RUNTIME_ERROR),
-                    message: err,
-                    ..Default::default()
-                }),
-                ..Default::default()
-            },
+            Err(err) => {
+                return error_response!(
+                    RequestSettingsChangeResponse,
+                    ResponseCode::RUNTIME_ERROR,
+                    "{}",
+                    err,
+                )
+            }
         };
+
+        if let Err(err) = current_settings.update(request.settings.clone()) {
+            println!("Failed to update internal state due to {}", err.message);
+        }
+
+        let persisted_group = self.get_settings_group_from_current_user(&settings_group_id);
+        if let Err(err) = self.notify_subscribers(
+            current_settings,
+            persisted_group,
+            &request.settings.into_iter().map(|x| x.key.clone()).collect_vec(),
+        ) {
+            println!("Failed to notify subscribers of settings change due to {}", err);
+        }
+        //End of async code block
+
         Ok(resp)
     }
 
@@ -416,14 +499,9 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
             .or_default()
             .insert(request.caller_fqin);
 
-        if let Some(settings_group) = vehicle_state.settings_groups.get(&settings_group_id) {
+        if let Some(settings_group) = vehicle_state.get_group(&settings_group_id) {
             let result = SubscribeToSettingsChangeAndGetSettingsResponse {
-                current_settings: settings_group
-                    .settings
-                    .values()
-                    .cloned()
-                    .map(|setting| setting.into())
-                    .collect(),
+                current_settings: settings_group.get_all().into_iter().map_into().collect(),
                 version: settings_group.version.clone(),
                 ..Default::default()
             };
@@ -473,33 +551,30 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
         &self,
         request: RegisterSettingsRequest,
     ) -> RpcResult<RegisterSettingsResponse> {
-        let mut vehicle_state =
+        let vehicle_state =
             acquire_lock_or_return_err!(self.vehicle_state, RegisterSettingsResponse);
 
         let settings_group_id =
             SettingsGroupId::new(request.caller_fqin.clone(), request.group_name.clone());
 
-        if !vehicle_state.settings_groups.contains_key(&settings_group_id)
-            || vehicle_state.settings_groups.get(&settings_group_id).unwrap().version
-                != request.version
+        let existing_setting_group = vehicle_state.get_group(&settings_group_id);
+
+        if existing_setting_group.is_none()
+            || existing_setting_group.unwrap().version != request.version
         {
             println!("Registered settings {}", settings_group_id);
 
             print_setting_definition(&request.settings_definitions);
 
-            // Also register the settings in the vehicle state
-            let settings_group =
-                vehicle_state.settings_groups.entry(settings_group_id.clone()).or_insert(
-                    SettingsGroup::new(settings_group_id.clone(), request.version.clone(), vec![]),
-                );
-
-            request.settings_definitions.iter().cloned().for_each(|setting_definition| {
-                let setting = Setting::from(setting_definition);
-
-                if !settings_group.settings.contains_key(&setting.name) {
-                    settings_group.settings.insert(setting.name.clone(), setting);
-                }
-            });
+            let settings: Vec<Setting> =
+                request.settings_definitions.iter().cloned().map_into().collect_vec();
+            vehicle_state
+                .add_group(SettingsGroup::new(
+                    settings_group_id.clone(),
+                    request.version.clone(),
+                    settings,
+                ))
+                .unwrap();
         } else {
             println!(
                 "Settings group {} with version {} is already registered",
@@ -511,15 +586,11 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
     }
 
     fn update_settings(&self, request: UpdateSettingsRequest) -> RpcResult<UpdateSettingsResponse> {
-        let mut vehicle_state =
-            acquire_lock_or_return_err!(self.vehicle_state, UpdateSettingsResponse);
-        let change_subscribers =
-            acquire_lock_or_return_err!(self.change_subscribers, UpdateSettingsResponse);
+        let vehicle_state = acquire_lock_or_return_err!(self.vehicle_state, UpdateSettingsResponse);
 
         let settings_group_id = SettingsGroupId::new(request.caller_fqin, request.group_name);
 
-        let service_settings_group = match vehicle_state.settings_groups.get_mut(&settings_group_id)
-        {
+        let service_settings_group = match vehicle_state.get_group(&settings_group_id) {
             Some(x) => x,
             None => {
                 return error_response!(
@@ -531,55 +602,21 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
             }
         };
 
-        if request.settings.iter().any(|setting| setting.value.is_none()) {
-            return error_response!(
-                UpdateSettingsResponse,
-                ResponseCode::INVALID_REQUEST,
-                "Encountered settings with a None value: {:?}",
-                request.settings
-            );
+        if let Err(err) = service_settings_group.update(request.settings.clone()) {
+            return Ok(UpdateSettingsResponse { error: Some(err).into(), ..Default::default() });
         }
-
-        request.settings.iter().cloned().for_each(|x| {
-            if let Some(setting) = service_settings_group.settings.get_mut(&x.key) {
-                if let Err(err) = setting.set_value(x.value.unwrap()) {
-                    println!("Cannot update setting {}: ", err);
-                }
-            }
-        });
-
         println!("Updated the following settings");
         print_settings(&request.settings);
 
-        let current_user_id =
-            acquire_lock_or_return_err!(self.current_user_id, UpdateSettingsResponse);
+        let persisted_group = self.get_settings_group_from_current_user(&settings_group_id);
 
-        if let Some(current_user_id) = *current_user_id {
-            let mut users = acquire_lock_or_return_err!(self.users, UpdateSettingsResponse);
-            let current_user = users.get_mut(&current_user_id).unwrap();
-            let current_settings_group =
-                current_user.settings_groups.get_mut(&settings_group_id).unwrap();
-
-            request.settings.iter().cloned().for_each(|x| {
-                if let Some(setting) = current_settings_group.settings.get_mut(&x.key) {
-                    if let Err(err) = setting.set_value(x.value.unwrap()) {
-                        println!("Cannot update setting {}: ", err);
-                    }
-                }
-            });
+        if let Err(err) = self.notify_subscribers(
+            service_settings_group,
+            persisted_group,
+            &request.settings.into_iter().map(|x| x.key.clone()).collect_vec(),
+        ) {
+            println!("Failed to notify subscribers of settings change due to {}", err);
         }
-
-        Self::notify_subscribers(
-            &settings_group_id,
-            &service_settings_group.version,
-            &request.settings,
-            &change_subscribers
-                .get(&settings_group_id)
-                .unwrap_or(&HashSet::new())
-                .iter()
-                .cloned()
-                .collect_vec(),
-        );
 
         Ok(UpdateSettingsResponse::new())
     }

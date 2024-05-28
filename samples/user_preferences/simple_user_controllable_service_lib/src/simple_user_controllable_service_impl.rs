@@ -30,6 +30,7 @@ use user_preferences_api::{
     error::{Error, ResponseCode},
     setting::{SettingAndConstraints, SettingDefinition},
 };
+use user_preferences_utils::print_setting_definition;
 
 // Definition of the settings group a service provides to users.
 #[derive(Clone)]
@@ -101,6 +102,12 @@ impl SimpleUserControllableServiceImpl {
 
     fn register_settings(&self) {
         for group in self.setting_groups_definitions.iter().cloned() {
+            println!(
+                "Registering settings group with name: {},\nVersion: {}",
+                group.name, group.version,
+            );
+            print_setting_definition(&group.setting_definitions);
+
             self.user_preferences_registry_service_client
                 .register_settings(RegisterSettingsRequest {
                     group_name: group.name,
@@ -119,6 +126,8 @@ impl UserControllableService for SimpleUserControllableServiceImpl {
         &self,
         request: RequestSettingsChangeRequest,
     ) -> sdvmiddleware_rpc::RpcResult<RequestSettingsChangeResponse> {
+        println!("Settings change request\n\n");
+
         let mut setting_groups = self.setting_groups.lock().unwrap();
 
         let setting_group = match setting_groups.get_mut(&request.group_name) {
@@ -137,9 +146,13 @@ impl UserControllableService for SimpleUserControllableServiceImpl {
                 })
             }
         };
+
+        println!("Adjusted the following settings: ");
         for new_setting in request.settings.iter() {
             let persisted_setting = setting_group.setting_and_constraints.get_mut(&new_setting.key);
             persisted_setting.unwrap().setting = MessageField::some(new_setting.clone());
+
+            println!("Key {:<15} Value {:<10?}", new_setting.key, new_setting.value)
         }
 
         // Respond that all settings were applied as requested
@@ -170,6 +183,7 @@ impl UserControllableService for SimpleUserControllableServiceImpl {
                 .expect("Unexpected failure to update settings");
         }
 
+        println!("\nPerformed factory reset");
         Ok(FactoryResetResponse::new())
     }
 }
