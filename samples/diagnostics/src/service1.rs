@@ -2,7 +2,7 @@
 // Copyright 2023 Google LLC
 
 use diagnostics_api::event::Status;
-use diagnostics_api::negative_response_code::NegativeResponseCode;
+use diagnostics_api::response_code::ResponseCode;
 use diagnostics_sample_catalog::messages::{
     DataItemOne, FirstEventExt, IOControllableData as IoControllableData, RoutineRequestParameter,
     RoutineResponseParameter, SecondEventExt,
@@ -33,9 +33,9 @@ impl DataItemHandler<DataItemOne> for DataItemOneHandler {
         Ok((*self.value.lock().unwrap()).clone())
     }
 
-    fn write(&self, value: DataItemOne) -> NegativeResponseCode {
+    fn write(&self, value: DataItemOne) -> ResponseCode {
         *self.value.lock().unwrap() = value;
-        NegativeResponseCode::POSITIVE_RESPONSE
+        ResponseCode::POSITIVE_RESPONSE
     }
 }
 
@@ -75,7 +75,7 @@ impl
         &self,
         _: RoutineRequestParameter,
     ) -> RoutineResult<RoutineResponseParameter> {
-        Err(NegativeResponseCode::BUSY_REPEAT_REQUEST)
+        Err(ResponseCode::BUSY_REPEAT_REQUEST)
     }
 }
 
@@ -110,11 +110,11 @@ impl FaultListenerHandler<FirstEventExt> for Event1FaultListenerHandler {
         &self,
         _status: u8,
         extended_data: Option<FirstEventExt>,
-    ) -> NegativeResponseCode {
+    ) -> ResponseCode {
         // Expect empty extended data
         match extended_data {
-            Some(_) => NegativeResponseCode::GENERAL_REJECT,
-            None => NegativeResponseCode::POSITIVE_RESPONSE,
+            Some(_) => ResponseCode::GENERAL_REJECT,
+            None => ResponseCode::POSITIVE_RESPONSE,
         }
     }
 }
@@ -126,11 +126,11 @@ impl FaultListenerHandler<SecondEventExt> for Event2FaultListenerHandler {
         &self,
         _status: u8,
         extended_data: Option<SecondEventExt>,
-    ) -> NegativeResponseCode {
+    ) -> ResponseCode {
         // Expect empty extended data
         match extended_data {
-            Some(_) => NegativeResponseCode::GENERAL_REJECT,
-            None => NegativeResponseCode::POSITIVE_RESPONSE,
+            Some(_) => ResponseCode::GENERAL_REJECT,
+            None => ResponseCode::POSITIVE_RESPONSE,
         }
     }
 }

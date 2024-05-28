@@ -7,7 +7,7 @@ use crate::interface::DataItem;
 use diagnostics_api::data_item::ReadRequest;
 use diagnostics_api::data_item::ReadResponse;
 use diagnostics_api::data_item::WriteRequest;
-use diagnostics_api::negative_response_code::EmptyResponse;
+use diagnostics_api::data_item::WriteResponse;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
@@ -34,7 +34,7 @@ impl DataItemServer {
             self.transport.as_ref(),
         );
         let callback = service.clone();
-        serve_method::<WriteRequest, EmptyResponse>(
+        serve_method::<WriteRequest, WriteResponse>(
             Box::new(move |req| callback.write(req)),
             "DataItem::write",
             self.transport.as_ref(),

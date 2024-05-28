@@ -5,16 +5,15 @@
 //! WARNING: PLEASE DO NOT EDIT.
 use crate::diagnostics_provider_service2::DiagnosticsProviderService2;
 use crate::sdv_diagnostics_data_item_data_item_interface::DataItem;
-use diagnostics_api::data_item::{ReadRequest, ReadResponse, WriteRequest};
+use diagnostics_api::data_item::{ReadRequest, ReadResponse, WriteRequest, WriteResponse};
 use diagnostics_api::event::Event as EventMessage;
-use diagnostics_api::fault::OnFaultStatusChangeRequest;
+use diagnostics_api::fault::{OnFaultStatusChangeRequest, OnFaultStatusChangeResponse};
 use diagnostics_api::io_control::{
     IOControlRequest as IoControlRequest,
     IOControlRequestWithAdjustment as IoControlRequestWithAdjustment,
     IOControlResponse as IoControlResponse,
 };
-use diagnostics_api::negative_response_code::EmptyResponse;
-use diagnostics_api::negative_response_code::NegativeResponseCode::REQUEST_OUT_OF_RANGE;
+use diagnostics_api::response_code::ResponseCode::REQUEST_OUT_OF_RANGE;
 use diagnostics_api::routine_control::{RoutineControlRequest, RoutineControlResponse};
 use sdv_middleware_extension_diagnostics::{
     data_item::{DataItemHandler, ReadOnlyDataItemHandler},
@@ -114,15 +113,19 @@ impl DataItem for DataItemServer {
     fn read(&self, request: ReadRequest) -> RpcResult<ReadResponse> {
         match request.id.as_str() {
             "data_item_id2" => Ok(self.data_item_id2_handler.lock().unwrap().read_untyped()),
-            _ => Ok(ReadResponse { error_code: REQUEST_OUT_OF_RANGE.into(), ..Default::default() }),
+            _ => Ok(ReadResponse {
+                response_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
         }
     }
 
-    fn write(&self, request: WriteRequest) -> RpcResult<EmptyResponse> {
+    fn write(&self, request: WriteRequest) -> RpcResult<WriteResponse> {
         match request.id.as_str() {
-            _ => {
-                Ok(EmptyResponse { error_code: REQUEST_OUT_OF_RANGE.into(), ..Default::default() })
-            }
+            _ => Ok(WriteResponse {
+                response_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
         }
     }
 }

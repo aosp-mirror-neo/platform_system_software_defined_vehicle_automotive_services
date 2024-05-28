@@ -2,8 +2,8 @@
 
 use crate::DiagnosticsResult;
 use diagnostics_api::io_control::IOControlResponse as IoControlResponse;
-use diagnostics_api::negative_response_code::NegativeResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
-use diagnostics_api::negative_response_code::NegativeResponseCode::POSITIVE_RESPONSE;
+use diagnostics_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
+use diagnostics_api::response_code::ResponseCode::POSITIVE_RESPONSE;
 use protobuf::MessageFull;
 
 /// Typed trait that corresponds to IoControl server
@@ -48,7 +48,7 @@ pub trait IoControlHandler<T: MessageFull>: Send + Sync {
                 to_io_control_response(self.short_term_adjustment(adjusted_value, mask))
             })
             .unwrap_or_else(|_| IoControlResponse {
-                error_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+                response_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             })
     }
@@ -62,16 +62,16 @@ fn to_io_control_response<T: MessageFull>(result: DiagnosticsResult<T>) -> IoCon
             value_bytes
                 .map(|value_bytes| IoControlResponse {
                     value: value_bytes,
-                    error_code: POSITIVE_RESPONSE.into(),
+                    response_code: POSITIVE_RESPONSE.into(),
                     ..Default::default()
                 })
                 .unwrap_or_else(|_| IoControlResponse {
-                    error_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+                    response_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                     ..Default::default()
                 })
         }
-        Err(error_code) => {
-            IoControlResponse { error_code: error_code.into(), ..Default::default() }
+        Err(response_code) => {
+            IoControlResponse { response_code: response_code.into(), ..Default::default() }
         }
     }
 }
@@ -83,7 +83,7 @@ mod tests {
     use diagnostics_api::event::Event as TestProto;
     use diagnostics_api::event::Status;
     use diagnostics_api::io_control::IOControlResponse as IoControlResponse;
-    use diagnostics_api::negative_response_code::NegativeResponseCode;
+    use diagnostics_api::response_code::ResponseCode;
     use protobuf::Message;
 
     const MASK: &[u8] = &[1];
@@ -128,12 +128,12 @@ mod tests {
 
     #[test]
     fn test_return_control_to_ecu_untyped_err() {
-        let handler = TestIoControlHandler { response: Err(NegativeResponseCode::GENERAL_REJECT) };
+        let handler = TestIoControlHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.return_control_to_ecu_untyped(MASK),
             IoControlResponse {
-                error_code: NegativeResponseCode::GENERAL_REJECT.into(),
+                response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
         );
@@ -153,12 +153,12 @@ mod tests {
 
     #[test]
     fn test_reset_to_default_untyped_err() {
-        let handler = TestIoControlHandler { response: Err(NegativeResponseCode::GENERAL_REJECT) };
+        let handler = TestIoControlHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.reset_to_default_untyped(MASK),
             IoControlResponse {
-                error_code: NegativeResponseCode::GENERAL_REJECT.into(),
+                response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
         );
@@ -178,12 +178,12 @@ mod tests {
 
     #[test]
     fn test_freeze_current_state_untyped_err() {
-        let handler = TestIoControlHandler { response: Err(NegativeResponseCode::GENERAL_REJECT) };
+        let handler = TestIoControlHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.freeze_current_state_untyped(MASK),
             IoControlResponse {
-                error_code: NegativeResponseCode::GENERAL_REJECT.into(),
+                response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
         );
@@ -205,12 +205,12 @@ mod tests {
     fn test_short_term_adjustment_untyped_err() {
         let message = TestProto { status: Status::PASS.into(), ..Default::default() };
 
-        let handler = TestIoControlHandler { response: Err(NegativeResponseCode::GENERAL_REJECT) };
+        let handler = TestIoControlHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.short_term_adjustment_untyped(&message.write_to_bytes().unwrap(), MASK),
             IoControlResponse {
-                error_code: NegativeResponseCode::GENERAL_REJECT.into(),
+                response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
         );
@@ -220,12 +220,12 @@ mod tests {
     fn test_short_term_adjustment_untyped_format_err() {
         let invalid_message_bytes = vec![2, 1];
 
-        let handler = TestIoControlHandler { response: Err(NegativeResponseCode::GENERAL_REJECT) };
+        let handler = TestIoControlHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.short_term_adjustment_untyped(&invalid_message_bytes, MASK),
             IoControlResponse {
-                error_code: NegativeResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             }
         );

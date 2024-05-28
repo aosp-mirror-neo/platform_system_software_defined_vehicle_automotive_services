@@ -4,7 +4,7 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use diagnostics_api::fault::OnFaultStatusChangeRequest;
-use diagnostics_api::negative_response_code::EmptyResponse;
+use diagnostics_api::fault::OnFaultStatusChangeResponse;
 use sdvmiddleware_rpc::RpcResult;
 
 /// An auto-generated RPC interface.
@@ -13,5 +13,5 @@ pub trait FaultListener: Send + Sync {
     fn on_fault_status_change(
         &self,
         request: OnFaultStatusChangeRequest,
-    ) -> RpcResult<EmptyResponse>;
+    ) -> RpcResult<OnFaultStatusChangeResponse>;
 }

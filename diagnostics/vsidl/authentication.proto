@@ -5,7 +5,7 @@ syntax = "proto3";
 package sdv.diagnostics.authentication;
 
 import "connection.proto";
-import "negative_response_code.proto";
+import "response_code.proto";
 
 // Diagnostic interface for the Authentication (UDS 0x29) service.
 //
@@ -88,13 +88,10 @@ enum AuthenticationResponseCode {
 
 message AuthenticationResponse {
   // See AuthenticationResponseCode.
-  AuthenticationResponseCode response_code = 1;
+  AuthenticationResponseCode auth_response_code = 1;
 
-  // Error code.
-  //
-  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
-  // Other parts of response should be ignored in such case.
-  nrc.NegativeResponseCode error_code = 2;
+  // Response code.
+  ResponseCode response_code = 2;
 }
 
 message VerifyCertificateRequest {
@@ -115,7 +112,7 @@ message VerifyCertificateRequest {
 
 message VerifyCertificateResponse {
   // See AuthenticationResponseCode.
-  AuthenticationResponseCode response_code = 1;
+  AuthenticationResponseCode auth_response_code = 1;
 
   // A challenge contains vehicle manufacturer specific formatted server data or is a
   // random number.
@@ -129,16 +126,13 @@ message VerifyCertificateResponse {
   // communication.
   bytes ephemeral_public_key = 3;
 
-  // Error code.
-  //
-  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
-  // Other parts of response should be ignored in such case.
-  nrc.NegativeResponseCode error_code = 4;
+  // Response code.
+  ResponseCode response_code = 4;
 }
 
 message VerifyCertificateBidirectionalResponse {
   // See AuthenticationResponseCode.
-  AuthenticationResponseCode response_code = 1;
+  AuthenticationResponseCode auth_response_code = 1;
   // The challenge contains vehicle manufacturer specific formatted server data or is a
   // random number.
   //
@@ -161,11 +155,8 @@ message VerifyCertificateBidirectionalResponse {
   // communication.
   bytes ephemeral_public_key = 5;
 
-  // Error code.
-  //
-  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
-  // Other parts of response should be ignored in such case.
-  nrc.NegativeResponseCode error_code = 6;
+  // Response code.
+  ResponseCode response_code = 6;
 }
 
 message ProofOfOwnershipRequest {
@@ -184,7 +175,7 @@ message ProofOfOwnershipRequest {
 
 message ProofOfOwnershipResponse {
   // See AuthenticationResponseCode.
-  AuthenticationResponseCode response_code = 1;
+  AuthenticationResponseCode auth_response_code = 1;
 
   // This value shall contain session key information, e.g. the encrypted session key(s)
   // for securing further communication in the actual session and/or proof value(s)
@@ -223,7 +214,7 @@ message RequestChallengeRequest {
 
 message RequestChallengeResponse {
   // See AuthenticationResponseCode.
-  AuthenticationResponseCode response_code = 1;
+  AuthenticationResponseCode auth_response_code = 1;
 
   // Indicates the algorithm used in the generating and verifying proof of ownership.
   bytes algorithm_indicator = 2;
@@ -239,11 +230,8 @@ message RequestChallengeResponse {
   // Format of this field is OEM-specific.
   bytes needed_additional_parameter = 4;
 
-  // Error code.
-  //
-  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
-  // Other parts of response should be ignored in such case.
-  nrc.NegativeResponseCode error_code = 5;
+  // Response code.
+  ResponseCode response_code = 5;
 }
 
 message VerifyProofOfOwnershipRequest {
@@ -273,7 +261,7 @@ message VerifyProofOfOwnershipRequest {
 
 message VerifyProofOfOwnershipResponse {
   // See AuthenticationResponseCode.
-  AuthenticationResponseCode response_code = 1;
+  AuthenticationResponseCode auth_response_code = 1;
 
   // Indicates the algorithm used in the generating and verifying proof of ownership.
   bytes algorithm_indicator = 2;
@@ -287,16 +275,13 @@ message VerifyProofOfOwnershipResponse {
   // Format of this field is OEM-specific.
   bytes session_key_info = 3;
 
-  // Error code.
-  //
-  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
-  // Other parts of response should be ignored in such case.
-  nrc.NegativeResponseCode error_code = 4;
+  // Response code.
+  ResponseCode response_code = 4;
 }
 
 message VerifyProofOfOwnershipBidirectionalResponse {
   // See AuthenticationResponseCode.
-  AuthenticationResponseCode response_code = 1;
+  AuthenticationResponseCode auth_response_code = 1;
 
   // Indicates the algorithm used in the generating and verifying proof of ownership.
   bytes algorithm_indicator = 2;
@@ -315,9 +300,6 @@ message VerifyProofOfOwnershipBidirectionalResponse {
   // Format of this field is OEM-specific.
   bytes session_key_info = 4;
 
-  // Error code.
-  //
-  // If set to a value other than "POSITIVE_RESPONSE" indicates an error handling the request.
-  // Other parts of response should be ignored in such case.
-  nrc.NegativeResponseCode error_code = 5;
+  // Response code.
+  ResponseCode response_code = 5;
 }
