@@ -1,8 +1,8 @@
 // Copyright 2024 Google LLC
 
 use diagnostics_api::fault::OnFaultStatusChangeResponse;
-use diagnostics_api::response_code::ResponseCode;
 use diagnostics_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
+use diagnostics_api::response_code::ResponseCode::POSITIVE_RESPONSE;
 use protobuf::MessageFull;
 
 /// Typed trait that corresponds to FaultListener server
@@ -10,7 +10,7 @@ use protobuf::MessageFull;
 /// See sdv.diagnostics.fault.FaultListener service.
 pub trait FaultListenerHandler<T: MessageFull>: Send + Sync {
     /// See sdv.diagnostics.fault.FaultListener::OnFaultStatusChange.
-    fn on_fault_status_change(&self, status: u8, extended_data: Option<T>) -> ResponseCode;
+    fn on_fault_status_change(&self, status: u8, extended_data: Option<T>);
 
     /// Untyped version of `on_fault_status_change`.
     fn on_fault_status_change_untyped(
@@ -22,8 +22,11 @@ pub trait FaultListenerHandler<T: MessageFull>: Send + Sync {
             .map(T::parse_from_bytes)
             .transpose()
             .map(|extended_data| {
-                let result = self.on_fault_status_change(status, extended_data);
-                OnFaultStatusChangeResponse { response_code: result.into(), ..Default::default() }
+                self.on_fault_status_change(status, extended_data);
+                OnFaultStatusChangeResponse {
+                    response_code: POSITIVE_RESPONSE.into(),
+                    ..Default::default()
+                }
             })
             .unwrap_or_else(|_| OnFaultStatusChangeResponse {
                 response_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
@@ -43,42 +46,24 @@ mod tests {
 
     const STATUS: u8 = 1;
 
-    struct TestFaultListenerHandler {
-        response: ResponseCode,
-    }
+    struct TestFaultListenerHandler {}
 
     impl FaultListenerHandler<TestProto> for TestFaultListenerHandler {
-        fn on_fault_status_change(&self, _: u8, _: Option<TestProto>) -> ResponseCode {
-            self.response
-        }
+        fn on_fault_status_change(&self, _: u8, _: Option<TestProto>) {}
     }
 
     #[test]
-    fn test_on_fault_status_change_untyped_ok() {
+    fn test_on_fault_status_change_untyped() {
         let message_bytes = TestProto { status: Status::PASS.into(), ..Default::default() }
             .write_to_bytes()
             .unwrap();
 
-        let handler = TestFaultListenerHandler { response: ResponseCode::POSITIVE_RESPONSE };
-
-        assert_eq!(
-            handler.on_fault_status_change_untyped(STATUS, Some(&message_bytes)),
-            OnFaultStatusChangeResponse { ..Default::default() }
-        );
-    }
-
-    #[test]
-    fn test_on_fault_status_change_untyped_err() {
-        let message_bytes = TestProto { status: Status::PASS.into(), ..Default::default() }
-            .write_to_bytes()
-            .unwrap();
-
-        let handler = TestFaultListenerHandler { response: ResponseCode::GENERAL_REJECT };
+        let handler = TestFaultListenerHandler {};
 
         assert_eq!(
             handler.on_fault_status_change_untyped(STATUS, Some(&message_bytes)),
             OnFaultStatusChangeResponse {
-                response_code: ResponseCode::GENERAL_REJECT.into(),
+                response_code: ResponseCode::POSITIVE_RESPONSE.into(),
                 ..Default::default()
             }
         );
@@ -88,7 +73,7 @@ mod tests {
     fn test_on_fault_status_change_untyped_format_err() {
         let invalid_message_bytes = vec![2, 1];
 
-        let handler = TestFaultListenerHandler { response: ResponseCode::GENERAL_REJECT };
+        let handler = TestFaultListenerHandler {};
 
         assert_eq!(
             handler.on_fault_status_change_untyped(STATUS, Some(&invalid_message_bytes)),
@@ -101,7 +86,7 @@ mod tests {
 
     #[test]
     fn test_on_fault_status_change_untyped_empty_extended_data() {
-        let handler = TestFaultListenerHandler { response: ResponseCode::POSITIVE_RESPONSE };
+        let handler = TestFaultListenerHandler {};
 
         assert_eq!(
             handler.on_fault_status_change_untyped(STATUS, None),
