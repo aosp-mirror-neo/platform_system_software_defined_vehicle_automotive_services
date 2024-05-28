@@ -19,4 +19,5 @@ rust_test {
         "tests/client_stdout.txt",
     ],
     vendor: true,
+    require_root: true,
 }
