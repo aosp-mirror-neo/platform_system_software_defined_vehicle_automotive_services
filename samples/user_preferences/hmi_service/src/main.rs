@@ -185,9 +185,9 @@ fn main() {
         panic!("Failed to retrieve user settings: {}", error.message);
     }
 
-    for setting_group in response.groups {
-        println!("Settings Group: {}", setting_group.id.name);
-        print_settings(&setting_group.settings);
+    for settings_group in response.groups {
+        println!("Settings Group: {}", settings_group.id.name);
+        print_settings(&settings_group.settings);
     }
 
     let user_id_3 = 3_i32;

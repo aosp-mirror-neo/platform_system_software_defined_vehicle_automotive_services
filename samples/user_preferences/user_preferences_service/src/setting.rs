@@ -10,25 +10,13 @@ use user_preferences_api::setting::{
 #[derive(Clone)]
 pub(crate) struct Setting {
     pub name: String,
-    value: Value,
+    pub value: Value,
     pub kind: Arc<SettingKind>,
     default_value: Arc<Value>,
     constraints: Option<Arc<Constraints>>,
 }
 
 impl Setting {
-    pub fn set_value(&mut self, value: Value) -> Result<(), String> {
-        if !self.is_valid_value(&value) {
-            return Err(format!(
-                "Value {:?} violated constraints {:?}",
-                self.value, self.constraints
-            ));
-        }
-
-        self.value = value;
-        Ok(())
-    }
-
     pub fn reset(&mut self) {
         self.value = self.default_value.as_ref().clone();
     }

@@ -88,8 +88,8 @@ Successfully created user 1
 
 Current HVAC settings
 Key ENABLED        , Value: Bool(false), Constraint: "None"
-Key FAN_SPEED      , Value: Int64(1)  , Constraint: "Int64Constraints(Int64Constraints { min_value: Some(1), max_value: Some(5), step: None, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })"
 Key TEMPERATURE    , Value: Int64(16) , Constraint: "Int64Constraints(Int64Constraints { min_value: Some(16), max_value: Some(32), step: None, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })"
+Key FAN_SPEED      , Value: Int64(1)  , Constraint: "Int64Constraints(Int64Constraints { min_value: Some(1), max_value: Some(5), step: None, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })"
 
 
 
@@ -104,21 +104,21 @@ Received error "Int64(\n    100,\n) is not a valid value for Setting TEMPERATURE
 
 Creating another user
 Successfully created user 2
-Switched to user 2
-List of available users: "2"
-
 The following settings were changed in settings group HvacService/HVAC
 Key ENABLED         Value: Bool(false)
-Key FAN_SPEED       Value: Int64(1)
 Key TEMPERATURE     Value: Int64(16)
+Key FAN_SPEED       Value: Int64(1)
 
 
+
+Switched to user 2
+List of available users: "2"
 
 Retrieving settings for user 2
 Settings Group: HVAC
 Key ENABLED         Value: Bool(false)
-Key FAN_SPEED       Value: Int64(1)
 Key TEMPERATURE     Value: Int64(16)
+Key FAN_SPEED       Value: Int64(1)
 
 
 
@@ -136,50 +136,35 @@ Additionally HVAC service will get requests to change settings and will respond 
 
 ```bash
 Registering settings group with name: HVAC,
-Version: 1.0
+Version: 1
 Key ENABLED        , Type: PER_USER, Value: Bool(false)
 Key FAN_SPEED      , Type: PER_USER, Value: Int64(1)
 Key TEMPERATURE    , Type: PER_USER, Value: Int64(16)
 
 
 
-Registering the same settings again
+Started HvacService service bundle
+Settings change request
 
 
-Settings change request, simulating setting change delay
+Adjusted the following settings:
+Key ENABLED         Value Some(Bool(false     ))
+Key TEMPERATURE     Value Some(Int64(16        ))
+Key FAN_SPEED       Value Some(Int64(1         ))
+Settings change request
 
 
-Applied changes from request with transaction ID: 808
-Current settings
-Key FAN_SPEED       Value Int64(1         )
-Key ENABLED         Value Bool(false     )
-Key TEMPERATURE     Value Int64(16        )
-Settings change request, simulating setting change delay
+Adjusted the following settings:
+Key TEMPERATURE     Value Some(Int64(32        ))
+Settings change request
 
 
-Applied changes from request with transaction ID: 580
-Current settings
-Key FAN_SPEED       Value Int64(1         )
-Key ENABLED         Value Bool(false     )
-Key TEMPERATURE     Value Int64(32        )
-Settings change request, simulating setting change delay
-
-
-Applied changes from request with transaction ID: 798
-Current settings
-Key FAN_SPEED       Value Int64(1         )
-Key ENABLED         Value Bool(false     )
-Key TEMPERATURE     Value Int64(16        )
+Adjusted the following settings:
+Key ENABLED         Value Some(Bool(false     ))
+Key TEMPERATURE     Value Some(Int64(16        ))
+Key FAN_SPEED       Value Some(Int64(1         ))
 
 Performed factory reset
-Settings change request, simulating setting change delay
-
-
-Applied changes from request with transaction ID: 0
-Current settings
-Key FAN_SPEED       Value Int64(1         )
-Key ENABLED         Value Bool(false     )
-Key TEMPERATURE     Value Int64(16        )
 ```
 
 #### User Preferences Service output
@@ -193,14 +178,13 @@ Key TEMPERATURE    , Type: PER_USER, Value: Int64(16)
 
 
 
-Settings group HvacService/HVAC with version 1.0 is already registered
 Created user 1
 Loading user 1
 
-Updated the following settings
+Updating the following settings within HvacService/HVAC:
 Key ENABLED         Value: Bool(false)
-Key FAN_SPEED       Value: Int64(1)
 Key TEMPERATURE     Value: Int64(16)
+Key FAN_SPEED       Value: Int64(1)
 
 
 
@@ -211,21 +195,17 @@ Key TEMPERATURE     Value: Int64(32)
 
 
 
-Updated the following settings
-Key TEMPERATURE     Value: Int64(32)
-
-
-
 Notifying HmiService of settings change
 
 Created user 2
 Loading user 2
 
+Deleted user 1
 Deleted ephemeral user: 1
-Updated the following settings
+Updating the following settings within HvacService/HVAC:
 Key ENABLED         Value: Bool(false)
-Key FAN_SPEED       Value: Int64(1)
 Key TEMPERATURE     Value: Int64(16)
+Key FAN_SPEED       Value: Int64(1)
 
 
 
@@ -233,8 +213,9 @@ Notifying HmiService of settings change
 
 Created user 3
 Deleted user 3
+Factory resetting HvacService
 Updated the following settings
 Key FAN_SPEED       Value: Int64(1)
-Key ENABLED         Value: Bool(false)
 Key TEMPERATURE     Value: Int64(16)
+Key ENABLED         Value: Bool(false)
 ```
