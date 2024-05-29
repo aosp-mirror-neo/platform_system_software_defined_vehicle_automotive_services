@@ -15,7 +15,7 @@ import "response_code.proto";
 // See ISO 14229-1:2020, section 10.6.4.
 service Authentication {
   // Request to leave the authenticated state.
-  rpc DeAuthenticate(connection.ConnectionId) returns (AuthenticationResponse) {}
+  rpc DeAuthenticate(ConnectionId) returns (AuthenticationResponse) {}
 
   // Initiate authentication by verifying the certificate.
   rpc VerifyCertificate(VerifyCertificateRequest) returns (VerifyCertificateResponse) {}
@@ -46,7 +46,7 @@ service Authentication {
       returns (VerifyProofOfOwnershipBidirectionalResponse) {}
 
   // Indicates the provided authentication configuration of the server.
-  rpc AuthenticationConfiguration(connection.ConnectionId) returns (AuthenticationResponse) {}
+  rpc AuthenticationConfiguration(ConnectionId) returns (AuthenticationResponse) {}
 }
 
 enum AuthenticationResponseCode {
@@ -96,7 +96,7 @@ message AuthenticationResponse {
 
 message VerifyCertificateRequest {
   // Diagnostic connection id.
-  connection.ConnectionId connection_id = 1;
+  ConnectionId connection_id = 1;
 
   // Certificate to verify.
   //
@@ -161,7 +161,7 @@ message VerifyCertificateBidirectionalResponse {
 
 message ProofOfOwnershipRequest {
   // Diagnostic connection id.
-  connection.ConnectionId connection_id = 1;
+  ConnectionId connection_id = 1;
 
   // Proof of ownership of the previous given challenge to be verified by the server.
   bytes proof_of_ownership = 2;
@@ -189,7 +189,7 @@ message ProofOfOwnershipResponse {
 
 message TransmitCertificateRequest {
   // Diagnostic connection id.
-  connection.ConnectionId connection_id = 1;
+  ConnectionId connection_id = 1;
 
   // A unique id to identify the evaluation type of the transmitted certificate.
   int32 certificate_evaluation_id = 2;
@@ -202,7 +202,7 @@ message TransmitCertificateRequest {
 
 message RequestChallengeRequest {
   // Diagnostic connection id.
-  connection.ConnectionId connection_id = 1;
+  ConnectionId connection_id = 1;
 
   // Configuration information about how to proceed with security in further diagnostic
   // communication after the authentication.
@@ -236,7 +236,7 @@ message RequestChallengeResponse {
 
 message VerifyProofOfOwnershipRequest {
   // Diagnostic connection id.
-  connection.ConnectionId connection_id = 1;
+  ConnectionId connection_id = 1;
 
   // Indicates the algorithm used in the generating and verifying proof of ownership.
   bytes algorithm_indicator = 2;
