@@ -4,8 +4,8 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::PowerNotificationService;
-use protobuf::well_known_types::empty::Empty;
 use sdv_vpm_api::vpm::PowerStateNotificationRequest;
+use sdv_vpm_api::vpm::PowerStateNotificationResponse;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
@@ -26,7 +26,7 @@ impl PowerNotificationServiceServer {
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn PowerNotificationService>) {
         let callback = service.clone();
-        serve_method::<PowerStateNotificationRequest, Empty>(
+        serve_method::<PowerStateNotificationRequest, PowerStateNotificationResponse>(
             Box::new(move |req| callback.notify_power_state(req)),
             "PowerNotificationService::notify_power_state",
             self.transport.as_ref(),

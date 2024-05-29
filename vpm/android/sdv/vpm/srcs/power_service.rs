@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use mockall::automock;
 use sdv_vpm_api::power::PowerStateReport;
 use sdv_vpm_api::vpm::PowerStateChangeRequest;
@@ -38,12 +39,21 @@ impl PowerService for PowerServiceImpl {
                 ShutdownType::POWER_OFF => PowerStateReport::POWER_OFF_ENTER,
                 ShutdownType::SUSPEND_TO_RAM => PowerStateReport::SUSPEND_TO_RAM_ENTER,
                 ShutdownType::SUSPEND_TO_DISK => PowerStateReport::SUSPEND_TO_DISK_ENTER,
+                ShutdownType::SHUTDOWN_TYPE_UNSPECIFIED => {
+                    return Err(anyhow!("Shutdown type was not specified!"))
+                }
             },
             PowerStateRequest::FINISH_SHUTDOWN => match request.shutdown_type.unwrap() {
                 ShutdownType::POWER_OFF => PowerStateReport::POWER_OFF_POST_FINISH,
                 ShutdownType::SUSPEND_TO_RAM => PowerStateReport::SUSPEND_TO_RAM_POST_FINISH,
                 ShutdownType::SUSPEND_TO_DISK => PowerStateReport::SUSPEND_TO_DISK_POST_FINISH,
+                ShutdownType::SHUTDOWN_TYPE_UNSPECIFIED => {
+                    return Err(anyhow!("Shutdown type was not specified!"))
+                }
             },
+            PowerStateRequest::REQUEST_UNSPECIFIED => {
+                return Err(anyhow!("Power request was not specified!"))
+            }
         };
 
         //TODO notify subscribers
@@ -60,6 +70,51 @@ mod tests {
     use sdv_vpm_api::vpm::PowerStateChangeRequest;
     use sdv_vpm_api::vpm::PowerStateRequest;
     use sdv_vpm_api::vpm::ShutdownType;
+
+    #[test]
+    fn set_power_state_fails_unspecified_power_state() {
+        // Given: the power service.
+        let mut power_service = PowerServiceImpl::new();
+
+        // When: a power state request is sent without power state.
+        let request = PowerStateChangeRequest { ..Default::default() };
+
+        // Then: power state is set.
+        let result = power_service.set_power_state(request);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn set_power_state_fails_prepare_no_shutdown_type() {
+        // Given: the power service.
+        let mut power_service = PowerServiceImpl::new();
+
+        // When: a prepare power state request is sent without shutdown type.
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
+            ..Default::default()
+        };
+
+        // Then: power state is set.
+        let result = power_service.set_power_state(request);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn set_power_state_fails_turn_off_no_shutdown_type() {
+        // Given: the power service.
+        let mut power_service = PowerServiceImpl::new();
+
+        // When: a power off state request is sent without shutdown type.
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::FINISH_SHUTDOWN.into(),
+            ..Default::default()
+        };
+
+        // Then: power state is set.
+        let result = power_service.set_power_state(request);
+        assert!(result.is_err());
+    }
 
     #[test]
     fn set_power_state_on() {
