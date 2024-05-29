@@ -53,7 +53,7 @@ service FileTransfer {
 
 message FileRequest {
   // Diagnostic connection id.
-  connection.ConnectionId connection_id = 1;
+  ConnectionId connection_id = 1;
 
   // Id of the file.
   string id = 2;
@@ -70,7 +70,7 @@ message FilePathResponse {
 
 message FileWriteRequest {
   // Diagnostic connection id.
-  connection.ConnectionId connection_id = 1;
+  ConnectionId connection_id = 1;
 
   // Id of the file to be written.
   string file_id = 2;
