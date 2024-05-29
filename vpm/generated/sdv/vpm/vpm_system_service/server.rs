@@ -4,10 +4,10 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::VpmSystemService;
-use protobuf::well_known_types::empty::Empty;
 use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateChangeResponse;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
+use sdv_vpm_api::vpm::SetVehicleStateResponse;
 use sdvmiddleware_common::serve_method;
 use sdvmiddleware_rpc::server_transport::ServerTransport;
 use std::sync::Arc;
@@ -28,7 +28,7 @@ impl VpmSystemServiceServer {
     /// service interface.
     pub fn register_service_interface(&self, service: Arc<dyn VpmSystemService>) {
         let callback = service.clone();
-        serve_method::<SetVehicleStateRequest, Empty>(
+        serve_method::<SetVehicleStateRequest, SetVehicleStateResponse>(
             Box::new(move |req| callback.set_vehicle_state(req)),
             "VpmSystemService::set_vehicle_state",
             self.transport.as_ref(),

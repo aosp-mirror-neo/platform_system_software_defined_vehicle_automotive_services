@@ -4,10 +4,10 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use crate::interface::VpmSystemService;
-use protobuf::well_known_types::empty::Empty;
 use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateChangeResponse;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
+use sdv_vpm_api::vpm::SetVehicleStateResponse;
 use sdvmiddleware_common::call_method;
 use sdvmiddleware_rpc::client_transport::ClientTransport;
 use sdvmiddleware_rpc::RpcResult;
@@ -25,8 +25,11 @@ impl VpmSystemServiceClient {
 }
 
 impl VpmSystemService for VpmSystemServiceClient {
-    fn set_vehicle_state(&self, request: SetVehicleStateRequest) -> RpcResult<Empty> {
-        call_method::<SetVehicleStateRequest, Empty>(
+    fn set_vehicle_state(
+        &self,
+        request: SetVehicleStateRequest,
+    ) -> RpcResult<SetVehicleStateResponse> {
+        call_method::<SetVehicleStateRequest, SetVehicleStateResponse>(
             self.transport.as_ref(),
             "VpmSystemService::set_vehicle_state",
             &request,

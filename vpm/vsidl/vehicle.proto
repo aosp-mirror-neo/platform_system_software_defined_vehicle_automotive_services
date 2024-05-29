@@ -12,12 +12,13 @@ package sdv.vpm.vehicle;
 // Note : this is not the final set of states of the vehicle state machine.
 // Allowed vehicle states in the vehicle and in the SDV VM.
 enum VpmVehicleState {
-  LOW_POWER = 0;
-  SOFTWARE_UPDATE = 1;
-  PARK = 2;
-  LIFE_ON_BOARD = 3;
-  VEHICLE_ON = 4;
-  TRACTION_ON = 5;
+  VEHICLE_STATE_UNSPECIFIED = 0;
+  LOW_POWER = 1;
+  SOFTWARE_UPDATE = 2;
+  PARK = 3;
+  LIFE_ON_BOARD = 4;
+  VEHICLE_ON = 5;
+  TRACTION_ON = 6;
 }
 
 // Client facing reprensentation of the vehicle state exposed via PUB/SUB API using Data Tunnel.

@@ -3,7 +3,6 @@
 syntax = "proto3";
 import "power.proto";
 import "vehicle.proto";
-import "google/protobuf/empty.proto";
 package sdv.vpm;
 
 // OEM-facing representation of the request to set a vehicle state.
@@ -12,20 +11,25 @@ message SetVehicleStateRequest {
   vehicle.VpmVehicleState vehicle_state = 1;
 }
 
+// OEM-facing representation of the set vehicle state response.
+message SetVehicleStateResponse {}
+
 // OEM-facing representation of power states that can be requested by the OEM.
 enum PowerStateRequest {
-  TURN_ON = 0;
-  PREPARE_SHUTDOWN = 1;
-  CANCEL_SHUTDOWN = 2;
-  FINISH_SHUTDOWN = 3;
+  REQUEST_UNSPECIFIED = 0;
+  TURN_ON = 1;
+  PREPARE_SHUTDOWN = 2;
+  CANCEL_SHUTDOWN = 3;
+  FINISH_SHUTDOWN = 4;
 }
 
 // OEM-facing representation of shutdown types that can be chosen with PREPARE_SHUTDOWN
 // PowerStateRequest.
 enum ShutdownType {
-  POWER_OFF = 0;
-  SUSPEND_TO_RAM = 1;
-  SUSPEND_TO_DISK = 2;
+  SHUTDOWN_TYPE_UNSPECIFIED = 0;
+  POWER_OFF = 1;
+  SUSPEND_TO_RAM = 2;
+  SUSPEND_TO_DISK = 3;
 }
 
 // OEM-facing representation of the power state change request message.
@@ -59,7 +63,7 @@ service VpmSystemService {
   // state listeners in the SDV VM
 
   // * If the request fails, an error is returned with the corresponding response code.
-  rpc SetVehicleState(SetVehicleStateRequest) returns (google.protobuf.Empty) {};
+  rpc SetVehicleState(SetVehicleStateRequest) returns (SetVehicleStateResponse) {};
 
   // RPC request that allows the OEM to set the power state in the SDV VM.
 
@@ -86,6 +90,9 @@ message PowerStateNotificationRequest {
   }
 }
 
+// Empty message for power state notification response.
+message PowerStateNotificationResponse {}
+
 /**
  * Experimental SDV VPM Power Notification API.
  * Unstable until API council approval.
@@ -94,5 +101,5 @@ message PowerStateNotificationRequest {
 service PowerNotificationService {
   // RPC request that notifies the OEM when a state update has been successfully executed or a
   // timeout has occurred.
-  rpc NotifyPowerState(PowerStateNotificationRequest) returns (google.protobuf.Empty) {};
+  rpc NotifyPowerState(PowerStateNotificationRequest) returns (PowerStateNotificationResponse) {};
 }
