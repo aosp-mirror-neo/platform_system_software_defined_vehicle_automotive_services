@@ -42,10 +42,12 @@ impl Agent {
     pub fn new() -> Self {
         let mut vpm_bundle = VpmSystemServiceBundle::new();
         vpm_bundle.start().unwrap();
+        let protected_bundle = Arc::new(Mutex::new(vpm_bundle));
         let (sender, receiver) = channel::<PowerStateReport>(POWER_STATE_CHANNEL_QUEUE_SIZE);
         let power_service = Arc::new(Mutex::new(PowerServiceImpl::new(sender)));
-        let system_service = Arc::new(VpmServiceImpl::new(Arc::new(Mutex::new(vpm_bundle))));
-        let power_state_notifier = Box::new(PowerStateNotifierImpl::new(receiver));
+        let power_state_notifier =
+            Box::new(PowerStateNotifierImpl::new(receiver, protected_bundle.clone()));
+        let system_service = Arc::new(VpmServiceImpl::new(protected_bundle));
         Self::new_with_services(system_service, power_service, power_state_notifier)
     }
 

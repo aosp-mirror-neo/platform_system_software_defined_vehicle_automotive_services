@@ -10,6 +10,7 @@ use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
+use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
@@ -19,6 +20,8 @@ pub struct VpmSystemClientCallbacks {}
 struct Subscriptions {}
 
 pub struct VpmSystemClient {
+    pub sdv_vpm_power_notification_service_server:
+        sdvgenerated_rpc_sdv_vpm_power_notification_service::server::PowerNotificationServiceServer,
     sdv_vpm_vpm_system_service_clients: parking_lot::RwLock<
         std::collections::HashMap<
             String,
@@ -30,10 +33,12 @@ pub struct VpmSystemClient {
 impl VpmSystemClient {
     /// Creates a new instance of the service bundle
     pub fn new() -> Self {
-        VpmSystemClient {
-            sdv_vpm_vpm_system_service_clients: parking_lot::RwLock::new(
-                std::collections::HashMap::new(),
-            ),
+        let rpc_transport = GrpcServerTransport::new("VpmSystemClient");
+
+        VpmSystemClient{
+            sdv_vpm_power_notification_service_server: sdvgenerated_rpc_sdv_vpm_power_notification_service::server::PowerNotificationServiceServer::new(rpc_transport.clone()),
+            sdv_vpm_vpm_system_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+
         }
     }
 
