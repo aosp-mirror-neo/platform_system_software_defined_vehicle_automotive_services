@@ -15,7 +15,7 @@ import "response_code.proto";
 // See ISO 14229-1:2020, section 10.6.4.
 service Authentication {
   // Request to leave the authenticated state.
-  rpc DeAuthenticate(ConnectionId) returns (AuthenticationResponse) {}
+  rpc DeAuthenticate(DeAuthenticateRequest) returns (DeAuthenticateResponse) {}
 
   // Initiate authentication by verifying the certificate.
   rpc VerifyCertificate(VerifyCertificateRequest) returns (VerifyCertificateResponse) {}
@@ -29,7 +29,7 @@ service Authentication {
   rpc ProofOfOwnership(ProofOfOwnershipRequest) returns (ProofOfOwnershipResponse) {}
 
   // Transfer the certificate for further processing.
-  rpc TransmitCertificate(TransmitCertificateRequest) returns (AuthenticationResponse) {}
+  rpc TransmitCertificate(TransmitCertificateRequest) returns (TransmitCertificateResponse) {}
 
   // Initiate the Authentication process by requesting server to output a challenge.
   rpc RequestChallengeForAuthentication(RequestChallengeRequest)
@@ -46,7 +46,8 @@ service Authentication {
       returns (VerifyProofOfOwnershipBidirectionalResponse) {}
 
   // Indicates the provided authentication configuration of the server.
-  rpc AuthenticationConfiguration(ConnectionId) returns (AuthenticationResponse) {}
+  rpc AuthenticationConfiguration(AuthenticationConfigurationRequest)
+      returns (AuthenticationConfigurationResponse) {}
 }
 
 enum AuthenticationResponseCode {
@@ -86,7 +87,12 @@ enum AuthenticationResponseCode {
   // 0xFF: Reserved.
 }
 
-message AuthenticationResponse {
+message DeAuthenticateRequest {
+  // Diagnostic connection id.
+  ConnectionId connection_id = 1;
+}
+
+message DeAuthenticateResponse {
   // See AuthenticationResponseCode.
   AuthenticationResponseCode auth_response_code = 1;
 
@@ -200,6 +206,14 @@ message TransmitCertificateRequest {
   bytes certificate = 3;
 }
 
+message TransmitCertificateResponse {
+  // See AuthenticationResponseCode.
+  AuthenticationResponseCode auth_response_code = 1;
+
+  // Response code.
+  ResponseCode response_code = 2;
+}
+
 message RequestChallengeRequest {
   // Diagnostic connection id.
   ConnectionId connection_id = 1;
@@ -302,4 +316,17 @@ message VerifyProofOfOwnershipBidirectionalResponse {
 
   // Response code.
   ResponseCode response_code = 5;
+}
+
+message AuthenticationConfigurationRequest {
+  // Diagnostic connection id.
+  ConnectionId connection_id = 1;
+}
+
+message AuthenticationConfigurationResponse {
+  // See AuthenticationResponseCode.
+  AuthenticationResponseCode auth_response_code = 1;
+
+  // Response code.
+  ResponseCode response_code = 2;
 }
