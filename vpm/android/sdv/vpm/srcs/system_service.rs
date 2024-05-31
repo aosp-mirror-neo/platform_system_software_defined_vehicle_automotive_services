@@ -100,10 +100,19 @@ impl VpmSystemService for RpcServer {
         &self,
         request: SetVehicleStateRequest,
     ) -> RpcResult<SetVehicleStateResponse, RpcError> {
-        info!("Got Request! {}", request);
-        self.vehicle_state_sender.send(request.vehicle_state.unwrap()).unwrap();
+        info!("Received Vehicle state change request! {}", request);
+        let state = request.vehicle_state.enum_value_or_default();
+        if state == VpmVehicleState::VEHICLE_STATE_UNSPECIFIED {
+            return Err(RpcError::InvalidRequest);
+        }
+        let result = self.vehicle_state_sender.send(state);
+        if result.is_err() {
+            error!("Could not publish vehicle state!");
+            return Err(RpcError::Other);
+        }
         Ok(SetVehicleStateResponse::new())
     }
+
     fn set_power_state(
         &self,
         request: PowerStateChangeRequest,
@@ -126,6 +135,7 @@ mod tests {
     use crate::power_service::MockPowerService;
     use crate::system_service::RpcServer;
     use anyhow::anyhow;
+    use googletest::prelude::{assert_that, eq, matches_pattern};
     use sdv_vpm_api::vehicle::VpmVehicleState;
     use sdv_vpm_api::vpm::power_state_change_response::PowerStateChangeRequestError;
     use sdv_vpm_api::vpm::PowerStateChangeRequest;
@@ -134,6 +144,7 @@ mod tests {
     use sdv_vpm_api::vpm::SetVehicleStateRequest;
     use sdv_vpm_api::vpm::ShutdownType;
     use sdvgenerated::sdv_vpm_vpm_system_service_interface::VpmSystemService;
+    use sdvmiddleware_rpc::error::RpcError;
     use std::sync::mpsc::channel;
     use std::sync::Arc;
     use std::sync::Mutex;
@@ -161,6 +172,47 @@ mod tests {
             expected_vehicle_state.expect("Vehicle state should be sent over the channel")
         );
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn set_rpc_vehicle_state_fails_request_invalid() {
+        // Given: mock services.
+        let (vehicle_state_sender, vehicle_state_receiver) = channel();
+        let mock_power_service = MockPowerService::default();
+        let mut rpc_server =
+            RpcServer::new(vehicle_state_sender, Arc::new(Mutex::new(mock_power_service)));
+        let vehicle_state_handle = tokio::spawn(async move { vehicle_state_receiver.recv() });
+
+        // When: a vehicle state request is sent without proper state.
+        let request = SetVehicleStateRequest { ..Default::default() };
+
+        // Then: result should be error.
+        assert_that!(
+            rpc_server.set_vehicle_state(request),
+            matches_pattern!(Err(matches_pattern!(RpcError::InvalidRequest)))
+        );
+    }
+
+    #[tokio::test]
+    async fn set_rpc_vehicle_state_fails_no_receiver() {
+        // Given: mock services without a receiver.
+        let (vehicle_state_sender, vehicle_state_receiver) = channel();
+        let mock_power_service = MockPowerService::default();
+        let mut rpc_server =
+            RpcServer::new(vehicle_state_sender, Arc::new(Mutex::new(mock_power_service)));
+
+        // When: a vehicle state request is sent and receiver is dropped.
+        let request = SetVehicleStateRequest {
+            vehicle_state: VpmVehicleState::VEHICLE_ON.into(),
+            ..Default::default()
+        };
+        drop(vehicle_state_receiver);
+
+        // Then: result should be error.
+        assert_that!(
+            rpc_server.set_vehicle_state(request),
+            matches_pattern!(Err(matches_pattern!(RpcError::Other)))
+        );
     }
 
     #[test]

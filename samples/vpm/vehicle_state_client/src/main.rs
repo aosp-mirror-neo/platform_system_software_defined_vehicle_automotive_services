@@ -7,7 +7,7 @@ use sdv_vpm_api::vehicle::VehicleStateChange;
 use sdvgenerated::vehicle_state_subscriber::VehicleStateSubscriber;
 use sdvgenerated::vehicle_state_subscriber::VehicleStateSubscriberCallbacks;
 
-static LOG_TAG: &str = "vpm-sub";
+static LOG_TAG: &str = "vehicle-state-subs";
 
 fn main() {
     sdv_log::init_logger(LOG_TAG).unwrap();
