@@ -1,0 +1,30 @@
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_binary {
+    name: "vpm_power_state_client",
+    srcs: ["src/main.rs"],
+    defaults: [
+        "sdv@rust_defaults",
+        "sdv_tracing@rust_defaults",
+    ],
+    prefer_rlib: true,
+    rustlibs: [
+        "google.sdv.vpm-aidl-rust",
+        "liblog_rust",
+        "libanyhow",
+        "librpcbinder_rs",
+        "libsdv_log_rust",
+        "libsdv_sd_rs",
+        "libtokio",
+        "libbinder_tokio_rs",
+    ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    apex_available: [
+        "//apex_available:platform",
+    ],
+    system_ext_specific: true,
+}

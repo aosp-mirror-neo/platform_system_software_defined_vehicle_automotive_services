@@ -60,6 +60,9 @@ rust_test {
         "sdv_tracing@rust_defaults",
         "vpm_agent@rust_defaults",
     ],
+    rustlibs: [
+        "libgoogletest_rust",
+    ],
     test_options: {
         unit_test: true,
     },
