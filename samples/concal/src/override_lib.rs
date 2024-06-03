@@ -64,13 +64,22 @@ mod tests {
     use concal_api::config_override::config_override_key_value::Value;
     use concal_api::config_override::ConfigOverrideKeyValue as CoPair;
     use protobuf::reflect::ReflectMapRef;
+    use protobuf::reflect::RuntimeFieldType;
     use protobuf::reflect::{FieldDescriptor, MessageDescriptor, RuntimeType};
     use protobuf::text_format::merge_from_str;
     use protobuf::text_format::parse_from_str;
     use protobuf::text_format::print_to_string;
     use protobuf::well_known_types::any::Any;
+    use protobuf::well_known_types::struct_::value::Kind::StringValue as PStringValue;
+    use protobuf::well_known_types::struct_::{ListValue, Value as PValue};
+    use protobuf::well_known_types::wrappers::{
+        BoolValue, BytesValue, DoubleValue, FloatValue, Int32Value, Int64Value, StringValue,
+        UInt32Value, UInt64Value,
+    };
     use protobuf::MessageDyn;
+    use protobuf::SpecialFields;
     use regex::Regex;
+    use sdvtestconcal_proto_rust::test_configuration::ComplexParameterInFile;
     use sdvtestconcal_proto_rust::test_configuration::TestConfiguration as TestConfigurationProto;
     use std::collections::VecDeque;
     use std::option::Option;
@@ -120,6 +129,18 @@ mod tests {
     }
 
     #[test]
+    fn override_any_bool_succeeds() {
+        let default = register_config("bool_parameter: true int_parameter: 5");
+        let mut copair = CoPair::new();
+        copair.key = "bool_parameter".to_string();
+        let mut bool_param = BoolValue::new();
+        bool_param.value = false;
+        copair.value = Option::Some(Value::ValueAny(Any::pack(&bool_param).unwrap()));
+        let new_config = override_config(default, copair);
+        assert_eq!(print_to_string(&*new_config), "bool_parameter: false int_parameter: 5");
+    }
+
+    #[test]
     fn override_textproto_int_succeeds() {
         let default = register_config("bool_parameter: true int_parameter: 5");
         let config_override = get_config_override_key_value("int_parameter", "10");
@@ -128,10 +149,34 @@ mod tests {
     }
 
     #[test]
+    fn override_any_int_succeeds() {
+        let default = register_config("bool_parameter: true int_parameter: 5");
+        let mut copair = CoPair::new();
+        copair.key = "int_parameter".to_string();
+        let mut param = Int64Value::new();
+        param.value = 10;
+        copair.value = Option::Some(Value::ValueAny(Any::pack(&param).unwrap()));
+        let new_config = override_config(default, copair);
+        assert_eq!(print_to_string(&*new_config), "bool_parameter: true int_parameter: 10");
+    }
+
+    #[test]
     fn override_textproto_float_succeeds() {
         let default = register_config("int_parameter: 5 float_parameter: 5.5");
         let config_override = get_config_override_key_value("float_parameter", "10.7");
         let new_config = override_config(default, config_override);
+        assert_eq!(print_to_string(&*new_config), "int_parameter: 5 float_parameter: 10.7");
+    }
+
+    #[test]
+    fn override_any_float_succeeds() {
+        let default = register_config("int_parameter: 5 float_parameter: 5.5");
+        let mut copair = CoPair::new();
+        copair.key = "float_parameter".to_string();
+        let mut param = FloatValue::new();
+        param.value = 10.7;
+        copair.value = Option::Some(Value::ValueAny(Any::pack(&param).unwrap()));
+        let new_config = override_config(default, copair);
         assert_eq!(print_to_string(&*new_config), "int_parameter: 5 float_parameter: 10.7");
     }
 
@@ -148,6 +193,21 @@ mod tests {
         let default = register_config(r#"float_parameter: 3.4 str_parameter: "string parameter""#);
         let config_override = get_config_override_key_value("str_parameter", r#""updated""#);
         let new_config = override_config(default, config_override);
+        assert_eq!(
+            print_to_string(&*new_config),
+            r#"float_parameter: 3.4 str_parameter: "updated""#
+        );
+    }
+
+    #[test]
+    fn override_any_string_succeeds() {
+        let default = register_config(r#"float_parameter: 3.4 str_parameter: "string parameter""#);
+        let mut copair = CoPair::new();
+        copair.key = "str_parameter".to_string();
+        let mut param = StringValue::new();
+        param.value = "updated".to_string();
+        copair.value = Option::Some(Value::ValueAny(Any::pack(&param).unwrap()));
+        let new_config = override_config(default, copair);
         assert_eq!(
             print_to_string(&*new_config),
             r#"float_parameter: 3.4 str_parameter: "updated""#
@@ -194,6 +254,24 @@ mod tests {
     }
 
     #[test]
+    fn override_any_complex_full_rewrite_succeeds() {
+        // See that the complex parameter is rewritten completely.
+        let default = register_config(
+            r#"str_parameter: "string parameter" complex_parameter {first_parameter: "initial"}"#,
+        );
+        let mut copair = CoPair::new();
+        copair.key = "complex_parameter".to_string();
+        let mut param = ComplexParameterInFile::new();
+        param.second_parameter = "updated".to_string();
+        copair.value = Option::Some(Value::ValueAny(Any::pack(&param).unwrap()));
+        let new_config = override_config(default, copair);
+        assert_eq!(
+            print_to_string(&*new_config),
+            r#"str_parameter: "string parameter" complex_parameter {second_parameter: "updated"}"#
+        );
+    }
+
+    #[test]
     fn override_textproto_bytes_succeeds() {
         let mut value = format!(r#"bytes_parameter: "{:?}""#, "Initial text".as_bytes());
         let default = register_config(&value);
@@ -201,6 +279,20 @@ mod tests {
         let config_override = get_config_override_key_value("bytes_parameter", &value);
         let new_config = override_config(default, config_override);
         let upd_config = format!(r#"bytes_parameter: "{:?}""#, "Updated text".as_bytes());
+        assert_eq!(print_to_string(&*new_config), upd_config);
+    }
+
+    #[test]
+    fn override_any_bytes_succeeds() {
+        let value = format!(r#"bytes_parameter: "{:?}""#, "Initial text".as_bytes());
+        let default = register_config(&value);
+        let mut copair = CoPair::new();
+        copair.key = "bytes_parameter".to_string();
+        let mut param = BytesValue::new();
+        param.value = vec![85, 112, 100, 97, 116, 101, 100, 32, 116, 101, 120, 116]; //Updated text
+        copair.value = Option::Some(Value::ValueAny(Any::pack(&param).unwrap()));
+        let new_config = override_config(default, copair);
+        let upd_config = format!(r#"bytes_parameter: {:?}"#, "Updated text");
         assert_eq!(print_to_string(&*new_config), upd_config);
     }
 
@@ -216,6 +308,17 @@ mod tests {
     }
 
     #[test]
+    fn clear_no_value_config_succeeds() {
+        let default = register_config(
+            r#"bool_parameter: true int_parameter: 5 float_parameter: 3.4 str_parameter: "string parameter" nested_parameter {} complex_parameter {second_parameter: "initial"} nested_package {}"#,
+        );
+        let mut copair = CoPair::new();
+        copair.key = "".to_string();
+        let new_config = override_config(default, copair);
+        assert_eq!(print_to_string(&*new_config), "");
+    }
+
+    #[test]
     fn override_textproto_config_succeeds() {
         let default = register_config(
             r#"bool_parameter: true int_parameter: 5 float_parameter: 3.4 str_parameter: "string parameter" nested_parameter {} complex_parameter {second_parameter: "initial"} nested_package {}"#,
@@ -226,6 +329,25 @@ mod tests {
             r#"int_parameter: 10 complex_parameter {first_parameter: "initial"} map_parameter {key: "first_element" value: 1}"#,
         );
         let new_config = override_config(default, config_override);
+        assert_eq!(
+            print_to_string(&*new_config),
+            r#"int_parameter: 10 map_parameter {key: "first_element" value: 1} complex_parameter {first_parameter: "initial"}"#,
+        );
+    }
+
+    #[test]
+    fn override_any_config_succeeds() {
+        let default = register_config(
+            r#"bool_parameter: true int_parameter: 5 float_parameter: 3.4 str_parameter: "string parameter" nested_parameter {} complex_parameter {second_parameter: "initial"} nested_package {}"#,
+        );
+        let any_config = register_config(
+            r#"int_parameter: 10 complex_parameter {first_parameter: "initial"} map_parameter {key: "first_element" value: 1}"#,
+        );
+
+        let mut copair = CoPair::new();
+        copair.key = "".into();
+        copair.value = Option::Some(Value::ValueAny(any_config));
+        let new_config = override_config(default, copair);
         assert_eq!(
             print_to_string(&*new_config),
             r#"int_parameter: 10 map_parameter {key: "first_element" value: 1} complex_parameter {first_parameter: "initial"}"#,
@@ -298,6 +420,16 @@ mod tests {
     }
 
     #[test]
+    fn override_any_clean_repeated_succeeds() {
+        let default =
+            register_config(r#"int_parameter: 1 list_parameter: "first" list_parameter: "second""#);
+        let mut copair = CoPair::new();
+        copair.key = "list_parameter".to_string();
+        let new_config = override_config(default, copair);
+        assert_eq!(print_to_string(&*new_config), "int_parameter: 1");
+    }
+
+    #[test]
     fn override_textproto_assign_new_value_repeated_succeeds() {
         let default = register_config(r#"list_parameter: "first" list_parameter: "second""#);
         let config_override = get_config_override_key_value(
@@ -305,6 +437,35 @@ mod tests {
             r#""first updated", "second updated", "third updated""#,
         );
         let new_config = override_config(default, config_override);
+        assert_eq!(
+            print_to_string(&*new_config),
+            r#"list_parameter: "first updated" list_parameter: "second updated" list_parameter: "third updated""#
+        );
+    }
+
+    #[test]
+    fn override_any_assign_new_value_repeated_succeeds() {
+        let default = register_config(r#"list_parameter: "first" list_parameter: "second""#);
+
+        let mut copair = CoPair::new();
+        copair.key = "list_parameter".to_string();
+        let mut param = ListValue::new();
+        param.values = vec![
+            PValue {
+                kind: Some(PStringValue("first updated".to_string())),
+                special_fields: SpecialFields::new(),
+            },
+            PValue {
+                kind: Some(PStringValue("second updated".to_string())),
+                special_fields: SpecialFields::new(),
+            },
+            PValue {
+                kind: Some(PStringValue("third updated".to_string())),
+                special_fields: SpecialFields::new(),
+            },
+        ];
+        copair.value = Option::Some(Value::ValueAny(Any::pack(&param).unwrap()));
+        let new_config = override_config(default, copair);
         assert_eq!(
             print_to_string(&*new_config),
             r#"list_parameter: "first updated" list_parameter: "second updated" list_parameter: "third updated""#
@@ -390,6 +551,114 @@ mod tests {
             }
             let result = merge_from_str(&mut *config_dyn, &override_str);
             assert!(result.is_ok(), "override: {:?}, error: {:?}", override_str, result);
+        };
+        config_dyn
+    }
+
+    fn override_config_for_subkey_any(
+        config: Any,
+        subkeys: &mut VecDeque<String>,
+        value: Any,
+    ) -> Box<dyn MessageDyn> {
+        // Does not consider nested rewritings, only for maps.
+        let pm = get_test_proto_manager();
+        let fd_dyn = pm
+            .find_schema(".android.sdv.config.testconfig.TestConfiguration")
+            .expect("Message description has not been found");
+        let desc: MessageDescriptor = fd_dyn
+            .message_by_package_relative_name("TestConfiguration")
+            .expect("Message was not found");
+
+        // If the key is undefined the complete config should be rewritten.
+        if subkeys.is_empty() {
+            let mut new_config = desc.new_instance();
+            assert!(value.is::<TestConfigurationProto>(), "value is {:?}", value.type_url);
+            let result = new_config.merge_from_bytes_dyn(&value.value);
+            assert!(result.is_ok(), "error: {:?}", result);
+            return new_config;
+        }
+        let key = subkeys
+            .pop_front()
+            .expect("This should never happen because the empty case is already handled");
+
+        let mut config_dyn = config.unpack_dyn(&desc).unwrap().unwrap();
+
+        if let Some(field) = desc.field_by_name(&key) {
+            match field.runtime_field_type() {
+                RuntimeFieldType::Singular(_) => match value.type_url.as_str() {
+                    "type.googleapis.com/google.protobuf.BoolValue" => field.set_singular_field(
+                        config_dyn.as_mut(),
+                        protobuf::reflect::ReflectValueBox::from(
+                            value.unpack::<BoolValue>().unwrap().unwrap().value,
+                        ),
+                    ),
+                    "type.googleapis.com/google.protobuf.BytesValue" => {
+                        field.set_singular_field(
+                            config_dyn.as_mut(),
+                            protobuf::reflect::ReflectValueBox::from(
+                                value.unpack::<BytesValue>().unwrap().unwrap().value,
+                            ),
+                        );
+                    }
+                    "type.googleapis.com/google.protobuf.DoubleValue" => field.set_singular_field(
+                        config_dyn.as_mut(),
+                        protobuf::reflect::ReflectValueBox::from(
+                            value.unpack::<DoubleValue>().unwrap().unwrap().value,
+                        ),
+                    ),
+                    "type.googleapis.com/google.protobuf.FloatValue" => field.set_singular_field(
+                        config_dyn.as_mut(),
+                        protobuf::reflect::ReflectValueBox::from(
+                            value.unpack::<FloatValue>().unwrap().unwrap().value,
+                        ),
+                    ),
+                    "type.googleapis.com/google.protobuf.Int32Value" => field.set_singular_field(
+                        config_dyn.as_mut(),
+                        protobuf::reflect::ReflectValueBox::from(
+                            value.unpack::<Int32Value>().unwrap().unwrap().value,
+                        ),
+                    ),
+                    "type.googleapis.com/google.protobuf.Int64Value" => field.set_singular_field(
+                        config_dyn.as_mut(),
+                        protobuf::reflect::ReflectValueBox::from(
+                            value.unpack::<Int64Value>().unwrap().unwrap().value,
+                        ),
+                    ),
+                    "type.googleapis.com/google.protobuf.StringValue" => field.set_singular_field(
+                        config_dyn.as_mut(),
+                        protobuf::reflect::ReflectValueBox::from(
+                            value.unpack::<StringValue>().unwrap().unwrap().value,
+                        ),
+                    ),
+                    "type.googleapis.com/google.protobuf.UInt32Value" => field.set_singular_field(
+                        config_dyn.as_mut(),
+                        protobuf::reflect::ReflectValueBox::from(
+                            value.unpack::<UInt32Value>().unwrap().unwrap().value,
+                        ),
+                    ),
+                    "type.googleapis.com/google.protobuf.UInt64Value" => field.set_singular_field(
+                        config_dyn.as_mut(),
+                        protobuf::reflect::ReflectValueBox::from(
+                            value.unpack::<UInt64Value>().unwrap().unwrap().value,
+                        ),
+                    ),
+                    &_ => {
+                        field.clear_field(&mut *config_dyn);
+                        let field_mes = field.mut_message(&mut *config_dyn);
+                        let _ = field_mes.merge_from_bytes_dyn(&value.value);
+                    }
+                },
+                protobuf::reflect::RuntimeFieldType::Repeated(_) => {
+                    field.clear_field(&mut *config_dyn);
+                    let mut repeated = field.mut_repeated(&mut *config_dyn);
+                    for repeated_mes in &mut value.unpack::<ListValue>().unwrap().unwrap().values {
+                        repeated.push(protobuf::reflect::ReflectValueBox::from(
+                            repeated_mes.take_string_value(),
+                        ));
+                    }
+                }
+                protobuf::reflect::RuntimeFieldType::Map(_, _) => todo!(),
+            }
         }
         config_dyn
     }
@@ -473,8 +742,14 @@ mod tests {
                 &mut subkeys,
                 config_override.value_txtproto().into(),
             )
+        } else if config_override.has_value_any() {
+            override_config_for_subkey_any(
+                config,
+                &mut subkeys,
+                config_override.value_any().clone(),
+            )
         } else {
-            panic!("Support for Any as an override value is not implemented");
+            override_config_for_subkey(config, &mut subkeys, "".into())
         }
     }
 
