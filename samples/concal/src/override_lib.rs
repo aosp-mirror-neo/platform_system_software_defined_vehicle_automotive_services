@@ -690,7 +690,7 @@ mod tests {
     ) {
         let mut override_str: String = "".to_string();
         if field.is_singular() {
-            override_str = key.clone();
+            override_str.clone_from(&key);
             match field.singular_runtime_type() {
                 RuntimeType::Message(_) => {}
                 _ => override_str.push(':'),
