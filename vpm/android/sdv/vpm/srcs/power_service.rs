@@ -5,27 +5,28 @@ use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateRequest;
 use sdv_vpm_api::vpm::ShutdownType;
 use std::sync::Arc;
+use tokio::sync::mpsc::Sender;
 
 #[automock]
 pub trait PowerService: Send + Sync {
     /// Requests a state change in the power state machine from the OEM.
     /// returns Ok() if the request passes the state machine validation.
     /// otherwise returns an error.
-    /// The method starts a task to notify SDV agents about the change of the power state.
     fn set_power_state(&mut self, request: PowerStateChangeRequest) -> anyhow::Result<()>;
 }
 
 #[derive(Debug, Clone)]
 pub struct PowerServiceImpl {
     power_state_report: PowerStateReport,
+    sender: Sender<PowerStateReport>,
 }
 
 impl PowerServiceImpl {
     /// Creates a new PowerServiceImpl with the default value of the power state being POWER_OFF_EXIST.
     /// The POWER_STATE_EXIST is the only possible state at this step because calling new() means we are coming from cold boot.
     /// If we resume from S2R or S2D new() should not be called again.
-    pub fn new() -> Self {
-        Self { power_state_report: PowerStateReport::POWER_OFF_EXIT }
+    pub fn new(sender: Sender<PowerStateReport>) -> Self {
+        Self { power_state_report: PowerStateReport::POWER_OFF_EXIT, sender }
     }
 }
 
@@ -56,7 +57,7 @@ impl PowerService for PowerServiceImpl {
             }
         };
 
-        //TODO notify subscribers
+        self.sender.blocking_send(report);
         self.power_state_report = report;
         Ok(())
     }
@@ -70,11 +71,17 @@ mod tests {
     use sdv_vpm_api::vpm::PowerStateChangeRequest;
     use sdv_vpm_api::vpm::PowerStateRequest;
     use sdv_vpm_api::vpm::ShutdownType;
+    use tokio::sync::mpsc::channel;
+
+    fn get_power_service() -> PowerServiceImpl {
+        let (tx, _) = channel::<PowerStateReport>(1);
+        PowerServiceImpl::new(tx)
+    }
 
     #[test]
     fn set_power_state_fails_unspecified_power_state() {
         // Given: the power service.
-        let mut power_service = PowerServiceImpl::new();
+        let mut power_service = get_power_service();
 
         // When: a power state request is sent without power state.
         let request = PowerStateChangeRequest { ..Default::default() };
@@ -87,7 +94,7 @@ mod tests {
     #[test]
     fn set_power_state_fails_prepare_no_shutdown_type() {
         // Given: the power service.
-        let mut power_service = PowerServiceImpl::new();
+        let mut power_service = get_power_service();
 
         // When: a prepare power state request is sent without shutdown type.
         let request = PowerStateChangeRequest {
@@ -103,7 +110,7 @@ mod tests {
     #[test]
     fn set_power_state_fails_turn_off_no_shutdown_type() {
         // Given: the power service.
-        let mut power_service = PowerServiceImpl::new();
+        let mut power_service = get_power_service();
 
         // When: a power off state request is sent without shutdown type.
         let request = PowerStateChangeRequest {
@@ -119,7 +126,7 @@ mod tests {
     #[test]
     fn set_power_state_on() {
         // Given: the power service.
-        let mut power_service = PowerServiceImpl::new();
+        let mut power_service = get_power_service();
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -136,7 +143,7 @@ mod tests {
     #[test]
     fn set_power_state_prepare_s2r() {
         // Given: the power service.
-        let mut power_service = PowerServiceImpl::new();
+        let mut power_service = get_power_service();
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -153,8 +160,8 @@ mod tests {
 
     #[test]
     fn set_power_state_prepare_s2d() {
-        // Given: a the power service.
-        let mut power_service = PowerServiceImpl::new();
+        // Given: the power service.
+        let mut power_service = get_power_service();
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -172,7 +179,7 @@ mod tests {
     #[test]
     fn set_power_state_prepare_off() {
         // Given: the power service.
-        let mut power_service = PowerServiceImpl::new();
+        let mut power_service = get_power_service();
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -190,7 +197,7 @@ mod tests {
     #[test]
     fn set_power_state_cancel_shutdown() {
         // Given: the power service.
-        let mut power_service = PowerServiceImpl::new();
+        let mut power_service = get_power_service();
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -207,7 +214,7 @@ mod tests {
     #[test]
     fn set_power_state_s2r() {
         // Given: the power service.
-        let mut power_service = PowerServiceImpl::new();
+        let mut power_service = get_power_service();
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -225,7 +232,7 @@ mod tests {
     #[test]
     fn set_power_state_s2d() {
         // Given: the power service.
-        let mut power_service = PowerServiceImpl::new();
+        let mut power_service = get_power_service();
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -243,7 +250,7 @@ mod tests {
     #[test]
     fn set_power_state_off() {
         // Given: the power service.
-        let mut power_service = PowerServiceImpl::new();
+        let mut power_service = get_power_service();
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
