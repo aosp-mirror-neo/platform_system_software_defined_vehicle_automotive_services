@@ -101,9 +101,9 @@ impl<'ser_lt, 'buffer_lt> Serializer for &'ser_lt mut UdsSerializer<'buffer_lt> 
         Err(Self::Error::UnsupportedType("Empty optional value".to_string()))
     }
 
-    fn serialize_some<T: ?Sized>(self, value: &T) -> Result<Self::Ok, Self::Error>
+    fn serialize_some<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         value.serialize(self)
     }
@@ -125,18 +125,14 @@ impl<'ser_lt, 'buffer_lt> Serializer for &'ser_lt mut UdsSerializer<'buffer_lt> 
         Err(Self::Error::UnsupportedType("Unit variant".to_string()))
     }
 
-    fn serialize_newtype_struct<T: ?Sized>(
-        self,
-        _: &'static str,
-        _: &T,
-    ) -> Result<Self::Ok, Self::Error>
+    fn serialize_newtype_struct<T>(self, _: &'static str, _: &T) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         unimplemented!()
     }
 
-    fn serialize_newtype_variant<T: ?Sized>(
+    fn serialize_newtype_variant<T>(
         self,
         _: &'static str,
         _: u32,
@@ -144,7 +140,7 @@ impl<'ser_lt, 'buffer_lt> Serializer for &'ser_lt mut UdsSerializer<'buffer_lt> 
         _: &T,
     ) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         Err(Self::Error::UnsupportedType("Newtype variant".to_string()))
     }
@@ -212,9 +208,9 @@ impl<'ser_lt, 'buffer_lt> SerializeTuple for UdsTupleSerializer<'ser_lt, 'buffer
     type Ok = ();
     type Error = UdsSerializerError;
 
-    fn serialize_element<T: ?Sized>(&mut self, element_value: &T) -> Result<(), Self::Error>
+    fn serialize_element<T>(&mut self, element_value: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         element_value.serialize(&mut *self.serializer)
     }
@@ -228,13 +224,9 @@ impl<'ser_lt, 'buffer_lt> SerializeStruct for UdsTupleSerializer<'ser_lt, 'buffe
     type Ok = ();
     type Error = UdsSerializerError;
 
-    fn serialize_field<T: ?Sized>(
-        &mut self,
-        _: &'static str,
-        field_value: &T,
-    ) -> Result<(), Self::Error>
+    fn serialize_field<T>(&mut self, _: &'static str, field_value: &T) -> Result<(), Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         field_value.serialize(&mut *self.serializer)
     }
