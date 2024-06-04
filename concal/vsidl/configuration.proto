@@ -1,8 +1,5 @@
 // Copyright 2023 Google LLC. All Rights Reserved.
 
-// This is an experimental version for the ConCal API.
-// It is unstable until API council approval.
-
 syntax = "proto3";
 
 package sdv.concal;

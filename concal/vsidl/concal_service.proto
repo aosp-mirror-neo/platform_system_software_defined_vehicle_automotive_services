@@ -1,8 +1,7 @@
 // Copyright 2023 Google LLC. All Rights Reserved.
 
-// This is an experimental version for the ConCal API.
-// It is unstable until API council approval.
-// This API can be changed when update story, unit types, and ACLs are defined.
+// This API can be changed when update story, unit types, public error API, and ACLs are defined and
+// CommStack API is finalized.
 
 syntax = "proto3";
 
