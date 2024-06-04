@@ -1,9 +1,10 @@
 // Copyright 2023 Google LLC. All Rights Reserved.
 
 // This is an experimental version for the ConCal API.
-// It is unstable until API council approval.
+// It is unstable and will be refined after CommStack API is finalized.
 
 // Status messages for ConCal.
+// NOTE: The response codes will be removed when the Public Error API is integrated.
 
 syntax = "proto3";
 
