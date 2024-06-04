@@ -1,7 +1,6 @@
 // Copyright 2023 Google LLC. All Rights Reserved.
 
 // This is an experimental version for the ConCal API.
-// It is unstable until API council approval.
 // This API can be changed when update story is defined.
 
 // Interface for SDV services which want to get notified about changes to a specific config, before
@@ -33,6 +32,7 @@ message OnConfigUpdateRequest {
   google.protobuf.FileDescriptorSet descriptor_set = 3;
 
   // Version identifier for the config.
+  // Corresponds to the apex version of the service bundle owning the config.
   string config_version = 4;
 }
 
