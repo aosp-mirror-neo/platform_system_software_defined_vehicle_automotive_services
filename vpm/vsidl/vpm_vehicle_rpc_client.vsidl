@@ -6,4 +6,5 @@ package: "sdv.vpm.vehicle.client.rpc"
 sdv_service_bundle {
     name: "VpmSystemClient"
     client:  "sdv.vpm.VpmSystemService"
+    server:  "sdv.vpm.PowerNotificationService"
 }

@@ -6,4 +6,5 @@
 pub mod topics;
 pub mod vpm_system_client;
 
+pub use sdvgenerated_rpc_sdv_vpm_power_notification_service::interface as sdv_vpm_power_notification_service_interface;
 pub use sdvgenerated_rpc_sdv_vpm_vpm_system_service::interface as sdv_vpm_vpm_system_service_interface;

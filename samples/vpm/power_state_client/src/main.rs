@@ -30,7 +30,7 @@ impl binder::Interface for VpmPowerStateClient {}
 #[async_trait]
 impl IPowerStateReportListenerAsyncServer for VpmPowerStateClient {
     async fn onPowerStateReportChanged(&self, power_state: PowerStateReport) -> binder::Result<()> {
-        info!("VPM client received power state change {:?}", power_state);
+        println!("VPM client received power state change {:?}", power_state);
         Ok(())
     }
 }
