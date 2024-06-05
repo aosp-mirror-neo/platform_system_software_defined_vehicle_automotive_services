@@ -75,14 +75,17 @@ rust_test {
 
 rust_test {
     name: "sdv_vpm_agent_integration_tests",
-    srcs: ["tests/integration_test.rs"],
+    srcs: ["tests/integration_tests.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
     ],
     rustlibs: [
-        "libtokio",
+        "google.sdv.vpm-aidl-rust",
+        "librpcbinder_rs",
         "libsdv_vpm_api",
+        "libanyhow",
         "libsdv_middleware_pubsub",
+        "libsdvmiddleware_rpc",
         "libsdvgenerated_vpm_integration_test_bundle",
     ],
     test_suites: [

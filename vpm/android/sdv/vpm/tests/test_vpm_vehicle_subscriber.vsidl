@@ -4,7 +4,8 @@
 package: "test.sdv.vpm"
 
 sdv_service_bundle {
-    name: "VpmIntegrationTestBundle"
+    name: "VpmSystemClient"
     subscriber:  "sdv.vpm.vehicle.VehicleStateChange::VehicleStateChange"
+    server:  "sdv.vpm.PowerNotificationService"
     client:  "sdv.vpm.VpmSystemService"
 }
