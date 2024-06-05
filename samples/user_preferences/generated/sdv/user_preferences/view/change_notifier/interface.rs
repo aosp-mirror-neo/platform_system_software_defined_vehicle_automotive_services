@@ -4,11 +4,11 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use sdvmiddleware_rpc::RpcResult;
-use user_preferences_api::user_preferences_view::OnSettingsChangeRequest;
-use user_preferences_api::user_preferences_view::OnSettingsChangeResponse;
+use user_preferences_api::change_notifier::OnSettingsChangeRequest;
+use user_preferences_api::change_notifier::OnSettingsChangeResponse;
 
 /// An auto-generated RPC interface.
-pub trait UserPreferencesView: Send + Sync {
+pub trait ChangeNotifier: Send + Sync {
     /// RPC method declared in the interface.
     fn on_settings_change(
         &self,

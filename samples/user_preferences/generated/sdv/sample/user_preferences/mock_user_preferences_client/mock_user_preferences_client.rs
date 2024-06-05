@@ -21,7 +21,7 @@ struct Subscriptions {}
 
 pub struct MockUserPreferencesClient {
     pub sdv_user_preferences_user_controllable_user_controllable_service_server: sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::server::UserControllableServiceServer,
-    pub sdv_user_preferences_user_preferences_view_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::server::UserPreferencesViewServer,
+    pub sdv_user_preferences_view_change_notifier_server: sdvgenerated_rpc_sdv_user_preferences_view_change_notifier::server::ChangeNotifierServer,
     sdv_user_preferences_user_preferences_registry_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::client::UserPreferencesRegistryServiceClient>>>,
     sdv_user_preferences_user_preferences_management_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service::client::UserPreferencesManagementServiceClient>>>,
     sdv_user_preferences_user_preferences_admin_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service::client::UserPreferencesAdminServiceClient>>>,
@@ -35,7 +35,7 @@ impl MockUserPreferencesClient {
 
         MockUserPreferencesClient{
             sdv_user_preferences_user_controllable_user_controllable_service_server: sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::server::UserControllableServiceServer::new(rpc_transport.clone()),
-            sdv_user_preferences_user_preferences_view_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::server::UserPreferencesViewServer::new(rpc_transport.clone()),
+            sdv_user_preferences_view_change_notifier_server: sdvgenerated_rpc_sdv_user_preferences_view_change_notifier::server::ChangeNotifierServer::new(rpc_transport.clone()),
             sdv_user_preferences_user_preferences_registry_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_user_preferences_user_preferences_management_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_user_preferences_user_preferences_admin_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),

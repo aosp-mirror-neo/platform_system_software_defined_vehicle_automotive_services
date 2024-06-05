@@ -1,7 +1,5 @@
-use sdvgenerated::sdv_user_preferences_user_preferences_view_interface::UserPreferencesView;
-use user_preferences_api::user_preferences_view::{
-    OnSettingsChangeRequest, OnSettingsChangeResponse,
-};
+use sdvgenerated_rpc_sdv_user_preferences_view_change_notifier::interface::ChangeNotifier;
+use user_preferences_api::change_notifier::{OnSettingsChangeRequest, OnSettingsChangeResponse};
 use user_preferences_utils::print_settings;
 
 pub(crate) struct HmiServiceImpl {}
@@ -12,7 +10,7 @@ impl HmiServiceImpl {
     }
 }
 
-impl UserPreferencesView for HmiServiceImpl {
+impl ChangeNotifier for HmiServiceImpl {
     fn on_settings_change(
         &self,
         request: OnSettingsChangeRequest,

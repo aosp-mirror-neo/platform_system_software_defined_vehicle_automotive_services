@@ -42,7 +42,7 @@ rust_defaults {
         "libprotobuf_parse",
         "libsdvmiddleware_rpc_grpc_transport",
         "libsdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service",
-        "libsdvgenerated_rpc_sdv_user_preferences_user_preferences_view",
+        "libsdvgenerated_rpc_sdv_user_preferences_view_change_notifier",
     ],
     vendor: true,
 }

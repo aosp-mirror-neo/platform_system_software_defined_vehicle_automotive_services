@@ -23,7 +23,7 @@ pub struct UserPreferencesServer {
     pub sdv_user_preferences_user_preferences_admin_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service::server::UserPreferencesAdminServiceServer,
     pub sdv_user_preferences_user_preferences_management_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service::server::UserPreferencesManagementServiceServer,
     pub sdv_user_preferences_user_preferences_registry_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::server::UserPreferencesRegistryServiceServer,
-    sdv_user_preferences_user_preferences_view_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::client::UserPreferencesViewClient>>>,
+    sdv_user_preferences_view_change_notifier_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_view_change_notifier::client::ChangeNotifierClient>>>,
     sdv_user_preferences_user_controllable_user_controllable_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::client::UserControllableServiceClient>>>,
 
 }
@@ -37,7 +37,7 @@ impl UserPreferencesServer {
             sdv_user_preferences_user_preferences_admin_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service::server::UserPreferencesAdminServiceServer::new(rpc_transport.clone()),
             sdv_user_preferences_user_preferences_management_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service::server::UserPreferencesManagementServiceServer::new(rpc_transport.clone()),
             sdv_user_preferences_user_preferences_registry_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::server::UserPreferencesRegistryServiceServer::new(rpc_transport.clone()),
-            sdv_user_preferences_user_preferences_view_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+            sdv_user_preferences_view_change_notifier_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_user_preferences_user_controllable_user_controllable_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
 
         }
@@ -57,11 +57,15 @@ impl UserPreferencesServer {
     }
 
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_sdv_user_preferences_user_preferences_view_client(&self, target_service_bundle: &str) -> Arc<sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::client::UserPreferencesViewClient>{
-        sdvmiddleware_common::create_if_not_exist::<sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::client::UserPreferencesViewClient>(
-            &self.sdv_user_preferences_user_preferences_view_clients,
+    pub fn get_sdv_user_preferences_view_change_notifier_client(
+        &self,
+        target_service_bundle: &str,
+    ) -> Arc<sdvgenerated_rpc_sdv_user_preferences_view_change_notifier::client::ChangeNotifierClient>
+    {
+        sdvmiddleware_common::create_if_not_exist::<sdvgenerated_rpc_sdv_user_preferences_view_change_notifier::client::ChangeNotifierClient>(
+            &self.sdv_user_preferences_view_change_notifier_clients,
             target_service_bundle,
-            Box::new(|target| sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::client::UserPreferencesViewClient::new(Box::new(GrpcClientTransport::new(target)))),
+            Box::new(|target| sdvgenerated_rpc_sdv_user_preferences_view_change_notifier::client::ChangeNotifierClient::new(Box::new(GrpcClientTransport::new(target)))),
         )
     }
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.

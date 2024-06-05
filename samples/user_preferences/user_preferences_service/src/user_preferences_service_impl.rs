@@ -8,9 +8,9 @@ use sdvgenerated::sdv_user_preferences_user_preferences_management_service_inter
 use sdvgenerated::sdv_user_preferences_user_preferences_registry_service_interface::UserPreferencesRegistryService;
 use sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::client::UserControllableServiceClient;
 use sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::interface::UserControllableService;
-use sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::interface::UserPreferencesView;
 
-use sdvgenerated_rpc_sdv_user_preferences_user_preferences_view::client::UserPreferencesViewClient;
+use sdvgenerated_rpc_sdv_user_preferences_view_change_notifier::client::ChangeNotifierClient;
+use sdvgenerated_rpc_sdv_user_preferences_view_change_notifier::interface::ChangeNotifier;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
 
 use user_preferences_api::settings_group::SettingsGroupId as SettingsGroupIdProto;
@@ -32,7 +32,7 @@ use sdvmiddleware_rpc::RpcResult;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::vec::Vec;
-use user_preferences_api::user_preferences_view::OnSettingsChangeRequest;
+use user_preferences_api::change_notifier::OnSettingsChangeRequest;
 
 use user_preferences_api::user_controllable_service;
 
@@ -133,8 +133,7 @@ impl UserPreferencesServiceImpl {
         // compiler cannot determine the correctness of the program if UserPreferencesServiceImpl & UserPreferencesServer
         // have references to each other
         for subscriber in subscribers {
-            let client =
-                UserPreferencesViewClient::new(Box::new(GrpcClientTransport::new(&subscriber)));
+            let client = ChangeNotifierClient::new(Box::new(GrpcClientTransport::new(&subscriber)));
 
             println!("Notifying {} of settings change\n", subscriber);
             client

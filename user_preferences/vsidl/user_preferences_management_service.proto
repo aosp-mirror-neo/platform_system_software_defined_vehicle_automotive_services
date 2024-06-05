@@ -26,7 +26,7 @@ service UserPreferencesManagementService {
 
   // Subscribes the caller to receive notifications when settings change, and immediately returns
   // the current settings. Requirements:
-  //   * The caller must implement the UserPreferencesView interface, including the OnSettingsChange
+  //   * The caller must implement the ChangeNotifier interface, including the OnSettingsChange
   //   method (which will be called upon updates).
   rpc SubscribeToSettingsChangeAndGetSettings(SubscribeToSettingsChangeAndGetSettingsRequest)
       returns (SubscribeToSettingsChangeAndGetSettingsResponse) {}
