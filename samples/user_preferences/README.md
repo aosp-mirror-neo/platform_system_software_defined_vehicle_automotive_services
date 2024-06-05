@@ -42,7 +42,7 @@ vsidl_code_generator \
 1. Launch Cuttlefish
 
     ```bash
-    cvd start --guest-enforce-security=false
+    cvd start
     ```
 
 2. Run the User Preferences Service
