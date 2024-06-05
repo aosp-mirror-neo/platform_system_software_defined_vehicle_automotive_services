@@ -57,7 +57,9 @@ message AddFileRequest {
   // Diagnostic connection id.
   ConnectionId connection_id = 1;
 
-  // Id of the file to be written.
+  // Unique file id that the request operates on.
+  //
+  // Id is scoped to the client-server pair that communicates via this RPC service.
   string file_id = 2;
 
   // Size of the file.
@@ -76,7 +78,9 @@ message ReplaceFileRequest {
   // Diagnostic connection id.
   ConnectionId connection_id = 1;
 
-  // Id of the file to be written.
+  // Unique file id that the request operates on.
+  //
+  // Id is scoped to the client-server pair that communicates via this RPC service.
   string file_id = 2;
 
   // Size of the file.
@@ -95,7 +99,9 @@ message ResumeFileRequest {
   // Diagnostic connection id.
   ConnectionId connection_id = 1;
 
-  // Id of the file to be written.
+  // Unique file id that the request operates on.
+  //
+  // Id is scoped to the client-server pair that communicates via this RPC service.
   string file_id = 2;
 
   // Size of the file.
@@ -117,8 +123,10 @@ message ReadFileRequest {
   // Diagnostic connection id.
   ConnectionId connection_id = 1;
 
-  // Id of the file.
-  string id = 2;
+  // Unique file id that the request operates on.
+  //
+  // Id is scoped to the client-server pair that communicates via this RPC service.
+  string file_id = 2;
 }
 
 message ReadFileResponse {
@@ -136,8 +144,10 @@ message DeleteFileRequest {
   // Diagnostic connection id.
   ConnectionId connection_id = 1;
 
-  // Id of the file.
-  string id = 2;
+  // Unique file id that the request operates on.
+  //
+  // Id is scoped to the client-server pair that communicates via this RPC service.
+  string file_id = 2;
 }
 
 message DeleteFileResponse {
@@ -149,8 +159,10 @@ message ExitFileTransferRequest {
   // Diagnostic connection id.
   ConnectionId connection_id = 1;
 
-  // Id of the file.
-  string id = 2;
+  // Unique file id that the request operates on.
+  //
+  // Id is scoped to the client-server pair that communicates via this RPC service.
+  string file_id = 2;
 }
 
 message ExitFileTransferResponse {
