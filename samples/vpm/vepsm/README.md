@@ -12,6 +12,7 @@ package: "sdv.vpm.vehicle.client.rpc"
 sdv_service_bundle {
     name: "VpmSystemClient"
     client:  "sdv.vpm.vehicle.VpmSystemService"
+    server:  "sdv.vpm.PowerNotificationService"
 }
 ```
 
@@ -23,48 +24,90 @@ be found in the `./generated` folder. The code was generated using the
 vsidl_code_generator --vsidl-path core_services/vsidl/protos/  --catalog-path automotive_services/vpm/vsidl/  --output-path automotive_services/vpm/
 ```
 
-Only the generated code for the vehicle state RPC client is used in this binary.
+***Warning:*** The current APIs are not final and pending API council approval.
 
-Currently the binary supports setting vehicle states. Power state management
-will be added in a later stage.
+## Usage
 
-***Warning:*** The current set of vehicle states are not the final ones, its
-pending OEM clarifications and API council approval.
-
-**Usage**: To set the vehicle states in the SDV VM. The command `vepsm` takes
-one argument which is the vehicle state.
+To set the vehicle/power states in the SDV VM, first run the binary with the
+following command, this will create the server for power state callbacks.
 
 ```bash
-# vepsm --help
-Usage: vepsm <VEHICLE_STATE>
+vepsm
+```
 
-Arguments:
-  <VEHICLE_STATE>  The new state of the vehicle [possible values: low-power, software-update, park, life-on-board, vehicle-on, traction-on]
+Then there will be a prompt:
+
+```bash
+Enter VePSM command, press enter for help or cntl + c to exit!
+```
+
+```bash
+Commands:
+  vehicle-state  Vpm Vehicle state change command
+  power-state    Vpm Power state change command
+  help           Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help  Print help
-
 ```
 
-1.  Launch Cuttlefish if not launched yet.
+Additional help for vehicle states can be requested with:
 
-    ```bash
-    cvd start --guest-enforce-security=false
-    ```
+```bash
 
-2.  Start the binary with a specific vehicle mode.
+vepsm vehicle-state --help
 
-    ```bash
-    adb shell
+Usage: vepsm vehicle-state <COMMAND>
 
-    vepsm low-power
-    ```
+Commands:
+  low-power
+  software-update
+  park
+  life-on-board
+  vehicle-on
+  traction-on
+  help             Print this message or the help of the given subcommand(s)
 
-3.  The output should look like this
+Options:
+  -h, --help  Print help
+```
 
-    ```text
-    Vehicle mode set successfully LOW_POWER
-    ```
+or for power states
 
-When the command is executed, the VPM agent will receive the RPC request and
-notify all subscribers of the vehicle state `low_power`.
+```bash
+
+vepsm power-state --help
+
+Usage: vepsm power-state <COMMAND>
+
+Commands:
+  power-on  Set the power state to on
+  prepare   Prepare the VM for suspension or shutdown
+  cancel    Cancel the preparation for suspension or shutdown
+  finish    Turn the VM off
+  help      Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+Some power states [prepare, finish] also have addition parameters and these can
+be found via
+
+```bash
+vepsm power-state prepare --help
+
+Usage: vepsm power-state prepare <PREPARE_TYPE>
+
+Arguments:
+  <PREPARE_TYPE>
+          Type of preparation
+
+          Possible values:
+          - shut-down: Shutdown the VM
+          - ram:       Suspend the VM to RAM
+          - disk:      Suspend the VM to DISK
+
+Options:
+  -h, --help
+```

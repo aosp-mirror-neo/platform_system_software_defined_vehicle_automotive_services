@@ -27,15 +27,15 @@ vsidl_code_generator --vsidl-path core_services/vsidl/protos/  --catalog-path au
 Only the generated code for the vehicle state subscription is used in this
 binary.
 
-***Warning:*** The current set of vehicle states are not the final ones, and are
-pending OEM clarifications and API council approval.
+***Warning:*** The current set of vehicle states are not final, and are pending
+OEM clarifications and API council approval.
 
 **Usage**: To start receiving the vehicle state updates in the SDV VM
 
 1.  Launch Cuttlefish if not launched yet.
 
     ```bash
-    cvd start --guest-enforce-security=false
+    cvd start
     ```
 
 2.  Start the binary.
