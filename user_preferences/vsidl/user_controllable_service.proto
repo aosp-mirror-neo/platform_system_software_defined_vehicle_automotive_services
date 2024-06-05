@@ -2,8 +2,8 @@
 
 // APIs that must be implemented by services that contain user customizable settings.
 //
-// This is a PoC version for the API for the discussions.
-// It is unstable until API council approval.
+// This API can be changed when update story, service discovery unit types, public error API, and
+// ACLs are defined and CommStack API is finalized.
 
 syntax = "proto3";
 

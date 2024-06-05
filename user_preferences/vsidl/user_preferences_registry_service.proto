@@ -3,7 +3,8 @@
 // The set of APIs available to SDV services that need to expose customizable settings to vehicle
 // users.
 //
-// These APIs are experimental at this point.
+// This API can be changed when update story, service discovery unit types, public error API, and
+// ACLs are defined and CommStack API is finalized.
 
 syntax = "proto3";
 

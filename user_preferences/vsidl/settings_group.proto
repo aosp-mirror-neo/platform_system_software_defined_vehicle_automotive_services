@@ -1,5 +1,8 @@
 // Copyright 2023 Google LLC
 
+// This API can be changed when update story, service discovery unit types, public error API, and
+// ACLs are defined and CommStack API is finalized.
+
 syntax = "proto3";
 
 package sdv.user_preferences;
