@@ -22,7 +22,7 @@ rust_library {
         "libsdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service",
         "libsdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service",
         "libsdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service",
-        "libsdvgenerated_rpc_sdv_user_preferences_user_preferences_view",
+        "libsdvgenerated_rpc_sdv_user_preferences_view_change_notifier",
         "libsdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service",
         "libsdv_middleware_pubsub",
         "libsdvmiddleware_common",

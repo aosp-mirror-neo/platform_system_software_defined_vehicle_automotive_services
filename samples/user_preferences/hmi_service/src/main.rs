@@ -34,7 +34,7 @@ fn main() {
     let hmi_service_impl = Arc::new(HmiServiceImpl::new());
     let hmi_service = HmiService::new();
     hmi_service
-        .sdv_user_preferences_user_preferences_view_server
+        .sdv_user_preferences_view_change_notifier_server
         .register_service_interface(hmi_service_impl);
 
     let user_preferences_admin_client = hmi_service

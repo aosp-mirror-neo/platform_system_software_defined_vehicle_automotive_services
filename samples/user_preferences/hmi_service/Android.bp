@@ -11,7 +11,7 @@ rust_binary {
     ],
     rustlibs: [
         "libprotobuf",
-        "libsdvgenerated_rpc_sdv_user_preferences_user_preferences_view",
+        "libsdvgenerated_rpc_sdv_user_preferences_view_change_notifier",
         "libsdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service",
         "libsdvgenerated_rpc_sdv_user_preferences_user_preferences_admin_service",
         "libsdvgenerated_hmi_service",
