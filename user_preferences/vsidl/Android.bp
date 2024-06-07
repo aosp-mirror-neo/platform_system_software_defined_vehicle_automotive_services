@@ -16,3 +16,53 @@ rust_protobuf {
     vendor_available: true,
     host_supported: true,
 }
+
+JAVA_LITE_PROTO_CMD = "mkdir -p $(genDir)/gen && " +
+    "$(location aprotoc) --java_opt=annotate_code=false " +
+    "-Iexternal/protobuf/src " +
+    "-Isystem/software_defined_vehicle/automotive_services/user_preferences/vsidl " +
+    "--plugin=protoc-gen-grpc-java=$(location protoc-gen-grpc-java-plugin) " +
+    "--grpc-java_out=lite:$(genDir)/gen $(in) && " +
+    "$(location soong_zip) -o $(out) -C $(genDir)/gen -D $(genDir)/gen"
+
+java_genrule {
+    name: "user-preferences-grpc-java-stub-lite",
+    tools: [
+        "aprotoc",
+        "protoc-gen-grpc-java-plugin",
+        "soong_zip",
+    ],
+    cmd: JAVA_LITE_PROTO_CMD,
+    srcs: [
+        "*.proto",
+        ":libprotobuf-internal-protos",
+    ],
+    out: [
+        "protos.srcjar",
+    ],
+}
+
+// TODO(b/323195496): Remove this library once the Java Middleware story is finalized.
+java_library {
+    name: "user-preferences-grpc-java-proto-lite",
+    proto: {
+        type: "lite",
+        include_dirs: [
+            "external/protobuf/src",
+            "external/protobuf/java",
+            "system/software_defined_vehicle/automotive_services/user_preferences/vsidl",
+        ],
+    },
+    srcs: [
+        ":user-preferences-grpc-java-stub-lite",
+        "*.proto",
+        ":libprotobuf-internal-protos",
+    ],
+    libs: ["javax_annotation-api_1.3.2"],
+    static_libs: [
+        "libprotobuf-java-lite",
+        "grpc-java-core-android",
+        "grpc-java-okhttp-client-lite",
+        "guava",
+    ],
+}
