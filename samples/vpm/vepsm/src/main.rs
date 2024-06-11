@@ -6,6 +6,7 @@ use clap::Subcommand;
 use clap::ValueEnum;
 use log::{error, info};
 use sdv_vpm_api::vehicle::VpmVehicleState;
+use sdv_vpm_api::vpm::power_state_change_response::PowerStateChangeRequestError;
 use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateNotificationRequest;
 use sdv_vpm_api::vpm::PowerStateNotificationResponse;
@@ -123,10 +124,14 @@ fn handle_power_state(power_cmd: PowerCommand, client: &VpmSystemClient) -> anyh
         .get_sdv_vpm_vpm_system_service_client("VpmSystemServiceBundle")
         .set_power_state(request);
 
-    if result.is_ok() {
-        info!("Request was sent successfully!")
+    if let Ok(response) = result {
+        if response.error == PowerStateChangeRequestError::NO_ERROR.into() {
+            info!("Request was sent successfully!");
+        } else {
+            error!("Request was invalid {:?}", response);
+        }
     } else {
-        error!("Failed to request power state change, reason={:?}", result.err())
+        error!("Failed to send power state change request, reason={:?}", result.err())
     }
     Ok(())
 }

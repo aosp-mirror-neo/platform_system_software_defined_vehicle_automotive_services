@@ -1,4 +1,5 @@
 use crate::power_state_notifier::binder::BinderFeatures;
+use anyhow::anyhow;
 use async_trait::async_trait;
 use binder_tokio::Tokio;
 use binder_tokio::TokioRuntime;
@@ -13,7 +14,7 @@ use google_sdv_vpm_aidl::binder;
 use google_sdv_vpm_aidl::binder::{
     Interface, Result as BinderResult, Status as BinderStatus, Strong,
 };
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use mockall::automock;
 use sdv_vpm_api::power::PowerStateReport;
 use sdv_vpm_api::vpm::power_state_notification_request::PowerStateChangeReason;
@@ -27,27 +28,31 @@ use std::sync::Mutex;
 use tokio::runtime::Handle;
 use tokio::sync::broadcast::error::RecvError;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::task::JoinError;
+use tokio::task::JoinHandle;
 use tokio::task::JoinSet;
 
 #[automock]
 #[async_trait]
 pub trait PowerStateNotifier: Send + Sync {
     fn create_binder_service(&self) -> anyhow::Result<()>;
-    async fn start(&mut self) -> anyhow::Result<()>;
+    async fn notify(&self, power_state_report: PowerStateReport) -> anyhow::Result<()>;
+    fn notify_oem(
+        &self,
+        power_state_report: PowerStateReport,
+        reason: PowerStateChangeReason,
+    ) -> anyhow::Result<()>;
 }
 
+#[derive(Clone)]
 pub struct PowerStateNotifierImpl {
     callbacks: Arc<Mutex<Vec<Strong<dyn IPowerStateReportListenerAsync<Tokio>>>>>,
-    receiver: Receiver<PowerStateReport>,
     vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>,
 }
 
 impl PowerStateNotifierImpl {
-    pub fn new(
-        receiver: Receiver<PowerStateReport>,
-        vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>,
-    ) -> Self {
-        Self { callbacks: Arc::new(Mutex::new(Vec::new())), receiver, vpm_service_bundle }
+    pub fn new(vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>) -> Self {
+        Self { callbacks: Arc::new(Mutex::new(Vec::new())), vpm_service_bundle }
     }
 }
 
@@ -67,71 +72,61 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
         Ok(())
     }
 
-    async fn start(&mut self) -> anyhow::Result<()> {
-        while let Some(power_state_report) = self.receiver.recv().await {
-            info!("Starting callback notifications for {:?}", power_state_report);
-            let cloned_callbacks = self.callbacks.lock().unwrap().clone();
-            let cloned_bundle = self.vpm_service_bundle.clone();
-            tokio::spawn(async move {
-                let mut set = JoinSet::new();
-                for async_callback in cloned_callbacks.into_iter() {
-                    set.spawn(async move {
-                        async_callback
-                            .onPowerStateReportChanged(convert_to_aidl(power_state_report))
-                            .await
-                    });
-                }
-                let notification_failed = AtomicBool::new(false);
-                while let Some(res) = set.join_next().await {
-                    if (res.is_err()) {
-                        error!("Failed to notify callback {:?}", res);
-                        info!("Dropping the rest of the callbacks");
-                        set.abort_all();
-                        notification_failed.store(true, Ordering::Relaxed);
-                    } else if let Ok(Err(e)) = res {
-                        // This should be handled with death binder not here.
-                        error!("Callback handle was dropped {:?}", e);
-                    }
-                }
-
-                if (notification_failed.load(Ordering::Relaxed)) {
-                    error!("one of the callbacks failed, not notifying OEM!");
-                } else {
-                    info!("Power state clients notified.");
-                    let result = notify_oem(cloned_bundle, power_state_report);
-                    if result.is_ok() {
-                        info!("OEM notified {:?}", result);
-                    } else {
-                        error!("Failed to notify OEM, reason={:?}!", result.err());
-                    }
-                }
+    async fn notify(&self, power_state_report: PowerStateReport) -> anyhow::Result<()> {
+        info!("Starting callback notifications for {:?}", power_state_report);
+        let cloned_callbacks = self.callbacks.lock().unwrap().clone();
+        let cloned_bundle = self.vpm_service_bundle.clone();
+        let mut set = JoinSet::new();
+        for async_callback in cloned_callbacks.into_iter() {
+            set.spawn(async move {
+                async_callback.onPowerStateReportChanged(convert_to_aidl(power_state_report)).await
             });
         }
+        let mut notification_failed = false;
+
+        while let Some(res) = set.join_next().await {
+            if (res.is_err()) {
+                error!("Failed to notify callback {:?}!", res);
+                debug!("Dropping the rest of the callback tasks!");
+                notification_failed = true;
+            } else if let Ok(Err(e)) = res {
+                // This should be handled with death binder not here.
+                notification_failed = true;
+                error!("Callback handle was dropped {:?}", e);
+            }
+        }
+        if notification_failed {
+            Err(anyhow!("One or more callbacks failed"))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn notify_oem(
+        &self,
+        power_state_report: PowerStateReport,
+        reason: PowerStateChangeReason,
+    ) -> anyhow::Result<()> {
+        let request = PowerStateNotificationRequest {
+            power_state: power_state_report.into(),
+            reason: reason.into(),
+            ..Default::default()
+        };
+
+        // This should be changed to just getting a reference to the client rather than
+        // sending the bundle here.
+
+        let result = self
+            .vpm_service_bundle
+            .lock()
+            .unwrap()
+            .get_sdv_vpm_power_notification_service_client("VpmSystemClient")
+            .notify_power_state(request);
+
         Ok(())
     }
 }
 
-fn notify_oem(
-    bundle: Arc<Mutex<VpmSystemServiceBundle>>,
-    power_state_report: PowerStateReport,
-) -> anyhow::Result<()> {
-    let request = PowerStateNotificationRequest {
-        power_state: power_state_report.into(),
-        reason: PowerStateChangeReason::HOST_REQUESTED.into(),
-        ..Default::default()
-    };
-
-    // This should be changed to just getting a reference to the client rather than
-    // sending the bundle here.
-
-    let result = bundle
-        .lock()
-        .unwrap()
-        .get_sdv_vpm_power_notification_service_client("VpmSystemClient")
-        .notify_power_state(request);
-
-    Ok(())
-}
 struct BinderServer {
     callbacks: Arc<Mutex<Vec<Strong<dyn IPowerStateReportListenerAsync<Tokio>>>>>,
 }
