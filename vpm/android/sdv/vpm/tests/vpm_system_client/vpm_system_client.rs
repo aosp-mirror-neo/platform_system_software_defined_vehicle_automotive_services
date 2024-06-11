@@ -10,11 +10,12 @@ use log::{error, info, warn};
 use sdv_middleware_pubsub::publisher::DataTunnelPublisher;
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
 use sdvmiddleware_rpc_grpc::grpc_client_transport::GrpcClientTransport;
+use sdvmiddleware_rpc_grpc::grpc_server_transport::GrpcServerTransport;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 
-pub struct VpmIntegrationTestBundleCallbacks {
+pub struct VpmSystemClientCallbacks {
     pub sdv_vpm_vehicle_vehicle_state_change_cb: Box<
         dyn Fn(sdv_middleware_pubsub::Result<sdv_vpm_api::vehicle::VehicleStateChange>)
             + Sync
@@ -27,10 +28,12 @@ struct Subscriptions {
         DataTunnelSubscriber<subscriber::sdv_vpm_vehicle::VehicleStateChangeTopics>,
 }
 
-pub struct VpmIntegrationTestBundle {
+pub struct VpmSystemClient {
     subscription_thread_handle: Option<thread::JoinHandle<()>>,
-    callbacks: Arc<VpmIntegrationTestBundleCallbacks>,
+    callbacks: Arc<VpmSystemClientCallbacks>,
     subscriptions: Arc<Mutex<Subscriptions>>,
+    pub sdv_vpm_power_notification_service_server:
+        sdvgenerated_rpc_sdv_vpm_power_notification_service::server::PowerNotificationServiceServer,
     sdv_vpm_vpm_system_service_clients: parking_lot::RwLock<
         std::collections::HashMap<
             String,
@@ -39,18 +42,17 @@ pub struct VpmIntegrationTestBundle {
     >,
 }
 
-impl VpmIntegrationTestBundle {
+impl VpmSystemClient {
     /// Creates a new instance of the service bundle
-    pub fn new(callbacks: VpmIntegrationTestBundleCallbacks) -> Self {
-        VpmIntegrationTestBundle {
-            subscription_thread_handle: None,
-            subscriptions: Arc::new(Mutex::new(Subscriptions {
-                sdv_vpm_vehicle_vehicle_state_change_subscriber: DataTunnelSubscriber::new(),
+    pub fn new(callbacks: VpmSystemClientCallbacks) -> Self {
+        let rpc_transport = GrpcServerTransport::new("VpmSystemClient");
+
+        VpmSystemClient{subscription_thread_handle: None,
+            subscriptions: Arc::new(Mutex::new(Subscriptions {sdv_vpm_vehicle_vehicle_state_change_subscriber: DataTunnelSubscriber::new(),
             })),
             callbacks: Arc::new(callbacks),
-            sdv_vpm_vpm_system_service_clients: parking_lot::RwLock::new(
-                std::collections::HashMap::new(),
-            ),
+            sdv_vpm_power_notification_service_server: sdvgenerated_rpc_sdv_vpm_power_notification_service::server::PowerNotificationServiceServer::new(rpc_transport.clone()),
+            sdv_vpm_vpm_system_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
         }
     }
 
@@ -61,7 +63,7 @@ impl VpmIntegrationTestBundle {
 
         self.subscribe_to_topics()?;
         self.start_subscription_listening_thread()?;
-        info!("Service `VpmIntegrationTestBundle` has been started.");
+        info!("Service `VpmSystemClient` has been started.");
         Ok(())
     }
 
@@ -97,7 +99,7 @@ impl VpmIntegrationTestBundle {
 
     fn poll_subscriptions(
         subscriptions: Arc<Mutex<Subscriptions>>,
-        callbacks: Arc<VpmIntegrationTestBundleCallbacks>,
+        callbacks: Arc<VpmSystemClientCallbacks>,
     ) {
         const POLL_TIMEOUT_MS: u32 = 10;
         info!("Polling thread created.");
