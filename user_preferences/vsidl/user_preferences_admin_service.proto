@@ -16,7 +16,6 @@ option java_outer_classname = "UserPreferencesAdminServiceProto";
 package sdv.user_preferences;
 
 import "settings_group.proto";
-import "setting.proto";
 import "error.proto";
 import "user.proto";
 

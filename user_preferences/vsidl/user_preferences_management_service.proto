@@ -18,7 +18,6 @@ package sdv.user_preferences;
 import "setting.proto";
 import "settings_group.proto";
 import "error.proto";
-import "user.proto";
 
 service UserPreferencesManagementService {
   // Initiates a request to modify settings of a specific service with the current user's profile.

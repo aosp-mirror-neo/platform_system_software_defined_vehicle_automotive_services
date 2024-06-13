@@ -10,7 +10,6 @@ syntax = "proto3";
 package sdv.user_preferences.view;
 import "settings_group.proto";
 import "setting.proto";
-import "error.proto";
 
 // Interface for receiving notifications about changes to user settings.
 // Services that want to react to these changes must implement this interface.
