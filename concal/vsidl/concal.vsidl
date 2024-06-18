@@ -23,13 +23,3 @@ sdv_service_bundle {
     name: "CalibratableClient"
     client: "sdv.concal.calib.CalibratableService"
 }
-
-sdv_service_bundle {
-    name: "ConfigSubscriberServer"
-    server: "ConfigSubscriberService"
-}
-
-sdv_service_bundle {
-    name: "ConfigSubscribeClient"
-    client: "ConfigSubscriberService"
-}

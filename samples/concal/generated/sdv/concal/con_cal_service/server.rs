@@ -14,8 +14,6 @@ use concal_api::concal_service::FinishConfigUpdateRequest;
 use concal_api::concal_service::FinishConfigUpdateResponse;
 use concal_api::concal_service::GetCalibrationConfigIdsRequest;
 use concal_api::concal_service::GetCalibrationConfigIdsResponse;
-use concal_api::concal_service::GetConfigAndRegisterForConfigUpdateRequest;
-use concal_api::concal_service::GetConfigAndRegisterForConfigUpdateResponse;
 use concal_api::concal_service::GetConfigMetadataRequest;
 use concal_api::concal_service::GetConfigMetadataResponse;
 use concal_api::concal_service::GetConfigRequest;
@@ -38,8 +36,6 @@ use concal_api::concal_service::UninstallConfigRequest;
 use concal_api::concal_service::UninstallConfigResponse;
 use concal_api::concal_service::UnregisterFromCalibrationUpdateRequest;
 use concal_api::concal_service::UnregisterFromCalibrationUpdateResponse;
-use concal_api::concal_service::UnregisterFromConfigUpdateRequest;
-use concal_api::concal_service::UnregisterFromConfigUpdateResponse;
 use concal_api::concal_service::UpdateConfigForCalibrationRequest;
 use concal_api::concal_service::UpdateConfigForCalibrationResponse;
 use sdvmiddleware_common::serve_method;
@@ -149,21 +145,6 @@ impl ConCalServiceServer {
         serve_method::<FinishCalibrationRequest, FinishCalibrationResponse>(
             Box::new(move |req| callback.finish_calibration(req)),
             "ConCalService::finish_calibration",
-            self.transport.as_ref(),
-        );
-        let callback = service.clone();
-        serve_method::<
-            GetConfigAndRegisterForConfigUpdateRequest,
-            GetConfigAndRegisterForConfigUpdateResponse,
-        >(
-            Box::new(move |req| callback.get_config_and_register_for_config_update(req)),
-            "ConCalService::get_config_and_register_for_config_update",
-            self.transport.as_ref(),
-        );
-        let callback = service.clone();
-        serve_method::<UnregisterFromConfigUpdateRequest, UnregisterFromConfigUpdateResponse>(
-            Box::new(move |req| callback.unregister_from_config_update(req)),
-            "ConCalService::unregister_from_config_update",
             self.transport.as_ref(),
         );
         let callback = service.clone();

@@ -11,8 +11,6 @@ import "configuration.proto";
 import "config_override.proto";
 import "status.proto";
 
-import "google/protobuf/descriptor.proto";
-
 // Generally available Configuration/Calibration Service Bundle (ConCal) APIs for use by
 // SDV-Services.
 // ConCal delivers customized verhicle-specific service bundles' configurations.
@@ -105,22 +103,6 @@ service ConCalService {
   // Finishes calibration for a specified config
   // and resets the calibration config to the original values.
   rpc FinishCalibration(FinishCalibrationRequest) returns (FinishCalibrationResponse) {}
-
-  // Allows to register for config update and retrieve the current version of the config.
-  // Returns an error:
-  // - if this service does not have rights to read the config,
-  // - if the config is not stored in the ConCal,
-  // - if multiple configs match the request.
-  // The caller should implement ConfigSubscriberService interface.
-  // This API can be changed when update story is defined.
-  rpc GetConfigAndRegisterForConfigUpdate(GetConfigAndRegisterForConfigUpdateRequest)
-      returns (GetConfigAndRegisterForConfigUpdateResponse) {}
-
-  // Allows to unregister from config update.
-  // Service should unregister from updates at shutdown.
-  // This API can be changed when update story is defined.
-  rpc UnregisterFromConfigUpdate(UnregisterFromConfigUpdateRequest)
-      returns (UnregisterFromConfigUpdateResponse) {}
 
   // Allows to register for calibration config update.
   // Returns an error:
@@ -271,37 +253,6 @@ message UninstallConfigRequest {
 }
 
 message UninstallConfigResponse {
-  // Status message if request fails.
-  Status status = 1;
-}
-
-message GetConfigAndRegisterForConfigUpdateRequest {
-  // Unique config identifier.
-  ConfigId config_id = 1;
-}
-
-message GetConfigAndRegisterForConfigUpdateResponse {
-  // Serialized config.
-  bytes config = 1;
-
-  // Config schema as proto types and their dependencies.
-  google.protobuf.FileDescriptorSet descriptor_set = 2;
-
-  // Version identifier for the service package.
-  string config_version = 3;
-
-  // Status message if request fails.
-  // In case of failure, other message values are either not set or their correctness is not
-  // guaranteed.
-  Status status = 4;
-}
-
-message UnregisterFromConfigUpdateRequest {
-  // Unique config identifier.
-  ConfigId config_id = 1;
-}
-
-message UnregisterFromConfigUpdateResponse {
   // Status message if request fails.
   Status status = 1;
 }

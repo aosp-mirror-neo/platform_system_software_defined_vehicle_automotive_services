@@ -509,20 +509,6 @@ impl ConCalService for ConCalServiceImpl {
         todo!();
     }
 
-    fn get_config_and_register_for_config_update(
-        &self,
-        _request: GetConfigAndRegisterForConfigUpdateRequest,
-    ) -> RpcResult<GetConfigAndRegisterForConfigUpdateResponse> {
-        todo!();
-    }
-
-    fn unregister_from_config_update(
-        &self,
-        _request: UnregisterFromConfigUpdateRequest,
-    ) -> RpcResult<UnregisterFromConfigUpdateResponse> {
-        todo!();
-    }
-
     fn register_for_calibration_update(
         &self,
         _request: RegisterForCalibrationUpdateRequest,

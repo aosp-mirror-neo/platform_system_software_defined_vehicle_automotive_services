@@ -14,8 +14,6 @@ use concal_api::concal_service::FinishConfigUpdateRequest;
 use concal_api::concal_service::FinishConfigUpdateResponse;
 use concal_api::concal_service::GetCalibrationConfigIdsRequest;
 use concal_api::concal_service::GetCalibrationConfigIdsResponse;
-use concal_api::concal_service::GetConfigAndRegisterForConfigUpdateRequest;
-use concal_api::concal_service::GetConfigAndRegisterForConfigUpdateResponse;
 use concal_api::concal_service::GetConfigMetadataRequest;
 use concal_api::concal_service::GetConfigMetadataResponse;
 use concal_api::concal_service::GetConfigRequest;
@@ -38,8 +36,6 @@ use concal_api::concal_service::UninstallConfigRequest;
 use concal_api::concal_service::UninstallConfigResponse;
 use concal_api::concal_service::UnregisterFromCalibrationUpdateRequest;
 use concal_api::concal_service::UnregisterFromCalibrationUpdateResponse;
-use concal_api::concal_service::UnregisterFromConfigUpdateRequest;
-use concal_api::concal_service::UnregisterFromConfigUpdateResponse;
 use concal_api::concal_service::UpdateConfigForCalibrationRequest;
 use concal_api::concal_service::UpdateConfigForCalibrationResponse;
 use sdvmiddleware_common::call_method;
@@ -197,29 +193,6 @@ impl ConCalService for ConCalServiceClient {
         call_method::<FinishCalibrationRequest, FinishCalibrationResponse>(
             self.transport.as_ref(),
             "ConCalService::finish_calibration",
-            &request,
-        )
-    }
-    fn get_config_and_register_for_config_update(
-        &self,
-        request: GetConfigAndRegisterForConfigUpdateRequest,
-    ) -> RpcResult<GetConfigAndRegisterForConfigUpdateResponse> {
-        call_method::<
-            GetConfigAndRegisterForConfigUpdateRequest,
-            GetConfigAndRegisterForConfigUpdateResponse,
-        >(
-            self.transport.as_ref(),
-            "ConCalService::get_config_and_register_for_config_update",
-            &request,
-        )
-    }
-    fn unregister_from_config_update(
-        &self,
-        request: UnregisterFromConfigUpdateRequest,
-    ) -> RpcResult<UnregisterFromConfigUpdateResponse> {
-        call_method::<UnregisterFromConfigUpdateRequest, UnregisterFromConfigUpdateResponse>(
-            self.transport.as_ref(),
-            "ConCalService::unregister_from_config_update",
             &request,
         )
     }
