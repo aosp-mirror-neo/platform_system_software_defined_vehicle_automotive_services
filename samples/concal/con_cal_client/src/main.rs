@@ -17,7 +17,7 @@ use sdvtestconcal_proto_rust::rear_view_camera::RearViewCamera;
 
 macro_rules! panic_if_failed {
     ($result:expr, $message:expr) => {
-        if $result.status.is_some() & ($result.status.code != ResponseCode::SUCCESS.into()) {
+        if $result.status.is_some() & ($result.status.code != ResponseCode::OK.into()) {
             panic!($message, $result.status.unwrap());
         }
     };

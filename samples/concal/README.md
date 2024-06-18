@@ -21,7 +21,7 @@ mm sdv_catalog_update
 
 ## ConCal Config Override Library
 
-1. Setup environment
+1.  Setup environment
 
     ```bash
     source build/envsetup.sh
@@ -30,17 +30,16 @@ mm sdv_catalog_update
     m lib_override_tests
     ```
 
-2. Run the device
+2.  Run the device
 
     ```bash
     cvd start -guest-enforce-security false
     ```
 
-3. Run tests
+3.  Run tests
 
     ```bash
-    atest lib_override_tests
-    atest sdv_con_cal_service_tests
+    atest lib_override_tests sdv_con_cal_service_tests sdv_concal_integration_test
     ```
 
 ## ConCal Demo Application
@@ -49,7 +48,7 @@ The samples include a reference implementation of the ConCal server along with a
 sample client. The client registers a configuration in ConCal, updates it via
 overrides, and performs a rollback. To run the demo, follow the steps below:
 
-1. Start the sample ConCal server in one shell
+1.  Start the sample ConCal server in one shell
 
     ```bash
     adb shell /vendor/bin/sdv_con_cal_service
@@ -58,12 +57,12 @@ overrides, and performs a rollback. To run the demo, follow the steps below:
     The output `ConCalServer service bundle started` means that the server was
     successfully launched.
 
-2. Run the sample ConCal client in another shell
+2.  Run the sample ConCal client in another shell
 
     ```bash
     adb shell /vendor/bin/sdv_con_cal_client
     ```
 
-3. Once executed the client will register the following configuration and you
+3.  Once executed the client will register the following configuration and you
     will see the output as in
     [expected client stdout file](../../concal/integration_test/tests/client_stdout.txt)
