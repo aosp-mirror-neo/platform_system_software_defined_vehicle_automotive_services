@@ -39,7 +39,7 @@ sdv_service_bundle {
         }
 
         event {
-            id: "event.2"
+            id: "event.number2"
             extended_data_message_name: "sdv.sample.diagnostics.SecondEventExt"
             fault_listener_mask: 0x1
         }

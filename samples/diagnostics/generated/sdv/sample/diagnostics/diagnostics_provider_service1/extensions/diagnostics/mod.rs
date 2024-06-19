@@ -33,20 +33,20 @@ use std::thread;
 
 pub struct Diagnostics {
     event_1_publisher: DataTunnelPublisher<Event1EventTopic>,
-    event_2_publisher: DataTunnelPublisher<Event2EventTopic>,
+    event_number2_publisher: DataTunnelPublisher<EventNumber2EventTopic>,
 }
 
 impl Diagnostics {
     pub(crate) fn new() -> Self {
         Self {
             event_1_publisher: DataTunnelPublisher::new(24),
-            event_2_publisher: DataTunnelPublisher::new(25),
+            event_number2_publisher: DataTunnelPublisher::new(25),
         }
     }
 
     pub(crate) fn start(&mut self) -> sdv_middleware_pubsub::Result<()> {
         self.event_1_publisher.register_topics()?;
-        self.event_2_publisher.register_topics()?;
+        self.event_number2_publisher.register_topics()?;
 
         Ok(())
     }
@@ -81,7 +81,7 @@ impl Diagnostics {
             EventMessage { status: event.status.into(), extended_data, ..Default::default() };
         self.event_1_publisher.publish(&Event1EventTopic {}, &event_message)
     }
-    pub fn publish_event_2_event(
+    pub fn publish_event_number2_event(
         &mut self,
         event: Event<diagnostics_sample_catalog::messages::SecondEventExt>,
     ) -> sdv_middleware_pubsub::Result<()> {
@@ -113,7 +113,7 @@ impl Diagnostics {
 
         let event_message =
             EventMessage { status: event.status.into(), extended_data, ..Default::default() };
-        self.event_2_publisher.publish(&Event2EventTopic {}, &event_message)
+        self.event_number2_publisher.publish(&EventNumber2EventTopic {}, &event_message)
     }
 
     pub fn create_data_item_server(
@@ -153,13 +153,13 @@ impl Diagnostics {
         event_1_fault_listener_handler: Box<
             dyn FaultListenerHandler<diagnostics_sample_catalog::messages::FirstEventExt>,
         >,
-        event_2_fault_listener_handler: Box<
+        event_number2_fault_listener_handler: Box<
             dyn FaultListenerHandler<diagnostics_sample_catalog::messages::SecondEventExt>,
         >,
     ) -> Arc<dyn FaultListener> {
         Arc::new(FaultListenerServer {
             event_1_fault_listener_handler: Mutex::new(event_1_fault_listener_handler),
-            event_2_fault_listener_handler: Mutex::new(event_2_fault_listener_handler),
+            event_number2_fault_listener_handler: Mutex::new(event_number2_fault_listener_handler),
         })
     }
 }
@@ -180,18 +180,18 @@ impl sdv_middleware_pubsub::EnumTopic for Event1EventTopic {
     }
 }
 #[derive(Clone, Eq, Hash, PartialEq, Debug)]
-pub struct Event2EventTopic {}
+pub struct EventNumber2EventTopic {}
 
-impl sdv_middleware_pubsub::EnumTopic for Event2EventTopic {
+impl sdv_middleware_pubsub::EnumTopic for EventNumber2EventTopic {
     /// Returns iterator over all available topics
     fn iterator() -> std::slice::Iter<'static, Self> {
-        static TOPICS: [Event2EventTopic; 1] = [Event2EventTopic {}];
+        static TOPICS: [EventNumber2EventTopic; 1] = [EventNumber2EventTopic {}];
         TOPICS.iter()
     }
 
     /// Returns string name of the topic
     fn get_name(&self) -> &str {
-        "diagnostics_provider_service1.event.event.2"
+        "diagnostics_provider_service1.event.event.number2"
     }
 }
 
@@ -342,7 +342,7 @@ impl IoControl for IoControlServer {
 struct FaultListenerServer {
     event_1_fault_listener_handler:
         Mutex<Box<dyn FaultListenerHandler<diagnostics_sample_catalog::messages::FirstEventExt>>>,
-    event_2_fault_listener_handler:
+    event_number2_fault_listener_handler:
         Mutex<Box<dyn FaultListenerHandler<diagnostics_sample_catalog::messages::SecondEventExt>>>,
 }
 
@@ -360,8 +360,8 @@ impl FaultListener for FaultListenerServer {
                     request.status as u8,
                     request.extended_data.as_deref(),
                 )),
-            "event.2" => Ok(self
-                .event_2_fault_listener_handler
+            "event.number2" => Ok(self
+                .event_number2_fault_listener_handler
                 .lock()
                 .unwrap()
                 .on_fault_status_change_untyped(
