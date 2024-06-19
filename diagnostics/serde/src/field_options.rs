@@ -57,8 +57,8 @@ impl FieldOptions for FieldDescriptor {
 
         // convert raw int value to enum value
         match get_varint_option(self, PRIMITIVE_BYTE_SIZE) {
-            Some(0) => Some(ByteSize::ONE),
-            Some(1) => Some(ByteSize::TWO),
+            Some(1) => Some(ByteSize::ONE),
+            Some(2) => Some(ByteSize::TWO),
             _ => None,
         }
     }

@@ -32,8 +32,8 @@ impl EnumOptions for EnumDescriptor {
 
         // convert raw int value to enum value
         match get_varint_option(self, ENUM_BYTE_SIZE) {
-            Some(0) => Some(ByteSize::ONE),
-            Some(1) => Some(ByteSize::TWO),
+            Some(1) => Some(ByteSize::ONE),
+            Some(2) => Some(ByteSize::TWO),
             _ => None,
         }
     }

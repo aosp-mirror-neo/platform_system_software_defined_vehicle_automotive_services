@@ -59,7 +59,7 @@ impl Diagnostics {
 
         if let Some(ref message) = message {
             use protobuf::Message;
-            use sdvmiddleware_common::size_utils::LenOf;
+            use sdvmiddleware_common::size_utils::{LenOf, ProtobufLenOf};
             let computed_message_size = message.compute_size();
             if computed_message_size > 11 {
                 let mut error_message = String::new();
@@ -89,7 +89,7 @@ impl Diagnostics {
 
         if let Some(ref message) = message {
             use protobuf::Message;
-            use sdvmiddleware_common::size_utils::LenOf;
+            use sdvmiddleware_common::size_utils::{LenOf, ProtobufLenOf};
             let computed_message_size = message.compute_size();
             if computed_message_size > 12 {
                 let mut error_message = String::new();
