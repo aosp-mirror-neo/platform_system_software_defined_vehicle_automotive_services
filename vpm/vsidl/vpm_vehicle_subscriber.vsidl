@@ -1,3 +1,4 @@
+# Copyright 2024 Google LLC
 # proto-file: //system/software_defined_vehicle/core_services/vsidl/syntax/vsidl.proto
 # proto-message: VsidlEntry
 
