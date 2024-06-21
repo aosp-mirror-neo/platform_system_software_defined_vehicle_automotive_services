@@ -1,0 +1,37 @@
+{
+  "sdv_automotive_services_presubmit": [
+    {
+      "name": "libsdv_uds_serde_tests"
+    },
+    {
+      "name": "sdv_con_cal_service_tests"
+    },
+    {
+      "name": "lib_override_tests"
+    },
+    {
+      "name": "sdv_vpm_agent_unit_tests"
+    },
+    {
+      "name": "sdv_user_preferences_service_tests"
+    },
+    {
+      "name": "sdv_middleware_extension_diagnostics_tests"
+    }
+  ],
+  "sdv_automotive_service_postsubmit": [],
+  "sdv_automotive_service_integration_presubmit": [
+    {
+      "name": "sdv_concal_integration_test"
+    },
+    {
+      "name": "sdv_diag_integration_test"
+    },
+    {
+      "name": "sdv_user_preferences_integration_test"
+    },
+    {
+      "name": "sdv_vpm_agent_integration_tests"
+    }
+  ]
+}
