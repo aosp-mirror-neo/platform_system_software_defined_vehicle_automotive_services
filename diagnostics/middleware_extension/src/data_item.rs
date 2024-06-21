@@ -1,7 +1,7 @@
 // Copyright 2024 Google LLC
 
 use crate::DiagnosticsResult;
-use diagnostics_api::data_item::{ReadResponse, WriteResponse};
+use diagnostics_api::data_item_service::{ReadDataItemResponse, WriteDataItemResponse};
 use diagnostics_api::response_code::ResponseCode;
 use diagnostics_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
 use diagnostics_api::response_code::ResponseCode::POSITIVE_RESPONSE;
@@ -9,42 +9,42 @@ use protobuf::MessageFull;
 
 /// Typed trait that corresponds to read-only data item server
 ///
-/// See sdv.diagnostics.data_item.DataItem service.
+/// See sdv.diagnostics.data_item.DataItemService service.
 pub trait ReadOnlyDataItemHandler<T: MessageFull>: Send + Sync {
     /// Reads current data item value.
     fn read(&self) -> DiagnosticsResult<T>;
 
-    /// Reads current data item, converting it to the untyped ReadResponse.
-    fn read_untyped(&self) -> ReadResponse {
+    /// Reads current data item, converting it to the untyped ReadDataItemResponse.
+    fn read_untyped(&self) -> ReadDataItemResponse {
         to_read_response(self.read())
     }
 }
 
-fn to_read_response<T: MessageFull>(result: DiagnosticsResult<T>) -> ReadResponse {
+fn to_read_response<T: MessageFull>(result: DiagnosticsResult<T>) -> ReadDataItemResponse {
     match result {
         Ok(data_item) => {
             let value_bytes = data_item.write_to_bytes();
 
             value_bytes
-                .map(|value_bytes| ReadResponse {
+                .map(|value_bytes| ReadDataItemResponse {
                     value: value_bytes,
                     response_code: POSITIVE_RESPONSE.into(),
                     ..Default::default()
                 })
-                .unwrap_or_else(|_| ReadResponse {
+                .unwrap_or_else(|_| ReadDataItemResponse {
                     response_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                     ..Default::default()
                 })
         }
         Err(response_code) => {
-            ReadResponse { response_code: response_code.into(), ..Default::default() }
+            ReadDataItemResponse { response_code: response_code.into(), ..Default::default() }
         }
     }
 }
 
 /// Typed trait that corresponds to writable data item server
 ///
-/// See sdv.diagnostics.data_item.DataItem service.
+/// See sdv.diagnostics.data_item.DataItemService service.
 ///
 /// Ideally, this trait should extend ReadOnlyDataItemHandler<T>, but since Rust does not
 /// support casting from `dyn DerivedTrait` to `dyn BaseTrait`, it's easier to simply
@@ -57,8 +57,8 @@ where
     /// Reads current data item value.
     fn read(&self) -> DiagnosticsResult<T>;
 
-    /// Reads current data item, converting it to the untyped ReadResponse.
-    fn read_untyped(&self) -> ReadResponse {
+    /// Reads current data item, converting it to the untyped ReadDataItemResponse.
+    fn read_untyped(&self) -> ReadDataItemResponse {
         to_read_response(self.read())
     }
 
@@ -66,13 +66,13 @@ where
     fn write(&self, value: T) -> ResponseCode;
 
     /// Write new value to the data item, parsing it from bytes input.
-    fn write_untyped(&self, value_bytes: &[u8]) -> WriteResponse {
+    fn write_untyped(&self, value_bytes: &[u8]) -> WriteDataItemResponse {
         T::parse_from_bytes(value_bytes)
             .map(|value| {
                 let result = self.write(value);
-                WriteResponse { response_code: result.into(), ..Default::default() }
+                WriteDataItemResponse { response_code: result.into(), ..Default::default() }
             })
-            .unwrap_or_else(|_| WriteResponse {
+            .unwrap_or_else(|_| WriteDataItemResponse {
                 response_code: INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             })
@@ -83,7 +83,7 @@ where
 mod tests {
     use crate::data_item::{DataItemHandler, ReadOnlyDataItemHandler};
     use crate::DiagnosticsResult;
-    use diagnostics_api::data_item::{ReadResponse, WriteResponse};
+    use diagnostics_api::data_item_service::{ReadDataItemResponse, WriteDataItemResponse};
     use diagnostics_api::event::Event as TestProto;
     use diagnostics_api::event::Status;
     use diagnostics_api::response_code::ResponseCode;
@@ -132,7 +132,7 @@ mod tests {
 
         assert_eq!(
             handler.read_untyped(),
-            ReadResponse { value: message.write_to_bytes().unwrap(), ..Default::default() }
+            ReadDataItemResponse { value: message.write_to_bytes().unwrap(), ..Default::default() }
         );
     }
 
@@ -142,7 +142,7 @@ mod tests {
 
         assert_eq!(
             handler.read_untyped(),
-            ReadResponse {
+            ReadDataItemResponse {
                 response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
@@ -157,7 +157,7 @@ mod tests {
 
         assert_eq!(
             handler.read_untyped(),
-            ReadResponse { value: message.write_to_bytes().unwrap(), ..Default::default() }
+            ReadDataItemResponse { value: message.write_to_bytes().unwrap(), ..Default::default() }
         );
     }
 
@@ -168,7 +168,7 @@ mod tests {
 
         assert_eq!(
             handler.read_untyped(),
-            ReadResponse {
+            ReadDataItemResponse {
                 response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
@@ -183,7 +183,10 @@ mod tests {
 
         let handler = TestHandler::new_with_write_result(ResponseCode::POSITIVE_RESPONSE);
 
-        assert_eq!(handler.write_untyped(&message_bytes), WriteResponse { ..Default::default() });
+        assert_eq!(
+            handler.write_untyped(&message_bytes),
+            WriteDataItemResponse { ..Default::default() }
+        );
     }
 
     #[test]
@@ -196,7 +199,7 @@ mod tests {
 
         assert_eq!(
             handler.write_untyped(&message_bytes),
-            WriteResponse {
+            WriteDataItemResponse {
                 response_code: ResponseCode::GENERAL_REJECT.into(),
                 ..Default::default()
             }
@@ -211,7 +214,7 @@ mod tests {
 
         assert_eq!(
             handler.write_untyped(&invalid_message_bytes),
-            WriteResponse {
+            WriteDataItemResponse {
                 response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             }

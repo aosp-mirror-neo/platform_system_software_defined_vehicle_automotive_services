@@ -125,7 +125,7 @@ fn main() {
         )));
 
     service
-        .sdv_diagnostics_data_item_data_item_server
+        .sdv_diagnostics_data_item_data_item_service_server
         .register_service_interface(data_item_server_impl);
 
     // Setup routine server.

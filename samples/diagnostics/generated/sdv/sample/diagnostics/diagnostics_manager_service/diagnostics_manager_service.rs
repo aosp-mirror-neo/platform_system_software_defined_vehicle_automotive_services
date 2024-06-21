@@ -27,7 +27,7 @@ struct Subscriptions {}
 
 pub struct DiagnosticsManagerService {
     pub sdv_diagnostics_diagnostics_manager_server: sdvgenerated_rpc_sdv_diagnostics_diagnostics_manager::server::DiagnosticsManagerServer,
-    sdv_diagnostics_data_item_data_item_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::client::DataItemClient>>>,
+    sdv_diagnostics_data_item_data_item_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_data_item_data_item_service::client::DataItemServiceClient>>>,
     sdv_diagnostics_routine_control_routine_control_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control::client::RoutineControlClient>>>,
     sdv_diagnostics_io_control_io_control_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_io_control_io_control::client::IOControlClient>>>,
     sdv_diagnostics_fault_fault_listener_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::client::FaultListenerClient>>>,
@@ -41,7 +41,7 @@ impl DiagnosticsManagerService {
 
         DiagnosticsManagerService{
             sdv_diagnostics_diagnostics_manager_server: sdvgenerated_rpc_sdv_diagnostics_diagnostics_manager::server::DiagnosticsManagerServer::new(rpc_transport.clone()),
-            sdv_diagnostics_data_item_data_item_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
+            sdv_diagnostics_data_item_data_item_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_diagnostics_routine_control_routine_control_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_diagnostics_io_control_io_control_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_diagnostics_fault_fault_listener_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),}
@@ -61,20 +61,16 @@ impl DiagnosticsManagerService {
     }
 
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.
-    pub fn get_sdv_diagnostics_data_item_data_item_client(
+    pub fn get_sdv_diagnostics_data_item_data_item_service_client(
         &self,
         target_service_bundle: &str,
-    ) -> Arc<sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::client::DataItemClient> {
-        sdvmiddleware_common::create_if_not_exist::<
-            sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::client::DataItemClient,
-        >(
-            &self.sdv_diagnostics_data_item_data_item_clients,
+    ) -> Arc<
+        sdvgenerated_rpc_sdv_diagnostics_data_item_data_item_service::client::DataItemServiceClient,
+    > {
+        sdvmiddleware_common::create_if_not_exist::<sdvgenerated_rpc_sdv_diagnostics_data_item_data_item_service::client::DataItemServiceClient>(
+            &self.sdv_diagnostics_data_item_data_item_service_clients,
             target_service_bundle,
-            Box::new(|target| {
-                sdvgenerated_rpc_sdv_diagnostics_data_item_data_item::client::DataItemClient::new(
-                    Box::new(GrpcClientTransport::new(target)),
-                )
-            }),
+            Box::new(|target| sdvgenerated_rpc_sdv_diagnostics_data_item_data_item_service::client::DataItemServiceClient::new(Box::new(GrpcClientTransport::new(target)))),
         )
     }
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.

@@ -24,7 +24,7 @@ fn main() {
         service.diagnostics.create_data_item_server(Box::new(DataItemTwoHandler {}));
 
     service
-        .sdv_diagnostics_data_item_data_item_server
+        .sdv_diagnostics_data_item_data_item_service_server
         .register_service_interface(data_item_server_impl);
     service.start().unwrap();
 

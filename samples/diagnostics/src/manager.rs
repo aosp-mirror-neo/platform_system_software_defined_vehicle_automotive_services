@@ -3,7 +3,7 @@
 
 use diagnostics_api::connection::ConnectionMetadata;
 use diagnostics_api::connection::SessionType;
-use diagnostics_api::data_item::{ReadRequest, WriteRequest};
+use diagnostics_api::data_item_service::{ReadDataItemRequest, WriteDataItemRequest};
 use diagnostics_api::diagnostics_manager::{
     GetConnectionMetadataRequest, GetConnectionMetadataResponse,
 };
@@ -20,7 +20,7 @@ use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
 use sdv_uds_serde::diagnostics_translator::DiagnosticsTranslator;
 use sdv_uds_serde::entity_id::{EntityId, MethodMessage, RoutineMethod};
 use sdvgenerated::diagnostics_manager_service::DiagnosticsManagerService;
-use sdvgenerated::sdv_diagnostics_data_item_data_item_interface::DataItem;
+use sdvgenerated::sdv_diagnostics_data_item_data_item_service_interface::DataItemService;
 use sdvgenerated::sdv_diagnostics_diagnostics_manager_interface::DiagnosticsManager;
 use sdvgenerated::sdv_diagnostics_fault_fault_listener_interface::FaultListener;
 use sdvgenerated::sdv_diagnostics_io_control_io_control_interface::IOControl as IoControl;
@@ -31,12 +31,12 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-fn read_data_item_request(data_item_id: &str) -> ReadRequest {
-    ReadRequest { id: data_item_id.to_string(), ..Default::default() }
+fn read_data_item_request(data_item_id: &str) -> ReadDataItemRequest {
+    ReadDataItemRequest { id: data_item_id.to_string(), ..Default::default() }
 }
 
-fn write_data_item_request(data_item_id: &str, value: Vec<u8>) -> WriteRequest {
-    WriteRequest { id: data_item_id.to_string(), value, ..Default::default() }
+fn write_data_item_request(data_item_id: &str, value: Vec<u8>) -> WriteDataItemRequest {
+    WriteDataItemRequest { id: data_item_id.to_string(), value, ..Default::default() }
 }
 
 #[derive(Clone, Eq, Hash, PartialEq, Debug)]
@@ -123,10 +123,10 @@ fn main() {
 
     println!("Diagnostics Manager service bundle started.");
 
-    let first_data_item_client =
-        service.get_sdv_diagnostics_data_item_data_item_client(&data_items[first_data_item]);
+    let first_data_item_client = service
+        .get_sdv_diagnostics_data_item_data_item_service_client(&data_items[first_data_item]);
 
-    let response = first_data_item_client.read(read_data_item_request(first_data_item));
+    let response = first_data_item_client.read_data_item(read_data_item_request(first_data_item));
     println!("Fetch {:?}: {:?}.", first_data_item, response);
 
     let translator = DiagnosticsTranslator::new();
@@ -174,14 +174,14 @@ fn main() {
         )
         .unwrap();
 
-    let response =
-        first_data_item_client.write(write_data_item_request(first_data_item, new_value.clone()));
+    let response = first_data_item_client
+        .write_data_item(write_data_item_request(first_data_item, new_value.clone()));
     println!(
         "Update {:?} to a new value {:?}. Response: {:?}.",
         first_data_item, new_value, response
     );
 
-    let response = first_data_item_client.read(read_data_item_request(first_data_item));
+    let response = first_data_item_client.read_data_item(read_data_item_request(first_data_item));
     println!("Fetch {:?} data item after update: {:?}.", first_data_item, response);
     let uds_bytes_for_initial_value = translator
         .translate_from_protobuf_to_uds(
@@ -199,20 +199,20 @@ fn main() {
     }
     println!("Fields parsed from UDS bytes: name = '{}'", String::from_utf8(name_value).unwrap());
 
-    let second_data_item_client =
-        service.get_sdv_diagnostics_data_item_data_item_client(&data_items[second_data_item]);
+    let second_data_item_client = service
+        .get_sdv_diagnostics_data_item_data_item_service_client(&data_items[second_data_item]);
 
-    let response = second_data_item_client.read(read_data_item_request(first_data_item));
+    let response = second_data_item_client.read_data_item(read_data_item_request(first_data_item));
     println!(
         "Trying to fetch {:?} from the second provider, fails with response: {:?}.",
         first_data_item, response
     );
 
-    let response = second_data_item_client.read(read_data_item_request(second_data_item));
+    let response = second_data_item_client.read_data_item(read_data_item_request(second_data_item));
     println!("Fetch {:?} from the second provider: {:?}.", second_data_item, response);
 
-    let response =
-        second_data_item_client.write(write_data_item_request(second_data_item, new_value.clone()));
+    let response = second_data_item_client
+        .write_data_item(write_data_item_request(second_data_item, new_value.clone()));
     println!(
         "Trying to write {:?} to the second provider, fails with response: {:?}.",
         second_data_item, response

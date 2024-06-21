@@ -18,7 +18,7 @@ rust_library {
         "liblog_rust",
         "libsdv_log_rust",
         "libsdvmiddleware_rpc_grpc_transport",
-        "libsdvgenerated_rpc_sdv_diagnostics_data_item_data_item",
+        "libsdvgenerated_rpc_sdv_diagnostics_data_item_data_item_service",
         "libsdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control",
         "libsdvgenerated_rpc_sdv_diagnostics_io_control_io_control",
         "libsdvgenerated_rpc_sdv_diagnostics_fault_fault_listener",
