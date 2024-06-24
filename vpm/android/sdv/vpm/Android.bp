@@ -16,6 +16,7 @@ rust_defaults {
         "librpcbinder_rs",
         "libbinder_tokio_rs",
         "libsdv_vpm_api",
+        "libsdv_pm",
         "libsdvmiddleware_rpc",
         "libsdvgenerated_vpm_system_service_bundle",
         "google.sdv.vpm-aidl-rust",

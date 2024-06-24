@@ -1,6 +1,8 @@
 // Copyright 2024 Google LLC
 //! Vehicle and Power Mode Agent.
+use crate::power_service::PowerStateRequestHandler;
 use crate::PowerService;
+use crate::PowerStateRequestHandlerImpl;
 use async_trait::async_trait;
 use log::{error, info};
 use mockall::automock;
@@ -29,24 +31,29 @@ use tokio::task;
 // It also helps with testing the VPM agent while mocking the middleware generated code.
 pub trait VpmService: Send + Sync {
     // Starts the rpc server that receives incoming RPC requests from the OEM to set the vehicle and power state in the SDV VM.
-    async fn start(&self, power_service: Arc<Mutex<dyn PowerService>>);
+    async fn start(&self);
 }
 
 pub struct VpmServiceImpl {
     vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>,
+    power_state_request_handler: Arc<dyn PowerStateRequestHandler>,
 }
 
 impl VpmServiceImpl {
-    pub fn new(vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>) -> Self {
-        Self { vpm_service_bundle }
+    pub fn new(
+        vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>,
+        power_state_request_handler: Arc<dyn PowerStateRequestHandler>,
+    ) -> Self {
+        Self { vpm_service_bundle, power_state_request_handler }
     }
 }
 
 #[async_trait]
 impl VpmService for VpmServiceImpl {
-    async fn start(&self, power_service: Arc<Mutex<dyn PowerService>>) {
+    async fn start(&self) {
         let (vehicle_state_sender, vehicle_state_receiver) = channel();
-        let rpc_server = RpcServer::new(vehicle_state_sender, power_service);
+        let rpc_server =
+            RpcServer::new(vehicle_state_sender, self.power_state_request_handler.clone());
 
         // Register GRPC interface for Vehicle states
         self.vpm_service_bundle
@@ -54,6 +61,10 @@ impl VpmService for VpmServiceImpl {
             .unwrap()
             .sdv_vpm_vpm_system_service_server
             .register_service_interface(Arc::new(rpc_server));
+
+        //TODO: refactor this part, if spawn_blocking might not be needed
+        // RpcServer can be removed to the agent.
+        // Receiver can be part of the VpmService struct.
 
         // Start a blocking thread to listen to incoming vehicle mode changes
         let cloned_bundle = self.vpm_service_bundle.clone();
@@ -63,11 +74,14 @@ impl VpmService for VpmServiceImpl {
                     let mut vehicle_state_change_message = VehicleStateChange::new();
                     vehicle_state_change_message.vehicle_state = vehicle_state.into();
                     info!("Publishing Vpm vehicle mode, {:?}!", vehicle_state);
-                    cloned_bundle
-                        .lock()
-                        .unwrap()
-                        .sdv_vpm_vehicle_vehicle_state_change_publish(&vehicle_state_change_message)
-                        .unwrap();
+                    let result =
+                        cloned_bundle.lock().unwrap().sdv_vpm_vehicle_vehicle_state_change_publish(
+                            &vehicle_state_change_message,
+                        );
+
+                    if result.is_err() {
+                        error!("Failed to publish vehicle state {:?}", vehicle_state);
+                    }
                 }
                 Err(err) => {
                     error!("Channel error: {}", err);
@@ -82,15 +96,15 @@ impl VpmService for VpmServiceImpl {
 /// A listener struct that handles incoming RPC requests for setting the vpm.
 struct RpcServer {
     vehicle_state_sender: Sender<VpmVehicleState>,
-    power_service: Arc<Mutex<dyn PowerService>>,
+    power_state_request_handler: Arc<dyn PowerStateRequestHandler>,
 }
 
 impl RpcServer {
     pub fn new(
         vehicle_state_sender: Sender<VpmVehicleState>,
-        power_service: Arc<Mutex<dyn PowerService>>,
+        power_state_request_handler: Arc<dyn PowerStateRequestHandler>,
     ) -> Self {
-        Self { vehicle_state_sender, power_service }
+        Self { vehicle_state_sender, power_state_request_handler }
     }
 }
 
@@ -117,7 +131,7 @@ impl VpmSystemService for RpcServer {
         &self,
         request: PowerStateChangeRequest,
     ) -> RpcResult<PowerStateChangeResponse, RpcError> {
-        let result = self.power_service.lock().unwrap().set_power_state(request);
+        let result = self.power_state_request_handler.handle_set_power_state(request);
         if result.is_ok() {
             let mut response = PowerStateChangeResponse::new();
             response.error = PowerStateChangeRequestError::NO_ERROR.into();
@@ -132,7 +146,7 @@ impl VpmSystemService for RpcServer {
 
 #[cfg(test)]
 mod tests {
-    use crate::power_service::MockPowerService;
+    use crate::power_service::MockPowerStateRequestHandler;
     use crate::system_service::RpcServer;
     use anyhow::anyhow;
     use googletest::prelude::{assert_that, eq, matches_pattern};
@@ -147,15 +161,14 @@ mod tests {
     use sdvmiddleware_rpc::error::RpcError;
     use std::sync::mpsc::channel;
     use std::sync::Arc;
-    use std::sync::Mutex;
 
     #[tokio::test]
     async fn set_rpc_vehicle_state() {
         // Given: mock services.
         let (vehicle_state_sender, vehicle_state_receiver) = channel();
-        let mock_power_service = MockPowerService::default();
+        let mock_power_state_request_handler = MockPowerStateRequestHandler::default();
         let mut rpc_server =
-            RpcServer::new(vehicle_state_sender, Arc::new(Mutex::new(mock_power_service)));
+            RpcServer::new(vehicle_state_sender, Arc::new(mock_power_state_request_handler));
         let vehicle_state_handle = tokio::spawn(async move { vehicle_state_receiver.recv() });
 
         // When: a vehicle state request is sent
@@ -178,9 +191,9 @@ mod tests {
     async fn set_rpc_vehicle_state_fails_request_invalid() {
         // Given: mock services.
         let (vehicle_state_sender, vehicle_state_receiver) = channel();
-        let mock_power_service = MockPowerService::default();
+        let mock_power_state_request_handler = MockPowerStateRequestHandler::default();
         let mut rpc_server =
-            RpcServer::new(vehicle_state_sender, Arc::new(Mutex::new(mock_power_service)));
+            RpcServer::new(vehicle_state_sender, Arc::new(mock_power_state_request_handler));
         let vehicle_state_handle = tokio::spawn(async move { vehicle_state_receiver.recv() });
 
         // When: a vehicle state request is sent without proper state.
@@ -197,9 +210,9 @@ mod tests {
     async fn set_rpc_vehicle_state_fails_no_receiver() {
         // Given: mock services without a receiver.
         let (vehicle_state_sender, vehicle_state_receiver) = channel();
-        let mock_power_service = MockPowerService::default();
+        let mock_power_state_request_handler = MockPowerStateRequestHandler::default();
         let mut rpc_server =
-            RpcServer::new(vehicle_state_sender, Arc::new(Mutex::new(mock_power_service)));
+            RpcServer::new(vehicle_state_sender, Arc::new(mock_power_state_request_handler));
 
         // When: a vehicle state request is sent and receiver is dropped.
         let request = SetVehicleStateRequest {
@@ -219,10 +232,13 @@ mod tests {
     fn set_rpc_power_state_succeeds() {
         // Given: a mock power service.
         let (vehicle_state_sender, vehicle_state_receiver) = channel();
-        let mut mock_power_service = MockPowerService::default();
-        mock_power_service.expect_set_power_state().times(1).returning(|_| Ok(()));
+        let mut mock_power_state_request_handler = MockPowerStateRequestHandler::default();
+        mock_power_state_request_handler
+            .expect_handle_set_power_state()
+            .times(1)
+            .returning(|_| Ok(()));
         let mut rpc_server =
-            RpcServer::new(vehicle_state_sender, Arc::new(Mutex::new(mock_power_service)));
+            RpcServer::new(vehicle_state_sender, Arc::new(mock_power_state_request_handler));
 
         // When: a power state request is sent
         let request = PowerStateChangeRequest {
@@ -240,13 +256,13 @@ mod tests {
     fn set_rpc_power_state_fails() {
         // Given: a mock power service.
         let (vehicle_state_sender, vehicle_state_receiver) = channel();
-        let mut mock_power_service = MockPowerService::default();
-        mock_power_service
-            .expect_set_power_state()
+        let mut mock_power_state_request_handler = MockPowerStateRequestHandler::default();
+        mock_power_state_request_handler
+            .expect_handle_set_power_state()
             .times(1)
             .returning(|_| Err(anyhow!("Power service failed")));
         let mut rpc_server =
-            RpcServer::new(vehicle_state_sender, Arc::new(Mutex::new(mock_power_service)));
+            RpcServer::new(vehicle_state_sender, Arc::new(mock_power_state_request_handler));
 
         // When: a power state request is sent but fails.
         let request = PowerStateChangeRequest {
