@@ -16,16 +16,22 @@ pub trait UserPreferencesManagementService: Send + Sync {
     /// RPC method declared in the interface.
     fn request_settings_change(
         &self,
-        request: RequestSettingsChangeRequest,
-    ) -> RpcResult<RequestSettingsChangeResponse>;
+        _request: RequestSettingsChangeRequest,
+    ) -> RpcResult<RequestSettingsChangeResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn subscribe_to_settings_change_and_get_settings(
         &self,
-        request: SubscribeToSettingsChangeAndGetSettingsRequest,
-    ) -> RpcResult<SubscribeToSettingsChangeAndGetSettingsResponse>;
+        _request: SubscribeToSettingsChangeAndGetSettingsRequest,
+    ) -> RpcResult<SubscribeToSettingsChangeAndGetSettingsResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn unsubscribe_from_settings_change(
         &self,
-        request: UnsubscribeToSettingsChangeRequest,
-    ) -> RpcResult<UnsubscribeToSettingsChangeResponse>;
+        _request: UnsubscribeToSettingsChangeRequest,
+    ) -> RpcResult<UnsubscribeToSettingsChangeResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }

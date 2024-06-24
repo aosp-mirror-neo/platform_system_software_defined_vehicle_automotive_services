@@ -11,14 +11,22 @@ use sdvmiddleware_rpc::RpcResult;
 /// An auto-generated RPC interface.
 pub trait IOControl: Send + Sync {
     /// RPC method declared in the interface.
-    fn return_control_to_ecu(&self, request: IOControlRequest) -> RpcResult<IOControlResponse>;
+    fn return_control_to_ecu(&self, _request: IOControlRequest) -> RpcResult<IOControlResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn reset_to_default(&self, request: IOControlRequest) -> RpcResult<IOControlResponse>;
+    fn reset_to_default(&self, _request: IOControlRequest) -> RpcResult<IOControlResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn freeze_current_state(&self, request: IOControlRequest) -> RpcResult<IOControlResponse>;
+    fn freeze_current_state(&self, _request: IOControlRequest) -> RpcResult<IOControlResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn short_term_adjustment(
         &self,
-        request: IOControlRequestWithAdjustment,
-    ) -> RpcResult<IOControlResponse>;
+        _request: IOControlRequestWithAdjustment,
+    ) -> RpcResult<IOControlResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }

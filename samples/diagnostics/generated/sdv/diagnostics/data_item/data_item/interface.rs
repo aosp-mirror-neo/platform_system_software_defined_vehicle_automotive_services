@@ -12,7 +12,11 @@ use sdvmiddleware_rpc::RpcResult;
 /// An auto-generated RPC interface.
 pub trait DataItem: Send + Sync {
     /// RPC method declared in the interface.
-    fn read(&self, request: ReadRequest) -> RpcResult<ReadResponse>;
+    fn read(&self, _request: ReadRequest) -> RpcResult<ReadResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn write(&self, request: WriteRequest) -> RpcResult<WriteResponse>;
+    fn write(&self, _request: WriteRequest) -> RpcResult<WriteResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }

@@ -14,11 +14,15 @@ pub trait VpmSystemService: Send + Sync {
     /// RPC method declared in the interface.
     fn set_vehicle_state(
         &self,
-        request: SetVehicleStateRequest,
-    ) -> RpcResult<SetVehicleStateResponse>;
+        _request: SetVehicleStateRequest,
+    ) -> RpcResult<SetVehicleStateResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn set_power_state(
         &self,
-        request: PowerStateChangeRequest,
-    ) -> RpcResult<PowerStateChangeResponse>;
+        _request: PowerStateChangeRequest,
+    ) -> RpcResult<PowerStateChangeResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }

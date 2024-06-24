@@ -16,13 +16,19 @@ pub trait CalibratableService: Send + Sync {
     /// RPC method declared in the interface.
     fn start_calibration(
         &self,
-        request: StartCalibrationRequest,
-    ) -> RpcResult<StartCalibrationResponse>;
+        _request: StartCalibrationRequest,
+    ) -> RpcResult<StartCalibrationResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn update_config(&self, request: UpdateConfigRequest) -> RpcResult<UpdateConfigResponse>;
+    fn update_config(&self, _request: UpdateConfigRequest) -> RpcResult<UpdateConfigResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn finish_calibration(
         &self,
-        request: FinishCalibrationRequest,
-    ) -> RpcResult<FinishCalibrationResponse>;
+        _request: FinishCalibrationRequest,
+    ) -> RpcResult<FinishCalibrationResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }

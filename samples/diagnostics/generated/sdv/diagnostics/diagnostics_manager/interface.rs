@@ -12,6 +12,8 @@ pub trait DiagnosticsManager: Send + Sync {
     /// RPC method declared in the interface.
     fn get_connection_metadata(
         &self,
-        request: GetConnectionMetadataRequest,
-    ) -> RpcResult<GetConnectionMetadataResponse>;
+        _request: GetConnectionMetadataRequest,
+    ) -> RpcResult<GetConnectionMetadataResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }

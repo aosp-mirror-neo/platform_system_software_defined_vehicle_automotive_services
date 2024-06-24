@@ -10,9 +10,15 @@ use sdvmiddleware_rpc::RpcResult;
 /// An auto-generated RPC interface.
 pub trait RoutineControl: Send + Sync {
     /// RPC method declared in the interface.
-    fn start(&self, request: RoutineControlRequest) -> RpcResult<RoutineControlResponse>;
+    fn start(&self, _request: RoutineControlRequest) -> RpcResult<RoutineControlResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn stop(&self, request: RoutineControlRequest) -> RpcResult<RoutineControlResponse>;
+    fn stop(&self, _request: RoutineControlRequest) -> RpcResult<RoutineControlResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn request_result(&self, request: RoutineControlRequest) -> RpcResult<RoutineControlResponse>;
+    fn request_result(&self, _request: RoutineControlRequest) -> RpcResult<RoutineControlResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }

@@ -14,8 +14,15 @@ pub trait UserPreferencesRegistryService: Send + Sync {
     /// RPC method declared in the interface.
     fn register_settings(
         &self,
-        request: RegisterSettingsRequest,
-    ) -> RpcResult<RegisterSettingsResponse>;
+        _request: RegisterSettingsRequest,
+    ) -> RpcResult<RegisterSettingsResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn update_settings(&self, request: UpdateSettingsRequest) -> RpcResult<UpdateSettingsResponse>;
+    fn update_settings(
+        &self,
+        _request: UpdateSettingsRequest,
+    ) -> RpcResult<UpdateSettingsResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }

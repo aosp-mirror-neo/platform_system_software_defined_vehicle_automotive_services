@@ -17,6 +17,12 @@ use std::thread;
 
 pub struct DiagnosticsManagerServiceCallbacks {}
 
+impl Default for DiagnosticsManagerServiceCallbacks {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
 struct Subscriptions {}
 
 pub struct DiagnosticsManagerService {
@@ -38,9 +44,7 @@ impl DiagnosticsManagerService {
             sdv_diagnostics_data_item_data_item_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_diagnostics_routine_control_routine_control_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_diagnostics_io_control_io_control_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
-            sdv_diagnostics_fault_fault_listener_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
-
-        }
+            sdv_diagnostics_fault_fault_listener_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),}
     }
 
     /// Triggers publishing and subscription to all the topics defined

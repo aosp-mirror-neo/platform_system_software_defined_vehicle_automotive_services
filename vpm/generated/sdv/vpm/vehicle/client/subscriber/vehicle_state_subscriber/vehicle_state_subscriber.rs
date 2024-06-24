@@ -21,6 +21,16 @@ pub struct VehicleStateSubscriberCallbacks {
     >,
 }
 
+impl Default for VehicleStateSubscriberCallbacks {
+    fn default() -> Self {
+        Self {
+            sdv_vpm_vehicle_vehicle_state_change_cb: Box::new(|_| {
+                warn!("sdv_vpm_vehicle_vehicle_state_change_cb not yet implemented");
+            }),
+        }
+    }
+}
+
 struct Subscriptions {
     sdv_vpm_vehicle_vehicle_state_change_subscriber:
         DataTunnelSubscriber<subscriber::sdv_vpm_vehicle::VehicleStateChangeTopics>,

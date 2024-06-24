@@ -17,6 +17,12 @@ use std::thread;
 
 pub struct HvacServiceCallbacks {}
 
+impl Default for HvacServiceCallbacks {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
 struct Subscriptions {}
 
 pub struct HvacService {
@@ -32,9 +38,7 @@ impl HvacService {
 
         HvacService{
             sdv_user_preferences_user_controllable_user_controllable_service_server: sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::server::UserControllableServiceServer::new(rpc_transport.clone()),
-            sdv_user_preferences_user_preferences_registry_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
-
-        }
+            sdv_user_preferences_user_preferences_registry_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),}
     }
 
     /// Triggers publishing and subscription to all the topics defined

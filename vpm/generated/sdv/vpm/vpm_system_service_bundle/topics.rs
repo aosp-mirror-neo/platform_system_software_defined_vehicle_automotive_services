@@ -6,6 +6,7 @@
 
 pub mod publisher {
     pub mod sdv_vpm_vehicle {
+        use vsidl_reflection::message_metadata::MessageMetadata;
 
         #[derive(Clone, Eq, Hash, PartialEq, Debug)]
         pub struct VehicleStateChangeTopics {}
@@ -20,6 +21,21 @@ pub mod publisher {
             /// Returns string name of the topic
             fn get_name(&self) -> &str {
                 "sdv.vpm.vehicle.VehicleStateChange"
+            }
+
+            /// Returns metadata of the topic message
+            fn get_metadata() -> MessageMetadata {
+                MessageMetadata {
+                    file_descriptors: vec![
+                        sdv_vpm_api::vehicle::file_descriptor().proto().clone(),
+                        vsidl_syntax::vsidl::file_descriptor().proto().clone(),
+                        vsidl_syntax::someip::file_descriptor().proto().clone(),
+                        vsidl_syntax::someip_type::file_descriptor().proto().clone(),
+                        vsidl_syntax::diagnostics::file_descriptor().proto().clone(),
+                    ],
+                    message_full_name: String::from(".sdv.vpm.vehicle.VehicleStateChange"),
+                    ..Default::default()
+                }
             }
         }
     }
