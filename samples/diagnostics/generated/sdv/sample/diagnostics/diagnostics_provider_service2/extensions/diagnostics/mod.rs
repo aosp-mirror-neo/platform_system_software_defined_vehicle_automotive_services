@@ -9,14 +9,14 @@ use diagnostics_api::data_item_service::{
     ReadDataItemRequest, ReadDataItemResponse, WriteDataItemRequest, WriteDataItemResponse,
 };
 use diagnostics_api::event::Event as EventMessage;
-use diagnostics_api::fault::{OnFaultStatusChangeRequest, OnFaultStatusChangeResponse};
-use diagnostics_api::io_control::{
-    IOControlRequest as IoControlRequest,
-    IOControlRequestWithAdjustment as IoControlRequestWithAdjustment,
-    IOControlResponse as IoControlResponse,
+use diagnostics_api::fault_listener_service::{
+    OnFaultStatusChangeRequest, OnFaultStatusChangeResponse,
+};
+use diagnostics_api::io_control_service::{
+    IoControlRequest, IoControlResponse, PerformShortTermAdjustmentRequest,
 };
 use diagnostics_api::response_code::ResponseCode::REQUEST_OUT_OF_RANGE;
-use diagnostics_api::routine_control::{RoutineControlRequest, RoutineControlResponse};
+use diagnostics_api::routine_control_service::{RoutineControlRequest, RoutineControlResponse};
 use sdv_middleware_extension_diagnostics::{
     data_item::{DataItemHandler, ReadOnlyDataItemHandler},
     event::Event,

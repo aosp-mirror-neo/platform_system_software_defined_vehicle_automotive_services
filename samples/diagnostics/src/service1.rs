@@ -4,7 +4,7 @@
 use diagnostics_api::event::Status;
 use diagnostics_api::response_code::ResponseCode;
 use diagnostics_sample_catalog::messages::{
-    DataItemOne, FirstEventExt, IOControllableData as IoControllableData, RoutineRequestParameter,
+    DataItemOne, FirstEventExt, IoControllableData, RoutineRequestParameter,
     RoutineResponseParameter, SecondEventExt,
 };
 use sdv_middleware_extension_diagnostics::data_item::DataItemHandler;
@@ -133,7 +133,7 @@ fn main() {
         service.diagnostics.create_routine_server(Box::new(Routine1Handler {}));
 
     service
-        .sdv_diagnostics_routine_control_routine_control_server
+        .sdv_diagnostics_routine_control_routine_control_service_server
         .register_service_interface(routine_server_impl);
 
     // Setup io control server.
@@ -141,7 +141,7 @@ fn main() {
         service.diagnostics.create_io_control_server(Box::new(IoControlData1Handler {}));
 
     service
-        .sdv_diagnostics_io_control_io_control_server
+        .sdv_diagnostics_io_control_io_control_service_server
         .register_service_interface(io_control_server_impl);
 
     // Setup fault listener server.
@@ -151,7 +151,7 @@ fn main() {
     );
 
     service
-        .sdv_diagnostics_fault_fault_listener_server
+        .sdv_diagnostics_fault_fault_listener_service_server
         .register_service_interface(fault_listener_server_impl);
 
     service.start().unwrap();

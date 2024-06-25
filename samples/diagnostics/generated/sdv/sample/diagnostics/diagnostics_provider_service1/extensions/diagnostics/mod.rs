@@ -5,21 +5,21 @@
 //! WARNING: PLEASE DO NOT EDIT.
 use crate::diagnostics_provider_service1::DiagnosticsProviderService1;
 use crate::sdv_diagnostics_data_item_data_item_service_interface::DataItemService;
-use crate::sdv_diagnostics_fault_fault_listener_interface::FaultListener;
-use crate::sdv_diagnostics_io_control_io_control_interface::IOControl as IoControl;
-use crate::sdv_diagnostics_routine_control_routine_control_interface::RoutineControl;
+use crate::sdv_diagnostics_fault_fault_listener_service_interface::FaultListenerService;
+use crate::sdv_diagnostics_io_control_io_control_service_interface::IoControlService;
+use crate::sdv_diagnostics_routine_control_routine_control_service_interface::RoutineControlService;
 use diagnostics_api::data_item_service::{
     ReadDataItemRequest, ReadDataItemResponse, WriteDataItemRequest, WriteDataItemResponse,
 };
 use diagnostics_api::event::Event as EventMessage;
-use diagnostics_api::fault::{OnFaultStatusChangeRequest, OnFaultStatusChangeResponse};
-use diagnostics_api::io_control::{
-    IOControlRequest as IoControlRequest,
-    IOControlRequestWithAdjustment as IoControlRequestWithAdjustment,
-    IOControlResponse as IoControlResponse,
+use diagnostics_api::fault_listener_service::{
+    OnFaultStatusChangeRequest, OnFaultStatusChangeResponse,
+};
+use diagnostics_api::io_control_service::{
+    IoControlRequest, IoControlResponse, PerformShortTermAdjustmentRequest,
 };
 use diagnostics_api::response_code::ResponseCode::REQUEST_OUT_OF_RANGE;
-use diagnostics_api::routine_control::{RoutineControlRequest, RoutineControlResponse};
+use diagnostics_api::routine_control_service::{RoutineControlRequest, RoutineControlResponse};
 use sdv_middleware_extension_diagnostics::{
     data_item::{DataItemHandler, ReadOnlyDataItemHandler},
     event::Event,
@@ -139,15 +139,15 @@ impl Diagnostics {
                 diagnostics_sample_catalog::messages::RoutineResponseParameter,
             >,
         >,
-    ) -> Arc<dyn RoutineControl> {
+    ) -> Arc<dyn RoutineControlService> {
         Arc::new(RoutineServer { routine1_handler: Mutex::new(routine1_handler) })
     }
     pub fn create_io_control_server(
         &self,
         io_control_data1_handler: Box<
-            dyn IoControlHandler<diagnostics_sample_catalog::messages::IOControllableData>,
+            dyn IoControlHandler<diagnostics_sample_catalog::messages::IoControllableData>,
         >,
-    ) -> Arc<dyn IoControl> {
+    ) -> Arc<dyn IoControlService> {
         Arc::new(IoControlServer { io_control_data1_handler: Mutex::new(io_control_data1_handler) })
     }
     pub fn create_fault_listener_server(
@@ -158,7 +158,7 @@ impl Diagnostics {
         event_number2_fault_listener_handler: Box<
             dyn FaultListenerHandler<diagnostics_sample_catalog::messages::SecondEventExt>,
         >,
-    ) -> Arc<dyn FaultListener> {
+    ) -> Arc<dyn FaultListenerService> {
         Arc::new(FaultListenerServer {
             event_1_fault_listener_handler: Mutex::new(event_1_fault_listener_handler),
             event_number2_fault_listener_handler: Mutex::new(event_number2_fault_listener_handler),
@@ -241,8 +241,8 @@ struct RoutineServer {
     >,
 }
 
-impl RoutineControl for RoutineServer {
-    fn start(&self, request: RoutineControlRequest) -> RpcResult<RoutineControlResponse> {
+impl RoutineControlService for RoutineServer {
+    fn start_routine(&self, request: RoutineControlRequest) -> RpcResult<RoutineControlResponse> {
         match request.id.as_str() {
             "routine1" => Ok(self.routine1_handler.lock().unwrap().start_untyped(&request.request)),
             _ => Ok(RoutineControlResponse {
@@ -252,7 +252,7 @@ impl RoutineControl for RoutineServer {
         }
     }
 
-    fn stop(&self, request: RoutineControlRequest) -> RpcResult<RoutineControlResponse> {
+    fn stop_routine(&self, request: RoutineControlRequest) -> RpcResult<RoutineControlResponse> {
         match request.id.as_str() {
             "routine1" => Ok(self.routine1_handler.lock().unwrap().stop_untyped(&request.request)),
             _ => Ok(RoutineControlResponse {
@@ -277,10 +277,10 @@ impl RoutineControl for RoutineServer {
 
 struct IoControlServer {
     io_control_data1_handler:
-        Mutex<Box<dyn IoControlHandler<diagnostics_sample_catalog::messages::IOControllableData>>>,
+        Mutex<Box<dyn IoControlHandler<diagnostics_sample_catalog::messages::IoControllableData>>>,
 }
 
-impl IoControl for IoControlServer {
+impl IoControlService for IoControlServer {
     fn return_control_to_ecu(&self, request: IoControlRequest) -> RpcResult<IoControlResponse> {
         match request.id.as_str() {
             "io_control_data1" => Ok(self
@@ -323,9 +323,9 @@ impl IoControl for IoControlServer {
         }
     }
 
-    fn short_term_adjustment(
+    fn perform_short_term_adjustment(
         &self,
-        request: IoControlRequestWithAdjustment,
+        request: PerformShortTermAdjustmentRequest,
     ) -> RpcResult<IoControlResponse> {
         match request.id.as_str() {
             "io_control_data1" => Ok(self
@@ -348,7 +348,7 @@ struct FaultListenerServer {
         Mutex<Box<dyn FaultListenerHandler<diagnostics_sample_catalog::messages::SecondEventExt>>>,
 }
 
-impl FaultListener for FaultListenerServer {
+impl FaultListenerService for FaultListenerServer {
     fn on_fault_status_change(
         &self,
         request: OnFaultStatusChangeRequest,

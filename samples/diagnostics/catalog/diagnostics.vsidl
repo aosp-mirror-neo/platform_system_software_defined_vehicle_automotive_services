@@ -5,20 +5,20 @@
 package: "sdv.sample.diagnostics"
 
 sdv_service_bundle {
-    name: "DiagnosticsManagerService"
+    name: "DiagnosticsManager"
     client: "sdv.diagnostics.data_item.DataItemService"
-    client: "sdv.diagnostics.routine_control.RoutineControl"
-    client: "sdv.diagnostics.io_control.IOControl"
-    client: "sdv.diagnostics.fault.FaultListener"
-    server: "sdv.diagnostics.DiagnosticsManager"
+    client: "sdv.diagnostics.routine_control.RoutineControlService"
+    client: "sdv.diagnostics.io_control.IoControlService"
+    client: "sdv.diagnostics.fault.FaultListenerService"
+    server: "sdv.diagnostics.DiagnosticsManagerService"
 }
 
 sdv_service_bundle {
     name: "DiagnosticsProviderService1"
     server: "sdv.diagnostics.data_item.DataItemService"
-    server: "sdv.diagnostics.routine_control.RoutineControl"
-    server: "sdv.diagnostics.io_control.IOControl"
-    server: "sdv.diagnostics.fault.FaultListener"
+    server: "sdv.diagnostics.routine_control.RoutineControlService"
+    server: "sdv.diagnostics.io_control.IoControlService"
+    server: "sdv.diagnostics.fault.FaultListenerService"
 
     diagnostics_declaration {
         data_item {
@@ -29,7 +29,7 @@ sdv_service_bundle {
 
         io_control {
             id: "io_control_data1"
-            message_name: "sdv.sample.diagnostics.IOControllableData"
+            message_name: "sdv.sample.diagnostics.IoControllableData"
         }
 
         event {
@@ -65,7 +65,7 @@ sdv_service_bundle {
 sdv_service_bundle {
     name: "DiagnosticsProviderService2"
     server: "sdv.diagnostics.data_item.DataItemService"
-    server: "sdv.diagnostics.fault.FaultListener"
+    server: "sdv.diagnostics.fault.FaultListenerService"
 
     diagnostics_declaration {
         data_item {

@@ -1,6 +1,6 @@
 // Copyright 2024 Google LLC
 
-use diagnostics_api::fault::OnFaultStatusChangeResponse;
+use diagnostics_api::fault_listener_service::OnFaultStatusChangeResponse;
 use diagnostics_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
 use diagnostics_api::response_code::ResponseCode::POSITIVE_RESPONSE;
 use protobuf::MessageFull;
@@ -40,7 +40,7 @@ mod tests {
     use crate::fault_listener::FaultListenerHandler;
     use diagnostics_api::event::Event as TestProto;
     use diagnostics_api::event::Status;
-    use diagnostics_api::fault::OnFaultStatusChangeResponse;
+    use diagnostics_api::fault_listener_service::OnFaultStatusChangeResponse;
     use diagnostics_api::response_code::ResponseCode;
     use protobuf::Message;
 

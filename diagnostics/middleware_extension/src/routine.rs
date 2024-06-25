@@ -3,7 +3,7 @@
 use crate::DiagnosticsResult;
 use diagnostics_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
 use diagnostics_api::response_code::ResponseCode::POSITIVE_RESPONSE;
-use diagnostics_api::routine_control::RoutineControlResponse;
+use diagnostics_api::routine_control_service::RoutineControlResponse;
 use protobuf::MessageFull;
 
 /// Typed routine response.
@@ -97,7 +97,7 @@ mod tests {
     use diagnostics_api::event::Event as TestProto;
     use diagnostics_api::event::Status;
     use diagnostics_api::response_code::ResponseCode;
-    use diagnostics_api::routine_control::RoutineControlResponse;
+    use diagnostics_api::routine_control_service::RoutineControlResponse;
     use protobuf::Message;
 
     struct TestRoutineHandler {

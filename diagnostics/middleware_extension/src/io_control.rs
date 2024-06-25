@@ -1,7 +1,7 @@
 // Copyright 2024 Google LLC
 
 use crate::DiagnosticsResult;
-use diagnostics_api::io_control::IOControlResponse as IoControlResponse;
+use diagnostics_api::io_control_service::IoControlResponse;
 use diagnostics_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
 use diagnostics_api::response_code::ResponseCode::POSITIVE_RESPONSE;
 use protobuf::MessageFull;
@@ -82,7 +82,7 @@ mod tests {
     use crate::DiagnosticsResult;
     use diagnostics_api::event::Event as TestProto;
     use diagnostics_api::event::Status;
-    use diagnostics_api::io_control::IOControlResponse as IoControlResponse;
+    use diagnostics_api::io_control_service::IoControlResponse;
     use diagnostics_api::response_code::ResponseCode;
     use protobuf::Message;
 

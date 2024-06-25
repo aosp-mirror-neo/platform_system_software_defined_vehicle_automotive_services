@@ -4,27 +4,27 @@
 use diagnostics_api::connection::ConnectionMetadata;
 use diagnostics_api::connection::SessionType;
 use diagnostics_api::data_item_service::{ReadDataItemRequest, WriteDataItemRequest};
-use diagnostics_api::diagnostics_manager::{
+use diagnostics_api::diagnostics_manager_service::{
     GetConnectionMetadataRequest, GetConnectionMetadataResponse,
 };
 use diagnostics_api::event::Event;
-use diagnostics_api::fault::on_fault_status_change_request::StatusMask;
-use diagnostics_api::fault::OnFaultStatusChangeRequest;
-use diagnostics_api::io_control::IOControlRequestWithAdjustment as IoControlRequestWithAdjustment;
+use diagnostics_api::fault_listener_service::on_fault_status_change_request::StatusMask;
+use diagnostics_api::fault_listener_service::OnFaultStatusChangeRequest;
+use diagnostics_api::io_control_service::PerformShortTermAdjustmentRequest;
 use diagnostics_api::response_code::ResponseCode;
-use diagnostics_api::routine_control::RoutineControlRequest;
+use diagnostics_api::routine_control_service::RoutineControlRequest;
 use protobuf::MessageField;
 use protobuf::{Enum, EnumOrUnknown};
 use sdv_config_provider::{VsidlConfigProvider, VsidlProvider};
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
 use sdv_uds_serde::diagnostics_translator::DiagnosticsTranslator;
 use sdv_uds_serde::entity_id::{EntityId, MethodMessage, RoutineMethod};
-use sdvgenerated::diagnostics_manager_service::DiagnosticsManagerService;
+use sdvgenerated::diagnostics_manager::DiagnosticsManager;
 use sdvgenerated::sdv_diagnostics_data_item_data_item_service_interface::DataItemService;
-use sdvgenerated::sdv_diagnostics_diagnostics_manager_interface::DiagnosticsManager;
-use sdvgenerated::sdv_diagnostics_fault_fault_listener_interface::FaultListener;
-use sdvgenerated::sdv_diagnostics_io_control_io_control_interface::IOControl as IoControl;
-use sdvgenerated::sdv_diagnostics_routine_control_routine_control_interface::RoutineControl;
+use sdvgenerated::sdv_diagnostics_diagnostics_manager_service_interface::DiagnosticsManagerService;
+use sdvgenerated::sdv_diagnostics_fault_fault_listener_service_interface::FaultListenerService;
+use sdvgenerated::sdv_diagnostics_io_control_io_control_service_interface::IoControlService;
+use sdvgenerated::sdv_diagnostics_routine_control_routine_control_service_interface::RoutineControlService;
 use sdvmiddleware_rpc::error::RpcError;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -69,7 +69,7 @@ impl DiagnosticsManagerImpl {
     }
 }
 
-impl DiagnosticsManager for DiagnosticsManagerImpl {
+impl DiagnosticsManagerService for DiagnosticsManagerImpl {
     fn get_connection_metadata(
         &self,
         request: GetConnectionMetadataRequest,
@@ -112,9 +112,9 @@ fn main() {
     data_items.insert(second_data_item.to_string(), "DiagnosticsProviderService2".to_string());
 
     // Create service instance and register DiagnosticsManagerServer
-    let mut service = DiagnosticsManagerService::new();
+    let mut service = DiagnosticsManager::new();
     service
-        .sdv_diagnostics_diagnostics_manager_server
+        .sdv_diagnostics_diagnostics_manager_service_server
         .register_service_interface(Arc::new(DiagnosticsManagerImpl::new()));
     service.start().unwrap();
 
@@ -220,11 +220,13 @@ fn main() {
 
     // Diagnostics routines communication:
     let routine_client = service
-        .get_sdv_diagnostics_routine_control_routine_control_client("DiagnosticsProviderService1");
+        .get_sdv_diagnostics_routine_control_routine_control_service_client(
+            "DiagnosticsProviderService1",
+        );
 
     println!(
         "Starting routine: {:?}",
-        routine_client.start(RoutineControlRequest {
+        routine_client.start_routine(RoutineControlRequest {
             id: "routine1".to_string(),
             request: translator
                 .translate_from_uds_to_protobuf(
@@ -242,7 +244,7 @@ fn main() {
     );
     println!(
         "Stopping routine: {:?}",
-        routine_client.stop(RoutineControlRequest {
+        routine_client.stop_routine(RoutineControlRequest {
             id: "routine1".to_string(),
             request: translator
                 .translate_from_uds_to_protobuf(
@@ -278,20 +280,20 @@ fn main() {
     );
 
     // Diagnostics io control communication:
-    let io_control_client =
-        service.get_sdv_diagnostics_io_control_io_control_client("DiagnosticsProviderService1");
+    let io_control_client = service
+        .get_sdv_diagnostics_io_control_io_control_service_client("DiagnosticsProviderService1");
 
     println!(
         "Requesting short term io data adjustment: {:?}",
-        io_control_client.short_term_adjustment(IoControlRequestWithAdjustment {
+        io_control_client.perform_short_term_adjustment(PerformShortTermAdjustmentRequest {
             id: "io_control_data1".to_string(),
             ..Default::default()
         })
     );
 
     // Diagnostics fault listener communication:
-    let fault_listener_client =
-        service.get_sdv_diagnostics_fault_fault_listener_client("DiagnosticsProviderService1");
+    let fault_listener_client = service
+        .get_sdv_diagnostics_fault_fault_listener_service_client("DiagnosticsProviderService1");
 
     println!(
         "Sending fault status update without extended data: {:?}",

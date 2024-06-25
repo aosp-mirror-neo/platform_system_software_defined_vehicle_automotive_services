@@ -47,7 +47,7 @@ rust_binary {
     srcs: ["src/manager.rs"],
     rustlibs: [
         "libsdv_uds_serde",
-        "libsdvgenerated_diagnostics_manager_service",
+        "libsdvgenerated_diagnostics_manager",
         "libsdv_config_provider",
         "libsdv_middleware_pubsub",
     ],

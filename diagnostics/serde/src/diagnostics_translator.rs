@@ -163,7 +163,7 @@ mod tests {
 
     const MESSAGE_BYTES: [u8; 5] = [1, 2, 3, 4, 5];
     const DATA_ITEM_MESSAGE: &str = "DataItem";
-    const IO_CONTROL_MESSAGE: &str = "IOControl";
+    const IO_CONTROL_MESSAGE: &str = "IoControl";
     const ROUTINE_START_REQUEST: &str = "RoutineStartRequest";
     const ROUTINE_START_RESPONSE: &str = "RoutineStartResponse";
     const ROUTINE_STOP_REQUEST: &str = "RoutineStopRequest";
@@ -180,7 +180,7 @@ mod tests {
             r#"syntax = 'proto3';
 
             message DataItem {}
-            message IOControl {}
+            message IoControl {}
             message RoutineStartRequest{};
             message RoutineStartResponse{};
             message RoutineStopRequest{};

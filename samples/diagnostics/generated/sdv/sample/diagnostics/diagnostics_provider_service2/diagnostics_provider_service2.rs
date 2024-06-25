@@ -25,13 +25,10 @@ impl Default for DiagnosticsProviderService2Callbacks {
 struct Subscriptions {}
 
 pub struct DiagnosticsProviderService2 {
-    pub sdv_diagnostics_data_item_data_item_service_server:
-        sdvgenerated_rpc_sdv_diagnostics_data_item_data_item_service::server::DataItemServiceServer,
-    pub sdv_diagnostics_fault_fault_listener_server:
-        sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::server::FaultListenerServer,
+    pub sdv_diagnostics_data_item_data_item_service_server: sdvgenerated_rpc_sdv_diagnostics_data_item_data_item_service::server::DataItemServiceServer,
+    pub sdv_diagnostics_fault_fault_listener_service_server: sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener_service::server::FaultListenerServiceServer,
 
-    pub diagnostics: crate::extensions::diagnostics::Diagnostics,
-}
+pub diagnostics: crate::extensions::diagnostics::Diagnostics,}
 
 impl DiagnosticsProviderService2 {
     /// Creates a new instance of the service bundle
@@ -40,7 +37,7 @@ impl DiagnosticsProviderService2 {
 
         DiagnosticsProviderService2{
             sdv_diagnostics_data_item_data_item_service_server: sdvgenerated_rpc_sdv_diagnostics_data_item_data_item_service::server::DataItemServiceServer::new(rpc_transport.clone()),
-            sdv_diagnostics_fault_fault_listener_server: sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener::server::FaultListenerServer::new(rpc_transport.clone()),diagnostics: crate::extensions::diagnostics::Diagnostics::new(),}
+            sdv_diagnostics_fault_fault_listener_service_server: sdvgenerated_rpc_sdv_diagnostics_fault_fault_listener_service::server::FaultListenerServiceServer::new(rpc_transport.clone()),diagnostics: crate::extensions::diagnostics::Diagnostics::new(),}
     }
 
     /// Triggers publishing and subscription to all the topics defined
