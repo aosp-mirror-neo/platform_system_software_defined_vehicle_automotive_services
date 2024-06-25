@@ -51,29 +51,11 @@ impl Agent {
         vpm_bundle.start().unwrap();
         let protected_bundle = Arc::new(Mutex::new(vpm_bundle));
 
-        //TODO: move channel creation inside power service and create getters.
-        // Channel to forward power state requests.
-        let (power_state_request_sender, power_state_request_receiver) =
-            channel::<Box<dyn PowerState>>(POWER_STATE_CHANNEL_QUEUE_SIZE);
-
-        // Watch channel that holds the value for current power state.
-        let (power_state_watch_sender, power_state_watch_receiver) =
-            WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
-
-        let power_state_notifier = Arc::new(PowerStateNotifierImpl::new(protected_bundle.clone()));
-
-        power_state_notifier.create_binder_service();
-
-        let power_service = Box::new(PowerServiceImpl::new(
-            power_state_notifier,
-            power_state_request_sender.clone(),
-            power_state_request_receiver,
-            power_state_watch_sender,
-        ));
+        let power_service = Box::new(PowerServiceImpl::new(protected_bundle.clone()));
 
         let power_state_request_handler = Arc::new(PowerStateRequestHandlerImpl::new(
-            power_state_request_sender,
-            power_state_watch_receiver,
+            power_service.get_power_state_request_sender(),
+            power_service.get_power_state_watch_receiver(),
         ));
 
         let system_service =

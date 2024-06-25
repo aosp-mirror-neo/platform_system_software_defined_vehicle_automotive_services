@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use async_trait::async_trait;
+use mockall::automock;
 use sdv_pm::PlatformPowerController;
 use sdv_pm::SuspendMode;
 use sdv_vpm_api::power::PowerStateReport;
@@ -23,6 +24,7 @@ fn power_off() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[automock]
 #[async_trait]
 pub trait PowerState: Send + Sync {
     fn get_report(&self) -> PowerStateReport;
