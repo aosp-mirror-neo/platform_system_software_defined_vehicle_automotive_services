@@ -12,6 +12,8 @@ pub trait FaultListener: Send + Sync {
     /// RPC method declared in the interface.
     fn on_fault_status_change(
         &self,
-        request: OnFaultStatusChangeRequest,
-    ) -> RpcResult<OnFaultStatusChangeResponse>;
+        _request: OnFaultStatusChangeRequest,
+    ) -> RpcResult<OnFaultStatusChangeResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }

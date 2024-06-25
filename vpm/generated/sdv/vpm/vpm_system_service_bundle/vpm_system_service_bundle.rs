@@ -17,6 +17,12 @@ use std::thread;
 
 pub struct VpmSystemServiceBundleCallbacks {}
 
+impl Default for VpmSystemServiceBundleCallbacks {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
 struct Subscriptions {}
 
 pub struct VpmSystemServiceBundle {
@@ -63,7 +69,7 @@ impl VpmSystemServiceBundle {
         message: &sdv_vpm_api::vehicle::VehicleStateChange,
     ) -> sdv_middleware_pubsub::Result<()> {
         use protobuf::Message;
-        use sdvmiddleware_common::size_utils::LenOf;
+        use sdvmiddleware_common::size_utils::{LenOf, ProtobufLenOf};
         let computed_message_size = message.compute_size();
         if computed_message_size > 11 {
             let mut error_message = String::new();

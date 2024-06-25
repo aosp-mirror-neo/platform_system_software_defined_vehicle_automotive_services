@@ -16,6 +16,12 @@ use std::thread;
 
 pub struct CalibratableClientCallbacks {}
 
+impl Default for CalibratableClientCallbacks {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
 struct Subscriptions {}
 
 pub struct CalibratableClient {

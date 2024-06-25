@@ -17,6 +17,12 @@ use std::thread;
 
 pub struct UserPreferencesServerCallbacks {}
 
+impl Default for UserPreferencesServerCallbacks {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
 struct Subscriptions {}
 
 pub struct UserPreferencesServer {
@@ -38,9 +44,7 @@ impl UserPreferencesServer {
             sdv_user_preferences_user_preferences_management_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_management_service::server::UserPreferencesManagementServiceServer::new(rpc_transport.clone()),
             sdv_user_preferences_user_preferences_registry_service_server: sdvgenerated_rpc_sdv_user_preferences_user_preferences_registry_service::server::UserPreferencesRegistryServiceServer::new(rpc_transport.clone()),
             sdv_user_preferences_view_change_notifier_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
-            sdv_user_preferences_user_controllable_user_controllable_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
-
-        }
+            sdv_user_preferences_user_controllable_user_controllable_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),}
     }
 
     /// Triggers publishing and subscription to all the topics defined

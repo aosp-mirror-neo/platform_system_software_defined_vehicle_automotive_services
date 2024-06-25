@@ -12,6 +12,8 @@ pub trait PowerNotificationService: Send + Sync {
     /// RPC method declared in the interface.
     fn notify_power_state(
         &self,
-        request: PowerStateNotificationRequest,
-    ) -> RpcResult<PowerStateNotificationResponse>;
+        _request: PowerStateNotificationRequest,
+    ) -> RpcResult<PowerStateNotificationResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }

@@ -20,18 +20,30 @@ use user_preferences_api::user_preferences_admin_service::SelectUserResponse;
 /// An auto-generated RPC interface.
 pub trait UserPreferencesAdminService: Send + Sync {
     /// RPC method declared in the interface.
-    fn create_user(&self, request: CreateUserRequest) -> RpcResult<CreateUserResponse>;
+    fn create_user(&self, _request: CreateUserRequest) -> RpcResult<CreateUserResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn select_user(&self, request: SelectUserRequest) -> RpcResult<SelectUserResponse>;
+    fn select_user(&self, _request: SelectUserRequest) -> RpcResult<SelectUserResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn delete_user(&self, request: DeleteUserRequest) -> RpcResult<DeleteUserResponse>;
+    fn delete_user(&self, _request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn factory_reset(&self, request: FactoryResetRequest) -> RpcResult<FactoryResetResponse>;
+    fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn list_users(&self, request: ListUsersRequest) -> RpcResult<ListUsersResponse>;
+    fn list_users(&self, _request: ListUsersRequest) -> RpcResult<ListUsersResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn get_user_settings(
         &self,
-        request: GetUserSettingsRequest,
-    ) -> RpcResult<GetUserSettingsResponse>;
+        _request: GetUserSettingsRequest,
+    ) -> RpcResult<GetUserSettingsResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }

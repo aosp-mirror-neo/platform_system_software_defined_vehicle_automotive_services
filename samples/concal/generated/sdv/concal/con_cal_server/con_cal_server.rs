@@ -16,6 +16,12 @@ use std::thread;
 
 pub struct ConCalServerCallbacks {}
 
+impl Default for ConCalServerCallbacks {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
 struct Subscriptions {}
 
 pub struct ConCalServer {

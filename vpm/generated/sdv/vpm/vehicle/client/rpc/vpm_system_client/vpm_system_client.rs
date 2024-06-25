@@ -17,6 +17,12 @@ use std::thread;
 
 pub struct VpmSystemClientCallbacks {}
 
+impl Default for VpmSystemClientCallbacks {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
 struct Subscriptions {}
 
 pub struct VpmSystemClient {
@@ -37,9 +43,7 @@ impl VpmSystemClient {
 
         VpmSystemClient{
             sdv_vpm_power_notification_service_server: sdvgenerated_rpc_sdv_vpm_power_notification_service::server::PowerNotificationServiceServer::new(rpc_transport.clone()),
-            sdv_vpm_vpm_system_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
-
-        }
+            sdv_vpm_vpm_system_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),}
     }
 
     /// Triggers publishing and subscription to all the topics defined

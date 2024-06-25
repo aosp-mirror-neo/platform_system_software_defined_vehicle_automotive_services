@@ -16,6 +16,12 @@ use std::thread;
 
 pub struct CalibratableServerCallbacks {}
 
+impl Default for CalibratableServerCallbacks {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
 struct Subscriptions {}
 
 pub struct CalibratableServer {
@@ -29,9 +35,7 @@ impl CalibratableServer {
         let rpc_transport = GrpcServerTransport::new("CalibratableServer");
 
         CalibratableServer{
-            sdv_concal_calib_calibratable_service_server: sdvgenerated_rpc_sdv_concal_calib_calibratable_service::server::CalibratableServiceServer::new(rpc_transport.clone()),
-
-        }
+            sdv_concal_calib_calibratable_service_server: sdvgenerated_rpc_sdv_concal_calib_calibratable_service::server::CalibratableServiceServer::new(rpc_transport.clone()),}
     }
 
     /// Triggers publishing and subscription to all the topics defined

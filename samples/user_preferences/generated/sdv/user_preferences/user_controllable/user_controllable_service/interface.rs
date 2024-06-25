@@ -14,8 +14,12 @@ pub trait UserControllableService: Send + Sync {
     /// RPC method declared in the interface.
     fn request_settings_change(
         &self,
-        request: RequestSettingsChangeRequest,
-    ) -> RpcResult<RequestSettingsChangeResponse>;
+        _request: RequestSettingsChangeRequest,
+    ) -> RpcResult<RequestSettingsChangeResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn factory_reset(&self, request: FactoryResetRequest) -> RpcResult<FactoryResetResponse>;
+    fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }

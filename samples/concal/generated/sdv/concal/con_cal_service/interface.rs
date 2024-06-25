@@ -42,79 +42,113 @@ use sdvmiddleware_rpc::RpcResult;
 /// An auto-generated RPC interface.
 pub trait ConCalService: Send + Sync {
     /// RPC method declared in the interface.
-    fn get_config(&self, request: GetConfigRequest) -> RpcResult<GetConfigResponse>;
+    fn get_config(&self, _request: GetConfigRequest) -> RpcResult<GetConfigResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn register_config_metadata(
         &self,
-        request: RegisterConfigMetadataRequest,
-    ) -> RpcResult<RegisterConfigMetadataResponse>;
+        _request: RegisterConfigMetadataRequest,
+    ) -> RpcResult<RegisterConfigMetadataResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn get_config_metadata(
         &self,
-        request: GetConfigMetadataRequest,
-    ) -> RpcResult<GetConfigMetadataResponse>;
+        _request: GetConfigMetadataRequest,
+    ) -> RpcResult<GetConfigMetadataResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn start_config_update(
         &self,
-        request: StartConfigUpdateRequest,
-    ) -> RpcResult<StartConfigUpdateResponse>;
+        _request: StartConfigUpdateRequest,
+    ) -> RpcResult<StartConfigUpdateResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn add_or_update_config_override(
         &self,
-        request: AddOrUpdateConfigOverrideRequest,
-    ) -> RpcResult<AddOrUpdateConfigOverrideResponse>;
+        _request: AddOrUpdateConfigOverrideRequest,
+    ) -> RpcResult<AddOrUpdateConfigOverrideResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn remove_config_override(
         &self,
-        request: RemoveConfigOverrideRequest,
-    ) -> RpcResult<RemoveConfigOverrideResponse>;
+        _request: RemoveConfigOverrideRequest,
+    ) -> RpcResult<RemoveConfigOverrideResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn cancel_config_update(
         &self,
-        request: CancelConfigUpdateRequest,
-    ) -> RpcResult<CancelConfigUpdateResponse>;
+        _request: CancelConfigUpdateRequest,
+    ) -> RpcResult<CancelConfigUpdateResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn finish_config_update(
         &self,
-        request: FinishConfigUpdateRequest,
-    ) -> RpcResult<FinishConfigUpdateResponse>;
+        _request: FinishConfigUpdateRequest,
+    ) -> RpcResult<FinishConfigUpdateResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn rollback(&self, request: RollbackRequest) -> RpcResult<RollbackResponse>;
+    fn rollback(&self, _request: RollbackRequest) -> RpcResult<RollbackResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
-    fn reset(&self, request: ResetRequest) -> RpcResult<ResetResponse>;
+    fn reset(&self, _request: ResetRequest) -> RpcResult<ResetResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn uninstall_config(
         &self,
-        request: UninstallConfigRequest,
-    ) -> RpcResult<UninstallConfigResponse>;
+        _request: UninstallConfigRequest,
+    ) -> RpcResult<UninstallConfigResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn get_calibration_config_ids(
         &self,
-        request: GetCalibrationConfigIdsRequest,
-    ) -> RpcResult<GetCalibrationConfigIdsResponse>;
+        _request: GetCalibrationConfigIdsRequest,
+    ) -> RpcResult<GetCalibrationConfigIdsResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn start_calibration(
         &self,
-        request: StartCalibrationRequest,
-    ) -> RpcResult<StartCalibrationResponse>;
+        _request: StartCalibrationRequest,
+    ) -> RpcResult<StartCalibrationResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn update_config_for_calibration(
         &self,
-        request: UpdateConfigForCalibrationRequest,
-    ) -> RpcResult<UpdateConfigForCalibrationResponse>;
+        _request: UpdateConfigForCalibrationRequest,
+    ) -> RpcResult<UpdateConfigForCalibrationResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn finish_calibration(
         &self,
-        request: FinishCalibrationRequest,
-    ) -> RpcResult<FinishCalibrationResponse>;
+        _request: FinishCalibrationRequest,
+    ) -> RpcResult<FinishCalibrationResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn register_for_calibration_update(
         &self,
-        request: RegisterForCalibrationUpdateRequest,
-    ) -> RpcResult<RegisterForCalibrationUpdateResponse>;
+        _request: RegisterForCalibrationUpdateRequest,
+    ) -> RpcResult<RegisterForCalibrationUpdateResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
     /// RPC method declared in the interface.
     fn unregister_from_calibration_update(
         &self,
-        request: UnregisterFromCalibrationUpdateRequest,
-    ) -> RpcResult<UnregisterFromCalibrationUpdateResponse>;
+        _request: UnregisterFromCalibrationUpdateRequest,
+    ) -> RpcResult<UnregisterFromCalibrationUpdateResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }

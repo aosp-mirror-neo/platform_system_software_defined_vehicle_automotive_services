@@ -12,6 +12,8 @@ pub trait ChangeNotifier: Send + Sync {
     /// RPC method declared in the interface.
     fn on_settings_change(
         &self,
-        request: OnSettingsChangeRequest,
-    ) -> RpcResult<OnSettingsChangeResponse>;
+        _request: OnSettingsChangeRequest,
+    ) -> RpcResult<OnSettingsChangeResponse> {
+        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    }
 }
