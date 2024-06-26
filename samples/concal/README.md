@@ -1,3 +1,5 @@
+<!-- Copyright 2024 Google LLC -->
+
 # SDV ConCal and OverrideLibrary Sample Implementation
 
 The sample contains a test implementation for the ConCal service and library

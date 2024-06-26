@@ -1,3 +1,5 @@
+<!-- Copyright 2024 Google LLC -->
+
 # SDV Automotive Services Samples
 
 This folder contains code samples for Software Defined Vehicle (SDV) automotive services.

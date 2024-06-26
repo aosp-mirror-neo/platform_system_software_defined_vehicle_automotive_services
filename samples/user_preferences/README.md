@@ -1,3 +1,5 @@
+<!-- Copyright 2024 Google LLC -->
+
 # SDV User Preferences reference implementation
 
 This package provides a reference implementation for the SDV  User Preferences service. The included sample services demonstrate how to effectively utilize the User Preferences Service APIs.

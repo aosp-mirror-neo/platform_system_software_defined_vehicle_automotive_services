@@ -1,3 +1,5 @@
+<!-- Copyright 2024 Google LLC -->
+
 # Sample Vehicle State Listener
 
 The sample SDV application receives vehicle state updates from the VPM (Vehicle

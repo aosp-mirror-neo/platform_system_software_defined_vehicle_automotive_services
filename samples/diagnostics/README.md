@@ -1,3 +1,5 @@
+<!-- Copyright 2024 Google LLC -->
+
 # Diagnostics middleware generation and implementation example
 
 The example consist of the simple diagnostics manager and diagnostics

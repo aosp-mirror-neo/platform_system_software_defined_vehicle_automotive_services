@@ -1,3 +1,5 @@
+<!-- Copyright 2024 Google LLC -->
+
 # Sample Power State Listener
 
 The sample SDV application receives power state updates from the VPM (Vehicle

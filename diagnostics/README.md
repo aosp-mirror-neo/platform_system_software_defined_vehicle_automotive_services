@@ -1,3 +1,5 @@
+<!-- Copyright 2024 Google LLC -->
+
 # Diagnostics Manager APIs
 
 Currently Diagnostics API is defined in VSIDL format.

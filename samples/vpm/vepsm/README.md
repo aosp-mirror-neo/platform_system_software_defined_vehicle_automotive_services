@@ -1,3 +1,5 @@
+<!-- Copyright 2024 Google LLC -->
+
 # VePSM(Vehicle Power State Manager)
 
 This is a sample binary for what the OEM should implement in order to set

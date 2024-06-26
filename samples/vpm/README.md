@@ -1,3 +1,5 @@
+<!-- Copyright 2024 Google LLC -->
+
 # VPM (Vehicle Mode and Power Management) Samples
 
 This folder contains code samples for SDV VPM.

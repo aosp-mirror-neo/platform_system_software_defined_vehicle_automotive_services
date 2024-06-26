@@ -1,3 +1,5 @@
+<!-- Copyright 2024 Google LLC -->
+
 # Automotive Services
 
 This repository contains the Automotive specific services (AIDLs): Diagnostics, Configuration, Calibration, Vehicle Mode, User Profile.
