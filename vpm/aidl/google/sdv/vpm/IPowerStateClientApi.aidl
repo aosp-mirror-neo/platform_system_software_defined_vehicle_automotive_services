@@ -20,6 +20,7 @@ interface IPowerStateClientApi {
     /**
      * Subscribe to the power state updates.
      * @param[in] IPowerStateListener the callback interface for the power state listener.
+     * @return PowerStateReport the current power state report.
      */
-    void subscribeToPowerStateReport(IPowerStateReportListener listener);
+    PowerStateReport subscribeToPowerStateReport(IPowerStateReportListener listener);
 }

@@ -1,4 +1,5 @@
 use crate::power_state_notifier::binder::BinderFeatures;
+use crate::PowerState;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use binder_tokio::Tokio;
@@ -28,6 +29,7 @@ use std::sync::Mutex;
 use tokio::runtime::Handle;
 use tokio::sync::broadcast::error::RecvError;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::watch::Receiver as WatchReceiver;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use tokio::task::JoinSet;
@@ -35,7 +37,10 @@ use tokio::task::JoinSet;
 #[automock]
 #[async_trait]
 pub trait PowerStateNotifier: Send + Sync {
-    fn create_binder_service(&self) -> anyhow::Result<()>;
+    fn create_binder_service(
+        &self,
+        power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
+    ) -> anyhow::Result<()>;
     async fn notify(&self, power_state_report: PowerStateReport) -> anyhow::Result<()>;
     fn notify_oem(
         &self,
@@ -58,10 +63,13 @@ impl PowerStateNotifierImpl {
 
 #[async_trait]
 impl PowerStateNotifier for PowerStateNotifierImpl {
-    fn create_binder_service(&self) -> anyhow::Result<()> {
+    fn create_binder_service(
+        &self,
+        power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
+    ) -> anyhow::Result<()> {
         info!("VPM client binder starting!");
         let client_api_binder = BnPowerStateClientApi::new_async_binder(
-            BinderServer::new(self.callbacks.clone()),
+            BinderServer::new(self.callbacks.clone(), power_state_watch_receiver),
             TokioRuntime(Handle::current()),
             BinderFeatures::default(),
         );
@@ -129,11 +137,15 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
 
 struct BinderServer {
     callbacks: Arc<Mutex<Vec<Strong<dyn IPowerStateReportListenerAsync<Tokio>>>>>,
+    power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
 }
 
 impl BinderServer {
-    fn new(callbacks: Arc<Mutex<Vec<Strong<dyn IPowerStateReportListenerAsync<Tokio>>>>>) -> Self {
-        Self { callbacks }
+    fn new(
+        callbacks: Arc<Mutex<Vec<Strong<dyn IPowerStateReportListenerAsync<Tokio>>>>>,
+        power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
+    ) -> Self {
+        Self { callbacks, power_state_watch_receiver }
     }
 }
 impl Interface for BinderServer {}
@@ -143,10 +155,11 @@ impl IPowerStateClientApiAsyncServer for BinderServer {
     async fn subscribeToPowerStateReport(
         &self,
         callback: &Strong<dyn IPowerStateReportListener>,
-    ) -> BinderResult<()> {
+    ) -> BinderResult<PowerStateReportAidl> {
         info!("VPM Agent received client request to subscribe to power updates!");
         self.callbacks.lock().unwrap().push(callback.clone().into_async());
-        Ok(())
+        let power_state = self.power_state_watch_receiver.borrow();
+        Ok(convert_to_aidl(power_state.get_report()))
     }
 }
 

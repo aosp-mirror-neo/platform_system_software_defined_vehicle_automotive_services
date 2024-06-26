@@ -15,7 +15,6 @@ use binder_tokio::Tokio;
 use binder_tokio::TokioRuntime;
 use google_sdv_vpm_aidl::binder;
 use google_sdv_vpm_aidl::binder::Strong;
-use log::info;
 use std::future;
 use tokio::runtime::Handle;
 use tracing::instrument;
@@ -53,7 +52,10 @@ async fn main() -> anyhow::Result<()> {
 
     match result {
         Err(err) => panic!("Cannot subscribe to power state {:?}", err),
-        Ok(()) => info!("Successfully subscribed to vpm"),
+        Ok(current_power_state_report) => println!(
+            "Successfully subscribed to vpm, current report {:?}",
+            current_power_state_report
+        ),
     }
     future::pending::<()>().await;
     Ok(())
