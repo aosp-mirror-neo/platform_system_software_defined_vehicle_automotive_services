@@ -19,7 +19,7 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::watch::{
-    channel as WatchChannel, Receiver as WatchReceiver, Sender as WatchSender,
+    channel as watch_channel, Receiver as WatchReceiver, Sender as WatchSender,
 };
 use tokio::task;
 use tokio::task::JoinHandle;
@@ -28,6 +28,8 @@ use tokio::task::JoinHandle;
 #[async_trait]
 pub trait PowerService: Send + Sync {
     async fn start(&mut self) -> anyhow::Result<()>;
+    fn get_power_state_request_sender(&self) -> Sender<Box<dyn PowerState>>;
+    fn get_power_state_watch_receiver(&self) -> WatchReceiver<Arc<dyn PowerState>>;
 }
 
 pub struct PowerServiceImpl {
@@ -57,7 +59,7 @@ impl PowerServiceImpl {
 
         // Watch channel that holds the value for current power state.
         let (power_state_watch_sender, power_state_watch_receiver) =
-            WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
+            watch_channel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
 
         power_state_notifier.create_binder_service();
 
@@ -69,18 +71,18 @@ impl PowerServiceImpl {
             power_state_watch_receiver,
         }
     }
-
-    pub fn get_power_state_request_sender(&self) -> Sender<Box<dyn PowerState>> {
-        self.power_state_request_sender.clone()
-    }
-
-    pub fn get_power_state_watch_receiver(&self) -> WatchReceiver<Arc<dyn PowerState>> {
-        self.power_state_watch_receiver.clone()
-    }
 }
 
 #[async_trait]
 impl PowerService for PowerServiceImpl {
+    fn get_power_state_request_sender(&self) -> Sender<Box<dyn PowerState>> {
+        self.power_state_request_sender.clone()
+    }
+
+    fn get_power_state_watch_receiver(&self) -> WatchReceiver<Arc<dyn PowerState>> {
+        self.power_state_watch_receiver.clone()
+    }
+
     async fn start(&mut self) -> anyhow::Result<()> {
         while let Some(next_state) = self.power_state_request_receiver.recv().await {
             let cloned_power_state_notifier = self.power_state_notifier.clone();

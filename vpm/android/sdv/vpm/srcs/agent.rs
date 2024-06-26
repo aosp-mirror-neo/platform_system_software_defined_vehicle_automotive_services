@@ -23,17 +23,12 @@ use sdv_vpm_api::power::PowerStateReport;
 use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
 use std::sync::Arc;
 use std::sync::Mutex;
-use tokio::sync::mpsc::{channel, Receiver, Sender};
-use tokio::sync::watch::{
-    channel as WatchChannel, Receiver as WatchReceiver, Sender as WatchSender,
-};
-
 const POWER_STATE_CHANNEL_QUEUE_SIZE: usize = 1;
 
 /// VPM agent.
 /// The agent contains service implementation for vehicle and power mode management.
 pub struct Agent {
-    system_service: Arc<dyn VpmService>,
+    system_service: Box<dyn VpmService>,
     power_service: Box<dyn PowerService>,
 }
 
@@ -50,22 +45,13 @@ impl Agent {
         let mut vpm_bundle = VpmSystemServiceBundle::new();
         vpm_bundle.start().unwrap();
         let protected_bundle = Arc::new(Mutex::new(vpm_bundle));
-
         let power_service = Box::new(PowerServiceImpl::new(protected_bundle.clone()));
-
-        let power_state_request_handler = Arc::new(PowerStateRequestHandlerImpl::new(
-            power_service.get_power_state_request_sender(),
-            power_service.get_power_state_watch_receiver(),
-        ));
-
-        let system_service =
-            Arc::new(VpmServiceImpl::new(protected_bundle, power_state_request_handler));
-
+        let system_service = Box::new(VpmServiceImpl::new(protected_bundle));
         Self::new_with_services(system_service, power_service)
     }
 
     fn new_with_services(
-        system_service: Arc<dyn VpmService>,
+        system_service: Box<dyn VpmService>,
         power_service: Box<dyn PowerService>,
     ) -> Self {
         Self { system_service, power_service }
@@ -75,7 +61,13 @@ impl Agent {
     /// The agent will start the vehicle state service and the power mode state service.
     pub async fn start(&mut self) {
         info!("Starting VPM Agent.");
-        tokio::join!(self.system_service.start(), self.power_service.start());
+        tokio::join!(
+            self.system_service.start(
+                self.power_service.get_power_state_request_sender(),
+                self.power_service.get_power_state_watch_receiver()
+            ),
+            self.power_service.start()
+        );
     }
 }
 
@@ -88,6 +80,8 @@ mod tests {
     use crate::Agent;
     use mockall::predicate;
     use tokio::runtime::Handle;
+    use tokio::sync::mpsc::channel as mpsc_channel;
+    use tokio::sync::watch::channel as watch_channel;
     use tokio::time::Duration;
 
     #[tokio::test]
@@ -95,15 +89,25 @@ mod tests {
         // Given: a mock services.
         let mut mock_vpm_service = MockVpmService::default();
         let mut mock_power_service = MockPowerService::default();
+        let (_wtx, wrx) = watch_channel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
+        let (tx, _rx) = mpsc_channel(1);
 
         // Expect: the publisher and the rpc server will be started.return_const(()).
         mock_vpm_service.expect_start().times(1).return_const(());
-        // Expect: the power service background thread to start.
+        // Expect: the power service to start.
+        mock_power_service
+            .expect_get_power_state_request_sender()
+            .times(1)
+            .returning(move || tx.clone());
+        mock_power_service
+            .expect_get_power_state_watch_receiver()
+            .times(1)
+            .returning(move || wrx.clone());
         mock_power_service.expect_start().times(1).returning(|| Ok(()));
 
         // When: the new agent is created, publisher and rpc servers are created.
         let mut agent =
-            Agent::new_with_services(Arc::new(mock_vpm_service), Box::new(mock_power_service));
+            Agent::new_with_services(Box::new(mock_vpm_service), Box::new(mock_power_service));
         let test_ = agent.start().await;
     }
 }
