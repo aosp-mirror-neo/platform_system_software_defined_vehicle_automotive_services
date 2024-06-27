@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 // This data structure provides the ability to take a snapshot of an object
 // and rollback to an earlier value. When dereferencing a versionedObject,
 // the latest value is returned as a mutable reference allowing the consumer to modify its value.

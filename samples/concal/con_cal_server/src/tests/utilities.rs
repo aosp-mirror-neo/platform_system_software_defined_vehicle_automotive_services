@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use crate::configuration::Configuration;
 use concal_api::configuration::ConfigId;
 use protobuf::descriptor::FileDescriptorSet;

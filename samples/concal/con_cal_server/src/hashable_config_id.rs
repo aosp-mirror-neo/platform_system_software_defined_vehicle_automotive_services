@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use concal_api::configuration::ConfigId;
 
 use std::hash::Hash;

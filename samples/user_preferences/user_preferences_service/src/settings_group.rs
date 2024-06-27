@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use crate::{setting::Setting, settings_group_id::SettingsGroupId};
 use itertools::Itertools;
 use protobuf::MessageField;

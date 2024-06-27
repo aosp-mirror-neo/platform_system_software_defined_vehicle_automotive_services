@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use sdvgenerated_rpc_sdv_user_preferences_view_change_notifier::interface::ChangeNotifier;
 use user_preferences_api::change_notifier::{OnSettingsChangeRequest, OnSettingsChangeResponse};
 use user_preferences_utils::print_settings;

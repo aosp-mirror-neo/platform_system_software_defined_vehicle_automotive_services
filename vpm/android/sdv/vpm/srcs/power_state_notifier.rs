@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use crate::power_state_notifier::binder::BinderFeatures;
 use anyhow::anyhow;
 use async_trait::async_trait;

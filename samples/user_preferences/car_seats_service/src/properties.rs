@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use protobuf::EnumOrUnknown;
 use protobuf::MessageField;
 use user_preferences_api::setting::setting::Value;

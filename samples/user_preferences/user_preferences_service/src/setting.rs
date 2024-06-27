@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use protobuf::MessageField;
 use std::sync::Arc;
 use user_preferences_api::setting::Setting as SettingProto;

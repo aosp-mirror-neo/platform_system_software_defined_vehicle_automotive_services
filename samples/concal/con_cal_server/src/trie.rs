@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 // This data structure provides the ability of storing objects
 // in a filesystem like manner, where each object is stored at a specific
 // path. When retrieving objects, a caller can set some of the paths as empty

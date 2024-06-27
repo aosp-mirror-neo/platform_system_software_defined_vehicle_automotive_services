@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 #[cfg(test)]
 mod tests {
     use crate::tests::binder::BinderFeatures;

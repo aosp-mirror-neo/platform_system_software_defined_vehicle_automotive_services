@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 macro_rules! acquire_lock_or_return_err {
     ($mutex:expr,$return_type:ident) => {{
         match $mutex.lock() {

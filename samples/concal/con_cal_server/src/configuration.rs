@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use concal_api::config_override::ConfigOverride;
 use core::clone::Clone;
 use protobuf::descriptor::FileDescriptorSet;

@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use protobuf::descriptor::FileDescriptorSet;
 use protobuf::reflect::FieldDescriptor;
 use protobuf::reflect::MessageDescriptor;

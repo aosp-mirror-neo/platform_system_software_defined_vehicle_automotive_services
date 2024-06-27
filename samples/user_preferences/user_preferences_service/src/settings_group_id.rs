@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use user_preferences_api::settings_group::SettingsGroupId as ProtoSettingsGroupId;
 
 use std::cmp::PartialEq;

@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use protobuf::Enum;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
