@@ -113,3 +113,23 @@ Arguments:
 Options:
   -h, --help
 ```
+
+To suspend the VM to RAM on Cuttelfish:
+
+```bash
+  adb root & adb shell
+  vepsm power-state power-on
+  vepsm power-state prepare ram
+  vepsm power-state finish ram
+
+# To wake up the VM from suspension, execute the following from the host.
+ cvd powerbtn
+```
+
+To shutdown the VM on Cuttelfish:
+
+```bash
+  vepsm power-state power-on
+  vepsm power-state prepare shut-down
+  vepsm power-state finish shut-down
+```
