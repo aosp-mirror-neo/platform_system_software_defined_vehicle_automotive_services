@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 rust_library {
     name: "libuser_controllable_service_impl",
     srcs: ["src/simple_user_controllable_service_impl.rs"],
