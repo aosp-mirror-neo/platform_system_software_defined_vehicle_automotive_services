@@ -61,7 +61,7 @@ impl PowerServiceImpl {
         let (power_state_watch_sender, power_state_watch_receiver) =
             watch_channel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
 
-        power_state_notifier.create_binder_service();
+        power_state_notifier.create_binder_service(power_state_watch_receiver.clone());
 
         Self {
             power_state_notifier,
@@ -229,7 +229,7 @@ mod tests {
         let mut new_state = MockPowerState::default();
         let mut power_state_notifier = MockPowerStateNotifier::default();
 
-        power_state_notifier.expect_create_binder_service().times(1).returning(|| Ok(()));
+        power_state_notifier.expect_create_binder_service().times(1).returning(|_| Ok(()));
         // expect callback notifications to be executed.
         power_state_notifier
             .expect_notify()
@@ -281,7 +281,7 @@ mod tests {
         let mut new_state = MockPowerState::default();
         let mut power_state_notifier = MockPowerStateNotifier::default();
 
-        power_state_notifier.expect_create_binder_service().times(1).returning(|| Ok(()));
+        power_state_notifier.expect_create_binder_service().times(1).returning(|_| Ok(()));
         // expect callback notifications to be executed.
         power_state_notifier
             .expect_notify()
@@ -335,7 +335,7 @@ mod tests {
         let mut power_state_notifier = MockPowerStateNotifier::default();
 
         // expect callback notifications to be executed.
-        power_state_notifier.expect_create_binder_service().times(1).returning(|| Ok(()));
+        power_state_notifier.expect_create_binder_service().times(1).returning(|_| Ok(()));
         power_state_notifier
             .expect_notify()
             .times(1)

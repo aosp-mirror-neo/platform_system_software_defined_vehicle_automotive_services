@@ -75,7 +75,9 @@ mod tests {
             .sdv_vpm_power_notification_service_server
             .register_service_interface(Arc::new(TestVePSM { request_sender }));
 
-        let callback_receiver = setup_binder_callbacks_for_power_state_listeners();
+        let (current_power_state_report, callback_receiver) =
+            setup_binder_callbacks_for_power_state_listeners();
+        assert_eq!(current_power_state_report, PowerStateReportAidl::POWER_OFF_EXIT);
 
         // When: the power state is sent via RPC from OEM.
         let request = PowerStateChangeRequest {
@@ -98,7 +100,8 @@ mod tests {
         assert_eq!(power_notification.power_state.unwrap(), PowerStateReport::ON);
     }
 
-    fn setup_binder_callbacks_for_power_state_listeners() -> Receiver<PowerStateReportAidl> {
+    fn setup_binder_callbacks_for_power_state_listeners(
+    ) -> (PowerStateReportAidl, Receiver<PowerStateReportAidl>) {
         binder::ProcessState::start_thread_pool();
         let (callback_sender, callback_receiver): (
             Sender<PowerStateReportAidl>,
@@ -110,8 +113,10 @@ mod tests {
         let power_report_listener =
             BnPowerStateReportListener::new_binder(test_sdv_agent, BinderFeatures::default());
         // Subscribe to power state callback.
-        power_state_client_interface.subscribeToPowerStateReport(&power_report_listener).unwrap();
-        callback_receiver
+        let current_power_state_report = power_state_client_interface
+            .subscribeToPowerStateReport(&power_report_listener)
+            .unwrap();
+        (current_power_state_report, callback_receiver)
     }
 
     fn get_power_state_client_interface() -> anyhow::Result<Strong<dyn IPowerStateClientApi>> {
