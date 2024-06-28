@@ -33,7 +33,6 @@ The Middleware code is already generated and placed in the `generated/` folder. 
 
 ```bash
 vsidl_code_generator \
-    --vsidl-path ../../../core_services/vsidl/protos/syntax/ \
     --catalog-path ./catalog/ \
     --dependency-paths ../../user_preferences/vsidl/ \
     --output-path ./
