@@ -2,8 +2,8 @@
 
 # Diagnostics middleware generation and implementation example
 
-The example consist of the simple diagnostics manager and diagnostics
-provider implementations.
+The example consist of the simple diagnostics manager and diagnostics provider
+implementations.
 
 ## Service bundles
 
@@ -45,9 +45,9 @@ to build it:
 Two devices need to be started for cross-VM communication.
 
 ```bash
-cvd start --noresume -vsock_guest_cid=3 -guest-enforce-security=false -base_instance_num=1 --extra_bootconfig_args="androidboot.virt.vmname=instance1 androidboot.virt.address=3"
+cvd start --noresume -vsock_guest_cid=3 -base_instance_num=1 --extra_bootconfig_args="androidboot.virt.vmname=instance1 androidboot.virt.address=3"
 
-cvd start --noresume -vsock_guest_cid=4 -guest-enforce-security=false -base_instance_num=2 --extra_bootconfig_args="androidboot.virt.vmname=instance2 androidboot.virt.address=4"
+cvd start --noresume -vsock_guest_cid=4 -base_instance_num=2 --extra_bootconfig_args="androidboot.virt.vmname=instance2 androidboot.virt.address=4"
 
 # Waits a few seconds for message "Virtual device booted successfully"
 
@@ -58,8 +58,10 @@ adb devices
 
 ### Run 'Diagnostics provider 1' service bundle (RPC server)
 
+Using root, because the binary is on the `/vendor` partition.
+
 ```bash
-adb -s <VM address> shell diag_provider1_sample
+adb -s <VM address> shell su root diag_provider1_sample
 ```
 
 If service started successfully, you should see "Diagnostics provider service
@@ -67,8 +69,10 @@ bundle started." message printed to the console.
 
 ### Run 'Diagnostics provider 2' service bundle (RPC server)
 
+Using root, because the binary is on the `/vendor` partition.
+
 ```bash
-adb -s <VM address> shell diag_provider2_sample
+adb -s <VM address> shell su root diag_provider2_sample
 ```
 
 If service started successfully, you should see "Diagnostics provider service
@@ -76,8 +80,10 @@ bundle started." message printed to the console.
 
 ### Run 'Diagnostics manager' service bundle (RPC client)
 
+Using root, because the binary is on the `/vendor` partition.
+
 ```bash
-adb -s <VM address> shell diag_manager_sample
+adb -s <VM address> shell su root diag_manager_sample
 ```
 
 If service started successfully, you should see "Diagnostics Manager service
