@@ -35,7 +35,7 @@ mm sdv_catalog_update
 2.  Run the device
 
     ```bash
-    cvd start -guest-enforce-security false
+    cvd start
     ```
 
 3.  Run tests
@@ -52,8 +52,10 @@ overrides, and performs a rollback. To run the demo, follow the steps below:
 
 1.  Start the sample ConCal server in one shell
 
+    Using root, because the binary is on the `/vendor` partition.
+
     ```bash
-    adb shell /vendor/bin/sdv_con_cal_service
+    adb shell su root /vendor/bin/sdv_con_cal_service
     ```
 
     The output `ConCalServer service bundle started` means that the server was
@@ -61,8 +63,10 @@ overrides, and performs a rollback. To run the demo, follow the steps below:
 
 2.  Run the sample ConCal client in another shell
 
+    Using root, because the binary is on the `/vendor` partition.
+
     ```bash
-    adb shell /vendor/bin/sdv_con_cal_client
+    adb shell su root /vendor/bin/sdv_con_cal_client
     ```
 
 3.  Once executed the client will register the following configuration and you
