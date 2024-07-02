@@ -19,6 +19,7 @@ rust_protobuf {
     ],
     host_supported: true,
     vendor_available: true,
+    product_available: true,
 }
 
 genrule {

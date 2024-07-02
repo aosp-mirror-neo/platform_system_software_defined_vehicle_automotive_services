@@ -26,6 +26,7 @@ rust_library {
         "sdv_middleware_extension_diagnostics@rust_defaults",
     ],
     vendor_available: true,
+    product_available: true,
 }
 
 rust_test {
