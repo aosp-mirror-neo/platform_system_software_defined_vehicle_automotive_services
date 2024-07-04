@@ -22,6 +22,8 @@ rust_library {
         "libsdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control_service",
         "libsdvgenerated_rpc_sdv_diagnostics_io_control_io_control_service",
         "libsdvgenerated_rpc_sdv_diagnostics_fault_fault_listener_service",
+        "libvsidl_reflection",
+        "libvsidl_syntax",
         "libsdv_middleware_pubsub",
         "libsdvmiddleware_common",
         "libsdv_middleware_extension_diagnostics",

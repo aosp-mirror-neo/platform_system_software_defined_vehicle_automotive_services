@@ -10,7 +10,7 @@ pub mod diagnostics_translator;
 pub mod entity_id;
 
 /// Protobuf <-> UDS translator
-mod translator;
+pub mod translator;
 
 /// serde::Deserialize implementation for protobuf message
 mod protobuf_deserialize;
