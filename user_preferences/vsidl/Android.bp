@@ -16,6 +16,7 @@ rust_protobuf {
         "-I external/protobuf/src",
     ],
     vendor_available: true,
+    product_available: true,
     host_supported: true,
 }
 
