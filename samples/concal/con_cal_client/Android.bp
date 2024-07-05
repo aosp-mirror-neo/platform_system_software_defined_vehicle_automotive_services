@@ -25,5 +25,5 @@ rust_binary {
     required: [
         "rear_view_camera.proto",
     ],
-    vendor: true,
+    product_specific: true,
 }

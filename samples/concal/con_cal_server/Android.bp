@@ -22,7 +22,7 @@ rust_binary {
         "libsdvtestconcal_proto_rust",
         "libprotobuf_parse",
     ],
-    vendor: true,
+    product_specific: true,
 }
 
 rust_test {
@@ -50,7 +50,6 @@ rust_test {
         "automotive-sdv-tests",
     ],
     auto_gen_config: true,
-    vendor: true,
     data: [
         ":libsdvtestconcal_proto_files",
     ],

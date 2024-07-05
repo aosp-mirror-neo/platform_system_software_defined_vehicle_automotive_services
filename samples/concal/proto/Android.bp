@@ -19,6 +19,7 @@ rust_protobuf {
     ],
     source_stem: "sdvtestconcal_proto_rust",
     vendor_available: true,
+    product_available: true,
 }
 
 filegroup {
