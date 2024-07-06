@@ -18,7 +18,7 @@ rust_defaults {
         "libsdvmiddleware_rpc",
     ],
     apex_available: ["//apex_available:platform"],
-    vendor: true,
+    product_specific: true,
 }
 
 rust_binary {
