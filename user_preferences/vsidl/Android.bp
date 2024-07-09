@@ -68,4 +68,5 @@ java_library {
         "grpc-java-okhttp-client-lite",
         "guava",
     ],
+    sdk_version: "current",
 }
