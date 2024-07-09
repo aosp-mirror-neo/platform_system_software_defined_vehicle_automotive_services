@@ -15,17 +15,35 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 
-pub struct DiagnosticsManagerCallbacks {}
+pub struct DiagnosticsManagerCallbacks {
+    pub sdv_sample_diagnostics_data_item_via_data_tunnel_cb: Box<
+        dyn Fn(
+                sdv_middleware_pubsub::Result<
+                    diagnostics_sample_catalog::messages::DataItemViaDataTunnel,
+                >,
+            ) + Sync
+            + Send,
+    >,
+}
 
 impl Default for DiagnosticsManagerCallbacks {
     fn default() -> Self {
-        Self {}
+        Self {
+            sdv_sample_diagnostics_data_item_via_data_tunnel_cb: Box::new(|_| {
+                warn!("sdv_sample_diagnostics_data_item_via_data_tunnel_cb not yet implemented");
+            }),
+        }
     }
 }
 
-struct Subscriptions {}
+struct Subscriptions {
+    sdv_sample_diagnostics_data_item_via_data_tunnel_subscriber:
+        DataTunnelSubscriber<subscriber::sdv_sample_diagnostics::DataItemViaDataTunnelTopics>,
+}
 
-pub struct DiagnosticsManager {
+pub struct DiagnosticsManager {subscription_thread_handle: Option<thread::JoinHandle<()>>,
+    callbacks: Arc<DiagnosticsManagerCallbacks>,
+    subscriptions: Arc<Mutex<Subscriptions>>,
     pub sdv_diagnostics_diagnostics_manager_service_server: sdvgenerated_rpc_sdv_diagnostics_diagnostics_manager_service::server::DiagnosticsManagerServiceServer,
     sdv_diagnostics_data_item_data_item_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_data_item_data_item_service::client::DataItemServiceClient>>>,
     sdv_diagnostics_routine_control_routine_control_service_clients: parking_lot::RwLock<std::collections::HashMap<String, Arc<sdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control_service::client::RoutineControlServiceClient>>>,
@@ -36,10 +54,12 @@ pub struct DiagnosticsManager {
 
 impl DiagnosticsManager {
     /// Creates a new instance of the service bundle
-    pub fn new() -> Self {
+    pub fn new(callbacks: DiagnosticsManagerCallbacks) -> Self {
         let rpc_transport = GrpcServerTransport::new("DiagnosticsManager");
 
-        DiagnosticsManager{
+        DiagnosticsManager{subscription_thread_handle: None,
+            subscriptions: Arc::new(Mutex::new(Subscriptions {sdv_sample_diagnostics_data_item_via_data_tunnel_subscriber: DataTunnelSubscriber::new(),})),
+            callbacks: Arc::new(callbacks),
             sdv_diagnostics_diagnostics_manager_service_server: sdvgenerated_rpc_sdv_diagnostics_diagnostics_manager_service::server::DiagnosticsManagerServiceServer::new(rpc_transport.clone()),
             sdv_diagnostics_data_item_data_item_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
             sdv_diagnostics_routine_control_routine_control_service_clients: parking_lot::RwLock::new(std::collections::HashMap::new()),
@@ -52,12 +72,68 @@ impl DiagnosticsManager {
     pub fn start(&mut self) -> sdv_middleware_pubsub::Result<()> {
         self.register_all_topics()?;
 
+        self.subscribe_to_topics()?;
+        self.start_subscription_listening_thread()?;
         info!("Service `DiagnosticsManager` has been started.");
         Ok(())
     }
 
     fn register_all_topics(&mut self) -> sdv_middleware_pubsub::Result<()> {
         Ok(())
+    }
+
+    fn subscribe_to_topics(&self) -> sdv_middleware_pubsub::Result<()> {
+        let mut subs = self.subscriptions.lock().unwrap();
+        subs.sdv_sample_diagnostics_data_item_via_data_tunnel_subscriber.subscribe()?;
+
+        Ok(())
+    }
+
+    fn start_subscription_listening_thread(&mut self) -> sdv_middleware_pubsub::Result<()> {
+        if self.subscription_thread_handle.is_some() {
+            return Ok(());
+        }
+        let builder = thread::Builder::new().name("dt_subscription_loop".into());
+        let subscriptions = self.subscriptions.clone();
+        let callbacks = self.callbacks.clone();
+        match builder.spawn(move || {
+            Self::poll_subscriptions(subscriptions, callbacks);
+        }) {
+            Ok(handle) => self.subscription_thread_handle = Some(handle),
+            Err(e) => {
+                error!("Thread spawn failed: {:?}", e);
+                return Err(sdv_middleware_pubsub::error::Error::Other);
+            }
+        }
+        Ok(())
+    }
+
+    fn poll_subscriptions(
+        subscriptions: Arc<Mutex<Subscriptions>>,
+        callbacks: Arc<DiagnosticsManagerCallbacks>,
+    ) {
+        const POLL_TIMEOUT_MS: u32 = 10;
+        info!("Polling thread created.");
+        loop {
+            thread::sleep_ms(POLL_TIMEOUT_MS);
+            let mut subs = subscriptions.lock().unwrap();
+            subs.sdv_sample_diagnostics_data_item_via_data_tunnel_subscriber
+                .poll_unique_topic(&callbacks.sdv_sample_diagnostics_data_item_via_data_tunnel_cb);
+        }
+    }
+
+    pub fn join(&mut self) {
+        match self.subscription_thread_handle.take() {
+            Some(handle) => {
+                if handle.is_finished() {
+                    warn!("Subscription thread is already finished.");
+                } else {
+                    let _ = handle.join();
+                    info!("Subscription thread was joined.");
+                }
+            }
+            None => warn!("Subscription thread was not triggered."),
+        }
     }
 
     /// Returns the shared reference to a specific RPC client proxy. RPC client proxy is created per RPC interface and per target service bundle name and a new instance is created only when no existing one could be found.

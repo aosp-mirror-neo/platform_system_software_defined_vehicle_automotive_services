@@ -25,6 +25,7 @@ impl Default for DiagnosticsProviderService1Callbacks {
 struct Subscriptions {}
 
 pub struct DiagnosticsProviderService1 {
+    sdv_sample_diagnostics_data_item_via_data_tunnel_publisher: DataTunnelPublisher<publisher::sdv_sample_diagnostics::DataItemViaDataTunnelTopics>,
     pub sdv_diagnostics_data_item_data_item_service_server: sdvgenerated_rpc_sdv_diagnostics_data_item_data_item_service::server::DataItemServiceServer,
     pub sdv_diagnostics_routine_control_routine_control_service_server: sdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control_service::server::RoutineControlServiceServer,
     pub sdv_diagnostics_io_control_io_control_service_server: sdvgenerated_rpc_sdv_diagnostics_io_control_io_control_service::server::IoControlServiceServer,
@@ -38,6 +39,7 @@ impl DiagnosticsProviderService1 {
         let rpc_transport = GrpcServerTransport::new("DiagnosticsProviderService1");
 
         DiagnosticsProviderService1{
+            sdv_sample_diagnostics_data_item_via_data_tunnel_publisher: DataTunnelPublisher::new(17),
             sdv_diagnostics_data_item_data_item_service_server: sdvgenerated_rpc_sdv_diagnostics_data_item_data_item_service::server::DataItemServiceServer::new(rpc_transport.clone()),
             sdv_diagnostics_routine_control_routine_control_service_server: sdvgenerated_rpc_sdv_diagnostics_routine_control_routine_control_service::server::RoutineControlServiceServer::new(rpc_transport.clone()),
             sdv_diagnostics_io_control_io_control_service_server: sdvgenerated_rpc_sdv_diagnostics_io_control_io_control_service::server::IoControlServiceServer::new(rpc_transport.clone()),
@@ -55,6 +57,8 @@ impl DiagnosticsProviderService1 {
     }
 
     fn register_all_topics(&mut self) -> sdv_middleware_pubsub::Result<()> {
+        self.sdv_sample_diagnostics_data_item_via_data_tunnel_publisher.register_topics()?;
+
         Ok(())
     }
 
@@ -62,5 +66,29 @@ impl DiagnosticsProviderService1 {
         self.diagnostics.start()?;
 
         Ok(())
+    }
+
+    pub fn sdv_sample_diagnostics_data_item_via_data_tunnel_publish(
+        &mut self,
+        message: &diagnostics_sample_catalog::messages::DataItemViaDataTunnel,
+    ) -> sdv_middleware_pubsub::Result<()> {
+        use protobuf::Message;
+        use sdvmiddleware_common::size_utils::{LenOf, ProtobufLenOf};
+        let computed_message_size = message.compute_size();
+        if computed_message_size > 17 {
+            let mut error_message = String::new();
+            error_message += format!("Message size is bigger than defined maximum for this message. Current size: {computed_message_size}\n").as_str();
+            error_message += "Found the following violations\n";
+            if message.value.len_of() > 15 {
+                error_message += "value field exceeded maximum defined size 15 in bytes\n";
+            }
+
+            return Err(sdv_middleware_pubsub::error::Error::MessageMaxSizeViolation(
+                error_message,
+            ));
+        }
+
+        self.sdv_sample_diagnostics_data_item_via_data_tunnel_publisher
+            .publish(&publisher::sdv_sample_diagnostics::DataItemViaDataTunnelTopics {}, message)
     }
 }

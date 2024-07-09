@@ -6,4 +6,23 @@
 
 pub mod publisher {}
 
-pub mod subscriber {}
+pub mod subscriber {
+    pub mod sdv_sample_diagnostics {
+
+        #[derive(Clone, Eq, Hash, PartialEq, Debug)]
+        pub struct DataItemViaDataTunnelTopics {}
+
+        impl sdv_middleware_pubsub::EnumTopic for DataItemViaDataTunnelTopics {
+            /// Returns iterator over all available topics
+            fn iterator() -> std::slice::Iter<'static, Self> {
+                static TOPICS: [DataItemViaDataTunnelTopics; 1] = [DataItemViaDataTunnelTopics {}];
+                TOPICS.iter()
+            }
+
+            /// Returns string name of the topic
+            fn get_name(&self) -> &str {
+                "sdv.sample.diagnostics.DataItemViaDataTunnel"
+            }
+        }
+    }
+}

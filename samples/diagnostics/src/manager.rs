@@ -13,13 +13,16 @@ use diagnostics_api::fault_listener_service::OnFaultStatusChangeRequest;
 use diagnostics_api::io_control_service::PerformShortTermAdjustmentRequest;
 use diagnostics_api::response_code::ResponseCode;
 use diagnostics_api::routine_control_service::RoutineControlRequest;
+use protobuf::Message;
 use protobuf::MessageField;
 use protobuf::{Enum, EnumOrUnknown};
 use sdv_config_provider::{VsidlConfigProvider, VsidlProvider};
 use sdv_middleware_pubsub::subscriber::DataTunnelSubscriber;
 use sdv_uds_serde::diagnostics_translator::DiagnosticsTranslator;
 use sdv_uds_serde::entity_id::{EntityId, MethodMessage, RoutineMethod};
+use sdv_uds_serde::translator::{Translator, TranslatorImpl};
 use sdvgenerated::diagnostics_manager::DiagnosticsManager;
+use sdvgenerated::diagnostics_manager::DiagnosticsManagerCallbacks;
 use sdvgenerated::sdv_diagnostics_data_item_data_item_service_interface::DataItemService;
 use sdvgenerated::sdv_diagnostics_diagnostics_manager_service_interface::DiagnosticsManagerService;
 use sdvgenerated::sdv_diagnostics_fault_fault_listener_service_interface::FaultListenerService;
@@ -112,7 +115,28 @@ fn main() {
     data_items.insert(second_data_item.to_string(), "DiagnosticsProviderService2".to_string());
 
     // Create service instance and register DiagnosticsManagerServer
-    let mut service = DiagnosticsManager::new();
+    let mut service = DiagnosticsManager::new(DiagnosticsManagerCallbacks {
+        sdv_sample_diagnostics_data_item_via_data_tunnel_cb: Box::new(|data_item_protobuf| {
+            // Create VsidlProvider
+            let vsidl_provider = VsidlProvider::new_sync_provider().unwrap();
+
+            let descriptor = vsidl_provider
+                .get_message_descriptor("sdv.sample.diagnostics.DataItemViaDataTunnel")
+                .unwrap();
+
+            let translator = TranslatorImpl {};
+
+            let uds_bytes = translator
+                .translate_from_protobuf_to_uds(
+                    data_item_protobuf.unwrap().write_to_bytes().unwrap().as_ref(),
+                    &descriptor,
+                )
+                .unwrap();
+
+            let uds_string = String::from_utf8(uds_bytes).unwrap();
+            println!("Receiving Data Item via Data Tunnel, translated to UDS: {uds_string}");
+        }),
+    });
     service
         .sdv_diagnostics_diagnostics_manager_service_server
         .register_service_interface(Arc::new(DiagnosticsManagerImpl::new()));

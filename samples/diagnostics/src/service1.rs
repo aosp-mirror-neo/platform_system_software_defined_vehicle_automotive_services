@@ -3,6 +3,7 @@
 
 use diagnostics_api::event::Status;
 use diagnostics_api::response_code::ResponseCode;
+use diagnostics_sample_catalog::messages::DataItemViaDataTunnel;
 use diagnostics_sample_catalog::messages::{
     DataItemOne, FirstEventExt, IoControllableData, RoutineRequestParameter,
     RoutineResponseParameter, SecondEventExt,
@@ -167,6 +168,13 @@ fn main() {
         .unwrap();
 
     service.diagnostics.publish_event_1_event(Event::new(Status::PRE_PASS, None)).unwrap();
+
+    service
+        .sdv_sample_diagnostics_data_item_via_data_tunnel_publish(&DataItemViaDataTunnel {
+            value: "DataItem via DT".to_string(),
+            ..Default::default()
+        })
+        .unwrap();
 
     loop {
         std::thread::park();
