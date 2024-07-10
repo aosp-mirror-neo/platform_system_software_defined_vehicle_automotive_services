@@ -1,6 +1,6 @@
-use rusqlite::{Connection, Error as RusqliteError, ErrorCode as RusqliteErrorCode};
+use crate::persistence::error::Error;
+use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
-use thiserror::Error;
 use user_preferences_api::user::User as UserProto;
 
 #[derive(Debug, PartialEq)]
@@ -21,42 +21,13 @@ impl From<UserProto> for User {
     }
 }
 
-#[derive(Error, Debug, PartialEq)]
-pub enum UserRepositoryError {
-    #[error("User not found")]
-    NotFound,
-
-    #[error("User already exists")]
-    AlreadyExists,
-
-    #[error("Database error: {0}")]
-    DatabaseError(RusqliteError),
-}
-
-// Custom From implementation for RusqliteError
-impl From<RusqliteError> for UserRepositoryError {
-    fn from(err: RusqliteError) -> Self {
-        match err {
-            RusqliteError::QueryReturnedNoRows => Self::NotFound,
-            RusqliteError::SqliteFailure(sqlite_err, _) => {
-                if sqlite_err.code == RusqliteErrorCode::ConstraintViolation {
-                    Self::AlreadyExists
-                } else {
-                    Self::DatabaseError(err)
-                }
-            }
-            _ => Self::DatabaseError(err),
-        }
-    }
-}
-
 /// Provides to access to user data stored in a SQLite database
 pub struct UserRepository {
     connection: Arc<Mutex<Connection>>,
 }
 
 impl UserRepository {
-    pub fn new(connection: Arc<Mutex<Connection>>) -> Result<Self, UserRepositoryError> {
+    pub fn new(connection: Arc<Mutex<Connection>>) -> Result<Self, Error> {
         connection.lock().unwrap().execute(
             "CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
@@ -70,7 +41,7 @@ impl UserRepository {
     /// Adds a new `user` to the database.
     ///
     /// Returns Err if user with the same id already exists or other failure happened.
-    pub fn add_user(&self, user: &User) -> Result<(), UserRepositoryError> {
+    pub fn add_user(&self, user: &User) -> Result<(), Error> {
         let connection = self.connection.lock().unwrap();
         let changes = connection.execute(
             "INSERT INTO users (id, flags) VALUES (?, ?) ON CONFLICT(id) DO NOTHING",
@@ -79,7 +50,7 @@ impl UserRepository {
 
         // Check if no rows were changed (meaning the user already exists)
         if changes == 0 {
-            return Err(UserRepositoryError::AlreadyExists);
+            return Err(Error::AlreadyExists);
         }
 
         Ok(())
@@ -89,6 +60,7 @@ impl UserRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use googletest::{assert_that, prelude::matches_pattern};
 
     #[test]
     fn add_user_already_exists() {
@@ -100,8 +72,7 @@ mod tests {
 
         // Attempt to add the same user again
         let result = user_repository.add_user(&user);
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), UserRepositoryError::AlreadyExists);
+        assert_that!(result, matches_pattern!(Err(matches_pattern!(Error::AlreadyExists))));
     }
 
     #[test]

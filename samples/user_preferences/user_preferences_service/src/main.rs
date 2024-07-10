@@ -17,6 +17,8 @@ use user_preferences_service_impl::UserPreferencesServiceImpl;
 
 use tempfile::NamedTempFile;
 
+use crate::persistence::settings_definition_repository;
+use crate::persistence::settings_group_repository;
 use crate::persistence::user_repository;
 
 #[derive(Parser, Debug)]
@@ -48,10 +50,22 @@ fn main() {
     let connection = Arc::new(Mutex::new(
         Connection::open(db_path).expect("Unable to open connection to database file"),
     ));
-    let user_repository = user_repository::UserRepository::new(connection.clone())
+    let user_repository = user_repository::UserRepository::new(Arc::clone(&connection))
         .expect("Unable to create an instance of user repository");
 
-    let user_preferences_impl = Arc::new(UserPreferencesServiceImpl::new(user_repository));
+    let settings_group_repository =
+        settings_group_repository::SettingsGroupRepository::new(Arc::clone(&connection))
+            .expect("Unable to create an instance of settings group repository");
+
+    let settings_definition_repository =
+        settings_definition_repository::SettingDefinitionRepository::new(Arc::clone(&connection))
+            .expect("Unable to create an instance of settings definition repository");
+
+    let user_preferences_impl = Arc::new(UserPreferencesServiceImpl::new(
+        user_repository,
+        settings_group_repository,
+        settings_definition_repository,
+    ));
     let service = UserPreferencesServer::new();
 
     service
