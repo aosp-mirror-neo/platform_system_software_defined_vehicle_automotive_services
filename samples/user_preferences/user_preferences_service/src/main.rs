@@ -20,6 +20,7 @@ use tempfile::NamedTempFile;
 use crate::persistence::settings_definition_repository;
 use crate::persistence::settings_group_repository;
 use crate::persistence::user_repository;
+use crate::persistence::user_settings_repository;
 
 #[derive(Parser, Debug)]
 #[command(long_about = None)]
@@ -61,10 +62,15 @@ fn main() {
         settings_definition_repository::SettingDefinitionRepository::new(Arc::clone(&connection))
             .expect("Unable to create an instance of settings definition repository");
 
+    let user_settings_repository =
+        user_settings_repository::UserSettingsRepository::new(connection.clone())
+            .expect("Unable to create an instance of user settings repository");
+
     let user_preferences_impl = Arc::new(UserPreferencesServiceImpl::new(
         user_repository,
         settings_group_repository,
         settings_definition_repository,
+        user_settings_repository,
     ));
     let service = UserPreferencesServer::new();
 

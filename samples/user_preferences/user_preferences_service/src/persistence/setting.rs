@@ -89,7 +89,7 @@ mod tests {
             kind: 1,
             name: "bool_setting".to_string(),
             default_value: Value::Bool(true),
-            constraints: None,
+            constraint: None,
         };
 
         let setting: Setting = setting_definition.into();

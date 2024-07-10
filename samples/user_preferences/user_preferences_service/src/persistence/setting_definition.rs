@@ -8,19 +8,19 @@ pub struct SettingDefinition {
     pub kind: i32,
     pub name: String,
     pub default_value: Value,
-    pub constraints: Option<Constraint>,
+    pub constraint: Option<Constraint>,
 }
 
 impl From<SettingDefinitionProto> for SettingDefinition {
     fn from(proto: SettingDefinitionProto) -> Self {
         let setting_and_constraints = proto.setting_and_constraints.unwrap();
         let setting = setting_and_constraints.setting.unwrap();
-        let constaints = setting_and_constraints.constraints;
+        let constraints = setting_and_constraints.constraints;
         Self {
             name: setting.key,
             kind: proto.kind.value(),
             default_value: setting.value.unwrap().into(),
-            constraints: constaints.map(|x| x.into()),
+            constraint: constraints.map(|x| x.into()),
         }
     }
 }
@@ -28,7 +28,7 @@ impl From<SettingDefinitionProto> for SettingDefinition {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::persistence::constraint::Int32Constraint;
+    use crate::persistence::constraint::{Constraint, Int32Constraint};
     use user_preferences_api::setting::{
         setting::Value as ValueProto, setting_and_constraints::Constraints as ConstraintsProto,
         Int32Constraints as Int32ConstraintsProto, Setting as SettingProto,
@@ -64,7 +64,7 @@ mod tests {
         assert_eq!(setting_definition.name, "int32_setting");
         assert_eq!(setting_definition.default_value, Value::Int32(10));
         assert_eq!(
-            setting_definition.constraints,
+            setting_definition.constraint,
             Some(Constraint::Int32(Int32Constraint {
                 min_value: Some(0),
                 max_value: Some(20),

@@ -1,8 +1,10 @@
 use rusqlite::Connection;
-use serde_json::to_string;
+use serde_json::{from_str, to_string};
 use std::sync::{Arc, Mutex};
 
+use super::constraint::*;
 use super::error::Error;
+use super::setting::Value;
 use super::setting_definition::SettingDefinition;
 
 /// Provides access to the list setting definitions stored in a SQLITE database.
@@ -19,7 +21,7 @@ impl SettingDefinitionRepository {
             "CREATE TABLE IF NOT EXISTS setting_definition (
                     settings_group_id INTEGER,
                     setting_name TEXT NOT NULL,
-                    value TEXT NOT NULL,
+                    default_value TEXT NOT NULL,
                     kind INTEGER NOT NULL,
                     constraints TEXT,
                     PRIMARY KEY (settings_group_id, setting_name),
@@ -30,7 +32,7 @@ impl SettingDefinitionRepository {
         Ok(SettingDefinitionRepository { connection })
     }
 
-    pub fn store_all(
+    pub fn store(
         &self,
         settings_group_id: i64,
         setting_definitions: &[SettingDefinition],
@@ -39,13 +41,13 @@ impl SettingDefinitionRepository {
         let tx = connection.transaction()?;
 
         for setting_definition in setting_definitions {
-            let constraints_json = match &setting_definition.constraints {
-                Some(constraints) => to_string(constraints)?,
-                None => "null".to_string(),
+            let constraints_json = match &setting_definition.constraint {
+                Some(constraints) => Some(to_string(constraints)?),
+                None => None,
             };
 
             tx.execute(
-                "INSERT OR REPLACE INTO setting_definition (settings_group_id, setting_name, value, kind, constraints) VALUES (?, ?, ?, ?, ?)",
+                "INSERT OR REPLACE INTO setting_definition (settings_group_id, setting_name, default_value, kind, constraints) VALUES (?, ?, ?, ?, ?)",
                 (
                     settings_group_id,
                     &setting_definition.name,
@@ -59,6 +61,37 @@ impl SettingDefinitionRepository {
         tx.commit()?;
         Ok(())
     }
+
+    pub fn get(&self, settings_group_id: i64) -> Result<Vec<SettingDefinition>, Error> {
+        let connection = self.connection.lock().unwrap();
+        let mut stmt = connection.prepare(
+            "SELECT setting_name, default_value, kind, constraints FROM setting_definition WHERE settings_group_id = ?",
+        )?;
+        let mut rows = stmt.query([settings_group_id])?;
+
+        let mut setting_definitions = Vec::new();
+        while let Some(row) = rows.next()? {
+            let setting_name: String = row.get(0)?;
+            let default_value_json: String = row.get(1)?;
+            let kind: i32 = row.get(2)?;
+            let constraint_json: Option<String> = row.get(3)?;
+
+            let default_value: Value = from_str(default_value_json.as_str())?;
+            let constraints: Option<Constraint> = match constraint_json {
+                Some(x) => Some(from_str(x.as_str())?),
+                None => None,
+            };
+
+            setting_definitions.push(SettingDefinition {
+                name: setting_name,
+                default_value,
+                kind,
+                constraint: constraints,
+            });
+        }
+
+        Ok(setting_definitions)
+    }
 }
 
 #[cfg(test)]
@@ -68,7 +101,7 @@ mod tests {
     use crate::persistence::setting::Value;
 
     #[test]
-    fn store_all_new_settings() {
+    fn store_new_settings() {
         let repo = create_in_memory_setting_definition_repository();
 
         let settings_group_id = 1;
@@ -77,13 +110,13 @@ mod tests {
                 kind: 1,
                 name: "bool_setting".to_string(),
                 default_value: Value::Bool(true),
-                constraints: None,
+                constraint: None,
             },
             SettingDefinition {
                 kind: 2,
                 name: "int32_setting".to_string(),
                 default_value: Value::Int32(10),
-                constraints: Some(Constraint::Int32(Int32Constraint {
+                constraint: Some(Constraint::Int32(Int32Constraint {
                     min_value: Some(0),
                     max_value: Some(20),
                     step: Some(1),
@@ -91,11 +124,11 @@ mod tests {
             },
         ];
 
-        repo.store_all(settings_group_id, &setting_definitions).unwrap();
+        repo.store(settings_group_id, &setting_definitions).unwrap();
     }
 
     #[test]
-    fn store_all_update_existing_settings() {
+    fn store_update_existing_settings() {
         let repo = create_in_memory_setting_definition_repository();
 
         let settings_group_id = 1;
@@ -104,13 +137,13 @@ mod tests {
                 kind: 1,
                 name: "bool_setting".to_string(),
                 default_value: Value::Bool(false),
-                constraints: None,
+                constraint: None,
             },
             SettingDefinition {
                 kind: 2,
                 name: "int32_setting".to_string(),
                 default_value: Value::Int32(5),
-                constraints: Some(Constraint::Int32(Int32Constraint {
+                constraint: Some(Constraint::Int32(Int32Constraint {
                     min_value: Some(0),
                     max_value: Some(10),
                     step: Some(1),
@@ -118,20 +151,20 @@ mod tests {
             },
         ];
 
-        repo.store_all(settings_group_id, &initial_setting_definitions).unwrap();
+        repo.store(settings_group_id, &initial_setting_definitions).unwrap();
 
         let updated_setting_definitions = vec![
             SettingDefinition {
                 kind: 1,
                 name: "bool_setting".to_string(),
                 default_value: Value::Bool(true),
-                constraints: None,
+                constraint: None,
             },
             SettingDefinition {
                 kind: 2,
                 name: "int32_setting".to_string(),
                 default_value: Value::Int32(15),
-                constraints: Some(Constraint::Int32(Int32Constraint {
+                constraint: Some(Constraint::Int32(Int32Constraint {
                     min_value: Some(10),
                     max_value: Some(30),
                     step: Some(5),
@@ -139,7 +172,57 @@ mod tests {
             },
         ];
 
-        repo.store_all(settings_group_id, &updated_setting_definitions).unwrap();
+        repo.store(settings_group_id, &updated_setting_definitions).unwrap();
+    }
+
+    #[test]
+    fn get_existing_settings() {
+        let repo = create_in_memory_setting_definition_repository();
+
+        let settings_group_id = 1_i64;
+        let setting_definitions = vec![
+            SettingDefinition {
+                kind: 1,
+                name: "bool_setting".to_string(),
+                default_value: Value::Bool(true),
+                constraint: None,
+            },
+            SettingDefinition {
+                kind: 2,
+                name: "int32_setting".to_string(),
+                default_value: Value::Int32(10),
+                constraint: Some(Constraint::Int32(Int32Constraint {
+                    min_value: Some(0),
+                    max_value: Some(20),
+                    step: Some(1),
+                })),
+            },
+        ];
+
+        repo.store(settings_group_id, &setting_definitions).unwrap();
+
+        let retrieved_settings = repo.get(settings_group_id).unwrap();
+
+        assert_eq!(retrieved_settings.len(), 2);
+
+        // Check the first setting
+        assert_eq!(retrieved_settings[0].kind, 1);
+        assert_eq!(retrieved_settings[0].name, "bool_setting");
+        assert_eq!(retrieved_settings[0].default_value, Value::Bool(true));
+        assert_eq!(retrieved_settings[0].constraint, None);
+
+        // Check the second setting
+        assert_eq!(retrieved_settings[1].kind, 2);
+        assert_eq!(retrieved_settings[1].name, "int32_setting");
+        assert_eq!(retrieved_settings[1].default_value, Value::Int32(10));
+        assert_eq!(
+            retrieved_settings[1].constraint,
+            Some(Constraint::Int32(Int32Constraint {
+                min_value: Some(0),
+                max_value: Some(20),
+                step: Some(1),
+            }))
+        );
     }
 
     fn create_in_memory_setting_definition_repository() -> SettingDefinitionRepository {

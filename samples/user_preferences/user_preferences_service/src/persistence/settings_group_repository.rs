@@ -1,11 +1,10 @@
+use crate::persistence::error::Error;
+
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use user_preferences_api::settings_group::SettingsGroupId as SettingsGroupIdProto;
-
-use super::error::Error;
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct SettingsGroup {
     // Should not be set in store operations, this ID is auto generated
     pub id: i64,
@@ -58,6 +57,21 @@ impl SettingsGroupRepository {
         // Retrieve the ID of the inserted settings group
         Ok(connection.last_insert_rowid())
     }
+
+    pub fn list(&self) -> Result<Vec<SettingsGroup>, Error> {
+        let connection = self.connection.lock().unwrap();
+        let mut stmt = connection.prepare("SELECT id, name, service_fqin FROM settings_groups")?;
+        let mut rows = stmt.query([])?;
+
+        let mut settings_groups = Vec::new();
+        while let Some(row) = rows.next()? {
+            let id = row.get(0)?;
+            let name = row.get(1)?;
+            let service_fqin = row.get(2)?;
+            settings_groups.push(SettingsGroup { id, name, service_fqin });
+        }
+        Ok(settings_groups)
+    }
 }
 
 #[cfg(test)]
@@ -96,6 +110,52 @@ mod tests {
         let id2 = settings_group_repository.store(&settings_group).unwrap();
 
         assert_eq!(id1, id2);
+    }
+
+    #[test]
+    fn list_existing_settings_groups() {
+        let settings_group_repository = create_in_memory_settings_group_repository();
+
+        let settings_groups = [
+            SettingsGroup {
+                id: 1,
+                name: "group1".to_string(),
+                service_fqin: "com.example.group1".to_string(),
+            },
+            SettingsGroup {
+                id: 2,
+                name: "group2".to_string(),
+                service_fqin: "com.example.group2".to_string(),
+            },
+        ];
+
+        for settings_group in settings_groups.iter() {
+            settings_group_repository.store(settings_group).unwrap();
+        }
+
+        let retrieved_settings_groups = settings_group_repository.list().unwrap();
+
+        assert_eq!(retrieved_settings_groups.len(), 2);
+
+        // Check the first settings group
+        assert_eq!(
+            retrieved_settings_groups[0],
+            SettingsGroup {
+                id: 1,
+                name: "group1".to_string(),
+                service_fqin: "com.example.group1".to_string(),
+            }
+        );
+
+        // Check the second settings group
+        assert_eq!(
+            retrieved_settings_groups[1],
+            SettingsGroup {
+                id: 2,
+                name: "group2".to_string(),
+                service_fqin: "com.example.group2".to_string(),
+            }
+        );
     }
 
     fn create_in_memory_settings_group_repository() -> SettingsGroupRepository {

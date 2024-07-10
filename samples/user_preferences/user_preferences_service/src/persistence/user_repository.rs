@@ -55,6 +55,20 @@ impl UserRepository {
 
         Ok(())
     }
+
+    pub fn get_user(&self, id: i32) -> Result<User, Error> {
+        let connection = self.connection.lock().unwrap();
+        let mut stmt = connection.prepare("SELECT id, flags FROM users WHERE id = ?")?;
+        let mut rows = stmt.query([id])?;
+
+        if let Some(row) = rows.next()? {
+            let id = row.get(0)?;
+            let flags = row.get(1)?;
+            Ok(User { id, flags })
+        } else {
+            Err(Error::NotFound)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -73,6 +87,32 @@ mod tests {
         // Attempt to add the same user again
         let result = user_repository.add_user(&user);
         assert_that!(result, matches_pattern!(Err(matches_pattern!(Error::AlreadyExists))));
+    }
+
+    #[test]
+    fn get_user_returns_existing_user() {
+        let user_repository = create_in_memory_user_repository();
+
+        // Add a user
+        let user = User { id: 1, flags: 0 };
+        user_repository.add_user(&user).unwrap();
+
+        // Retrieve the user
+        let retrieved_user = user_repository.get_user(1).unwrap();
+
+        // Assert that the retrieved user is the same as the added user
+        assert_eq!(retrieved_user, user);
+    }
+
+    #[test]
+    fn get_user_returns_error_for_non_existing_user() {
+        let user_repository = create_in_memory_user_repository();
+
+        // Attempt to retrieve a non-existing user
+        let result = user_repository.get_user(100);
+
+        // Assert that we get a NotFound Error
+        assert_that!(result, matches_pattern!(Err(matches_pattern!(Error::NotFound))));
     }
 
     #[test]
