@@ -1,15 +1,57 @@
 // Copyright 2024 Google LLC
-#![allow(missing_docs, unused_macros, unused_imports)]
+#![allow(missing_docs)]
 
 mod macros;
+mod persistence;
 mod user_preferences_service_impl;
 
+use clap::Parser;
+use log::{error, info};
+use rusqlite::Connection;
 use sdvgenerated::user_preferences_server::UserPreferencesServer;
-use std::sync::Arc;
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 use user_preferences_service_impl::UserPreferencesServiceImpl;
 
+use tempfile::NamedTempFile;
+
+use crate::persistence::user_repository;
+
+#[derive(Parser, Debug)]
+#[command(long_about = None)]
+struct Args {
+    #[arg(long)]
+    use_temp_db: bool,
+    #[arg(required_unless_present("use_temp_db"))]
+    db_path: Option<PathBuf>,
+}
+
 fn main() {
-    let user_preferences_impl = Arc::new(UserPreferencesServiceImpl::new());
+    let args: Args = Args::parse();
+    let db_path = if args.use_temp_db {
+        NamedTempFile::new()
+            .inspect_err(|e| error!("Error creating temp file: {}", e))
+            .map(|f| f.path().to_path_buf())
+            .unwrap() // Panic if creating temp file fails (no recovery possible)
+    } else {
+        match args.db_path {
+            Some(x) => x,
+            None => {
+                error!("Error: --db-path is required when not using --use-temp-db");
+                panic!("db_path not provide");
+            }
+        }
+    };
+
+    let connection = Arc::new(Mutex::new(
+        Connection::open(db_path).expect("Unable to open connection to database file"),
+    ));
+    let user_repository = user_repository::UserRepository::new(connection.clone())
+        .expect("Unable to create an instance of user repository");
+
+    let user_preferences_impl = Arc::new(UserPreferencesServiceImpl::new(user_repository));
     let service = UserPreferencesServer::new();
 
     service
@@ -22,7 +64,7 @@ fn main() {
         .sdv_user_preferences_user_preferences_management_service_server
         .register_service_interface(user_preferences_impl.clone());
 
-    println!("UserPreferencesServer service bundle started.");
+    info!("UserPreferencesServer service bundle started.");
     loop {
         std::thread::park();
     }
