@@ -177,6 +177,7 @@ impl PowerState for WaitForFinish {
             PowerStateReport::SUSPEND_TO_RAM_POST_FINISH,
             PowerStateReport::SUSPEND_TO_DISK_POST_FINISH,
             PowerStateReport::POWER_OFF_POST_FINISH,
+            PowerStateReport::SHUTDOWN_CANCELLED,
         ]
         .contains(&next_state)
     }
@@ -397,6 +398,7 @@ mod tests {
             Box::new(SuspendToRamEnter {}),
             Box::new(SuspendToDiskEnter {}),
             Box::new(PowerOffEnter {}),
+            Box::new(WaitForFinish {}),
         ];
         for state in &allowed_states {
             assert!(state.is_valid_next_state(shutdown_cancelled));

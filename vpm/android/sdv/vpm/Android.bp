@@ -77,8 +77,8 @@ rust_test {
 }
 
 rust_test {
-    name: "sdv_vpm_agent_integration_tests",
-    srcs: ["tests/integration_tests.rs"],
+    name: "sdv_vpm_agent_integration_test",
+    srcs: ["tests/integration_test.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
     ],
@@ -87,6 +87,30 @@ rust_test {
         "librpcbinder_rs",
         "libsdv_vpm_api",
         "libanyhow",
+        "liblazy_static",
+        "libsdv_middleware_pubsub",
+        "libsdvmiddleware_rpc",
+        "libsdvgenerated_vpm_integration_test_bundle",
+    ],
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+    require_root: true,
+}
+
+rust_test {
+    name: "sdv_vpm_agent_power_cancellation_test",
+    srcs: ["tests/power_cancellation_test.rs"],
+    defaults: [
+        "sdv_tracing@rust_defaults",
+    ],
+    rustlibs: [
+        "google.sdv.vpm-aidl-rust",
+        "librpcbinder_rs",
+        "libsdv_vpm_api",
+        "libanyhow",
+        "liblazy_static",
         "libsdv_middleware_pubsub",
         "libsdvmiddleware_rpc",
         "libsdvgenerated_vpm_integration_test_bundle",
