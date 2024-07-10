@@ -1,12 +1,7 @@
 // Copyright 2024 Google LLC
-#![allow(missing_docs)]
+#![allow(missing_docs, unused_macros, unused_imports)]
 
 mod macros;
-mod setting;
-mod settings_group;
-mod settings_group_id;
-mod settings_store;
-mod user_manager;
 mod user_preferences_service_impl;
 
 use sdvgenerated::user_preferences_server::UserPreferencesServer;
