@@ -18,7 +18,6 @@ rust_binary {
         "libanyhow",
         "librpcbinder_rs",
         "libsdv_log_rust",
-        "libsdv_sd_rs",
         "libtokio",
         "libbinder_tokio_rs",
     ],
