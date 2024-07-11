@@ -57,6 +57,7 @@ rust_defaults {
         "libthiserror",
         "libserde",
         "libserde_json",
+        "libmockall",
     ],
     vendor: true,
 }

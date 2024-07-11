@@ -4,6 +4,7 @@
 mod macros;
 mod persistence;
 mod user_preferences_service_impl;
+mod vsidl_client_provider;
 
 use clap::Parser;
 use log::{error, info};
@@ -17,10 +18,15 @@ use user_preferences_service_impl::UserPreferencesServiceImpl;
 
 use tempfile::NamedTempFile;
 
-use crate::persistence::settings_definition_repository;
 use crate::persistence::settings_group_repository;
 use crate::persistence::user_repository;
 use crate::persistence::user_settings_repository;
+use crate::persistence::vehicle_settings_repository;
+use crate::user_preferences_service_impl::UserPreferencesServiceImplArgs;
+use crate::vsidl_client_provider::VSIDLClientProvider;
+use crate::{
+    persistence::settings_definition_repository, vsidl_client_provider::VSIDLClientProviderWrapper,
+};
 
 #[derive(Parser, Debug)]
 #[command(long_about = None)]
@@ -63,24 +69,36 @@ fn main() {
             .expect("Unable to create an instance of settings definition repository");
 
     let user_settings_repository =
-        user_settings_repository::UserSettingsRepository::new(connection.clone())
+        user_settings_repository::UserSettingsRepository::new(Arc::clone(&connection))
             .expect("Unable to create an instance of user settings repository");
 
-    let user_preferences_impl = Arc::new(UserPreferencesServiceImpl::new(
-        user_repository,
-        settings_group_repository,
-        settings_definition_repository,
-        user_settings_repository,
-    ));
-    let service = UserPreferencesServer::new();
+    let vehicle_settings_repository =
+        vehicle_settings_repository::VehicleSettingsRepository::new(Arc::clone(&connection))
+            .expect("Unable to create an instance of vehicle state repository");
 
-    service
+    let server: Arc<UserPreferencesServer> = Arc::new(UserPreferencesServer::new());
+    let vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+        Arc::new(VSIDLClientProviderWrapper::new(server.clone()));
+
+    let user_preferences_impl =
+        Arc::new(UserPreferencesServiceImpl::new(UserPreferencesServiceImplArgs {
+            user_repository,
+            settings_group_repository,
+            settings_definition_repository,
+            user_settings_repository,
+            vehicle_settings_repository,
+            // Provide User Preferences implementation with a weak reference
+            // to avoid having a circular dependency between UserPreferencesServer & UserPreferencesServiceImpl
+            vsidl_client_provider: Arc::downgrade(&vsidl_client_provider),
+        }));
+
+    server
         .sdv_user_preferences_user_preferences_registry_service_server
         .register_service_interface(user_preferences_impl.clone());
-    service
+    server
         .sdv_user_preferences_user_preferences_admin_service_server
         .register_service_interface(user_preferences_impl.clone());
-    service
+    server
         .sdv_user_preferences_user_preferences_management_service_server
         .register_service_interface(user_preferences_impl.clone());
 

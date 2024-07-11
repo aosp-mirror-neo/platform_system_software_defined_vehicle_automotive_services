@@ -42,6 +42,23 @@ impl SettingsGroupRepository {
         Ok(SettingsGroupRepository { connection })
     }
 
+    pub fn get(&self, name: &str, service_fqin: &str) -> Result<SettingsGroup, Error> {
+        let connection = self.connection.lock().unwrap();
+        let mut stmt = connection.prepare(
+            "SELECT id, name, service_fqin FROM settings_groups WHERE name = ? AND service_fqin = ?",
+        )?;
+        let mut rows = stmt.query((&name, &service_fqin))?;
+
+        if let Some(row) = rows.next()? {
+            let id = row.get(0)?;
+            let name = row.get(1)?;
+            let service_fqin = row.get(2)?;
+            Ok(SettingsGroup { id, name, service_fqin })
+        } else {
+            Err(Error::NotFound)
+        }
+    }
+
     /// Stores a new settings group in the database.
     ///
     /// Returns err if setting group already exists or other failure happened
@@ -77,6 +94,7 @@ impl SettingsGroupRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use googletest::{assert_that, prelude::matches_pattern};
 
     #[test]
     fn store_new_settings_group() {
@@ -110,6 +128,41 @@ mod tests {
         let id2 = settings_group_repository.store(&settings_group).unwrap();
 
         assert_eq!(id1, id2);
+    }
+
+    #[test]
+    fn get_existing_settings_group() {
+        let settings_group_repository = create_in_memory_settings_group_repository();
+
+        let settings_group = SettingsGroup {
+            name: "test_group".to_string(),
+            service_fqin: "com.example.test_service".to_string(),
+            id: 0,
+        };
+        // Store the settings group
+        let settings_group_id = settings_group_repository.store(&settings_group).unwrap();
+
+        // Retrieve the settings group
+        let retrieved_settings_group = settings_group_repository
+            .get(&settings_group.name, &settings_group.service_fqin)
+            .unwrap();
+
+        assert_eq!(retrieved_settings_group.id, settings_group_id);
+        assert_eq!(retrieved_settings_group.name, settings_group.name);
+        assert_eq!(retrieved_settings_group.service_fqin, settings_group.service_fqin);
+    }
+
+    #[test]
+    fn get_non_existing_settings_group_should_return_not_found_error() {
+        let settings_group_repository = create_in_memory_settings_group_repository();
+
+        let name = "non_existing_group";
+        let service_fqin = "com.example.non_existing_service";
+
+        // Retrieve the settings group (should return None)
+        let result = settings_group_repository.get(name, service_fqin);
+
+        assert_that!(result, matches_pattern!(Err(matches_pattern!(Error::NotFound))));
     }
 
     #[test]
