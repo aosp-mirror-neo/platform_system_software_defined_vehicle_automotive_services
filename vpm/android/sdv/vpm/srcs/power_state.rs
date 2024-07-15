@@ -1,5 +1,5 @@
 // Copyright 2024 Google LLC
-
+use crate::power_service::PowerRequest;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use mockall::automock;
@@ -39,7 +39,8 @@ pub trait PowerState: Send + Sync {
 
     async fn execute(
         &self,
-        power_state_request_sender: Sender<Box<dyn PowerState>>,
+        power_state_request_sender: Sender<PowerRequest>,
+        timeout_ms: u64,
     ) -> anyhow::Result<()> {
         Ok(())
     }
@@ -115,9 +116,12 @@ impl PowerState for SuspendToRamEnter {
     }
     async fn execute(
         &self,
-        power_state_request_sender: Sender<Box<dyn PowerState>>,
+        power_state_request_sender: Sender<PowerRequest>,
+        timeout_ms: u64,
     ) -> anyhow::Result<()> {
-        power_state_request_sender.send(Box::new(WaitForFinish {})).await;
+        power_state_request_sender
+            .send(PowerRequest::new(Box::new(WaitForFinish {}), timeout_ms))
+            .await;
         Ok(())
     }
 }
@@ -137,9 +141,12 @@ impl PowerState for SuspendToDiskEnter {
 
     async fn execute(
         &self,
-        power_state_request_sender: Sender<Box<dyn PowerState>>,
+        power_state_request_sender: Sender<PowerRequest>,
+        timeout_ms: u64,
     ) -> anyhow::Result<()> {
-        power_state_request_sender.send(Box::new(WaitForFinish {})).await;
+        power_state_request_sender
+            .send(PowerRequest::new(Box::new(WaitForFinish {}), timeout_ms))
+            .await;
         Ok(())
     }
 }
@@ -158,9 +165,12 @@ impl PowerState for PowerOffEnter {
     }
     async fn execute(
         &self,
-        power_state_request_sender: Sender<Box<dyn PowerState>>,
+        power_state_request_sender: Sender<PowerRequest>,
+        timeout_ms: u64,
     ) -> anyhow::Result<()> {
-        power_state_request_sender.send(Box::new(WaitForFinish {})).await;
+        power_state_request_sender
+            .send(PowerRequest::new(Box::new(WaitForFinish {}), timeout_ms))
+            .await;
         Ok(())
     }
 }
@@ -216,10 +226,13 @@ impl PowerState for SuspendToRamPostFinish {
 
     async fn execute(
         &self,
-        power_state_request_sender: Sender<Box<dyn PowerState>>,
+        power_state_request_sender: Sender<PowerRequest>,
+        timeout_ms: u64,
     ) -> anyhow::Result<()> {
         suspend_to_ram()?;
-        power_state_request_sender.send(Box::new(SuspendToRamExit {})).await;
+        power_state_request_sender
+            .send(PowerRequest::new(Box::new(SuspendToRamExit {}), timeout_ms))
+            .await;
         Ok(())
     }
 }
@@ -241,10 +254,13 @@ impl PowerState for SuspendToDiskPostFinish {
 
     async fn execute(
         &self,
-        power_state_request_sender: Sender<Box<dyn PowerState>>,
+        power_state_request_sender: Sender<PowerRequest>,
+        timeout_ms: u64,
     ) -> anyhow::Result<()> {
         suspend_to_disk()?;
-        power_state_request_sender.send(Box::new(SuspendToDiskExit {})).await;
+        power_state_request_sender
+            .send(PowerRequest::new(Box::new(SuspendToDiskExit {}), timeout_ms))
+            .await;
         Ok(())
     }
 }
@@ -267,7 +283,8 @@ impl PowerState for PowerOffPostFinish {
 
     async fn execute(
         &self,
-        power_state_request_sender: Sender<Box<dyn PowerState>>,
+        power_state_request_sender: Sender<PowerRequest>,
+        timeout_ms: u64,
     ) -> anyhow::Result<()> {
         power_off()
     }

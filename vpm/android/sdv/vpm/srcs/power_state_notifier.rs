@@ -97,7 +97,6 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
         while let Some(res) = set.join_next().await {
             if (res.is_err()) {
                 error!("Failed to notify callback {:?}!", res);
-                debug!("Dropping the rest of the callback tasks!");
                 notification_failed = true;
             } else if let Ok(Err(e)) = res {
                 // This should be handled with death binder not here.

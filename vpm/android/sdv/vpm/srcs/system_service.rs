@@ -1,5 +1,6 @@
 // Copyright 2024 Google LLC
 //! Vehicle and Power Mode Agent.
+use crate::power_service::PowerRequest;
 use crate::power_service::PowerStateRequestHandler;
 use crate::PowerService;
 use crate::PowerState;
@@ -36,7 +37,7 @@ pub trait VpmService: Send + Sync {
     // Starts the rpc server that receives incoming RPC requests from the OEM to set the vehicle and power state in the SDV VM.
     async fn start(
         &self,
-        power_state_request_sender: MpscSender<Box<dyn PowerState>>,
+        power_state_request_sender: MpscSender<PowerRequest>,
         power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
     );
 }
@@ -55,7 +56,7 @@ impl VpmServiceImpl {
 impl VpmService for VpmServiceImpl {
     async fn start(
         &self,
-        power_state_request_sender: MpscSender<Box<dyn PowerState>>,
+        power_state_request_sender: MpscSender<PowerRequest>,
         power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
     ) {
         let (vehicle_state_sender, vehicle_state_receiver) = channel();

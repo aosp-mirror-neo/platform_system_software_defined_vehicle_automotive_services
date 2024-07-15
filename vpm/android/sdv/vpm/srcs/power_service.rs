@@ -23,19 +23,22 @@ use tokio::sync::watch::{
 };
 use tokio::task;
 use tokio::task::JoinHandle;
+use tokio::time::error::Elapsed;
+use tokio::time::timeout;
+use tokio::time::Duration;
 
 #[automock]
 #[async_trait]
 pub trait PowerService: Send + Sync {
     async fn start(&mut self) -> anyhow::Result<()>;
-    fn get_power_state_request_sender(&self) -> Sender<Box<dyn PowerState>>;
+    fn get_power_state_request_sender(&self) -> Sender<PowerRequest>;
     fn get_power_state_watch_receiver(&self) -> WatchReceiver<Arc<dyn PowerState>>;
 }
 
 pub struct PowerServiceImpl {
     power_state_notifier: Arc<dyn PowerStateNotifier>,
-    power_state_request_sender: Sender<Box<dyn PowerState>>,
-    power_state_request_receiver: Receiver<Box<dyn PowerState>>,
+    power_state_request_sender: Sender<PowerRequest>,
+    power_state_request_receiver: Receiver<PowerRequest>,
     power_state_watch_sender: Arc<WatchSender<Arc<dyn PowerState>>>,
     power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
 }
@@ -55,7 +58,7 @@ impl PowerServiceImpl {
 
         // Channel to forward power state requests.
         let (power_state_request_sender, power_state_request_receiver) =
-            channel::<Box<dyn PowerState>>(POWER_STATE_CHANNEL_QUEUE_SIZE);
+            channel::<PowerRequest>(POWER_STATE_CHANNEL_QUEUE_SIZE);
 
         // Watch channel that holds the value for current power state.
         let (power_state_watch_sender, power_state_watch_receiver) =
@@ -71,11 +74,76 @@ impl PowerServiceImpl {
             power_state_watch_receiver,
         }
     }
+
+    async fn process_power_request(&mut self, power_request: PowerRequest) {
+        let cloned_power_state_notifier = self.power_state_notifier.clone();
+        let cloned_power_state_watch_sender = self.power_state_watch_sender.clone();
+        let cloned_power_state_request_sender = self.power_state_request_sender.clone();
+        tokio::spawn(async move {
+            debug!("Starting a task for callback notifications!");
+            // TODO: Cancel shutdown implementation, check if there is a prepare request in progress
+            // if so cancel it and run cancel shutdown.
+            debug!("timeout={:?}", power_request.timeout_ms);
+            let timeout_result = timeout(
+                Duration::from_millis(power_request.timeout_ms),
+                cloned_power_state_notifier.notify(power_request.power_state.get_report()),
+            )
+            .await;
+
+            let new_state: Arc<dyn PowerState> = Arc::from(power_request.power_state);
+            debug!(
+                "callbacks finished, setting the current state to {:?}!",
+                new_state.get_report()
+            );
+
+            cloned_power_state_watch_sender.send(new_state.clone());
+            debug!("Executing state {:?}", new_state.get_report());
+            let execution_result = new_state
+                .execute(cloned_power_state_request_sender, power_request.timeout_ms)
+                .await;
+            if (execution_result.is_err()) {
+                error!("Could not execute state.");
+            }
+
+            // We don't need to notify OEM about sleep reports, because new_state.execute will suspend the VM including this process or power-off VM.
+            // If the VM suspends, the following code will only be executed once the process resumes from suspension, therefore the report will be outdated.
+            // The new_state.execute will also request a transition to the new resume state which will be received by the power_state_request_receiver.
+            if (new_state.is_sleep_state()) {
+                return;
+            }
+            match timeout_result {
+                Ok(notification_result) => match notification_result {
+                    Ok(_) => {
+                        info!("Successfully notified all callbacks!");
+                        cloned_power_state_notifier.notify_oem(
+                            new_state.get_report(),
+                            PowerStateChangeReason::HOST_REQUESTED,
+                        );
+                    }
+                    Err(e) => {
+                        debug!("Failed to notify one of the callbacks!");
+                        cloned_power_state_notifier.notify_oem(
+                            new_state.get_report(),
+                            //TODO: b/353655403 Add more reasons for failing callbacks.
+                            PowerStateChangeReason::TIMEOUT,
+                        );
+                    }
+                },
+
+                Err(Elapsed { .. }) => {
+                    debug!("Call to notify callbacks has timed-out!");
+                    cloned_power_state_notifier
+                        .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT);
+                }
+            }
+        })
+        .await;
+    }
 }
 
 #[async_trait]
 impl PowerService for PowerServiceImpl {
-    fn get_power_state_request_sender(&self) -> Sender<Box<dyn PowerState>> {
+    fn get_power_state_request_sender(&self) -> Sender<PowerRequest> {
         self.power_state_request_sender.clone()
     }
 
@@ -84,48 +152,20 @@ impl PowerService for PowerServiceImpl {
     }
 
     async fn start(&mut self) -> anyhow::Result<()> {
-        while let Some(next_state) = self.power_state_request_receiver.recv().await {
-            let cloned_power_state_notifier = self.power_state_notifier.clone();
-            let cloned_power_state_watch_sender = self.power_state_watch_sender.clone();
-            let cloned_power_state_request_sender = self.power_state_request_sender.clone();
-            tokio::spawn(async move {
-                debug!("Starting a task for callback notifications!");
-                // TODO: Cancel shutdown implementation, check if there is a prepare request in progress
-                // if so cancel it and run cancel shutdown.
-                // TODO: Run this notify request with timeout from the request.
-                let notification_result =
-                    cloned_power_state_notifier.notify(next_state.get_report()).await;
-                let new_state: Arc<dyn PowerState> = Arc::from(next_state);
-                debug!(
-                    "callbacks finished, setting the current state to {:?}!",
-                    new_state.get_report()
-                );
-
-                cloned_power_state_watch_sender.send(new_state.clone());
-                debug!("Executing state {:?}", new_state.get_report());
-                let execution_result = new_state.execute(cloned_power_state_request_sender).await;
-                if (execution_result.is_err()) {
-                    error!("Could not execute state.");
-                }
-
-                // We don't need to notify OEM about sleep reports, because new_state.execute will suspend the VM including this process or power-off VM.
-                // If the VM suspends, the following code will only be executed once the process resumes from suspension, therefore the report will be outdated.
-                // The new_state.execute will also request a transition to the new resume state which will be received by the power_state_request_receiver.
-                if (!new_state.is_sleep_state()) {
-                    if (notification_result.is_ok()) {
-                        cloned_power_state_notifier.notify_oem(
-                            new_state.get_report(),
-                            PowerStateChangeReason::HOST_REQUESTED,
-                        );
-                    } else {
-                        cloned_power_state_notifier
-                            .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT);
-                    }
-                }
-            })
-            .await;
+        while let Some(power_request) = self.power_state_request_receiver.recv().await {
+            self.process_power_request(power_request).await;
         }
         Ok(())
+    }
+}
+
+pub struct PowerRequest {
+    power_state: Box<dyn PowerState>,
+    timeout_ms: u64,
+}
+impl PowerRequest {
+    pub fn new(power_state: Box<dyn PowerState>, timeout_ms: u64) -> Self {
+        Self { power_state, timeout_ms }
     }
 }
 
@@ -138,13 +178,13 @@ pub trait PowerStateRequestHandler: Send + Sync {
 }
 
 pub struct PowerStateRequestHandlerImpl {
-    power_state_request_sender: Sender<Box<dyn PowerState>>,
+    power_state_request_sender: Sender<PowerRequest>,
     power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
 }
 
 impl PowerStateRequestHandlerImpl {
     pub fn new(
-        power_state_request_sender: Sender<Box<dyn PowerState>>,
+        power_state_request_sender: Sender<PowerRequest>,
         power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
     ) -> Self {
         Self { power_state_request_sender, power_state_watch_receiver }
@@ -153,26 +193,27 @@ impl PowerStateRequestHandlerImpl {
 
 impl PowerStateRequestHandler for PowerStateRequestHandlerImpl {
     fn handle_set_power_state(&self, request: PowerStateChangeRequest) -> anyhow::Result<()> {
-        let next_power_state = get_power_state_from_power_state_request(request)?;
+        let power_request = validate_power_state_request(request)?;
         let current_state = self.power_state_watch_receiver.borrow();
-        if (!current_state.is_valid_next_state(next_power_state.get_report())) {
+        if (!current_state.is_valid_next_state(power_request.power_state.get_report())) {
             error!(
                 "Power state transition is invalid, current={:?} requested {:?}",
                 current_state.get_report(),
-                next_power_state.get_report()
+                power_request.power_state.get_report()
             );
             return Err(anyhow!("Power request was not specified!"));
         }
 
-        debug!("Request for power state change {:?} approved!", next_power_state.get_report());
-        self.power_state_request_sender.blocking_send(next_power_state);
+        debug!(
+            "Request for power state change {:?} approved!",
+            power_request.power_state.get_report()
+        );
+        self.power_state_request_sender.blocking_send(power_request);
         Ok(())
     }
 }
 
-fn get_power_state_from_power_state_request(
-    request: PowerStateChangeRequest,
-) -> anyhow::Result<Box<dyn PowerState>> {
+fn validate_power_state_request(request: PowerStateChangeRequest) -> anyhow::Result<PowerRequest> {
     let power_state: Box<dyn PowerState> = match (request.power_request.unwrap()) {
         PowerStateRequest::TURN_ON => Box::new(On {}),
         PowerStateRequest::CANCEL_SHUTDOWN => Box::new(ShutdownCancelled {}),
@@ -196,11 +237,17 @@ fn get_power_state_from_power_state_request(
             return Err(anyhow!("Power request was not specified!"))
         }
     };
-    Ok(power_state)
+
+    if request.timeout_ms == 0 {
+        return Err(anyhow!("Timeout cannot be Zero!"));
+    }
+
+    Ok(PowerRequest::new(power_state, request.timeout_ms))
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::power_service::PowerRequest;
     use crate::power_service::PowerService;
     use crate::power_service::PowerStateRequestHandler;
     use crate::power_state::MockPowerState;
@@ -251,7 +298,7 @@ mod tests {
         // epect sleep state to be a non-sleep state.
         new_state.expect_is_sleep_state().returning(|| false);
         // expect new state to be executed.
-        new_state.expect_execute().times(1).returning(|_| Ok(()));
+        new_state.expect_execute().times(1).returning(|_, _| Ok(()));
 
         let mut power_service = PowerServiceImpl::new_with_notifier(Arc::new(power_state_notifier));
         let power_state_request_sender = power_service.get_power_state_request_sender();
@@ -259,7 +306,7 @@ mod tests {
         let _handle = tokio::spawn(async move { power_service.start().await });
 
         // When: a power state request is requested
-        power_state_request_sender.send(Box::new(new_state)).await;
+        power_state_request_sender.send(PowerRequest::new(Box::new(new_state), 1)).await;
 
         // Then: power state is set.
         if (timeout(
@@ -303,7 +350,7 @@ mod tests {
         // epect sleep state to be a non-sleep state.
         new_state.expect_is_sleep_state().returning(|| false);
         // expect new state to be executed.
-        new_state.expect_execute().times(1).returning(|_| Ok(()));
+        new_state.expect_execute().times(1).returning(|_, _| Ok(()));
 
         let mut power_service = PowerServiceImpl::new_with_notifier(Arc::new(power_state_notifier));
 
@@ -312,7 +359,7 @@ mod tests {
         let _handle = tokio::spawn(async move { power_service.start().await });
 
         // When: a power state request is requested
-        power_state_request_sender.send(Box::new(new_state)).await;
+        power_state_request_sender.send(PowerRequest::new(Box::new(new_state), 1)).await;
 
         // Then: power state is set.
         if (timeout(
@@ -347,7 +394,7 @@ mod tests {
         // epect sleep state to be a sleep state.
         new_state.expect_is_sleep_state().returning(|| true);
         // expect new state to be executed.
-        new_state.expect_execute().times(1).returning(|_| Ok(()));
+        new_state.expect_execute().times(1).returning(|_, _| Ok(()));
 
         let mut power_service = PowerServiceImpl::new_with_notifier(Arc::new(power_state_notifier));
         let power_state_request_sender = power_service.get_power_state_request_sender();
@@ -355,7 +402,7 @@ mod tests {
         let _handle = tokio::spawn(async move { power_service.start().await });
 
         // When: a power state request is requested
-        power_state_request_sender.send(Box::new(new_state)).await;
+        power_state_request_sender.send(PowerRequest::new(Box::new(new_state), 1)).await;
 
         // Then: power state is set.
         if (timeout(
@@ -371,9 +418,28 @@ mod tests {
     }
 
     #[test]
+    fn handle_power_state_fails_invalid_timeout() {
+        // Given: the power state request handler.
+        let (tx, _) = channel::<PowerRequest>(1);
+        let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
+        let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, rx);
+
+        // When: a prepare power state request without a timeout is sent.
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
+            shutdown_type: ShutdownType::SUSPEND_TO_DISK.into(),
+            ..Default::default()
+        };
+
+        // Then: power state is set.
+        let result = power_state_request_handler.handle_set_power_state(request);
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn handle_power_state_fails_unspecified_power_state() {
         // Given: the power state request handler.
-        let (tx, _) = channel::<Box<dyn PowerState>>(1);
+        let (tx, _) = channel::<PowerRequest>(1);
         let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, rx);
 
@@ -388,13 +454,14 @@ mod tests {
     #[test]
     fn handle_power_state_fails_prepare_no_shutdown_type() {
         // Given: the power state request handler.
-        let (tx, _) = channel::<Box<dyn PowerState>>(1);
+        let (tx, _) = channel::<PowerRequest>(1);
         let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, rx);
 
         // When: a prepare power state request is sent without shutdown type.
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
+            timeout_ms: 1,
             ..Default::default()
         };
 
@@ -406,13 +473,14 @@ mod tests {
     #[test]
     fn handle_power_state_fails_turn_off_no_shutdown_type() {
         // Given: the power state request handler.
-        let (tx, _) = channel::<Box<dyn PowerState>>(1);
+        let (tx, _) = channel::<PowerRequest>(1);
         let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, rx);
 
         // When: a power off state request is sent without shutdown type.
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::FINISH_SHUTDOWN.into(),
+            timeout_ms: 1,
             ..Default::default()
         };
 
@@ -424,13 +492,14 @@ mod tests {
     #[test]
     fn handle_power_state_on() {
         // Given: the power state request handler.
-        let (tx, mut rx) = channel::<Box<dyn PowerState>>(1);
+        let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::TURN_ON.into(),
+            timeout_ms: 1,
             ..Default::default()
         };
 
@@ -438,7 +507,7 @@ mod tests {
         let result = power_state_request_handler.handle_set_power_state(request);
         assert_eq!(
             PowerStateReport::ON,
-            rx.blocking_recv().expect("Nothing was received!").get_report()
+            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
@@ -446,7 +515,7 @@ mod tests {
     #[test]
     fn handle_power_state_prepare_s2r() {
         // Given: the power state request handler.
-        let (tx, mut rx) = channel::<Box<dyn PowerState>>(1);
+        let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(On {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
@@ -454,6 +523,7 @@ mod tests {
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
             shutdown_type: ShutdownType::SUSPEND_TO_RAM.into(),
+            timeout_ms: 1,
             ..Default::default()
         };
 
@@ -461,7 +531,7 @@ mod tests {
         let result = power_state_request_handler.handle_set_power_state(request);
         assert_eq!(
             PowerStateReport::SUSPEND_TO_RAM_ENTER,
-            rx.blocking_recv().expect("Nothing was received!").get_report()
+            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
@@ -469,7 +539,7 @@ mod tests {
     #[test]
     fn handle_power_state_prepare_s2d() {
         // Given: the power state request handler.
-        let (tx, mut rx) = channel::<Box<dyn PowerState>>(1);
+        let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(On {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
@@ -477,6 +547,7 @@ mod tests {
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
             shutdown_type: ShutdownType::SUSPEND_TO_DISK.into(),
+            timeout_ms: 1,
             ..Default::default()
         };
 
@@ -484,7 +555,7 @@ mod tests {
         let result = power_state_request_handler.handle_set_power_state(request);
         assert_eq!(
             PowerStateReport::SUSPEND_TO_DISK_ENTER,
-            rx.blocking_recv().expect("Nothing was received!").get_report()
+            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
@@ -492,7 +563,7 @@ mod tests {
     #[test]
     fn handle_power_state_prepare_off() {
         // Given: the power state request handler.
-        let (tx, mut rx) = channel::<Box<dyn PowerState>>(1);
+        let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(On {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
@@ -500,6 +571,7 @@ mod tests {
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
             shutdown_type: ShutdownType::POWER_OFF.into(),
+            timeout_ms: 1,
             ..Default::default()
         };
 
@@ -507,7 +579,7 @@ mod tests {
         let result = power_state_request_handler.handle_set_power_state(request);
         assert_eq!(
             PowerStateReport::POWER_OFF_ENTER,
-            rx.blocking_recv().expect("Nothing was received!").get_report()
+            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
@@ -515,13 +587,14 @@ mod tests {
     #[test]
     fn handle_power_state_cancel_shutdown() {
         // Given: the power state request handler.
-        let (tx, mut rx) = channel::<Box<dyn PowerState>>(1);
+        let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffEnter {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::CANCEL_SHUTDOWN.into(),
+            timeout_ms: 1,
             ..Default::default()
         };
 
@@ -529,7 +602,7 @@ mod tests {
         let result = power_state_request_handler.handle_set_power_state(request);
         assert_eq!(
             PowerStateReport::SHUTDOWN_CANCELLED,
-            rx.blocking_recv().expect("Nothing was received!").get_report()
+            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
@@ -537,7 +610,7 @@ mod tests {
     #[test]
     fn handle_power_state_s2r() {
         // Given: the power state request handler.
-        let (tx, mut rx) = channel::<Box<dyn PowerState>>(1);
+        let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinish {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
@@ -545,6 +618,7 @@ mod tests {
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::FINISH_SHUTDOWN.into(),
             shutdown_type: ShutdownType::SUSPEND_TO_RAM.into(),
+            timeout_ms: 1,
             ..Default::default()
         };
 
@@ -552,7 +626,7 @@ mod tests {
         let result = power_state_request_handler.handle_set_power_state(request);
         assert_eq!(
             PowerStateReport::SUSPEND_TO_RAM_POST_FINISH,
-            rx.blocking_recv().expect("Nothing was received!").get_report()
+            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
@@ -560,7 +634,7 @@ mod tests {
     #[test]
     fn handle_power_state_s2d() {
         // Given: the power state request handler.
-        let (tx, mut rx) = channel::<Box<dyn PowerState>>(1);
+        let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinish {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
@@ -568,6 +642,7 @@ mod tests {
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::FINISH_SHUTDOWN.into(),
             shutdown_type: ShutdownType::SUSPEND_TO_DISK.into(),
+            timeout_ms: 1,
             ..Default::default()
         };
 
@@ -575,7 +650,7 @@ mod tests {
         let result = power_state_request_handler.handle_set_power_state(request);
         assert_eq!(
             PowerStateReport::SUSPEND_TO_DISK_POST_FINISH,
-            rx.blocking_recv().expect("Nothing was received!").get_report()
+            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
@@ -583,7 +658,7 @@ mod tests {
     #[test]
     fn handle_power_state_off() {
         // Given: the power state request handler.
-        let (tx, mut rx) = channel::<Box<dyn PowerState>>(1);
+        let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinish {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
@@ -591,6 +666,7 @@ mod tests {
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::FINISH_SHUTDOWN.into(),
             shutdown_type: ShutdownType::POWER_OFF.into(),
+            timeout_ms: 1,
             ..Default::default()
         };
 
@@ -598,7 +674,7 @@ mod tests {
         let result = power_state_request_handler.handle_set_power_state(request);
         assert_eq!(
             PowerStateReport::POWER_OFF_POST_FINISH,
-            rx.blocking_recv().expect("Nothing was received!").get_report()
+            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }

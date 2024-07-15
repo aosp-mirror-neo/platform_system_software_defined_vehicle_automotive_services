@@ -75,9 +75,11 @@ fn handle_vehicle_state(
 }
 
 fn handle_power_state(power_cmd: PowerCommand, client: &VpmSystemClient) -> anyhow::Result<()> {
+    let timeout_ms = 10000;
     let request = match power_cmd {
         PowerCommand::PowerOn => PowerStateChangeRequest {
             power_request: PowerStateRequest::TURN_ON.into(),
+            timeout_ms,
             ..Default::default()
         },
         PowerCommand::Cancel => PowerStateChangeRequest {
@@ -88,16 +90,19 @@ fn handle_power_state(power_cmd: PowerCommand, client: &VpmSystemClient) -> anyh
             SuspendType::ShutDown => PowerStateChangeRequest {
                 power_request: PowerStateRequest::FINISH_SHUTDOWN.into(),
                 shutdown_type: ShutdownType::POWER_OFF.into(),
+                timeout_ms,
                 ..Default::default()
             },
             SuspendType::Ram => PowerStateChangeRequest {
                 power_request: PowerStateRequest::FINISH_SHUTDOWN.into(),
                 shutdown_type: ShutdownType::SUSPEND_TO_RAM.into(),
+                timeout_ms,
                 ..Default::default()
             },
             SuspendType::Disk => PowerStateChangeRequest {
                 power_request: PowerStateRequest::FINISH_SHUTDOWN.into(),
                 shutdown_type: ShutdownType::SUSPEND_TO_DISK.into(),
+                timeout_ms,
                 ..Default::default()
             },
         },
@@ -105,16 +110,19 @@ fn handle_power_state(power_cmd: PowerCommand, client: &VpmSystemClient) -> anyh
             SuspendType::ShutDown => PowerStateChangeRequest {
                 power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
                 shutdown_type: ShutdownType::POWER_OFF.into(),
+                timeout_ms,
                 ..Default::default()
             },
             SuspendType::Ram => PowerStateChangeRequest {
                 power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
                 shutdown_type: ShutdownType::SUSPEND_TO_RAM.into(),
+                timeout_ms,
                 ..Default::default()
             },
             SuspendType::Disk => PowerStateChangeRequest {
                 power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
                 shutdown_type: ShutdownType::SUSPEND_TO_DISK.into(),
+                timeout_ms,
                 ..Default::default()
             },
         },

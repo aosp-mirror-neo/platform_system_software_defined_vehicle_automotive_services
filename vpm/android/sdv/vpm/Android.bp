@@ -121,3 +121,26 @@ rust_test {
     ],
     require_root: true,
 }
+
+rust_test {
+    name: "sdv_vpm_agent_power_timeout_test",
+    srcs: ["tests/power_timeout_test.rs"],
+    defaults: [
+        "sdv_tracing@rust_defaults",
+    ],
+    rustlibs: [
+        "google.sdv.vpm-aidl-rust",
+        "librpcbinder_rs",
+        "libsdv_vpm_api",
+        "libanyhow",
+        "liblazy_static",
+        "libsdv_middleware_pubsub",
+        "libsdvmiddleware_rpc",
+        "libsdvgenerated_vpm_integration_test_bundle",
+    ],
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+    require_root: true,
+}
