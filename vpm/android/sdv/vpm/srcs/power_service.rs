@@ -111,33 +111,37 @@ impl PowerServiceImpl {
             if (new_state.is_sleep_state()) {
                 return;
             }
-            match timeout_result {
-                Ok(notification_result) => match notification_result {
-                    Ok(_) => {
-                        info!("Successfully notified all callbacks!");
-                        cloned_power_state_notifier.notify_oem(
-                            new_state.get_report(),
-                            PowerStateChangeReason::HOST_REQUESTED,
-                        );
-                    }
-                    Err(e) => {
-                        debug!("Failed to notify one of the callbacks!");
-                        cloned_power_state_notifier.notify_oem(
-                            new_state.get_report(),
-                            //TODO: b/353655403 Add more reasons for failing callbacks.
-                            PowerStateChangeReason::TIMEOUT,
-                        );
-                    }
-                },
-
-                Err(Elapsed { .. }) => {
-                    debug!("Call to notify callbacks has timed-out!");
-                    cloned_power_state_notifier
-                        .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT);
-                }
-            }
+            notify_oem(new_state, timeout_result, cloned_power_state_notifier);
         })
         .await;
+    }
+}
+
+fn notify_oem(
+    new_state: Arc<dyn PowerState>,
+    timeout_result: Result<anyhow::Result<()>, Elapsed>,
+    cloned_power_state_notifier: Arc<dyn PowerStateNotifier>,
+) {
+    match timeout_result {
+        Ok(notification_result) => match notification_result {
+            Ok(_) => {
+                info!("Successfully notified all callbacks!");
+                cloned_power_state_notifier
+                    .notify_oem(new_state.get_report(), PowerStateChangeReason::HOST_REQUESTED);
+            }
+            Err(e) => {
+                debug!("Failed to notify one of the callbacks!");
+                cloned_power_state_notifier
+                    //TODO: b/353655403 Add more reasons for failing callbacks.
+                    .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT);
+            }
+        },
+
+        Err(Elapsed { .. }) => {
+            debug!("Call to notify callbacks has timed-out!");
+            cloned_power_state_notifier
+                .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT);
+        }
     }
 }
 
