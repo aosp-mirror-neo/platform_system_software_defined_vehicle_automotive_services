@@ -120,7 +120,7 @@ impl PowerState for SuspendToRamEnter {
         timeout_ms: u64,
     ) -> anyhow::Result<()> {
         power_state_request_sender
-            .send(PowerRequest::new(Box::new(WaitForFinish {}), timeout_ms))
+            .send(PowerRequest::new(Box::new(WaitForFinishSuspendToRam {}), timeout_ms))
             .await;
         Ok(())
     }
@@ -145,7 +145,7 @@ impl PowerState for SuspendToDiskEnter {
         timeout_ms: u64,
     ) -> anyhow::Result<()> {
         power_state_request_sender
-            .send(PowerRequest::new(Box::new(WaitForFinish {}), timeout_ms))
+            .send(PowerRequest::new(Box::new(WaitForFinishSuspendToDisk {}), timeout_ms))
             .await;
         Ok(())
     }
@@ -169,27 +169,48 @@ impl PowerState for PowerOffEnter {
         timeout_ms: u64,
     ) -> anyhow::Result<()> {
         power_state_request_sender
-            .send(PowerRequest::new(Box::new(WaitForFinish {}), timeout_ms))
+            .send(PowerRequest::new(Box::new(WaitForFinishPowerOff {}), timeout_ms))
             .await;
         Ok(())
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct WaitForFinish {}
+pub struct WaitForFinishSuspendToRam {}
 
 #[async_trait]
-impl PowerState for WaitForFinish {
-    //TODO: This needs to be optimized, otherwise someone can call suspend to ram
-    // Then wait until wait_for_finish and call suspend to disk or power off
+impl PowerState for WaitForFinishSuspendToRam {
     fn is_valid_next_state(&self, next_state: PowerStateReport) -> bool {
-        [
-            PowerStateReport::SUSPEND_TO_RAM_POST_FINISH,
-            PowerStateReport::SUSPEND_TO_DISK_POST_FINISH,
-            PowerStateReport::POWER_OFF_POST_FINISH,
-            PowerStateReport::SHUTDOWN_CANCELLED,
-        ]
-        .contains(&next_state)
+        next_state == PowerStateReport::SHUTDOWN_CANCELLED
+            || next_state == PowerStateReport::SUSPEND_TO_RAM_POST_FINISH
+    }
+    fn get_report(&self) -> PowerStateReport {
+        PowerStateReport::WAIT_FOR_FINISH
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct WaitForFinishSuspendToDisk {}
+
+#[async_trait]
+impl PowerState for WaitForFinishSuspendToDisk {
+    fn is_valid_next_state(&self, next_state: PowerStateReport) -> bool {
+        next_state == PowerStateReport::SHUTDOWN_CANCELLED
+            || next_state == PowerStateReport::SUSPEND_TO_DISK_POST_FINISH
+    }
+    fn get_report(&self) -> PowerStateReport {
+        PowerStateReport::WAIT_FOR_FINISH
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct WaitForFinishPowerOff {}
+
+#[async_trait]
+impl PowerState for WaitForFinishPowerOff {
+    fn is_valid_next_state(&self, next_state: PowerStateReport) -> bool {
+        next_state == PowerStateReport::SHUTDOWN_CANCELLED
+            || next_state == PowerStateReport::POWER_OFF_POST_FINISH
     }
     fn get_report(&self) -> PowerStateReport {
         PowerStateReport::WAIT_FOR_FINISH
@@ -293,7 +314,6 @@ impl PowerState for PowerOffPostFinish {
 #[cfg(test)]
 mod tests {
     use crate::power_state::*;
-    use log::info;
 
     #[test]
     fn verify_allowed_transitions_to_power_off_exit() {
@@ -415,7 +435,9 @@ mod tests {
             Box::new(SuspendToRamEnter {}),
             Box::new(SuspendToDiskEnter {}),
             Box::new(PowerOffEnter {}),
-            Box::new(WaitForFinish {}),
+            Box::new(WaitForFinishSuspendToDisk {}),
+            Box::new(WaitForFinishSuspendToRam {}),
+            Box::new(WaitForFinishPowerOff {}),
         ];
         for state in &allowed_states {
             assert!(state.is_valid_next_state(shutdown_cancelled));
@@ -452,7 +474,7 @@ mod tests {
         let power_off_post_finish = PowerStateReport::POWER_OFF_POST_FINISH;
 
         // Allowed source states
-        let allowed_states: Vec<Box<dyn PowerState>> = vec![Box::new(WaitForFinish {})];
+        let allowed_states: Vec<Box<dyn PowerState>> = vec![Box::new(WaitForFinishPowerOff {})];
         for state in &allowed_states {
             assert!(state.is_valid_next_state(power_off_post_finish));
         }
@@ -468,7 +490,7 @@ mod tests {
         let suspend_to_ram_post_finish = PowerStateReport::SUSPEND_TO_RAM_POST_FINISH;
 
         // Allowed source states
-        let allowed_states: Vec<Box<dyn PowerState>> = vec![Box::new(WaitForFinish {})];
+        let allowed_states: Vec<Box<dyn PowerState>> = vec![Box::new(WaitForFinishSuspendToRam {})];
         for state in &allowed_states {
             assert!(state.is_valid_next_state(suspend_to_ram_post_finish));
         }
@@ -484,7 +506,8 @@ mod tests {
         let suspend_to_disk_post_finish = PowerStateReport::SUSPEND_TO_DISK_POST_FINISH;
 
         // Allowed source states
-        let allowed_states: Vec<Box<dyn PowerState>> = vec![Box::new(WaitForFinish {})];
+        let allowed_states: Vec<Box<dyn PowerState>> =
+            vec![Box::new(WaitForFinishSuspendToDisk {})];
         for state in &allowed_states {
             assert!(state.is_valid_next_state(suspend_to_disk_post_finish));
         }
@@ -505,7 +528,9 @@ mod tests {
             Box::new(PowerOffEnter {}),
             Box::new(SuspendToRamEnter {}),
             Box::new(SuspendToDiskEnter {}),
-            Box::new(WaitForFinish {}),
+            Box::new(WaitForFinishSuspendToRam {}),
+            Box::new(WaitForFinishSuspendToDisk {}),
+            Box::new(WaitForFinishPowerOff {}),
             Box::new(SuspendToRamPostFinish {}),
             Box::new(SuspendToDiskPostFinish {}),
             Box::new(PowerOffPostFinish {}),

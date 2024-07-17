@@ -615,7 +615,7 @@ mod tests {
     fn handle_power_state_s2r() {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
-        let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinish {}));
+        let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinishSuspendToRam {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
         // When: a power state request is sent.
@@ -639,7 +639,7 @@ mod tests {
     fn handle_power_state_s2d() {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
-        let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinish {}));
+        let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinishSuspendToDisk {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
         // When: a power state request is sent.
@@ -663,7 +663,7 @@ mod tests {
     fn handle_power_state_off() {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
-        let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinish {}));
+        let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinishPowerOff {}));
         let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
         // When: a power state request is sent.
