@@ -1,5 +1,9 @@
 // Copyright 2024 Google LLC
-#![allow(missing_docs)]
+
+//! # SDV User Preferences Service: Reference Implementation
+//!
+//! The User Preferences service provides a centralized location for storing preferences of
+//! vehicle users and communicating these preferences to various components within the vehicle.
 
 mod macros;
 mod persistence;
