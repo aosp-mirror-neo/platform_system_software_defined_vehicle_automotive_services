@@ -7,6 +7,8 @@
 
 mod macros;
 mod persistence;
+#[cfg(test)]
+mod test_utils;
 mod user_preferences_service_impl;
 mod vsidl_client_provider;
 

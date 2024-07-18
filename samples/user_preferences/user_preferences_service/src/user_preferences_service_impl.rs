@@ -2,16 +2,22 @@
 use anyhow::Result;
 use itertools::Itertools;
 use log::{debug, error, info, warn};
+use std::collections::HashSet;
 
 use sdvgenerated::sdv_user_preferences_user_controllable_user_controllable_service_interface::UserControllableService;
 use sdvgenerated::sdv_user_preferences_user_preferences_admin_service_interface::UserPreferencesAdminService;
 use sdvgenerated::sdv_user_preferences_user_preferences_management_service_interface::UserPreferencesManagementService;
 use sdvgenerated::sdv_user_preferences_user_preferences_registry_service_interface::UserPreferencesRegistryService;
+use sdvgenerated::sdv_user_preferences_view_change_notifier_interface::ChangeNotifier;
 use user_preferences_api::user_preferences_management_service::request_settings_change_request::ChangePersistencePolicy;
 
+use user_preferences_api::change_notifier::OnSettingsChangeRequest;
 use user_preferences_api::error::{Error, ResponseCode};
 use user_preferences_api::setting::Setting as SettingProto;
-use user_preferences_api::setting::{SettingDefinition as SettingDefinitionProto, SettingKind};
+use user_preferences_api::setting::{
+    setting::Value as ValueProto, SettingAndConstraints,
+    SettingDefinition as SettingDefinitionProto, SettingKind,
+};
 use user_preferences_api::user_controllable_service;
 use user_preferences_api::user_preferences_admin_service::*;
 use user_preferences_api::user_preferences_management_service::*;
@@ -51,6 +57,7 @@ pub struct UserPreferencesServiceImpl {
     user_settings_repository: UserSettingsRepository,
     vehicle_settings_repository: VehicleSettingsRepository,
     vsidl_client_provider: Weak<dyn VSIDLClientProvider>,
+    subscribers_repository: Mutex<HashMap<i64, HashSet<String>>>,
     active_user_id: Mutex<Option<i32>>,
 }
 
@@ -63,8 +70,47 @@ impl UserPreferencesServiceImpl {
             user_settings_repository: args.user_settings_repository,
             vehicle_settings_repository: args.vehicle_settings_repository,
             vsidl_client_provider: args.vsidl_client_provider,
+            subscribers_repository: Mutex::new(HashMap::new()),
             active_user_id: Mutex::new(None),
         }
+    }
+
+    pub fn calculate_group_settings_for_vehicle_state(
+        &self,
+        settings_group_id: i64,
+    ) -> Result<Vec<SettingAndConstraints>> {
+        let default_settings = self
+            .settings_definition_repository
+            .get(settings_group_id)?
+            .into_iter()
+            .map(|setting_definition| SettingAndConstraints {
+                setting: Some(SettingProto {
+                    key: setting_definition.name.clone(),
+                    value: Some(setting_definition.default_value.into()),
+                    ..Default::default()
+                })
+                .into(),
+                constraints: setting_definition.constraint.map(|s| s.into()),
+                ..Default::default()
+            })
+            .collect_vec();
+
+        let vehicle_state = self.vehicle_settings_repository.get(settings_group_id)?;
+        let vehicle_state: HashMap<String, ValueProto> =
+            vehicle_state.into_iter().map(|setting| (setting.name, setting.value.into())).collect();
+
+        let effective_settings = default_settings
+            .into_iter()
+            .map(|mut setting_and_constraints| {
+                let setting = setting_and_constraints.setting.as_mut().unwrap();
+                if let Some(vehicle_value) = vehicle_state.get(&setting.key) {
+                    setting.value = Some(vehicle_value.clone());
+                }
+                setting_and_constraints
+            })
+            .collect_vec();
+
+        Ok(effective_settings)
     }
 
     pub fn calculate_group_settings_for_user(
@@ -150,13 +196,15 @@ impl UserPreferencesServiceImpl {
         settings_group: SettingsGroup,
         settings: Vec<SettingProto>,
     ) -> Result<(), String> {
-        let client = match self.vsidl_client_provider.upgrade() {
-            Some(x) => x
-                .get_sdv_user_preferences_user_controllable_user_controllable_service_client(
-                    &settings_group.service_fqin,
-                ),
-            None => return Err(String::from("VSIDL client provider is not available")),
-        };
+        let client = self
+            .vsidl_client_provider
+            .upgrade()
+            //This is fatal error since we are not able to communicate setting changes to user controllable services
+            //nor notify subscribers of setting changes
+            .expect("VSIDL client provider has been dropped")
+            .get_sdv_user_preferences_user_controllable_user_controllable_service_client(
+                &settings_group.service_fqin,
+            );
 
         let resp = client
             .request_settings_change(user_controllable_service::RequestSettingsChangeRequest {
@@ -181,6 +229,75 @@ impl UserPreferencesServiceImpl {
         {
             Ok(_) => Ok(()),
             Err(err) => Err(format!("Failed to update internal vehicle state table {}", err)),
+        }
+    }
+
+    fn get_subscribers(&self, settings_group_id: i64) -> Vec<String> {
+        let subscribers_repository = self.subscribers_repository.lock().unwrap();
+        subscribers_repository
+            .get(&settings_group_id)
+            .unwrap_or(&HashSet::new())
+            .iter()
+            .cloned()
+            .collect_vec()
+    }
+
+    fn notify_subscribers(
+        &self,
+        updated_setting_group: &SettingsGroup,
+        updated_settings_name: &HashSet<String>,
+    ) {
+        let current_user_id: Option<i32> = *self.active_user_id.lock().unwrap();
+        let current_settings_applied: Vec<SettingProto> =
+            match self.vehicle_settings_repository.get(updated_setting_group.id) {
+                Ok(settings) => settings
+                    .into_iter()
+                    .filter(|s| updated_settings_name.contains(&s.name))
+                    .map_into()
+                    .collect_vec(),
+                Err(err) => {
+                    error!("Failed to retrieve current vehicle settings: {}", err);
+                    return;
+                }
+            };
+
+        let persisted_settings: Vec<SettingProto> = match current_user_id {
+            None => Vec::new(),
+            Some(id) => {
+                match self.calculate_group_settings_for_user(id, updated_setting_group.id) {
+                    Ok(settings) => settings
+                        .into_iter()
+                        .filter(|s| updated_settings_name.contains(&s.name))
+                        .map_into()
+                        .collect_vec(),
+                    Err(err) => {
+                        error!("Failed to retrieve persisted user settings: {}", err);
+                        return;
+                    }
+                }
+            }
+        };
+        let subscribers = self.get_subscribers(updated_setting_group.id);
+
+        for subscriber in subscribers {
+            let client = self
+                .vsidl_client_provider
+                .upgrade()
+                //This is fatal error since we are not able to communicate setting changes to user controllable services
+                //nor notify subscribers of setting changes
+                .expect("VSIDL client provider has been dropped")
+                .get_sdv_user_preferences_view_change_notifier_client(&subscriber);
+
+            info!("Notifying {} of settings change\n", subscriber);
+            if let Err(err) = client.on_settings_change(OnSettingsChangeRequest {
+                settings_group_id: MessageField::some(updated_setting_group.clone().into()),
+                settings: current_settings_applied.clone(),
+                //TODO: Expose pending settings for the user to subscribers
+                persisted_settings: persisted_settings.clone(),
+                ..Default::default()
+            }) {
+                error!("Failed to notify {} of settings change: {}", subscriber, err);
+            }
         }
     }
 }
@@ -274,14 +391,16 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
                 group, settings
             );
 
-            if let Err(err) =
-                self.apply_settings(group.clone(), settings.into_iter().map_into().collect())
+            if let Err(err) = self
+                .apply_settings(group.clone(), settings.clone().into_iter().map_into().collect())
             {
                 error!(
                     "Failed to apply settings from settings group {}/{}: {}",
                     group.service_fqin, group.name, err
                 );
             }
+
+            self.notify_subscribers(group, &settings.into_iter().map(|x| x.name.clone()).collect());
         }
 
         Ok(SelectUserResponse::new())
@@ -335,7 +454,7 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
                     );
                     return error_response!(
                         RequestSettingsChangeResponse,
-                        ResponseCode::INVALID_REQUEST,
+                        ResponseCode::NOT_FOUND_ERROR,
                         "Settings group {}/{} doesn't exist",
                         settings_group_id.service_fqin,
                         settings_group_id.name,
@@ -393,14 +512,87 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
             //clients to notify them of current setting that is applied.
         }
 
+        self.notify_subscribers(
+            &settings_group,
+            &request.settings.into_iter().map(|x| x.key.clone()).collect(),
+        );
+
         Ok(RequestSettingsChangeResponse::new())
     }
 
     fn subscribe_to_settings_change_and_get_settings(
         &self,
-        _request: SubscribeToSettingsChangeAndGetSettingsRequest,
+        request: SubscribeToSettingsChangeAndGetSettingsRequest,
     ) -> RpcResult<SubscribeToSettingsChangeAndGetSettingsResponse> {
-        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+        let settings_group_id = request.settings_group_id.unwrap();
+        let settings_group = match self
+            .settings_group_repository
+            .get(settings_group_id.name.as_str(), settings_group_id.service_fqin.as_str())
+        {
+            Ok(x) => x,
+            Err(err) => match err {
+                crate::persistence::error::Error::NotFound => {
+                    warn!(
+                        "Setting group {}/{} was not found",
+                        settings_group_id.service_fqin, settings_group_id.name
+                    );
+                    return error_response!(
+                        SubscribeToSettingsChangeAndGetSettingsResponse,
+                        ResponseCode::NOT_FOUND_ERROR,
+                        "Setting group {}/{} was not found",
+                        settings_group_id.service_fqin,
+                        settings_group_id.name
+                    );
+                }
+                _ => {
+                    error!(
+                        "Unable to retrieve setting group {}/{}: {}",
+                        settings_group_id.service_fqin, settings_group_id.name, err
+                    );
+                    return error_response!(
+                        SubscribeToSettingsChangeAndGetSettingsResponse,
+                        ResponseCode::INTERNAL_ERROR,
+                        "Unable to retrieve setting group {}/{}: {}",
+                        settings_group_id.service_fqin,
+                        settings_group_id.name,
+                        err
+                    );
+                }
+            },
+        };
+
+        let current_settings: Vec<SettingAndConstraints> =
+            self.calculate_group_settings_for_vehicle_state(settings_group.id).unwrap();
+        let persisted_settings: Vec<SettingProto> = match *self.active_user_id.lock().unwrap() {
+            Some(user_id) => {
+                match self.calculate_group_settings_for_user(user_id, settings_group.id) {
+                    Ok(x) => x.into_iter().map_into().collect_vec(),
+                    Err(err) => {
+                        error!("Failed to retrieve persisted settings: {}", err);
+                        return error_response!(
+                            SubscribeToSettingsChangeAndGetSettingsResponse,
+                            ResponseCode::INTERNAL_ERROR,
+                            "Unable to retrieve setting group {}/{}: {}",
+                            settings_group_id.service_fqin,
+                            settings_group_id.name,
+                            err
+                        );
+                    }
+                }
+            }
+            None => Vec::new(),
+        };
+
+        let mut subscribers_repository = self.subscribers_repository.lock().unwrap();
+
+        subscribers_repository.entry(settings_group.id).or_default().insert(request.caller_fqin);
+
+        Ok(SubscribeToSettingsChangeAndGetSettingsResponse {
+            current_settings,
+            //TODO: Add version number to settings_group & return it here
+            persisted_settings,
+            ..Default::default()
+        })
     }
 
     fn unsubscribe_from_settings_change(
@@ -471,16 +663,15 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_utils::*;
     use crate::vsidl_client_provider::{MockClientTransport, MockVSIDLClientProvider};
     use protobuf::Message;
     use rusqlite::Connection;
     use sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::client::UserControllableServiceClient;
+    use sdvgenerated_rpc_sdv_user_preferences_view_change_notifier::client::ChangeNotifierClient;
     use std::sync::{Arc, Mutex};
-    use user_preferences_api::setting::{
-        setting::Value as ValueProto, setting_and_constraints::Constraints as ConstraintsProto,
-        Int32Constraints as Int32ConstraintsProto, Setting as SettingProto,
-        SettingAndConstraints as SettingAndConstraintsProto, SettingKind as SettingKindProto,
-    };
+    use user_preferences_api::change_notifier::OnSettingsChangeResponse;
+    use user_preferences_api::setting::{setting::Value as ValueProto, Setting as SettingProto};
     use user_preferences_api::settings_group::SettingsGroupId as SettingsGroupIdProto;
     use user_preferences_api::user::User as UserProto;
 
@@ -555,8 +746,8 @@ mod tests {
             vec![default_bool_setting_definition(), default_int32_setting_definition()];
 
         let request = RegisterSettingsRequest {
-            group_name: "test_group".to_string(),
-            caller_fqin: "com.example.test_service".to_string(),
+            group_name: TEST_SETTINGS_GROUP_NAME.to_string(),
+            caller_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
             settings_definitions,
             ..Default::default()
         };
@@ -578,7 +769,7 @@ mod tests {
 
         let expected_rpc_request =
             user_preferences_api::user_controllable_service::RequestSettingsChangeRequest {
-                group_name: String::from("test_group"),
+                group_name: String::from(TEST_SETTINGS_GROUP_NAME),
                 settings: vec![default_int32_setting(), default_bool_setting()],
                 ..Default::default()
             };
@@ -608,7 +799,9 @@ mod tests {
         mock_vsidl_client_provider
             .expect_get_sdv_user_preferences_user_controllable_user_controllable_service_client()
             .times(1)
-            .withf(|target_service_bundle| target_service_bundle == "com.example.test_service")
+            .withf(|target_service_bundle| {
+                target_service_bundle == TEST_USER_CONTROLLABLE_SERVICE_FQIN
+            })
             .returning(move |_| client.clone());
 
         let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
@@ -626,8 +819,8 @@ mod tests {
         let settings_definitions =
             vec![default_bool_setting_definition(), default_int32_setting_definition()];
         let register_settings_request = RegisterSettingsRequest {
-            group_name: "test_group".to_string(),
-            caller_fqin: "com.example.test_service".to_string(),
+            group_name: TEST_SETTINGS_GROUP_NAME.to_string(),
+            caller_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
             settings_definitions,
             ..Default::default()
         };
@@ -664,7 +857,7 @@ mod tests {
 
         let expected_rpc_request =
             user_preferences_api::user_controllable_service::RequestSettingsChangeRequest {
-                group_name: String::from("test_group"),
+                group_name: String::from(TEST_SETTINGS_GROUP_NAME),
                 settings: vec![default_int32_setting(), default_bool_setting()],
                 ..Default::default()
             };
@@ -698,9 +891,9 @@ mod tests {
                 info!(
                     "Are we returning a vsidl client provider: {} | {}",
                     target_service_bundle,
-                    target_service_bundle == "com.example.test_service"
+                    target_service_bundle == TEST_USER_CONTROLLABLE_SERVICE_FQIN
                 );
-                target_service_bundle == "com.example.test_service"
+                target_service_bundle == TEST_USER_CONTROLLABLE_SERVICE_FQIN
             })
             .returning(move |_| client.clone());
 
@@ -713,8 +906,8 @@ mod tests {
         let settings_definitions =
             vec![default_bool_setting_definition(), default_int32_setting_definition()];
         let register_settings_request = RegisterSettingsRequest {
-            group_name: "test_group".to_string(),
-            caller_fqin: "com.example.test_service".to_string(),
+            group_name: TEST_SETTINGS_GROUP_NAME.to_string(),
+            caller_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
             settings_definitions,
             ..Default::default()
         };
@@ -726,8 +919,8 @@ mod tests {
         // Request settings change with valid settings
         let request_settings_change_request = RequestSettingsChangeRequest {
             settings_group_id: Some(SettingsGroupIdProto {
-                name: "test_group".to_string(),
-                service_fqin: "com.example.test_service".to_string(),
+                name: TEST_SETTINGS_GROUP_NAME.to_string(),
+                service_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
                 ..Default::default()
             })
             .into(),
@@ -753,8 +946,8 @@ mod tests {
         let settings_definitions =
             vec![default_bool_setting_definition(), default_int32_setting_definition()];
         let register_settings_request = RegisterSettingsRequest {
-            group_name: "test_group".to_string(),
-            caller_fqin: "com.example.test_service".to_string(),
+            group_name: TEST_SETTINGS_GROUP_NAME.to_string(),
+            caller_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
             settings_definitions,
             ..Default::default()
         };
@@ -763,8 +956,8 @@ mod tests {
         // Request settings change with invalid settings
         let request_settings_change_request = RequestSettingsChangeRequest {
             settings_group_id: Some(SettingsGroupIdProto {
-                name: "test_group".to_string(),
-                service_fqin: "com.example.test_service".to_string(),
+                name: TEST_SETTINGS_GROUP_NAME.to_string(),
+                service_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
                 ..Default::default()
             })
             .into(),
@@ -781,6 +974,10 @@ mod tests {
 
         // Assert that the response contains an error
         assert!(response.error.is_some());
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::INVALID_REQUEST as i32
+        );
     }
 
     #[test]
@@ -804,7 +1001,7 @@ mod tests {
         let request_settings_change_request = RequestSettingsChangeRequest {
             settings_group_id: Some(SettingsGroupIdProto {
                 name: "non_existent_group".to_string(),
-                service_fqin: "com.example.test_service".to_string(),
+                service_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
                 ..Default::default()
             })
             .into(),
@@ -817,6 +1014,212 @@ mod tests {
 
         // Assert that the response contains an error
         assert!(response.error.is_some());
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::NOT_FOUND_ERROR as i32
+        );
+    }
+
+    #[test]
+    fn subscribe_to_settings_change_and_get_settings_returns_error_for_non_existent_group() {
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(MockVSIDLClientProvider::new());
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        let non_existent_group_id = SettingsGroupIdProto {
+            name: "non_existent_group".to_string(),
+            service_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+            ..Default::default()
+        };
+        let response = subscribe_to_settings_change_and_get_settings(
+            &user_preferences_impl,
+            non_existent_group_id,
+        );
+
+        // Assert that the response contains an error
+        assert!(response.error.is_some());
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::NOT_FOUND_ERROR as i32
+        );
+    }
+
+    #[test]
+    fn subscribe_to_settings_change_and_get_settings_returns_group_settings() {
+        let user_controllable_service_client = Arc::new(UserControllableServiceClient::new({
+            let mut mock_client_transport = Box::new(MockClientTransport::new());
+
+            let rpc_response =
+                user_preferences_api::user_controllable_service::RequestSettingsChangeResponse {
+                    settings: vec![default_int32_setting(), default_bool_setting()],
+                    ..Default::default()
+                };
+
+            mock_client_transport
+                .expect_call_method()
+                .times(1)
+                .returning(move |_, _| Ok(rpc_response.write_to_bytes().unwrap()));
+
+            mock_client_transport
+        }));
+
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> = Arc::new({
+            let mut mock_vsidl_client_provider = MockVSIDLClientProvider::new();
+
+            mock_vsidl_client_provider
+                .expect_get_sdv_user_preferences_user_controllable_user_controllable_service_client(
+                )
+                .times(1)
+                .returning(move |_| user_controllable_service_client.clone());
+
+            mock_vsidl_client_provider
+        });
+        let user_preferences_impl = create_user_preferences_server_with_default_settings_and_user(
+            Arc::downgrade(&mock_vsidl_client_provider),
+        );
+
+        let response = subscribe_to_settings_change_and_get_settings(
+            &user_preferences_impl,
+            DEFAULT_TEST_SETTING_GROUP_ID.clone(),
+        );
+
+        assert!(response.error.is_none());
+        assert_eq!(response.current_settings.len(), 2);
+        assert_eq!(response.persisted_settings.len(), 2)
+    }
+
+    #[test]
+    fn request_settings_change_notifies_subscribers_of_setting_changes() {
+        let change_notifier_client = Arc::new(ChangeNotifierClient::new({
+            let mut mock_client_transport = Box::new(MockClientTransport::new());
+
+            let expected_rpc_request = OnSettingsChangeRequest {
+                settings_group_id: Some(SettingsGroupIdProto {
+                    name: TEST_SETTINGS_GROUP_NAME.to_string(),
+                    service_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+                    ..Default::default()
+                })
+                .into(),
+                version: String::from(""),
+                settings: vec![SettingProto {
+                    key: "int32_setting".to_string(),
+                    value: Some(ValueProto::Int32(20)),
+                    ..Default::default()
+                }],
+                persisted_settings: vec![SettingProto {
+                    key: "int32_setting".to_string(),
+                    value: Some(ValueProto::Int32(10)),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            };
+
+            let rpc_response = OnSettingsChangeResponse { ..Default::default() };
+
+            mock_client_transport
+                .expect_call_method()
+                .times(1)
+                .withf(move |_method, request| {
+                    debug!("request_settings_change_notifies_subscribers_of_setting_changes");
+                    let request =
+                        OnSettingsChangeRequest::parse_from_bytes(
+                            request,
+                        )
+                        .unwrap();
+                    debug!("request_settings_change_notifies_subscribers_of_setting_changes request {:?}", request);
+                    request.settings_group_id.eq(&expected_rpc_request.settings_group_id)
+                        && request.version.eq(&expected_rpc_request.version)
+                        && are_settings_equal(&request.settings, &expected_rpc_request.settings)
+                        && are_settings_equal(&request.persisted_settings, &expected_rpc_request.persisted_settings)
+                })
+                .returning(move |_, _| Ok(rpc_response.write_to_bytes().unwrap()));
+
+            mock_client_transport
+        }));
+
+        let user_controllable_service_client = Arc::new(UserControllableServiceClient::new({
+            let mut mock_client_transport = Box::new(MockClientTransport::new());
+
+            let rpc_response =
+                user_preferences_api::user_controllable_service::RequestSettingsChangeResponse {
+                    settings: vec![SettingProto {
+                        key: "int32_setting".to_string(),
+                        value: Some(ValueProto::Int32(20)),
+                        ..Default::default()
+                    }],
+                    ..Default::default()
+                };
+
+            mock_client_transport
+                .expect_call_method()
+                .times(2)
+                .returning(move |_, _| Ok(rpc_response.write_to_bytes().unwrap()));
+
+            mock_client_transport
+        }));
+
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> = Arc::new({
+            let mut mock_vsidl_client_provider = MockVSIDLClientProvider::new();
+
+            mock_vsidl_client_provider
+                .expect_get_sdv_user_preferences_user_controllable_user_controllable_service_client(
+                )
+                .times(2)
+                .returning(move |_| user_controllable_service_client.clone());
+
+            mock_vsidl_client_provider
+                .expect_get_sdv_user_preferences_view_change_notifier_client()
+                .times(1)
+                .returning(move |_| change_notifier_client.clone());
+
+            mock_vsidl_client_provider
+        });
+        let user_preferences_impl = create_user_preferences_server_with_default_settings_and_user(
+            Arc::downgrade(&mock_vsidl_client_provider),
+        );
+
+        // Subscribe to settings change and get settings
+        let _ = subscribe_to_settings_change_and_get_settings(
+            &user_preferences_impl,
+            DEFAULT_TEST_SETTING_GROUP_ID.clone(),
+        );
+
+        // Request settings change with valid settings
+        let request_settings_change_request = RequestSettingsChangeRequest {
+            settings_group_id: Some(SettingsGroupIdProto {
+                name: TEST_SETTINGS_GROUP_NAME.to_string(),
+                service_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+                ..Default::default()
+            })
+            .into(),
+            settings: vec![SettingProto {
+                key: "int32_setting".to_string(),
+                value: Some(ValueProto::Int32(20)),
+                ..Default::default()
+            }],
+            change_persistence_policy: ChangePersistencePolicy::NON_PERSISTENT_CHANGE.into(),
+            ..Default::default()
+        };
+        let _response =
+            user_preferences_impl.request_settings_change(request_settings_change_request).unwrap();
+    }
+
+    fn create_user_preferences_server_with_default_settings_and_user(
+        mock_vsidl_client_provider: Weak<dyn VSIDLClientProvider>,
+    ) -> UserPreferencesServiceImpl {
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(mock_vsidl_client_provider);
+
+        register_default_settings_and_assert_success(&user_preferences_impl);
+
+        let user_id = 1_i32;
+
+        create_user_and_assert_success(&user_preferences_impl, user_id, 0);
+
+        select_user_and_assert_success(&user_preferences_impl, user_id);
+
+        user_preferences_impl
     }
 
     fn create_user_preferences_server_and_impl(
@@ -849,59 +1252,6 @@ mod tests {
             vehicle_settings_repository,
             vsidl_client_provider: mock_vsidl_client_provider,
         })
-    }
-
-    fn default_bool_setting() -> SettingProto {
-        let setting_and_constraint =
-            default_bool_setting_definition().setting_and_constraints.unwrap();
-        setting_and_constraint.setting.unwrap()
-    }
-
-    fn default_bool_setting_definition() -> SettingDefinitionProto {
-        SettingDefinitionProto {
-            kind: SettingKindProto::PER_USER.into(),
-            setting_and_constraints: Some(SettingAndConstraintsProto {
-                setting: Some(SettingProto {
-                    key: "bool_setting".to_string(),
-                    value: Some(ValueProto::Bool(true)),
-                    ..Default::default()
-                })
-                .into(),
-                constraints: None,
-                ..Default::default()
-            })
-            .into(),
-            ..Default::default()
-        }
-    }
-
-    fn default_int32_setting() -> SettingProto {
-        let setting_and_constraint =
-            default_int32_setting_definition().setting_and_constraints.unwrap();
-        setting_and_constraint.setting.unwrap()
-    }
-
-    fn default_int32_setting_definition() -> SettingDefinitionProto {
-        SettingDefinitionProto {
-            kind: SettingKindProto::PER_USER.into(),
-            setting_and_constraints: Some(SettingAndConstraintsProto {
-                setting: Some(SettingProto {
-                    key: "int32_setting".to_string(),
-                    value: Some(ValueProto::Int32(10)),
-                    ..Default::default()
-                })
-                .into(),
-                constraints: Some(ConstraintsProto::Int32Constraints(Int32ConstraintsProto {
-                    min_value: Some(0),
-                    max_value: Some(20),
-                    step: Some(1),
-                    ..Default::default()
-                })),
-                ..Default::default()
-            })
-            .into(),
-            ..Default::default()
-        }
     }
 
     fn are_settings_equal(list_one: &[SettingProto], list_two: &[SettingProto]) -> bool {

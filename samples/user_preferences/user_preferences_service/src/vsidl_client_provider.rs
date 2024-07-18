@@ -9,7 +9,6 @@ use std::sync::Arc;
 
 #[automock]
 pub trait VSIDLClientProvider: Send + Sync {
-    #[allow(dead_code)]
     fn get_sdv_user_preferences_view_change_notifier_client(
         &self,
         target_service_bundle: &str,
@@ -32,7 +31,6 @@ impl VSIDLClientProviderWrapper {
 }
 
 impl VSIDLClientProvider for VSIDLClientProviderWrapper {
-    #[allow(dead_code)]
     fn get_sdv_user_preferences_view_change_notifier_client(
         &self,
         target_service_bundle: &str,

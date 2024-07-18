@@ -1,6 +1,6 @@
 use anyhow::Result;
 use rusqlite::Connection;
-use serde_json::to_string;
+use serde_json::{from_str, to_string};
 use std::sync::{Arc, Mutex};
 
 use super::setting::Setting;
@@ -48,25 +48,32 @@ impl VehicleSettingsRepository {
         }
         Ok(())
     }
+
+    pub fn get(&self, settings_group_id: i64) -> Result<Vec<Setting>> {
+        let connection = self.connection.lock().unwrap();
+        let mut stmt = connection.prepare(
+            "SELECT setting_name, value FROM vehicle_settings WHERE settings_group_id = ?",
+        )?;
+        let mut rows = stmt.query([&settings_group_id])?;
+
+        let mut settings = Vec::new();
+        while let Some(row) = rows.next()? {
+            let setting_name = row.get(0)?;
+            let value_json: String = row.get(1)?;
+
+            let value = from_str(&value_json)?;
+
+            settings.push(Setting { name: setting_name, value });
+        }
+
+        Ok(settings)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::persistence::setting::{Setting, Value};
-
-    #[test]
-    fn store_all_new_settings() {
-        let repo = create_in_memory_vehicle_settings_repository();
-
-        let settings_group_id = 1;
-        let settings = vec![
-            Setting { name: "bool_setting".to_string(), value: Value::Bool(true) },
-            Setting { name: "int32_setting".to_string(), value: Value::Int32(10) },
-        ];
-
-        repo.store_all(settings_group_id, settings.clone()).unwrap();
-    }
 
     #[test]
     fn store_all_update_existing_settings() {
@@ -86,6 +93,30 @@ mod tests {
         ];
 
         repo.store_all(settings_group_id, updated_settings.clone()).unwrap();
+
+        // Retrieve the settings and verify they are updated
+        let retrieved_settings = repo.get(settings_group_id).unwrap();
+
+        assert_eq!(retrieved_settings.len(), 2);
+
+        // Check the first setting
+        assert_eq!(retrieved_settings[0].name, "bool_setting");
+        assert_eq!(retrieved_settings[0].value, Value::Bool(true));
+
+        // Check the second setting
+        assert_eq!(retrieved_settings[1].name, "int32_setting");
+        assert_eq!(retrieved_settings[1].value, Value::Int32(15));
+    }
+
+    #[test]
+    fn get_returns_empty_list_when_query_returns_no_result() {
+        let repo = create_in_memory_vehicle_settings_repository();
+
+        let settings_group_id = 1;
+
+        let retrieved_settings = repo.get(settings_group_id).unwrap();
+
+        assert_eq!(retrieved_settings.len(), 0);
     }
 
     fn create_in_memory_vehicle_settings_repository() -> VehicleSettingsRepository {

@@ -58,6 +58,7 @@ rust_defaults {
         "libserde",
         "libserde_json",
         "libmockall",
+        "liblazy_static",
     ],
     vendor: true,
 }
