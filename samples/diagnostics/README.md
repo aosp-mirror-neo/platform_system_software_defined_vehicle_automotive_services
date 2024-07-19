@@ -45,9 +45,9 @@ to build it:
 Two devices need to be started for cross-VM communication.
 
 ```bash
-cvd start --noresume -vsock_guest_cid=3 -base_instance_num=1 --extra_bootconfig_args="androidboot.virt.vmname=instance1 androidboot.virt.address=3"
+cvd start --noresume -vsock_guest_cid=3 -base_instance_num=1 --extra_bootconfig_args="androidboot.sdv.instance_name=instance1 androidboot.virt.address=3"
 
-cvd start --noresume -vsock_guest_cid=4 -base_instance_num=2 --extra_bootconfig_args="androidboot.virt.vmname=instance2 androidboot.virt.address=4"
+cvd start --noresume -vsock_guest_cid=4 -base_instance_num=2 --extra_bootconfig_args="androidboot.sdv.instance_name=instance2 androidboot.virt.address=4"
 
 # Waits a few seconds for message "Virtual device booted successfully"
 
