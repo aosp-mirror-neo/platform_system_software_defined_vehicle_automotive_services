@@ -28,6 +28,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::sync::Mutex;
+use thiserror::Error;
 use tokio::runtime::Handle;
 use tokio::sync::broadcast::error::RecvError;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
@@ -43,12 +44,25 @@ pub trait PowerStateNotifier: Send + Sync {
         &self,
         power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
     ) -> anyhow::Result<()>;
-    async fn notify(&self, power_state_report: PowerStateReport) -> anyhow::Result<()>;
+    async fn notify(
+        &self,
+        power_state_report: PowerStateReport,
+    ) -> anyhow::Result<(), PowerStateNotificationError>;
     fn notify_oem(
         &self,
         power_state_report: PowerStateReport,
         reason: PowerStateChangeReason,
     ) -> anyhow::Result<()>;
+}
+
+#[derive(Error, Debug, Clone)]
+pub enum PowerStateNotificationError {
+    #[error("Notification was cancelled by caller!")]
+    Cancelled,
+    #[error("Callback client was disconnected!")]
+    Disconnected,
+    #[error("Failed to deliver callback!")]
+    Failed,
 }
 
 #[derive(Clone)]
@@ -82,30 +96,43 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
         Ok(())
     }
 
-    async fn notify(&self, power_state_report: PowerStateReport) -> anyhow::Result<()> {
+    async fn notify(
+        &self,
+        power_state_report: PowerStateReport,
+    ) -> anyhow::Result<(), PowerStateNotificationError> {
         info!("Starting callback notifications for {:?}", power_state_report);
         let cloned_callbacks = self.callbacks.lock().unwrap().clone();
         let cloned_bundle = self.vpm_service_bundle.clone();
         let mut set = JoinSet::new();
         for async_callback in cloned_callbacks.into_iter() {
             set.spawn(async move {
-                async_callback.onPowerStateReportChanged(convert_to_aidl(power_state_report)).await
+                let result = async_callback
+                    .onPowerStateReportChanged(convert_to_aidl(power_state_report))
+                    .await;
+                if (result.is_err()) {
+                    //TODO: This should be handled with death binder not here.
+                    Err(PowerStateNotificationError::Disconnected)
+                } else {
+                    Ok(())
+                }
             });
         }
         let mut notification_failed = false;
-
-        while let Some(res) = set.join_next().await {
-            if (res.is_err()) {
-                error!("Failed to notify callback {:?}!", res);
+        while let Some(handle) = set.join_next().await {
+            if handle.is_err() {
+                error!("Power notification callback task failed, {:?}", handle.err());
                 notification_failed = true;
-            } else if let Ok(Err(e)) = res {
-                // This should be handled with death binder not here.
+                continue;
+            }
+            if let Err(result) = handle {
+                error!("Power notification callback request failed, {:?}", result);
                 notification_failed = true;
-                error!("Callback handle was dropped {:?}", e);
+                continue;
             }
         }
+
         if notification_failed {
-            Err(anyhow!("One or more callbacks failed"))
+            return Err(PowerStateNotificationError::Failed);
         } else {
             Ok(())
         }

@@ -2,6 +2,8 @@
 
 package {
     default_applicable_licenses: ["sdv_license"],
+    // TODO(b/334018638): Add corresponding team once created.
+    default_team: "trendy_team_automotive",
 }
 
 rust_defaults {
@@ -19,6 +21,7 @@ rust_defaults {
         "libbinder_tokio_rs",
         "libsdv_vpm_api",
         "libsdv_pm",
+        "libthiserror",
         "libsdvmiddleware_rpc",
         "libsdvgenerated_vpm_system_service_bundle",
         "google.sdv.vpm-aidl-rust",
