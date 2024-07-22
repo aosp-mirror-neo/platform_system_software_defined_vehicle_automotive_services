@@ -406,8 +406,48 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
         Ok(SelectUserResponse::new())
     }
 
-    fn delete_user(&self, _request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
-        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    fn delete_user(&self, request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
+        if Some(request.user_id) == *self.active_user_id.lock().unwrap() {
+            return error_response!(
+                DeleteUserResponse,
+                ResponseCode::INVALID_REQUEST,
+                "Cannot delete user {} it is currently set as the active user",
+                request.user_id
+            );
+        }
+
+        if let Err(err) = self.user_repository.delete(request.user_id) {
+            error!("Failed to delete user {}: {}", request.user_id, err);
+            match err {
+                crate::persistence::error::Error::NotFound => {
+                    return error_response!(
+                        DeleteUserResponse,
+                        ResponseCode::NOT_FOUND_ERROR,
+                        "User not found",
+                    )
+                }
+                _ => {
+                    return error_response!(
+                        DeleteUserResponse,
+                        ResponseCode::INTERNAL_ERROR,
+                        "Unable to delete user {}",
+                        err
+                    )
+                }
+            };
+        }
+
+        if let Err(err) = self.user_settings_repository.delete_all(request.user_id) {
+            error!("Failed to delete settings of user {}: {}", request.user_id, err);
+            return error_response!(
+                DeleteUserResponse,
+                ResponseCode::INTERNAL_ERROR,
+                "Unable to delete user {}",
+                request.user_id
+            );
+        }
+
+        Ok(DeleteUserResponse::new())
     }
 
     fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
@@ -1220,6 +1260,66 @@ mod tests {
         select_user_and_assert_success(&user_preferences_impl, user_id);
 
         user_preferences_impl
+    }
+
+    #[test]
+    fn delete_user_succeeds() {
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(MockVSIDLClientProvider::new());
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        // Create a user
+        let user_id = 1_i32;
+        create_user_and_assert_success(&user_preferences_impl, user_id, 0);
+
+        // Delete the user
+        let delete_user_request = DeleteUserRequest { user_id, ..Default::default() };
+        let response = user_preferences_impl.delete_user(delete_user_request).unwrap();
+
+        // Assert that the response is ok
+        assert!(response.error.is_none());
+    }
+
+    #[test]
+    fn delete_user_fails_when_user_does_not_exist() {
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(MockVSIDLClientProvider::new());
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        // Attempt to delete a non-existent user
+        let delete_user_request = DeleteUserRequest { user_id: 1, ..Default::default() };
+        let response = user_preferences_impl.delete_user(delete_user_request).unwrap();
+
+        // Assert that the response contains an error
+        assert!(response.error.is_some());
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::NOT_FOUND_ERROR as i32
+        );
+    }
+
+    #[test]
+    fn delete_user_fails_when_user_is_selected() {
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(MockVSIDLClientProvider::new());
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        let user_id = 1_i32;
+        create_user_and_assert_success(&user_preferences_impl, user_id, 0);
+
+        select_user_and_assert_success(&user_preferences_impl, user_id);
+
+        let delete_user_request = DeleteUserRequest { user_id: 1, ..Default::default() };
+        let response = user_preferences_impl.delete_user(delete_user_request).unwrap();
+
+        assert!(response.error.is_some());
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::INVALID_REQUEST as i32
+        );
     }
 
     fn create_user_preferences_server_and_impl(

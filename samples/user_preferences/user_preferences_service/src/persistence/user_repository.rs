@@ -69,6 +69,21 @@ impl UserRepository {
             Err(Error::NotFound)
         }
     }
+
+    /// Deletes a user from the database.
+    ///
+    /// Returns Err if user with the given id does not exist or other failure happened.
+    pub fn delete(&self, id: i32) -> Result<(), Error> {
+        let connection = self.connection.lock().unwrap();
+        let changes = connection.execute("DELETE FROM users WHERE id = ?", [&id])?;
+
+        // Check if no rows were changed (meaning the user does not exist)
+        if changes == 0 {
+            return Err(Error::NotFound);
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -112,6 +127,29 @@ mod tests {
         let result = user_repository.get_user(100);
 
         // Assert that we get a NotFound Error
+        assert_that!(result, matches_pattern!(Err(matches_pattern!(Error::NotFound))));
+    }
+
+    #[test]
+    fn delete_removes_existing_user() {
+        let user_repository = create_in_memory_user_repository();
+
+        let user = User { id: 1, flags: 0 };
+        user_repository.add_user(&user).unwrap();
+
+        user_repository.delete(1).unwrap();
+
+        let result = user_repository.get_user(1);
+
+        assert_that!(result, matches_pattern!(Err(matches_pattern!(Error::NotFound))));
+    }
+
+    #[test]
+    fn delete_returns_error_for_non_existing_user() {
+        let user_repository = create_in_memory_user_repository();
+
+        let result = user_repository.delete(100);
+
         assert_that!(result, matches_pattern!(Err(matches_pattern!(Error::NotFound))));
     }
 

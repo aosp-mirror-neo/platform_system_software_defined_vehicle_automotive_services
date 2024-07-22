@@ -72,6 +72,13 @@ impl UserSettingsRepository {
         tx.commit()?;
         Ok(())
     }
+
+    /// Deletes all rows associated with a specific user ID.
+    pub fn delete_all(&self, user_id: i32) -> Result<(), Error> {
+        let connection = self.connection.lock().unwrap();
+        connection.execute("DELETE FROM user_settings WHERE user_id = ?", [&user_id])?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -148,6 +155,25 @@ mod tests {
 
         let retrieved_settings = repo.get_all(user_id, settings_group_id).unwrap();
 
+        assert_eq!(retrieved_settings.len(), 0);
+    }
+
+    #[test]
+    fn delete_all_removes_all_settings_for_user() {
+        let repo = create_in_memory_user_settings_repository();
+
+        let user_id = 1;
+        let settings_group_id = 1;
+        let settings = vec![
+            Setting { name: "bool_setting".to_string(), value: Value::Bool(true) },
+            Setting { name: "int32_setting".to_string(), value: Value::Int32(10) },
+        ];
+
+        repo.store_all(user_id, settings_group_id, &settings).unwrap();
+
+        repo.delete_all(user_id).unwrap();
+
+        let retrieved_settings = repo.get_all(user_id, settings_group_id).unwrap();
         assert_eq!(retrieved_settings.len(), 0);
     }
 
