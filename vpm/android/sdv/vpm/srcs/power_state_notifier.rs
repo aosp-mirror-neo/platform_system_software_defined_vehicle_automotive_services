@@ -36,6 +36,7 @@ use tokio::sync::watch::Receiver as WatchReceiver;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use tokio::task::JoinSet;
+use tokio_util::sync::CancellationToken;
 
 #[automock]
 #[async_trait]
@@ -47,6 +48,7 @@ pub trait PowerStateNotifier: Send + Sync {
     async fn notify(
         &self,
         power_state_report: PowerStateReport,
+        cancellation_token: CancellationToken,
     ) -> anyhow::Result<(), PowerStateNotificationError>;
     fn notify_oem(
         &self,
@@ -99,26 +101,38 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
     async fn notify(
         &self,
         power_state_report: PowerStateReport,
+        cancellation_token: CancellationToken,
     ) -> anyhow::Result<(), PowerStateNotificationError> {
         info!("Starting callback notifications for {:?}", power_state_report);
         let cloned_callbacks = self.callbacks.lock().unwrap().clone();
         let cloned_bundle = self.vpm_service_bundle.clone();
         let mut set = JoinSet::new();
         for async_callback in cloned_callbacks.into_iter() {
+            let cloned_cancellation_token = cancellation_token.clone();
+            if cancellation_token.is_cancelled() {
+                debug!("Cancelling callbacks for {:?}", power_state_report);
+                return Err(PowerStateNotificationError::Cancelled);
+            }
+
             set.spawn(async move {
-                let result = async_callback
-                    .onPowerStateReportChanged(convert_to_aidl(power_state_report))
-                    .await;
-                if (result.is_err()) {
-                    //TODO: This should be handled with death binder not here.
-                    Err(PowerStateNotificationError::Disconnected)
+                if cloned_cancellation_token.is_cancelled() {
+                    debug!("Cancelling callbacks for {:?}", power_state_report);
+                    Err(PowerStateNotificationError::Cancelled)
                 } else {
-                    Ok(())
+                    let result = async_callback
+                        .onPowerStateReportChanged(convert_to_aidl(power_state_report))
+                        .await;
+                    if (result.is_err()) {
+                        Err(PowerStateNotificationError::Disconnected)
+                    } else {
+                        Ok(())
+                    }
                 }
             });
         }
         let mut notification_failed = false;
-        while let Some(handle) = set.join_next().await {
+        while let (false, Some(handle)) = (cancellation_token.is_cancelled(), set.join_next().await)
+        {
             if handle.is_err() {
                 error!("Power notification callback task failed, {:?}", handle.err());
                 notification_failed = true;
@@ -127,8 +141,15 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
             if let Err(result) = handle {
                 error!("Power notification callback request failed, {:?}", result);
                 notification_failed = true;
-                continue;
             }
+        }
+
+        if (cancellation_token.is_cancelled()) {
+            debug!(
+                "Power state notification callbacks were cancelled for {:?}",
+                power_state_report
+            );
+            return Err(PowerStateNotificationError::Cancelled);
         }
 
         if notification_failed {

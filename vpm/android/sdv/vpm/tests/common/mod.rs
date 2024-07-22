@@ -20,14 +20,20 @@ use std::thread;
 use std::time::Duration;
 
 pub struct PowerCallbackPreparer {
-    // The callback receiver will wait 10 seconds before returning success.
+    // The callback receiver will wait 10 seconds.
     // if power state report is set.
     sleep_callback_if_power_state: Option<PowerStateReportAidl>,
+    fail_callback: bool,
 }
 
 impl PowerCallbackPreparer {
     pub fn new() -> Self {
-        Self { sleep_callback_if_power_state: None }
+        Self { sleep_callback_if_power_state: None, fail_callback: false }
+    }
+    #[allow(dead_code)]
+    pub fn fail_callback(&mut self) -> &mut PowerCallbackPreparer {
+        self.fail_callback = true;
+        self
     }
 
     #[allow(dead_code)]
@@ -48,6 +54,7 @@ impl PowerCallbackPreparer {
         let test_sdv_agent = TestSdvAgent {
             callback_sender,
             sleep_callback_if_power_state: self.sleep_callback_if_power_state,
+            fail_callback: self.fail_callback,
         };
         let power_state_client_interface =
             get_power_state_client_interface().expect("Cannot find VPM client binder service");
@@ -70,6 +77,7 @@ fn get_power_state_client_interface() -> anyhow::Result<Strong<dyn IPowerStateCl
 pub struct TestSdvAgent {
     callback_sender: Sender<PowerStateReportAidl>,
     sleep_callback_if_power_state: Option<PowerStateReportAidl>,
+    fail_callback: bool,
 }
 
 impl binder::Interface for TestSdvAgent {}
@@ -80,6 +88,9 @@ impl IPowerStateReportListener for TestSdvAgent {
             && self.sleep_callback_if_power_state.unwrap() == power_state
         {
             thread::sleep(Duration::from_secs(10));
+            if self.fail_callback {
+                return Err(binder::StatusCode::UNKNOWN_ERROR.into());
+            }
         }
         self.callback_sender.send(power_state).unwrap();
         Ok(())

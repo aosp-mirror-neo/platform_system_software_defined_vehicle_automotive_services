@@ -45,11 +45,11 @@ mod tests {
             .unwrap();
 
         let callback_result =
-            callback_receiver.recv_timeout(Duration::from_secs(5)).expect("Timeout reached");
+            callback_receiver.recv_timeout(Duration::from_secs(10)).expect("Timeout reached");
         assert_eq!(callback_result, PowerStateReportAidl::ON);
 
         let power_notification =
-            request_receiver.recv_timeout(Duration::from_secs(5)).expect("Timeout reached");
+            request_receiver.recv_timeout(Duration::from_secs(10)).expect("Timeout reached");
         assert_eq!(power_notification.power_state.unwrap(), PowerStateReport::ON);
 
         // When: the VM is on prepare state for ram suspension and a cancellation is requested.
@@ -66,7 +66,7 @@ mod tests {
             .unwrap();
 
         let callback_result =
-            callback_receiver.recv_timeout(Duration::from_secs(5)).expect("Timeout reached");
+            callback_receiver.recv_timeout(Duration::from_secs(10)).expect("Timeout reached");
         assert_eq!(callback_result, PowerStateReportAidl::SUSPEND_TO_RAM_ENTER);
 
         let power_notification =
@@ -74,7 +74,7 @@ mod tests {
         assert_eq!(power_notification.power_state.unwrap(), PowerStateReport::SUSPEND_TO_RAM_ENTER);
 
         let callback_result =
-            callback_receiver.recv_timeout(Duration::from_secs(5)).expect("Timeout reached");
+            callback_receiver.recv_timeout(Duration::from_secs(10)).expect("Timeout reached");
         assert_eq!(callback_result, PowerStateReportAidl::WAIT_FOR_FINISH);
 
         let power_notification =
