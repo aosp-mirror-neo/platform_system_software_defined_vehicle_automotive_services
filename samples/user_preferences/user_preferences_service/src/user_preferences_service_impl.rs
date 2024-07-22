@@ -18,6 +18,9 @@ use user_preferences_api::setting::{
     setting::Value as ValueProto, SettingAndConstraints,
     SettingDefinition as SettingDefinitionProto, SettingKind,
 };
+use user_preferences_api::settings_group::{
+    SettingsGroup as SettingsGroupProto, SettingsGroupId as SettingsGroupIdProto,
+};
 use user_preferences_api::user::User as UserProto;
 use user_preferences_api::user_controllable_service;
 use user_preferences_api::user_preferences_admin_service::*;
@@ -475,9 +478,70 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
 
     fn get_user_settings(
         &self,
-        _request: GetUserSettingsRequest,
+        request: GetUserSettingsRequest,
     ) -> RpcResult<GetUserSettingsResponse> {
-        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+        if let Err(err) = self.user_repository.get_user(request.user_id) {
+            match err {
+                crate::persistence::error::Error::NotFound => {
+                    warn!("User {} doesn't exist", request.user_id);
+                    return error_response!(
+                        GetUserSettingsResponse,
+                        ResponseCode::NOT_FOUND_ERROR,
+                        "User {} does not exist",
+                        request.user_id
+                    );
+                }
+                _ => {
+                    error!("Failed to list setting groups: {}", err);
+                    return error_response!(
+                        GetUserSettingsResponse,
+                        ResponseCode::INTERNAL_ERROR,
+                        "Unable to retrieve user settings",
+                    );
+                }
+            };
+        };
+
+        let settings_groups = match self.settings_group_repository.list() {
+            Ok(x) => x,
+            Err(err) => {
+                error!("Failed to list setting groups: {}", err);
+                return error_response!(
+                    GetUserSettingsResponse,
+                    ResponseCode::INTERNAL_ERROR,
+                    "Unable to retrieve user settings",
+                );
+            }
+        };
+
+        let mut setting_groups_protos: Vec<SettingsGroupProto> = Vec::new();
+        for setting_group in settings_groups.into_iter() {
+            let user_settings =
+                match self.calculate_group_settings_for_user(request.user_id, setting_group.id) {
+                    Ok(x) => x,
+                    Err(err) => {
+                        error!("Failed to get setting group {:?}: {}", setting_group, err);
+                        return error_response!(
+                            GetUserSettingsResponse,
+                            ResponseCode::INTERNAL_ERROR,
+                            "Unable to retrieve user settings",
+                        );
+                    }
+                };
+
+            setting_groups_protos.push(SettingsGroupProto {
+                id: Some(SettingsGroupIdProto {
+                    name: setting_group.name,
+                    service_fqin: setting_group.service_fqin,
+                    ..Default::default()
+                })
+                .into(),
+                settings: user_settings.into_iter().map_into().collect(),
+                ..Default::default()
+            });
+        }
+
+        Ok(GetUserSettingsResponse { groups: setting_groups_protos, ..Default::default() })
     }
 }
 
@@ -1258,6 +1322,140 @@ mod tests {
         };
         let _response =
             user_preferences_impl.request_settings_change(request_settings_change_request).unwrap();
+    }
+
+    #[test]
+    fn get_user_settings_returns_error_for_non_existent_user() {
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(MockVSIDLClientProvider::new());
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        let settings_definitions =
+            vec![default_bool_setting_definition(), default_int32_setting_definition()];
+        let register_settings_request = RegisterSettingsRequest {
+            group_name: TEST_SETTINGS_GROUP_NAME.to_string(),
+            caller_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+            settings_definitions,
+            ..Default::default()
+        };
+        user_preferences_impl.register_settings(register_settings_request).unwrap();
+
+        let get_user_settings_request =
+            GetUserSettingsRequest { user_id: 999, ..Default::default() };
+        let response = user_preferences_impl.get_user_settings(get_user_settings_request).unwrap();
+
+        assert!(response.error.is_some());
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::NOT_FOUND_ERROR as i32
+        );
+    }
+
+    #[test]
+    fn get_user_settings_returns_correct_settings_for_existing_user() {
+        let user_controllable_service_client = Arc::new(UserControllableServiceClient::new({
+            let mut mock_client_transport = Box::new(MockClientTransport::new());
+
+            mock_client_transport
+                .expect_call_method()
+                .returning(move |_, request| {
+                    let request =
+                    user_controllable_service::RequestSettingsChangeRequest::parse_from_bytes(
+                        request,
+                    )
+                    .unwrap();
+
+                    let mut rpc_response =
+                        user_preferences_api::user_controllable_service::RequestSettingsChangeResponse::new();
+                    rpc_response.settings = request.settings;
+
+                    Ok(rpc_response.write_to_bytes().unwrap())
+                });
+
+            mock_client_transport
+        }));
+
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> = Arc::new({
+            let mut mock_vsidl_client_provider = MockVSIDLClientProvider::new();
+
+            mock_vsidl_client_provider
+                .expect_get_sdv_user_preferences_user_controllable_user_controllable_service_client(
+                )
+                .returning(move |_| user_controllable_service_client.clone());
+
+            mock_vsidl_client_provider
+        });
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        let settings_definitions =
+            vec![default_bool_setting_definition(), default_int32_setting_definition()];
+        let register_settings_request = RegisterSettingsRequest {
+            group_name: TEST_SETTINGS_GROUP_NAME.to_string(),
+            caller_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+            settings_definitions,
+            ..Default::default()
+        };
+        user_preferences_impl.register_settings(register_settings_request).unwrap();
+
+        let user_id = 1_i32;
+
+        create_user_and_assert_success(&user_preferences_impl, user_id, 0);
+        select_user_and_assert_success(&user_preferences_impl, user_id);
+
+        let request_settings_change_request = RequestSettingsChangeRequest {
+            settings_group_id: Some(SettingsGroupIdProto {
+                name: TEST_SETTINGS_GROUP_NAME.to_string(),
+                service_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+                ..Default::default()
+            })
+            .into(),
+            settings: vec![
+                SettingProto {
+                    key: "bool_setting".to_string(),
+                    value: Some(ValueProto::Bool(false)),
+                    ..Default::default()
+                },
+                SettingProto {
+                    key: "int32_setting".to_string(),
+                    value: Some(ValueProto::Int32(15)),
+                    ..Default::default()
+                },
+            ],
+            change_persistence_policy: ChangePersistencePolicy::PERSISTENT_CHANGE.into(),
+            ..Default::default()
+        };
+        user_preferences_impl.request_settings_change(request_settings_change_request).unwrap();
+
+        let get_user_settings_request = GetUserSettingsRequest { user_id: 1, ..Default::default() };
+        let response = user_preferences_impl.get_user_settings(get_user_settings_request).unwrap();
+
+        assert_eq!(response.groups.len(), 1);
+
+        assert_eq!(response.groups[0].id.as_ref().unwrap().name, TEST_SETTINGS_GROUP_NAME);
+        assert_eq!(
+            response.groups[0].id.as_ref().unwrap().service_fqin,
+            TEST_USER_CONTROLLABLE_SERVICE_FQIN
+        );
+
+        let expected_settings = [
+            SettingProto {
+                key: "bool_setting".to_string(),
+                value: Some(ValueProto::Bool(false)),
+                ..Default::default()
+            },
+            SettingProto {
+                key: "int32_setting".to_string(),
+                value: Some(ValueProto::Int32(15)),
+                ..Default::default()
+            },
+        ];
+        let actual_settings: Vec<SettingProto> =
+            response.groups[0].settings.iter().cloned().collect_vec();
+
+        assert_eq!(actual_settings.len(), expected_settings.len());
+        assert!(actual_settings.iter().all(|setting| expected_settings.contains(setting)));
     }
 
     fn create_user_preferences_server_with_default_settings_and_user(
