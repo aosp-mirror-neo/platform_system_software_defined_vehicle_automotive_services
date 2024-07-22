@@ -716,9 +716,60 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
 
     fn unsubscribe_from_settings_change(
         &self,
-        _request: UnsubscribeToSettingsChangeRequest,
+        request: UnsubscribeToSettingsChangeRequest,
     ) -> RpcResult<UnsubscribeToSettingsChangeResponse> {
-        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+        let settings_group_id = request.settings_group_id.unwrap();
+
+        let setting_group = match self
+            .settings_group_repository
+            .get(&settings_group_id.name, &settings_group_id.service_fqin)
+        {
+            Ok(x) => x,
+            Err(err) => match err {
+                crate::persistence::error::Error::NotFound => {
+                    warn!(
+                        "Setting group {}/{} was not found",
+                        settings_group_id.service_fqin, settings_group_id.name
+                    );
+                    return error_response!(
+                        UnsubscribeToSettingsChangeResponse,
+                        ResponseCode::NOT_FOUND_ERROR,
+                        "Setting group {}/{} was not found",
+                        settings_group_id.service_fqin,
+                        settings_group_id.name
+                    );
+                }
+                _ => {
+                    error!(
+                        "Unable to retrieve subscribers for setting group {}/{}: {}",
+                        settings_group_id.service_fqin, settings_group_id.name, err
+                    );
+                    return error_response!(
+                        UnsubscribeToSettingsChangeResponse,
+                        ResponseCode::INTERNAL_ERROR,
+                        "Unable to retrieve setting group {}/{}: {}",
+                        settings_group_id.service_fqin,
+                        settings_group_id.name,
+                        err
+                    );
+                }
+            },
+        };
+
+        let mut subscribers_repository = self.subscribers_repository.lock().unwrap();
+        let setting_group_subscribers = subscribers_repository.entry(setting_group.id).or_default();
+
+        if !setting_group_subscribers.remove(&request.caller_fqin) {
+            return error_response!(
+                UnsubscribeToSettingsChangeResponse,
+                ResponseCode::INVALID_REQUEST,
+                "Caller {} is not subscribed to group: {:?}",
+                request.caller_fqin,
+                settings_group_id
+            );
+        }
+
+        Ok(UnsubscribeToSettingsChangeResponse::new())
     }
 }
 
@@ -1560,6 +1611,117 @@ mod tests {
         assert_eq!(response.users[0].id, 1);
         assert_eq!(response.users[1].id, 2);
         assert_eq!(response.users[2].id, 3);
+    }
+
+    #[test]
+    fn unsubscribe_from_settings_change_succeeds_for_subscribed_caller() {
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(MockVSIDLClientProvider::new());
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        let settings_definitions =
+            vec![default_bool_setting_definition(), default_int32_setting_definition()];
+        let register_settings_request = RegisterSettingsRequest {
+            group_name: TEST_SETTINGS_GROUP_NAME.to_string(),
+            caller_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+            settings_definitions,
+            ..Default::default()
+        };
+        user_preferences_impl.register_settings(register_settings_request).unwrap();
+
+        let subscribe_request = SubscribeToSettingsChangeAndGetSettingsRequest {
+            settings_group_id: Some(SettingsGroupIdProto {
+                name: TEST_SETTINGS_GROUP_NAME.to_string(),
+                service_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+                ..Default::default()
+            })
+            .into(),
+            caller_fqin: TEST_SUBSCRIBER_FQIN.to_string(),
+            ..Default::default()
+        };
+        user_preferences_impl
+            .subscribe_to_settings_change_and_get_settings(subscribe_request)
+            .unwrap();
+
+        let unsubscribe_request = UnsubscribeToSettingsChangeRequest {
+            settings_group_id: Some(SettingsGroupIdProto {
+                name: TEST_SETTINGS_GROUP_NAME.to_string(),
+                service_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+                ..Default::default()
+            })
+            .into(),
+            caller_fqin: TEST_SUBSCRIBER_FQIN.to_string(),
+            ..Default::default()
+        };
+        let response =
+            user_preferences_impl.unsubscribe_from_settings_change(unsubscribe_request).unwrap();
+
+        assert!(response.error.is_none());
+    }
+
+    #[test]
+    fn unsubscribe_from_settings_change_fails_for_unsubscribed_caller() {
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(MockVSIDLClientProvider::new());
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        let settings_definitions =
+            vec![default_bool_setting_definition(), default_int32_setting_definition()];
+        let register_settings_request = RegisterSettingsRequest {
+            group_name: TEST_SETTINGS_GROUP_NAME.to_string(),
+            caller_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+            settings_definitions,
+            ..Default::default()
+        };
+        user_preferences_impl.register_settings(register_settings_request).unwrap();
+
+        let unsubscribe_request = UnsubscribeToSettingsChangeRequest {
+            settings_group_id: Some(SettingsGroupIdProto {
+                name: TEST_SETTINGS_GROUP_NAME.to_string(),
+                service_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+                ..Default::default()
+            })
+            .into(),
+            caller_fqin: TEST_SUBSCRIBER_FQIN.to_string(),
+            ..Default::default()
+        };
+        let response =
+            user_preferences_impl.unsubscribe_from_settings_change(unsubscribe_request).unwrap();
+
+        assert!(response.error.is_some());
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::INVALID_REQUEST as i32
+        );
+    }
+
+    #[test]
+    fn unsubscribe_from_settings_change_fails_for_non_existent_settings_group() {
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(MockVSIDLClientProvider::new());
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        let unsubscribe_request = UnsubscribeToSettingsChangeRequest {
+            settings_group_id: Some(SettingsGroupIdProto {
+                name: "non_existent_group".to_string(),
+                service_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+                ..Default::default()
+            })
+            .into(),
+            caller_fqin: TEST_SUBSCRIBER_FQIN.to_string(),
+            ..Default::default()
+        };
+        let response =
+            user_preferences_impl.unsubscribe_from_settings_change(unsubscribe_request).unwrap();
+
+        assert!(response.error.is_some());
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::NOT_FOUND_ERROR as i32
+        );
     }
 
     fn create_user_preferences_server_and_impl(
