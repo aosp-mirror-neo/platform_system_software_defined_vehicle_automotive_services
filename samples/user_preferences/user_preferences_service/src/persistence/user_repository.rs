@@ -84,6 +84,20 @@ impl UserRepository {
 
         Ok(())
     }
+
+    pub fn list(&self) -> Result<Vec<User>, Error> {
+        let connection = self.connection.lock().unwrap();
+        let mut stmt = connection.prepare("SELECT id, flags FROM users")?;
+        let mut rows = stmt.query([])?;
+
+        let mut users = Vec::new();
+        while let Some(row) = rows.next()? {
+            let id = row.get(0)?;
+            let flags = row.get(1)?;
+            users.push(User { id, flags });
+        }
+        Ok(users)
+    }
 }
 
 #[cfg(test)]
@@ -151,6 +165,25 @@ mod tests {
         let result = user_repository.delete(100);
 
         assert_that!(result, matches_pattern!(Err(matches_pattern!(Error::NotFound))));
+    }
+
+    #[test]
+    fn list_existing_users() {
+        let user_repository = create_in_memory_user_repository();
+
+        let users = [User { id: 1, flags: 0 }, User { id: 2, flags: 1 }];
+
+        for user in users.iter() {
+            user_repository.add_user(user).unwrap();
+        }
+
+        let mut retrieved_users = user_repository.list().unwrap();
+
+        retrieved_users.sort_by(|a, b| a.id.cmp(&b.id));
+
+        assert_eq!(retrieved_users.len(), 2);
+        assert_eq!(retrieved_users[0], User { id: 1, flags: 0 });
+        assert_eq!(retrieved_users[1], User { id: 2, flags: 1 });
     }
 
     #[test]

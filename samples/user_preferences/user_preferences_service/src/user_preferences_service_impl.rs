@@ -18,6 +18,7 @@ use user_preferences_api::setting::{
     setting::Value as ValueProto, SettingAndConstraints,
     SettingDefinition as SettingDefinitionProto, SettingKind,
 };
+use user_preferences_api::user::User as UserProto;
 use user_preferences_api::user_controllable_service;
 use user_preferences_api::user_preferences_admin_service::*;
 use user_preferences_api::user_preferences_management_service::*;
@@ -455,7 +456,21 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
     }
 
     fn list_users(&self, _request: ListUsersRequest) -> RpcResult<ListUsersResponse> {
-        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+        let users = match self.user_repository.list() {
+            Ok(x) => x,
+            Err(err) => {
+                error!("Failed to list users: {}", err);
+                return error_response!(
+                    ListUsersResponse,
+                    ResponseCode::INTERNAL_ERROR,
+                    "Unable to list users",
+                );
+            }
+        };
+
+        let user_proto_list: Vec<UserProto> = users.into_iter().map_into().collect();
+
+        Ok(ListUsersResponse { users: user_proto_list, ..Default::default() })
     }
 
     fn get_user_settings(
@@ -1320,6 +1335,33 @@ mod tests {
             response.error.unwrap().error_code.value(),
             ResponseCode::INVALID_REQUEST as i32
         );
+    }
+
+    #[test]
+    fn list_users_returns_all_users() {
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(MockVSIDLClientProvider::new());
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        let users = [
+            UserProto { id: 1, flags: 0, ..Default::default() },
+            UserProto { id: 2, flags: 1, ..Default::default() },
+            UserProto { id: 3, flags: 2, ..Default::default() },
+        ];
+        for user in users.iter() {
+            let request =
+                CreateUserRequest { user: MessageField::some(user.clone()), ..Default::default() };
+            user_preferences_impl.create_user(request).unwrap();
+        }
+
+        let mut response = user_preferences_impl.list_users(ListUsersRequest::new()).unwrap();
+        response.users.sort_by(|a, b| a.id.cmp(&b.id));
+
+        assert_eq!(response.users.len(), 3);
+        assert_eq!(response.users[0].id, 1);
+        assert_eq!(response.users[1].id, 2);
+        assert_eq!(response.users[2].id, 3);
     }
 
     fn create_user_preferences_server_and_impl(
