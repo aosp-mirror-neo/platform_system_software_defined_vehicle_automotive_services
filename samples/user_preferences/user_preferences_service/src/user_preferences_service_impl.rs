@@ -455,7 +455,70 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
     }
 
     fn factory_reset(&self, _request: FactoryResetRequest) -> RpcResult<FactoryResetResponse> {
-        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+        if let Err(err) = self.user_settings_repository.clear() {
+            error!("Failed to clear user settings repository {}", err);
+            return error_response!(
+                FactoryResetResponse,
+                ResponseCode::INTERNAL_ERROR,
+                "Unable to perform factory reset",
+            );
+        }
+        if let Err(err) = self.user_repository.clear() {
+            error!("Failed to clear users table {}", err);
+            return error_response!(
+                FactoryResetResponse,
+                ResponseCode::INTERNAL_ERROR,
+                "Unable to perform factory reset",
+            );
+        }
+        let services_fqin: HashSet<String> = match self.settings_group_repository.list() {
+            Ok(settings_groups) => {
+                settings_groups.into_iter().map(|group| group.service_fqin).collect()
+            }
+            Err(err) => {
+                error!("Failed to retrieve list of services to reset {}", err);
+                return error_response!(
+                    FactoryResetResponse,
+                    ResponseCode::INTERNAL_ERROR,
+                    "Unable to perform factory reset",
+                );
+            }
+        };
+        for service_fqin in services_fqin.iter() {
+            let client = self
+                .vsidl_client_provider
+                .upgrade()
+                //This is fatal error since we are not able to communicate setting changes to user controllable services
+                //nor notify subscribers of setting changes
+                .expect("VSIDL client provider has been dropped")
+                .get_sdv_user_preferences_user_controllable_user_controllable_service_client(
+                    service_fqin,
+                );
+
+            let response =
+                match client.factory_reset(user_controllable_service::FactoryResetRequest::new()) {
+                    Ok(x) => x,
+                    Err(err) => {
+                        error!("Failed to perform GRPC request to {}: {:?}", service_fqin, err);
+                        return error_response!(
+                            FactoryResetResponse,
+                            ResponseCode::INTERNAL_ERROR,
+                            "Failed to perform GRPC request to {}",
+                            service_fqin,
+                        );
+                    }
+                };
+            if let Some(err) = response.error.into_option() {
+                error!("Failed to factory reset {}: {:?}", service_fqin, err);
+                return error_response!(
+                    FactoryResetResponse,
+                    ResponseCode::INTERNAL_ERROR,
+                    "Failed to factory reset {}",
+                    service_fqin,
+                );
+            }
+        }
+        Ok(FactoryResetResponse::new())
     }
 
     fn list_users(&self, _request: ListUsersRequest) -> RpcResult<ListUsersResponse> {
@@ -1891,6 +1954,99 @@ mod tests {
             response.error.unwrap().error_code.value(),
             ResponseCode::INVALID_REQUEST as i32
         );
+    }
+
+    #[test]
+    fn factory_reset_succeeds() {
+        let mut mock_client_transport = Box::new(MockClientTransport::new());
+        let mut mock_vsidl_client_provider = MockVSIDLClientProvider::new();
+
+        let expected_rpc_request = user_controllable_service::FactoryResetRequest::new();
+        let rpc_response = user_controllable_service::FactoryResetResponse::new();
+
+        mock_client_transport
+            .expect_call_method()
+            .times(1)
+            .withf(move |method, request| {
+                let request =
+                    user_controllable_service::FactoryResetRequest::parse_from_bytes(request)
+                        .unwrap();
+                method == "UserControllableService::factory_reset"
+                    && request == expected_rpc_request
+            })
+            .returning(move |_, _| Ok(rpc_response.write_to_bytes().unwrap()));
+
+        let client = Arc::new(UserControllableServiceClient::new(mock_client_transport));
+
+        mock_vsidl_client_provider
+            .expect_get_sdv_user_preferences_user_controllable_user_controllable_service_client()
+            .times(1)
+            .withf(|target_service_bundle| {
+                target_service_bundle == TEST_USER_CONTROLLABLE_SERVICE_FQIN
+            })
+            .returning(move |_| client.clone());
+
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(mock_vsidl_client_provider);
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        register_default_settings_and_assert_success(&user_preferences_impl);
+
+        let response = user_preferences_impl.factory_reset(FactoryResetRequest::new()).unwrap();
+
+        assert!(response.error.is_none());
+    }
+
+    #[test]
+    fn factory_reset_fails_when_resetting_service_fails() {
+        let mut mock_client_transport = Box::new(MockClientTransport::new());
+        let mut mock_vsidl_client_provider = MockVSIDLClientProvider::new();
+
+        let expected_rpc_request = user_controllable_service::FactoryResetRequest::new();
+        let rpc_response = user_controllable_service::FactoryResetResponse {
+            error: Some(Error {
+                error_code: ResponseCode::INTERNAL_ERROR.into(),
+                message: String::from("Failed to reset service"),
+                ..Default::default()
+            })
+            .into(),
+            ..Default::default()
+        };
+
+        mock_client_transport
+            .expect_call_method()
+            .times(1)
+            .withf(move |method, request| {
+                let request =
+                    user_controllable_service::FactoryResetRequest::parse_from_bytes(request)
+                        .unwrap();
+                method == "UserControllableService::factory_reset"
+                    && request == expected_rpc_request
+            })
+            .returning(move |_, _| Ok(rpc_response.write_to_bytes().unwrap()));
+
+        let client = Arc::new(UserControllableServiceClient::new(mock_client_transport));
+
+        mock_vsidl_client_provider
+            .expect_get_sdv_user_preferences_user_controllable_user_controllable_service_client()
+            .times(1)
+            .withf(|target_service_bundle| {
+                target_service_bundle == TEST_USER_CONTROLLABLE_SERVICE_FQIN
+            })
+            .returning(move |_| client.clone());
+
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(mock_vsidl_client_provider);
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        register_default_settings_and_assert_success(&user_preferences_impl);
+
+        let response = user_preferences_impl.factory_reset(FactoryResetRequest::new()).unwrap();
+
+        assert!(response.error.is_some());
+        assert_eq!(response.error.unwrap().error_code.value(), ResponseCode::INTERNAL_ERROR as i32);
     }
 
     fn create_user_preferences_server_and_impl(
