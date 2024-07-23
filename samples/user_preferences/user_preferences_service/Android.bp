@@ -21,6 +21,9 @@ rust_test {
         "general-tests",
         "automotive-sdv-tests",
     ],
+    rustlibs: [
+        "libgoogletest_rust",
+    ],
     auto_gen_config: true,
 }
 
@@ -33,6 +36,8 @@ rust_defaults {
         "sdv@rust_defaults",
     ],
     rustlibs: [
+        // Recommended for handling errors in *executables*
+        "libanyhow",
         "libprotobuf",
         "libsdvgenerated_user_preferences_server",
         "libuser_preferences_api",
@@ -40,11 +45,20 @@ rust_defaults {
         "libsdvmiddleware_rpc",
         "libitertools",
         "librand",
+        "liblog_rust",
         "libuser_preferences_utils",
         "libprotobuf_parse",
         "libsdvmiddleware_rpc_grpc_transport",
         "libsdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service",
         "libsdvgenerated_rpc_sdv_user_preferences_view_change_notifier",
+        "libtempfile",
+        "librusqlite",
+        "libclap",
+        "libthiserror",
+        "libserde",
+        "libserde_json",
+        "libmockall",
+        "liblazy_static",
     ],
     vendor: true,
 }
