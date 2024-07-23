@@ -1,12 +1,19 @@
 use crate::persistence::error::Error;
+use protobuf::Enum;
 use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
-use user_preferences_api::user::User as UserProto;
+use user_preferences_api::user::{user::UserFlags, User as UserProto};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct User {
     pub id: i32,
     pub flags: i32,
+}
+
+impl User {
+    pub fn is_ephemeral(&self) -> bool {
+        (self.flags & UserFlags::EPHEMERAL.value()) == UserFlags::EPHEMERAL.value()
+    }
 }
 
 impl From<User> for UserProto {

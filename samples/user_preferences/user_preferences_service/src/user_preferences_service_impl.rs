@@ -62,7 +62,7 @@ pub struct UserPreferencesServiceImpl {
     vehicle_settings_repository: VehicleSettingsRepository,
     vsidl_client_provider: Weak<dyn VSIDLClientProvider>,
     subscribers_repository: Mutex<HashMap<i64, HashSet<String>>>,
-    active_user_id: Mutex<Option<i32>>,
+    active_user: Mutex<Option<User>>,
 }
 
 impl UserPreferencesServiceImpl {
@@ -75,7 +75,7 @@ impl UserPreferencesServiceImpl {
             vehicle_settings_repository: args.vehicle_settings_repository,
             vsidl_client_provider: args.vsidl_client_provider,
             subscribers_repository: Mutex::new(HashMap::new()),
-            active_user_id: Mutex::new(None),
+            active_user: Mutex::new(None),
         }
     }
 
@@ -251,7 +251,7 @@ impl UserPreferencesServiceImpl {
         updated_setting_group: &SettingsGroup,
         updated_settings_name: &HashSet<String>,
     ) {
-        let current_user_id: Option<i32> = *self.active_user_id.lock().unwrap();
+        let current_user: Option<User> = *self.active_user.lock().unwrap();
         let current_settings_applied: Vec<SettingProto> =
             match self.vehicle_settings_repository.get(updated_setting_group.id) {
                 Ok(settings) => settings
@@ -265,10 +265,10 @@ impl UserPreferencesServiceImpl {
                 }
             };
 
-        let persisted_settings: Vec<SettingProto> = match current_user_id {
+        let persisted_settings: Vec<SettingProto> = match current_user {
             None => Vec::new(),
-            Some(id) => {
-                match self.calculate_group_settings_for_user(id, updated_setting_group.id) {
+            Some(user) => {
+                match self.calculate_group_settings_for_user(user.id, updated_setting_group.id) {
                     Ok(settings) => settings
                         .into_iter()
                         .filter(|s| updated_settings_name.contains(&s.name))
@@ -371,7 +371,30 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
             },
         };
 
-        *self.active_user_id.lock().unwrap() = Some(user.id);
+        let previous_user = *self.active_user.lock().unwrap();
+        *self.active_user.lock().unwrap() = Some(user);
+
+        if let Some(previous_user) = previous_user {
+            if previous_user.is_ephemeral() {
+                if let Some(err) = self
+                    .delete_user(DeleteUserRequest {
+                        user_id: previous_user.id,
+                        ..Default::default()
+                    })
+                    .unwrap()
+                    .error
+                    .into_option()
+                {
+                    // Since deletion failed, revert the active_user user change
+                    *self.active_user.lock().unwrap() = Some(previous_user);
+                    return Ok(SelectUserResponse {
+                        error: Some(err).into(),
+                        ..Default::default()
+                    });
+                }
+                info!("Deleted ephemeral user: {}", previous_user.id);
+            }
+        }
 
         info!("Switching to user {}", user.id);
 
@@ -411,7 +434,7 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
     }
 
     fn delete_user(&self, request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
-        if Some(request.user_id) == *self.active_user_id.lock().unwrap() {
+        if self.active_user.lock().unwrap().is_some_and(|user| user.id == request.user_id) {
             return error_response!(
                 DeleteUserResponse,
                 ResponseCode::INVALID_REQUEST,
@@ -662,8 +685,8 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
             );
         }
         if request.change_persistence_policy == ChangePersistencePolicy::PERSISTENT_CHANGE.into() {
-            let current_user_id = match *self.active_user_id.lock().unwrap() {
-                Some(x) => x,
+            let current_user_id = match *self.active_user.lock().unwrap() {
+                Some(user) => user.id,
                 None => return error_response!(
                     RequestSettingsChangeResponse,
                     ResponseCode::INVALID_REQUEST,
@@ -745,9 +768,9 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
 
         let current_settings: Vec<SettingAndConstraints> =
             self.calculate_group_settings_for_vehicle_state(settings_group.id).unwrap();
-        let persisted_settings: Vec<SettingProto> = match *self.active_user_id.lock().unwrap() {
-            Some(user_id) => {
-                match self.calculate_group_settings_for_user(user_id, settings_group.id) {
+        let persisted_settings: Vec<SettingProto> = match *self.active_user.lock().unwrap() {
+            Some(user) => {
+                match self.calculate_group_settings_for_user(user.id, settings_group.id) {
                     Ok(x) => x.into_iter().map_into().collect_vec(),
                     Err(err) => {
                         error!("Failed to retrieve persisted settings: {}", err);
@@ -943,6 +966,7 @@ mod tests {
     use super::*;
     use crate::test_utils::*;
     use crate::vsidl_client_provider::{MockClientTransport, MockVSIDLClientProvider};
+    use protobuf::Enum;
     use protobuf::Message;
     use rusqlite::Connection;
     use sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::client::UserControllableServiceClient;
@@ -951,6 +975,7 @@ mod tests {
     use user_preferences_api::change_notifier::OnSettingsChangeResponse;
     use user_preferences_api::setting::{setting::Value as ValueProto, Setting as SettingProto};
     use user_preferences_api::settings_group::SettingsGroupId as SettingsGroupIdProto;
+    use user_preferences_api::user::user::UserFlags;
     use user_preferences_api::user::User as UserProto;
 
     #[test]
@@ -1365,6 +1390,81 @@ mod tests {
         assert!(response.error.is_none());
         assert_eq!(response.current_settings.len(), 2);
         assert_eq!(response.persisted_settings.len(), 2)
+    }
+
+    #[test]
+    fn select_user_deletes_ephemeral_user_on_switch() {
+        let mut mock_client_transport = Box::new(MockClientTransport::new());
+        let mut mock_vsidl_client_provider = MockVSIDLClientProvider::new();
+
+        let expected_rpc_request =
+            user_preferences_api::user_controllable_service::RequestSettingsChangeRequest {
+                group_name: String::from(TEST_SETTINGS_GROUP_NAME),
+                settings: vec![default_int32_setting(), default_bool_setting()],
+                ..Default::default()
+            };
+        let rpc_response =
+            user_preferences_api::user_controllable_service::RequestSettingsChangeResponse {
+                settings: expected_rpc_request.settings.clone(),
+                ..Default::default()
+            };
+
+        mock_client_transport
+            .expect_call_method()
+            .times(2)
+            .returning(move |_, _| Ok(rpc_response.write_to_bytes().unwrap()));
+
+        let client = Arc::new(UserControllableServiceClient::new(mock_client_transport));
+
+        mock_vsidl_client_provider
+            .expect_get_sdv_user_preferences_user_controllable_user_controllable_service_client()
+            .times(2)
+            .returning(move |_| client.clone());
+
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(mock_vsidl_client_provider);
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        let ephemeral_user_proto =
+            UserProto { id: 1, flags: UserFlags::EPHEMERAL.value(), ..Default::default() };
+        let create_user_request = CreateUserRequest {
+            user: MessageField::some(ephemeral_user_proto),
+            ..Default::default()
+        };
+        user_preferences_impl.create_user(create_user_request).unwrap();
+
+        let settings_definitions =
+            vec![default_bool_setting_definition(), default_int32_setting_definition()];
+        let register_settings_request = RegisterSettingsRequest {
+            group_name: TEST_SETTINGS_GROUP_NAME.to_string(),
+            caller_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+            settings_definitions,
+            ..Default::default()
+        };
+        user_preferences_impl.register_settings(register_settings_request).unwrap();
+
+        let select_user_request = SelectUserRequest { user_id: 1, ..Default::default() };
+        user_preferences_impl.select_user(select_user_request).unwrap();
+
+        let non_ephemeral_user_proto = UserProto { id: 2, flags: 0, ..Default::default() };
+        let create_user_request = CreateUserRequest {
+            user: MessageField::some(non_ephemeral_user_proto),
+            ..Default::default()
+        };
+        user_preferences_impl.create_user(create_user_request).unwrap();
+
+        let select_user_request = SelectUserRequest { user_id: 2, ..Default::default() };
+        let response = user_preferences_impl.select_user(select_user_request).unwrap();
+        assert!(response.error.is_none(), "Failed to select user: {:?}", response.error);
+
+        let list_users_response =
+            user_preferences_impl.list_users(ListUsersRequest::new()).unwrap();
+        assert!(list_users_response.error.is_none());
+
+        // ensure only one the non ephemeral account remains
+        assert_eq!(list_users_response.users.len(), 1);
+        assert_eq!(list_users_response.users[0].id, 2);
     }
 
     #[test]
