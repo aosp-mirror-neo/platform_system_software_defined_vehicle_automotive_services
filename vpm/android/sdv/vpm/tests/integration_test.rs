@@ -22,16 +22,23 @@ mod tests {
     use std::time::Duration;
 
     #[test]
-    fn set_vehicle_states_notifies_system_clients() {
+    fn set_vehicle_states_and_power_states_notifies_system_clients() {
         let (tx, rx): (Sender<VpmVehicleState>, Receiver<VpmVehicleState>) = channel();
 
         // Given: a subscriber for vehicle state.
+
+        // Setup bundle
         let callback = move |message: Result<VehicleStateChange>| {
             tx.send(message.unwrap().vehicle_state.unwrap()).unwrap();
         };
         let mut test_bundle = VpmSystemClient::new(VpmSystemClientCallbacks {
             sdv_vpm_vehicle_vehicle_state_change_cb: Box::new(callback),
         });
+        let (test_vepsm, request_receiver) =
+            TestVePSM::create_vepsm_and_notification_receiver_channel();
+        test_bundle
+            .sdv_vpm_power_notification_service_server
+            .register_service_interface(Arc::new(test_vepsm));
 
         // When: a new vehicle state is sent via RPC.
         let request = SetVehicleStateRequest {
@@ -47,21 +54,8 @@ mod tests {
         // Then: the new vehicle state should be received by the subscriber.
         let result = rx.recv_timeout(Duration::from_secs(5)).expect("Timeout reached");
         assert_eq!(result, VpmVehicleState::SOFTWARE_UPDATE);
-    }
 
-    #[test]
-    fn set_power_state_notifies_power_report_listener_and_oem() {
-        // Given: a power state.
-
-        // Set up OEM power state client.
-        let test_bundle = VpmSystemClient::new(VpmSystemClientCallbacks {
-            sdv_vpm_vehicle_vehicle_state_change_cb: Box::new(move |_| {}),
-        });
-        let (test_vepsm, request_receiver) =
-            TestVePSM::create_vepsm_and_notification_receiver_channel();
-        test_bundle
-            .sdv_vpm_power_notification_service_server
-            .register_service_interface(Arc::new(test_vepsm));
+        // Given power state SDV agents subscribers
 
         let (current_power_state_report, callback_receiver) =
             PowerCallbackPreparer::new().setup_binder_callbacks();
