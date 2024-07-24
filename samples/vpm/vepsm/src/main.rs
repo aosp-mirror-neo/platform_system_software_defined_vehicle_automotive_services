@@ -84,6 +84,7 @@ fn handle_power_state(power_cmd: PowerCommand, client: &VpmSystemClient) -> anyh
         },
         PowerCommand::Cancel => PowerStateChangeRequest {
             power_request: PowerStateRequest::CANCEL_SHUTDOWN.into(),
+            timeout_ms,
             ..Default::default()
         },
         PowerCommand::Finish { shutdown_type } => match shutdown_type {
