@@ -28,9 +28,6 @@
       "name": "sdv_diag_integration_test"
     },
     {
-      "name": "sdv_user_preferences_integration_test"
-    },
-    {
       "name": "sdv_vpm_agent_integration_test"
     },
     {
