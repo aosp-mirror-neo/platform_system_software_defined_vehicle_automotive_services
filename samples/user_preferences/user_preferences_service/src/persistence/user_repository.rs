@@ -98,6 +98,13 @@ impl UserRepository {
         }
         Ok(users)
     }
+
+    /// Clears the entire database, removing all users.
+    pub fn clear(&self) -> Result<(), Error> {
+        let connection = self.connection.lock().unwrap();
+        connection.execute("DELETE FROM users", [])?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -184,6 +191,21 @@ mod tests {
         assert_eq!(retrieved_users.len(), 2);
         assert_eq!(retrieved_users[0], User { id: 1, flags: 0 });
         assert_eq!(retrieved_users[1], User { id: 2, flags: 1 });
+    }
+
+    #[test]
+    fn clear_removes_all_users() {
+        let user_repository = create_in_memory_user_repository();
+
+        let users = [User { id: 1, flags: 0 }, User { id: 2, flags: 1 }];
+        for user in users.iter() {
+            user_repository.add_user(user).unwrap();
+        }
+
+        user_repository.clear().unwrap();
+
+        let retrieved_users = user_repository.list().unwrap();
+        assert_eq!(retrieved_users.len(), 0);
     }
 
     #[test]
