@@ -2,6 +2,7 @@
 //! Vehicle and Power Mode Agent.
 //!
 use crate::power_state::*;
+use crate::power_state_notifier::PowerStateNotificationError;
 use crate::PowerStateNotifier;
 use crate::PowerStateNotifierImpl;
 use crate::POWER_STATE_CHANNEL_QUEUE_SIZE;
@@ -119,7 +120,7 @@ impl PowerServiceImpl {
 
 fn notify_oem(
     new_state: Arc<dyn PowerState>,
-    timeout_result: Result<anyhow::Result<()>, Elapsed>,
+    timeout_result: Result<anyhow::Result<(), PowerStateNotificationError>, Elapsed>,
     cloned_power_state_notifier: Arc<dyn PowerStateNotifier>,
 ) {
     match timeout_result {
@@ -257,6 +258,7 @@ mod tests {
     use crate::power_state::MockPowerState;
     use crate::power_state::*;
     use crate::power_state_notifier::MockPowerStateNotifier;
+    use crate::power_state_notifier::PowerStateNotificationError;
     use crate::power_state_notifier::PowerStateNotifier;
     use crate::PowerServiceImpl;
     use crate::PowerStateRequestHandlerImpl;
@@ -338,7 +340,7 @@ mod tests {
             .expect_notify()
             .times(1)
             .withf(move |report| *report == new_report)
-            .returning(|_| Err(anyhow!("Error")));
+            .returning(|_| Err(PowerStateNotificationError::Failed));
 
         // expect OEM to be notified.
         power_state_notifier
