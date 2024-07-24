@@ -1,0 +1,68 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+syntax = "proto3";
+
+package sdv.concal;
+
+import "google/protobuf/any.proto";
+import "configuration.proto";
+
+// Key-value pair to update configuration.
+// ConfigOverrideKeyValue supports several operations:
+// - Assigning a new value: the last value is deprecated and the parameter gets assigned a new value
+// including assigning a new value to a simple field (int, string, float, bool, bytes) as well as to
+// rewriting complex fields like maps, lists, structs and a complete config.
+// - Removing/cleaning a value. This operation is provided for all types: messages, repeated fields
+// and maps, singular fields, and the config itself. This operation can be performed on a complete
+// field/message which means that the removal of specific keys in a map and individual elements from
+// a repeated field is not supported.
+// - Adding a new value to a map.
+// - Rewriting the value of an existing key in a map (this operation also performs adding a new
+// value to a map, if the key does not yet exist).
+message ConfigOverrideKeyValue {
+  // Optional.
+  // A path to the config field, which will be overridden. Elements in the path are separated by
+  // dots. The last element shows which exact element should be rewritten. It might be a singular or
+  // complex field or a specific key in a map. Specifying a key as a path allows traversing to the
+  // deepest levels of the config and rewriting simple as well as complex structures.
+  // If the key is empty, the complete config will be modified.
+  string key = 1;
+
+  // Optional.
+  // New value.
+  // If no value is provided the corresponding field or config is cleared.
+  // If the key is a key in a map and no value is provided override cannot be performed and an error
+  // is returned.
+  oneof value {
+    // New value in the legacy TextProto format without the top-level key, which is already provided
+    // in the `key` field. The provided value is merged into the existing key's value. Important
+    // details for the legacy TextProto:
+    // - Instead of using [] for repeated fields and maps, use `<name_of_the_repeated_field>:
+    // <value> <name_of_the_repeated_field>: <value>` for repeated fields and
+    // <name_of_the_map_field> {key: <key_value> value: <value>} <name_of_the_map_field> {key:
+    // <key_value> value: <value>} for maps.
+    // - Instead of using `: {` for objects, only `{` without semicolons should be used.
+    // - Semicolons should be used only in simple key: value pairs.
+    // For examples, please check `lib_override_tests`.
+    string value_txtproto = 2;
+    // A new value (Protobuf message) encoded as an Any message.
+    // The new value replaces the existing value.
+    google.protobuf.Any value_any = 3;
+  }
+}
+
+// A collection of changes for a specific config which should be atomically applied.
+message ConfigOverride {
+  // Required.
+  // Override identifier defined by the caller.
+  // Unique per caller.
+  string override_id = 1;
+
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 2;
+
+  // Required.
+  // Key-value pairs for keys to be updated in the config.
+  repeated ConfigOverrideKeyValue pairs = 3;
+}

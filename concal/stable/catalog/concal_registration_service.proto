@@ -1,0 +1,80 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+// This API might change when MW implementation is provided.
+
+syntax = "proto3";
+
+package sdv.concal;
+
+import "configuration.proto";
+
+// Generally available Configuration/Calibration Service Bundle (ConCal) APIs for use by
+// SDV-Services.
+// ConCal delivers customized verhicle-specific service bundles' configurations.
+// ConCal interface providing capabilities to register configuration and retrieve the current
+// version of a config.
+service ConCalRegistrationService {
+  // Retrieves service configuration.
+  // Returns an error if multiple configs matching the request or requested config is not available
+  // at ConCal.
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse) {}
+
+  // Registers configuration schema with default config.
+  // If the metadata for this version already exists the metadata is not
+  // rewritten.
+  rpc RegisterConfigMetadata(RegisterConfigMetadataRequest)
+      returns (RegisterConfigMetadataResponse) {}
+
+  // Returns the config metadata for the defined config.
+  rpc GetConfigMetadata(GetConfigMetadataRequest) returns (GetConfigMetadataResponse) {}
+}
+
+message GetConfigRequest {
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message GetConfigResponse {
+  // Required.
+  // Serialized config.
+  bytes config = 1;
+
+  // Required.
+  // Version identifier for the config.
+  string config_version = 2;
+}
+
+message RegisterConfigMetadataRequest {
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 1;
+
+  // Required.
+  // Config schema and default message.
+  ConfigMetadata metadata = 2;
+
+  // Required.
+  // Version identifier for the service package.
+  // Required to support binary updates.
+  string config_version = 3;
+}
+
+message RegisterConfigMetadataResponse {}
+
+message GetConfigMetadataRequest {
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 1;
+
+  // Required.
+  // Version identifier for the config.
+  // If not provided, the current config schema is returned.
+  string config_version = 2;
+}
+
+message GetConfigMetadataResponse {
+  // Required.
+  // Service config schema and default message.
+  ConfigMetadata metadata = 1;
+}

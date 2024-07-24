@@ -1,0 +1,33 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+syntax = "proto3";
+
+package sdv.concal;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/descriptor.proto";
+
+import "service_fqin.proto";
+
+// Based on the technique for self-describing messages.
+// Provides default configuration with its schema.
+message ConfigMetadata {
+  // Required.
+  // Proto types and their dependencies.
+  google.protobuf.FileDescriptorSet descriptor_set = 1;
+
+  // Required.
+  // The default config and its type, encoded as an Any message.
+  google.protobuf.Any default_config = 2;
+}
+
+// Unique identifier for the config.
+message ConfigId {
+  // Required.
+  // The FQIN of the service bundle that owns the configuration.
+  sdv.sd_common.ServiceFqin service_fqin = 1;
+
+  // Required.
+  // The name of the config.
+  string config_name = 2;
+}

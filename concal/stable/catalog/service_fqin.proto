@@ -1,0 +1,26 @@
+
+// Copyright 2023 Google LLC.
+
+syntax = "proto3";
+
+package sdv.sd_common;
+
+// Service Bundle Fully Qualified Instance Name.
+// It mimics behavior of the Service FQIN defined in Service Discovery.
+message ServiceFqin {
+  // Required.
+  // The human readable name of the VM on which this Service Bundle is deployed.
+  string vm_name = 1;
+
+  // Required.
+  // The human readable name of APEX package the Service Bundle is defined in.
+  string package_name = 2;
+
+  // Required.
+  // The human readable name of the Service Bundle.
+  string service_name = 3;
+
+  // Required.
+  // The human readable name of the unique instance of the Service Bundle.
+  string instance_name = 4;
+}
