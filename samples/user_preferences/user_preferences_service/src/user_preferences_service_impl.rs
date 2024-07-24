@@ -822,11 +822,56 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
         }
     }
 
-    fn update_settings(
-        &self,
-        _request: UpdateSettingsRequest,
-    ) -> RpcResult<UpdateSettingsResponse> {
-        RpcResult::Err(sdvmiddleware_rpc::error::RpcError::Other)
+    fn update_settings(&self, request: UpdateSettingsRequest) -> RpcResult<UpdateSettingsResponse> {
+        let settings_group = match self
+            .settings_group_repository
+            .get(request.group_name.as_str(), request.caller_fqin.as_str())
+        {
+            Ok(x) => x,
+            Err(err) => match err {
+                crate::persistence::error::Error::NotFound => {
+                    warn!(
+                        "Settings group {}/{} does not exist",
+                        request.group_name, request.caller_fqin,
+                    );
+                    return error_response!(
+                        UpdateSettingsResponse,
+                        ResponseCode::INVALID_REQUEST,
+                        "Settings group {}/{} does not exist",
+                        request.group_name,
+                        request.caller_fqin,
+                    );
+                }
+                _ => {
+                    error!("Unable to update setting: {:?}", err);
+                    return error_response!(
+                        UpdateSettingsResponse,
+                        ResponseCode::INTERNAL_ERROR,
+                        "Unable to update setting: {:?}",
+                        err
+                    );
+                }
+            },
+        };
+
+        if let Err(err) = self
+            .vehicle_settings_repository
+            .store_all(settings_group.id, request.settings.iter().cloned().map_into().collect_vec())
+        {
+            error!("Encountered failure when updating vehicle settings repository: {}", err);
+            return error_response!(
+                UpdateSettingsResponse,
+                ResponseCode::INTERNAL_ERROR,
+                "Unable to update settings",
+            );
+        }
+
+        self.notify_subscribers(
+            &settings_group,
+            &request.settings.into_iter().map(|x| x.key.clone()).collect(),
+        );
+
+        Ok(UpdateSettingsResponse::new())
     }
 }
 
@@ -1721,6 +1766,130 @@ mod tests {
         assert_eq!(
             response.error.unwrap().error_code.value(),
             ResponseCode::NOT_FOUND_ERROR as i32
+        );
+    }
+
+    #[test]
+    fn update_settings_notifies_subscribers_when_it_succeeds() {
+        let change_notifier_client = Arc::new(ChangeNotifierClient::new({
+            let mut mock_client_transport = Box::new(MockClientTransport::new());
+
+            let expected_rpc_request = OnSettingsChangeRequest {
+                settings_group_id: Some(SettingsGroupIdProto {
+                    name: TEST_SETTINGS_GROUP_NAME.to_string(),
+                    service_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+                    ..Default::default()
+                })
+                .into(),
+                settings: vec![SettingProto {
+                    key: "int32_setting".to_string(),
+                    value: Some(ValueProto::Int32(2)),
+                    ..Default::default()
+                }],
+                ..Default::default()
+            };
+
+            let rpc_response = OnSettingsChangeResponse { ..Default::default() };
+
+            mock_client_transport
+                .expect_call_method()
+                .times(1)
+                .withf(move |_method, request| {
+                    let request = OnSettingsChangeRequest::parse_from_bytes(request).unwrap();
+                    request.settings_group_id.eq(&expected_rpc_request.settings_group_id)
+                        && request.version.eq(&expected_rpc_request.version)
+                        && are_settings_equal(&request.settings, &expected_rpc_request.settings)
+                        && are_settings_equal(
+                            &request.persisted_settings,
+                            &expected_rpc_request.persisted_settings,
+                        )
+                })
+                .returning(move |_, _| Ok(rpc_response.write_to_bytes().unwrap()));
+
+            mock_client_transport
+        }));
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> = Arc::new({
+            let mut mock_vsidl_client_provider = MockVSIDLClientProvider::new();
+
+            mock_vsidl_client_provider
+                .expect_get_sdv_user_preferences_view_change_notifier_client()
+                .times(1)
+                .returning(move |_| change_notifier_client.clone());
+
+            mock_vsidl_client_provider
+        });
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        let settings_definitions =
+            vec![default_bool_setting_definition(), default_int32_setting_definition()];
+        let register_settings_request = RegisterSettingsRequest {
+            group_name: TEST_SETTINGS_GROUP_NAME.to_string(),
+            caller_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+            settings_definitions,
+            ..Default::default()
+        };
+        user_preferences_impl.register_settings(register_settings_request).unwrap();
+
+        let subscribe_request = SubscribeToSettingsChangeAndGetSettingsRequest {
+            settings_group_id: Some(SettingsGroupIdProto {
+                name: TEST_SETTINGS_GROUP_NAME.to_string(),
+                service_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+                ..Default::default()
+            })
+            .into(),
+            caller_fqin: TEST_SUBSCRIBER_FQIN.to_string(),
+            ..Default::default()
+        };
+        user_preferences_impl
+            .subscribe_to_settings_change_and_get_settings(subscribe_request)
+            .unwrap();
+
+        let update_settings_request = UpdateSettingsRequest {
+            group_name: TEST_SETTINGS_GROUP_NAME.to_string(),
+            caller_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+            settings: vec![SettingProto {
+                key: "int32_setting".to_string(),
+                value: Some(ValueProto::Int32(2)),
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let response = user_preferences_impl.update_settings(update_settings_request).unwrap();
+
+        assert!(response.error.is_none());
+    }
+
+    #[test]
+    fn update_settings_fails_for_non_existent_settings_group() {
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(MockVSIDLClientProvider::new());
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        let update_settings_request = UpdateSettingsRequest {
+            group_name: "non_existent_group".to_string(),
+            caller_fqin: TEST_USER_CONTROLLABLE_SERVICE_FQIN.to_string(),
+            settings: vec![
+                SettingProto {
+                    key: "bool_setting".to_string(),
+                    value: Some(ValueProto::Bool(true)),
+                    ..Default::default()
+                },
+                SettingProto {
+                    key: "int32_setting".to_string(),
+                    value: Some(ValueProto::Int32(10)),
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        };
+        let response = user_preferences_impl.update_settings(update_settings_request).unwrap();
+
+        assert!(response.error.is_some());
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::INVALID_REQUEST as i32
         );
     }
 
