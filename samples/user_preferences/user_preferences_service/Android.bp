@@ -25,6 +25,7 @@ rust_test {
         "libgoogletest_rust",
     ],
     auto_gen_config: true,
+    require_root: true,
 }
 
 rust_defaults {
