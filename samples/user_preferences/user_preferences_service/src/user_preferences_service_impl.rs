@@ -350,7 +350,7 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
                     warn!("User {} already exists", user.id);
                     return error_response!(
                         CreateUserResponse,
-                        ResponseCode::INVALID_REQUEST,
+                        ResponseCode::ALREADY_EXISTS,
                         "User {} already exists",
                         user.id
                     );
@@ -1046,7 +1046,11 @@ mod tests {
 
         // Assert that the response contains an error
         assert!(response.error.is_some());
-        assert_eq!(response.error.unwrap().message, "User 1 already exists");
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::ALREADY_EXISTS as i32,
+            "Expected error to have status code already_exists"
+        );
     }
 
     #[test]
@@ -1061,7 +1065,10 @@ mod tests {
         let response = user_preferences_impl.create_user(request).unwrap();
 
         assert!(response.error.is_some());
-        assert_eq!(response.error.unwrap().message, "User cannot be empty");
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::INVALID_REQUEST as i32
+        );
     }
 
     #[test]
