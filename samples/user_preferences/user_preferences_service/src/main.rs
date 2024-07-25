@@ -37,7 +37,7 @@ use crate::{
 #[derive(Parser, Debug)]
 #[command(long_about = None)]
 struct Args {
-    #[arg(long)]
+    #[arg(long, action)]
     use_temp_db: bool,
     #[arg(required_unless_present("use_temp_db"))]
     db_path: Option<PathBuf>,
@@ -59,6 +59,8 @@ fn main() {
             }
         }
     };
+
+    info!("Creating database at {:?}", db_path);
 
     let connection = Arc::new(Mutex::new(
         Connection::open(db_path).expect("Unable to open connection to database file"),

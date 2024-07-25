@@ -52,8 +52,11 @@ vsidl_code_generator \
 
     adb root
 
-    adb shell sdv_user_preferences_service
+    # To start user preferences with a temporary database
+    adb shell sdv_user_preferences_service --use_temp_db
 
+    # To start user preferences with a persistent database
+    adb shell sdv_user_preferences_service --db_path PATH_TO_DATABASE # PATH should be under /data directory
     ```
 
 3. Launch the HVAC Service
