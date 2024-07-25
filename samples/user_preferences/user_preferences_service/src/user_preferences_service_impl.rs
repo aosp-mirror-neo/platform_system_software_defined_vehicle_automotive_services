@@ -2,6 +2,7 @@
 use anyhow::Result;
 use itertools::Itertools;
 use log::{debug, error, info, warn};
+use protobuf::Enum;
 use std::collections::HashSet;
 
 use sdvgenerated::sdv_user_preferences_user_controllable_user_controllable_service_interface::UserControllableService;
@@ -21,6 +22,7 @@ use user_preferences_api::setting::{
 use user_preferences_api::settings_group::{
     SettingsGroup as SettingsGroupProto, SettingsGroupId as SettingsGroupIdProto,
 };
+use user_preferences_api::user::user::UserFlags;
 use user_preferences_api::user::User as UserProto;
 use user_preferences_api::user_controllable_service;
 use user_preferences_api::user_preferences_admin_service::*;
@@ -304,6 +306,20 @@ impl UserPreferencesServiceImpl {
             }
         }
     }
+
+    fn are_valid_user_flags(user_flags: i32) -> bool {
+        // Ensure driver flag is set since only driver is supported now
+        if (user_flags & UserFlags::DRIVER.value()) != UserFlags::DRIVER.value() {
+            warn!("User flags {} does not have driver flag set", user_flags);
+            return false;
+        }
+        // Ensure that no other bits are set other than ephemeral & driver
+        if user_flags > (UserFlags::EPHEMERAL.value() | UserFlags::DRIVER.value()) {
+            warn!("User flags {} has unexpected bits set", user_flags);
+            return false;
+        }
+        true
+    }
 }
 
 impl UserPreferencesAdminService for UserPreferencesServiceImpl {
@@ -318,6 +334,14 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
                 )
             }
         };
+        if !Self::are_valid_user_flags(user.flags) {
+            return error_response!(
+                CreateUserResponse,
+                ResponseCode::INVALID_REQUEST,
+                "User flags {} is not a valid value",
+                user.flags
+            );
+        }
         info!("Creating user: {:?}", user);
 
         if let Err(err) = self.user_repository.add_user(&user) {
@@ -985,7 +1009,8 @@ mod tests {
         let user_preferences_impl =
             create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
 
-        let user_proto = UserProto { id: 1, flags: 0, ..Default::default() };
+        let user_proto =
+            UserProto { id: 1, flags: UserFlags::DRIVER.value(), ..Default::default() };
         let request =
             CreateUserRequest { user: MessageField::some(user_proto), ..Default::default() };
 
@@ -1001,7 +1026,8 @@ mod tests {
         let user_preferences_impl =
             create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
 
-        let user_proto = UserProto { id: 1, flags: 0, ..Default::default() };
+        let user_proto =
+            UserProto { id: 1, flags: UserFlags::DRIVER.value(), ..Default::default() };
         let request = CreateUserRequest {
             user: MessageField::some(user_proto.clone()),
             ..Default::default()
@@ -1036,6 +1062,44 @@ mod tests {
 
         assert!(response.error.is_some());
         assert_eq!(response.error.unwrap().message, "User cannot be empty");
+    }
+
+    #[test]
+    fn create_user_fails_for_invalid_flags() {
+        let mock_vsidl_client_provider: Arc<dyn VSIDLClientProvider> =
+            Arc::new(MockVSIDLClientProvider::new());
+        let user_preferences_impl =
+            create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
+
+        // Test with no flags set
+        let user_proto = UserProto { id: 1, flags: 0, ..Default::default() };
+        let request =
+            CreateUserRequest { user: MessageField::some(user_proto), ..Default::default() };
+
+        let response = user_preferences_impl.create_user(request).unwrap();
+
+        assert!(response.error.is_some());
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::INVALID_REQUEST as i32
+        );
+
+        // Test with invalid bits set
+        let user_proto = UserProto {
+            id: 1,
+            flags: (UserFlags::EPHEMERAL.value() | UserFlags::DRIVER.value()) + 1,
+            ..Default::default()
+        };
+        let request =
+            CreateUserRequest { user: MessageField::some(user_proto), ..Default::default() };
+
+        let response = user_preferences_impl.create_user(request).unwrap();
+
+        assert!(response.error.is_some());
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::INVALID_REQUEST as i32
+        );
     }
 
     #[test]
@@ -1113,7 +1177,8 @@ mod tests {
             create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
 
         // Create a user
-        let user_proto = UserProto { id: 1, flags: 0, ..Default::default() };
+        let user_proto =
+            UserProto { id: 1, flags: UserFlags::DRIVER.value(), ..Default::default() };
         let create_user_request =
             CreateUserRequest { user: MessageField::some(user_proto), ..Default::default() };
         user_preferences_impl.create_user(create_user_request).unwrap();
@@ -1291,7 +1356,8 @@ mod tests {
             create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
 
         // Create a user
-        let user_proto = UserProto { id: 1, flags: 0, ..Default::default() };
+        let user_proto =
+            UserProto { id: 1, flags: UserFlags::DRIVER.value(), ..Default::default() };
         let create_user_request =
             CreateUserRequest { user: MessageField::some(user_proto), ..Default::default() };
         user_preferences_impl.create_user(create_user_request).unwrap();
@@ -1426,8 +1492,11 @@ mod tests {
         let user_preferences_impl =
             create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
 
-        let ephemeral_user_proto =
-            UserProto { id: 1, flags: UserFlags::EPHEMERAL.value(), ..Default::default() };
+        let ephemeral_user_proto = UserProto {
+            id: 1,
+            flags: UserFlags::EPHEMERAL.value() | UserFlags::DRIVER.value(),
+            ..Default::default()
+        };
         let create_user_request = CreateUserRequest {
             user: MessageField::some(ephemeral_user_proto),
             ..Default::default()
@@ -1447,7 +1516,8 @@ mod tests {
         let select_user_request = SelectUserRequest { user_id: 1, ..Default::default() };
         user_preferences_impl.select_user(select_user_request).unwrap();
 
-        let non_ephemeral_user_proto = UserProto { id: 2, flags: 0, ..Default::default() };
+        let non_ephemeral_user_proto =
+            UserProto { id: 2, flags: UserFlags::DRIVER.value(), ..Default::default() };
         let create_user_request = CreateUserRequest {
             user: MessageField::some(non_ephemeral_user_proto),
             ..Default::default()
@@ -1660,7 +1730,7 @@ mod tests {
 
         let user_id = 1_i32;
 
-        create_user_and_assert_success(&user_preferences_impl, user_id, 0);
+        create_user_and_assert_success(&user_preferences_impl, user_id, UserFlags::DRIVER.value());
         select_user_and_assert_success(&user_preferences_impl, user_id);
 
         let request_settings_change_request = RequestSettingsChangeRequest {
@@ -1727,7 +1797,7 @@ mod tests {
 
         let user_id = 1_i32;
 
-        create_user_and_assert_success(&user_preferences_impl, user_id, 0);
+        create_user_and_assert_success(&user_preferences_impl, user_id, UserFlags::DRIVER.value());
 
         select_user_and_assert_success(&user_preferences_impl, user_id);
 
@@ -1743,7 +1813,7 @@ mod tests {
 
         // Create a user
         let user_id = 1_i32;
-        create_user_and_assert_success(&user_preferences_impl, user_id, 0);
+        create_user_and_assert_success(&user_preferences_impl, user_id, UserFlags::DRIVER.value());
 
         // Delete the user
         let delete_user_request = DeleteUserRequest { user_id, ..Default::default() };
@@ -1780,7 +1850,7 @@ mod tests {
             create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
 
         let user_id = 1_i32;
-        create_user_and_assert_success(&user_preferences_impl, user_id, 0);
+        create_user_and_assert_success(&user_preferences_impl, user_id, UserFlags::DRIVER.value());
 
         select_user_and_assert_success(&user_preferences_impl, user_id);
 
@@ -1802,9 +1872,9 @@ mod tests {
             create_user_preferences_server_and_impl(Arc::downgrade(&mock_vsidl_client_provider));
 
         let users = [
-            UserProto { id: 1, flags: 0, ..Default::default() },
-            UserProto { id: 2, flags: 1, ..Default::default() },
-            UserProto { id: 3, flags: 2, ..Default::default() },
+            UserProto { id: 1, flags: UserFlags::DRIVER.value(), ..Default::default() },
+            UserProto { id: 2, flags: UserFlags::DRIVER.value(), ..Default::default() },
+            UserProto { id: 3, flags: UserFlags::DRIVER.value(), ..Default::default() },
         ];
         for user in users.iter() {
             let request =
