@@ -1,14 +1,13 @@
 // Copyright 2024 Google LLC
 //! Vehicle and Power Mode Agent.
+//!
 use crate::power_service::PowerRequest;
 use crate::power_service::PowerStateRequestHandler;
-use crate::PowerService;
 use crate::PowerState;
 use crate::PowerStateRequestHandlerImpl;
 use async_trait::async_trait;
 use log::{error, info};
 use mockall::automock;
-use protobuf::well_known_types::empty::Empty;
 use sdv_vpm_api::vehicle::VehicleStateChange;
 use sdv_vpm_api::vehicle::VpmVehicleState;
 use sdv_vpm_api::vpm::power_state_change_response::PowerStateChangeRequestError;
@@ -21,7 +20,6 @@ use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
 use sdvmiddleware_rpc::error::RpcError;
 use sdvmiddleware_rpc::RpcResult;
 use std::sync::mpsc::channel;
-use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -81,7 +79,7 @@ impl VpmService for VpmServiceImpl {
 
         // Start a blocking thread to listen to incoming vehicle mode changes
         let cloned_bundle = self.vpm_service_bundle.clone();
-        task::spawn_blocking(move || loop {
+        let _ = task::spawn_blocking(move || loop {
             match vehicle_state_receiver.recv() {
                 Ok(vehicle_state) => {
                     let mut vehicle_state_change_message = VehicleStateChange::new();
@@ -162,25 +160,23 @@ mod tests {
     use crate::power_service::MockPowerStateRequestHandler;
     use crate::system_service::RpcServer;
     use anyhow::anyhow;
-    use googletest::prelude::{assert_that, eq, matches_pattern};
+    use googletest::prelude::{assert_that, matches_pattern};
     use sdv_vpm_api::vehicle::VpmVehicleState;
     use sdv_vpm_api::vpm::power_state_change_response::PowerStateChangeRequestError;
     use sdv_vpm_api::vpm::PowerStateChangeRequest;
-    use sdv_vpm_api::vpm::PowerStateChangeResponse;
     use sdv_vpm_api::vpm::PowerStateRequest;
     use sdv_vpm_api::vpm::SetVehicleStateRequest;
     use sdv_vpm_api::vpm::ShutdownType;
     use sdvgenerated::sdv_vpm_vpm_system_service_interface::VpmSystemService;
     use sdvmiddleware_rpc::error::RpcError;
     use std::sync::mpsc::channel;
-    use std::sync::Arc;
 
     #[tokio::test]
     async fn set_rpc_vehicle_state() {
         // Given: mock services.
         let (vehicle_state_sender, vehicle_state_receiver) = channel();
         let mock_power_state_request_handler = MockPowerStateRequestHandler::default();
-        let mut rpc_server =
+        let rpc_server =
             RpcServer::new(vehicle_state_sender, Box::new(mock_power_state_request_handler));
         let vehicle_state_handle = tokio::spawn(async move { vehicle_state_receiver.recv() });
 
@@ -203,11 +199,10 @@ mod tests {
     #[tokio::test]
     async fn set_rpc_vehicle_state_fails_request_invalid() {
         // Given: mock services.
-        let (vehicle_state_sender, vehicle_state_receiver) = channel();
+        let (vehicle_state_sender, _) = channel();
         let mock_power_state_request_handler = MockPowerStateRequestHandler::default();
-        let mut rpc_server =
+        let rpc_server =
             RpcServer::new(vehicle_state_sender, Box::new(mock_power_state_request_handler));
-        let vehicle_state_handle = tokio::spawn(async move { vehicle_state_receiver.recv() });
 
         // When: a vehicle state request is sent without proper state.
         let request = SetVehicleStateRequest { ..Default::default() };
@@ -224,7 +219,7 @@ mod tests {
         // Given: mock services without a receiver.
         let (vehicle_state_sender, vehicle_state_receiver) = channel();
         let mock_power_state_request_handler = MockPowerStateRequestHandler::default();
-        let mut rpc_server =
+        let rpc_server =
             RpcServer::new(vehicle_state_sender, Box::new(mock_power_state_request_handler));
 
         // When: a vehicle state request is sent and receiver is dropped.
@@ -244,13 +239,13 @@ mod tests {
     #[test]
     fn set_rpc_power_state_succeeds() {
         // Given: a mock power service.
-        let (vehicle_state_sender, vehicle_state_receiver) = channel();
+        let (vehicle_state_sender, _) = channel();
         let mut mock_power_state_request_handler = MockPowerStateRequestHandler::default();
         mock_power_state_request_handler
             .expect_handle_set_power_state()
             .times(1)
             .returning(|_| Ok(()));
-        let mut rpc_server =
+        let rpc_server =
             RpcServer::new(vehicle_state_sender, Box::new(mock_power_state_request_handler));
 
         // When: a power state request is sent
@@ -268,13 +263,13 @@ mod tests {
     #[test]
     fn set_rpc_power_state_fails() {
         // Given: a mock power service.
-        let (vehicle_state_sender, vehicle_state_receiver) = channel();
+        let (vehicle_state_sender, _) = channel();
         let mut mock_power_state_request_handler = MockPowerStateRequestHandler::default();
         mock_power_state_request_handler
             .expect_handle_set_power_state()
             .times(1)
             .returning(|_| Err(anyhow!("Power service failed")));
-        let mut rpc_server =
+        let rpc_server =
             RpcServer::new(vehicle_state_sender, Box::new(mock_power_state_request_handler));
 
         // When: a power state request is sent but fails.

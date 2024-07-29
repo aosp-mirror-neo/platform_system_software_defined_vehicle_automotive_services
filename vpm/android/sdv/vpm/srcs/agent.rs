@@ -1,25 +1,20 @@
 // Copyright 2024 Google LLC
 //! Vehicle and Power Mode Agent.
 
-#![allow(unused)]
 mod power_service;
 mod power_state;
 mod power_state_notifier;
 mod system_service;
-
 use crate::power_service::PowerService;
 use crate::power_service::PowerServiceImpl;
-use crate::power_service::PowerStateRequestHandler;
 use crate::power_service::PowerStateRequestHandlerImpl;
-use crate::power_state::PowerOffExit;
 use crate::power_state::PowerState;
 use crate::power_state_notifier::PowerStateNotifier;
 use crate::power_state_notifier::PowerStateNotifierImpl;
 use crate::system_service::VpmService;
 use crate::system_service::VpmServiceImpl;
 
-use log::{error, info};
-use sdv_vpm_api::power::PowerStateReport;
+use log::info;
 use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -61,7 +56,7 @@ impl Agent {
     /// The agent will start the vehicle state service and the power mode state service.
     pub async fn start(&mut self) {
         info!("Starting VPM Agent.");
-        tokio::join!(
+        let _ = tokio::join!(
             self.system_service.start(
                 self.power_service.get_power_state_request_sender(),
                 self.power_service.get_power_state_watch_receiver()
@@ -75,14 +70,11 @@ impl Agent {
 mod tests {
     use super::*;
     use crate::power_service::MockPowerService;
-    use crate::power_state_notifier::MockPowerStateNotifier;
+    use crate::power_state::PowerOffExit;
     use crate::system_service::MockVpmService;
     use crate::Agent;
-    use mockall::predicate;
-    use tokio::runtime::Handle;
     use tokio::sync::mpsc::channel as mpsc_channel;
     use tokio::sync::watch::channel as watch_channel;
-    use tokio::time::Duration;
 
     #[tokio::test]
     async fn vpm_agent_starts() {
@@ -108,6 +100,6 @@ mod tests {
         // When: the new agent is created, publisher and rpc servers are created.
         let mut agent =
             Agent::new_with_services(Box::new(mock_vpm_service), Box::new(mock_power_service));
-        let test_ = agent.start().await;
+        let _test = agent.start().await;
     }
 }

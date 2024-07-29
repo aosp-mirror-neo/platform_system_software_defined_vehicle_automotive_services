@@ -8,7 +8,6 @@ use crate::PowerStateNotifierImpl;
 use crate::POWER_STATE_CHANNEL_QUEUE_SIZE;
 use anyhow::anyhow;
 use async_trait::async_trait;
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport as PowerSTateRep;
 use log::{debug, error, info};
 use mockall::automock;
 use sdv_vpm_api::power::PowerStateReport;
@@ -17,17 +16,12 @@ use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateRequest;
 use sdv_vpm_api::vpm::ShutdownType;
 use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
-use std::f64::consts::E;
-use std::future::Future;
 use std::sync::Arc;
 use std::sync::Mutex;
-use std::sync::RwLock;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::watch::{
     channel as watch_channel, Receiver as WatchReceiver, Sender as WatchSender,
 };
-use tokio::task;
-use tokio::task::AbortHandle;
 use tokio::task::JoinHandle;
 use tokio::time::error::Elapsed;
 use tokio::time::timeout;
@@ -97,7 +91,7 @@ impl PowerServiceImpl {
         let (power_state_watch_sender, power_state_watch_receiver) =
             watch_channel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
 
-        power_state_notifier.create_binder_service(power_state_watch_receiver.clone());
+        power_state_notifier.create_binder_service(power_state_watch_receiver.clone()).unwrap();
 
         Self {
             power_state_notifier,
@@ -148,13 +142,13 @@ impl PowerServiceImpl {
                 return Err(anyhow!("The state was interrupted and cancelled."));
             }
 
-            cloned_power_state_watch_sender.send(new_state.clone());
+            cloned_power_state_watch_sender.send(new_state.clone())?;
             debug!("Start post state execution of {:?}", new_state.get_report());
             let execution_result = new_state
                 .execute(cloned_power_state_request_sender, power_request.timeout_ms)
                 .await;
 
-            if (execution_result.is_err()) {
+            if execution_result.is_err() {
                 error!("Could not execute state.");
             }
 
@@ -179,20 +173,35 @@ fn notify_oem(
         Ok(notification_result) => match notification_result {
             Ok(_) => {
                 info!("Successfully notified all callbacks for {:?}!", new_state.get_report());
-                cloned_power_state_notifier
+                let result = cloned_power_state_notifier
                     .notify_oem(new_state.get_report(), PowerStateChangeReason::HOST_REQUESTED);
+                debug!(
+                    "OEM was notified about power state update {:?} {:?}",
+                    new_state.get_report(),
+                    result
+                );
             }
             Err(e) => {
-                debug!("Failed to notify one of the callbacks!");
-                cloned_power_state_notifier
+                debug!("Failed to notify one of the callbacks! error={e}");
+                let result = cloned_power_state_notifier
                     //TODO: b/353655403 Add more reasons for failing callbacks.
                     .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT);
+                debug!(
+                    "OEM was notified about power state update {:?} {:?}",
+                    new_state.get_report(),
+                    result
+                );
             }
         },
         Err(Elapsed { .. }) => {
             debug!("Call to notify callbacks has timed-out!");
-            cloned_power_state_notifier
+            let result = cloned_power_state_notifier
                 .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT);
+            debug!(
+                "OEM was notified about power state update {:?} {:?}",
+                new_state.get_report(),
+                result
+            );
         }
     }
 }
@@ -284,7 +293,7 @@ impl PowerStateRequestHandler for PowerStateRequestHandlerImpl {
     fn handle_set_power_state(&self, request: PowerStateChangeRequest) -> anyhow::Result<()> {
         let power_request = validate_power_state_request(request)?;
         let current_state = self.power_state_watch_receiver.borrow();
-        if (!current_state.is_valid_next_state(power_request.power_state.get_report())) {
+        if !current_state.is_valid_next_state(power_request.power_state.get_report()) {
             error!(
                 "Power state transition is invalid, current={:?} requested {:?}",
                 current_state.get_report(),
@@ -297,13 +306,13 @@ impl PowerStateRequestHandler for PowerStateRequestHandlerImpl {
             "Request for power state change {:?} approved!",
             power_request.power_state.get_report()
         );
-        self.power_state_request_sender.blocking_send(power_request);
+        self.power_state_request_sender.blocking_send(power_request)?;
         Ok(())
     }
 }
 
 fn validate_power_state_request(request: PowerStateChangeRequest) -> anyhow::Result<PowerRequest> {
-    let power_state: Box<dyn PowerState> = match (request.power_request.unwrap()) {
+    let power_state: Box<dyn PowerState> = match request.power_request.unwrap() {
         PowerStateRequest::TURN_ON => Box::new(On {}),
         PowerStateRequest::CANCEL_SHUTDOWN => Box::new(ShutdownCancelled {}),
         PowerStateRequest::PREPARE_SHUTDOWN => match request.shutdown_type.unwrap() {
@@ -339,22 +348,18 @@ mod tests {
     use crate::power_service::PowerRequest;
     use crate::power_service::PowerService;
     use crate::power_service::PowerStateRequestHandler;
-    use crate::power_service::PowerStateTracker;
     use crate::power_state::MockPowerState;
     use crate::power_state::*;
     use crate::power_state_notifier::MockPowerStateNotifier;
     use crate::power_state_notifier::PowerStateNotificationError;
-    use crate::power_state_notifier::PowerStateNotifier;
     use crate::PowerServiceImpl;
     use crate::PowerStateRequestHandlerImpl;
-    use anyhow::anyhow;
     use googletest::fail;
     use sdv_vpm_api::power::PowerStateReport;
     use sdv_vpm_api::vpm::power_state_notification_request::PowerStateChangeReason;
     use sdv_vpm_api::vpm::PowerStateChangeRequest;
     use sdv_vpm_api::vpm::PowerStateRequest;
     use sdv_vpm_api::vpm::ShutdownType;
-    use std::future;
     use std::sync::Arc;
     use tokio::sync::mpsc::channel;
     use tokio::sync::watch::channel as WatchChannel;
@@ -398,7 +403,7 @@ mod tests {
         let _handle = tokio::spawn(async move { power_service.start().await });
 
         // When: a power state request is requested
-        power_state_request_sender.send(PowerRequest::new(Box::new(new_state), 1)).await;
+        let _ = power_state_request_sender.send(PowerRequest::new(Box::new(new_state), 1)).await;
 
         // Then: power state is set.
         if (timeout(
@@ -408,7 +413,7 @@ mod tests {
         .await)
             .is_err()
         {
-            fail!("Test timed out");
+            fail!("Test timed out").unwrap();
         }
         assert_eq!(power_state_watch_receiver.borrow().get_report(), new_report);
     }
@@ -450,7 +455,7 @@ mod tests {
         let _handle = tokio::spawn(async move { power_service.start().await });
 
         // When: a power state request is requested
-        power_state_request_sender.send(PowerRequest::new(Box::new(new_state), 1)).await;
+        let _ = power_state_request_sender.send(PowerRequest::new(Box::new(new_state), 1)).await;
 
         // Then: power state is set.
         if (timeout(
@@ -460,7 +465,7 @@ mod tests {
         .await)
             .is_err()
         {
-            fail!("Test timed out");
+            fail!("Test timed out").unwrap();
         }
         assert_eq!(power_state_watch_receiver.borrow().get_report(), new_report);
     }
@@ -493,7 +498,7 @@ mod tests {
         let _handle = tokio::spawn(async move { power_service.start().await });
 
         // When: a power state request is requested
-        power_state_request_sender.send(PowerRequest::new(Box::new(new_state), 1)).await;
+        let _ = power_state_request_sender.send(PowerRequest::new(Box::new(new_state), 1)).await;
 
         // Then: power state is set.
         if (timeout(
@@ -503,7 +508,7 @@ mod tests {
         .await)
             .is_err()
         {
-            fail!("Test timed out");
+            fail!("Test timed out").unwrap();
         }
         assert_eq!(power_state_watch_receiver.borrow().get_report(), new_report);
     }
@@ -513,7 +518,7 @@ mod tests {
         // Given: the power state request handler.
         let (tx, _) = channel::<PowerRequest>(1);
         let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
-        let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, rx);
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, rx);
 
         // When: a prepare power state request without a timeout is sent.
         let request = PowerStateChangeRequest {
@@ -532,7 +537,7 @@ mod tests {
         // Given: the power state request handler.
         let (tx, _) = channel::<PowerRequest>(1);
         let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
-        let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, rx);
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, rx);
 
         // When: a power state request is sent without power state.
         let request = PowerStateChangeRequest { ..Default::default() };
@@ -547,7 +552,7 @@ mod tests {
         // Given: the power state request handler.
         let (tx, _) = channel::<PowerRequest>(1);
         let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
-        let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, rx);
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, rx);
 
         // When: a prepare power state request is sent without shutdown type.
         let request = PowerStateChangeRequest {
@@ -566,7 +571,7 @@ mod tests {
         // Given: the power state request handler.
         let (tx, _) = channel::<PowerRequest>(1);
         let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
-        let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, rx);
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, rx);
 
         // When: a power off state request is sent without shutdown type.
         let request = PowerStateChangeRequest {
@@ -585,7 +590,7 @@ mod tests {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
-        let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -608,7 +613,7 @@ mod tests {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(On {}));
-        let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -632,7 +637,7 @@ mod tests {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(On {}));
-        let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -656,7 +661,7 @@ mod tests {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(On {}));
-        let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -680,7 +685,7 @@ mod tests {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffEnter {}));
-        let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -703,7 +708,7 @@ mod tests {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinishSuspendToRam {}));
-        let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -727,7 +732,7 @@ mod tests {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinishSuspendToDisk {}));
-        let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
@@ -751,7 +756,7 @@ mod tests {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinishPowerOff {}));
-        let mut power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
         // When: a power state request is sent.
         let request = PowerStateChangeRequest {
