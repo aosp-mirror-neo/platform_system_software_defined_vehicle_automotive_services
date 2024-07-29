@@ -23,8 +23,7 @@ use tokio::sync::watch::{
     channel as watch_channel, Receiver as WatchReceiver, Sender as WatchSender,
 };
 use tokio::task::JoinHandle;
-use tokio::time::error::Elapsed;
-use tokio::time::timeout;
+use tokio::time::sleep;
 use tokio::time::Duration;
 use tokio_util::sync::CancellationToken;
 
@@ -119,25 +118,27 @@ impl PowerServiceImpl {
                 power_request.power_state.get_report(),
                 power_request.timeout_ms
             );
-            let timeout_result = timeout(
-                Duration::from_millis(power_request.timeout_ms),
-                cloned_power_state_notifier.notify(
-                    power_request.power_state.get_report(),
-                    cloned_cancellation_token.clone(),
-                ),
-            )
-            .await;
+
+            let select_result = tokio::select! {
+                 _ = sleep(Duration::from_millis(power_request.timeout_ms)) => {
+                     debug!("Timeout reached");
+                     Err(PowerStateNotificationError::TimedOut)
+                 },
+                 _ = cloned_cancellation_token.cancelled() => {
+                    debug!("Power state transition was  cancelled");
+                    Err(PowerStateNotificationError::Cancelled)
+                },
+                result  = cloned_power_state_notifier.notify(power_request.power_state.get_report()) => {
+                    result
+                }
+            };
+
             let new_state: Arc<dyn PowerState> = Arc::from(power_request.power_state);
 
             // Interrupted states which have been cancelled should not be set or notified to OEM.
             // After this point cancellation does not make sense.
             // All callbacks have been already notified.
-            if cloned_cancellation_token.is_cancelled()
-                && (timeout_result.as_ref().is_err()
-                    || timeout_result
-                        .as_ref()
-                        .is_ok_and(|notification_result| notification_result.is_err()))
-            {
+            if cloned_cancellation_token.is_cancelled() && select_result.as_ref().is_err() {
                 debug!("State was interrupted and cancelled {:?}", new_state.get_report());
                 return Err(anyhow!("The state was interrupted and cancelled."));
             }
@@ -156,7 +157,7 @@ impl PowerServiceImpl {
             // If the VM suspends, the following code will only be executed once the process resumes from suspension, therefore the report will be outdated.
             // The new_state.execute will also request a transition to the new resume state which will be received by the power_state_request_receiver.
             if !new_state.is_sleep_state() {
-                notify_oem(new_state, timeout_result, cloned_power_state_notifier);
+                notify_oem(new_state, select_result, cloned_power_state_notifier);
             }
 
             Ok(())
@@ -166,36 +167,34 @@ impl PowerServiceImpl {
 
 fn notify_oem(
     new_state: Arc<dyn PowerState>,
-    timeout_result: Result<anyhow::Result<(), PowerStateNotificationError>, Elapsed>,
+    select_result: anyhow::Result<(), PowerStateNotificationError>,
     cloned_power_state_notifier: Arc<dyn PowerStateNotifier>,
 ) {
-    match timeout_result {
-        Ok(notification_result) => match notification_result {
-            Ok(_) => {
-                info!("Successfully notified all callbacks for {:?}!", new_state.get_report());
-                let result = cloned_power_state_notifier
-                    .notify_oem(new_state.get_report(), PowerStateChangeReason::HOST_REQUESTED);
-                debug!(
-                    "OEM was notified about power state update {:?} {:?}",
-                    new_state.get_report(),
-                    result
-                );
-            }
-            Err(e) => {
-                debug!("Failed to notify one of the callbacks! error={e}");
-                let result = cloned_power_state_notifier
-                    //TODO: b/353655403 Add more reasons for failing callbacks.
-                    .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT);
-                debug!(
-                    "OEM was notified about power state update {:?} {:?}",
-                    new_state.get_report(),
-                    result
-                );
-            }
-        },
-        Err(Elapsed { .. }) => {
+    match select_result {
+        Ok(_) => {
+            info!("Successfully notified all callbacks for {:?}!", new_state.get_report());
+            let result = cloned_power_state_notifier
+                .notify_oem(new_state.get_report(), PowerStateChangeReason::HOST_REQUESTED);
+            debug!(
+                "OEM was notified about power state update {:?} {:?}",
+                new_state.get_report(),
+                result
+            );
+        }
+        Err(PowerStateNotificationError::TimedOut) => {
             debug!("Call to notify callbacks has timed-out!");
             let result = cloned_power_state_notifier
+                .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT);
+            debug!(
+                "OEM was notified about power state update {:?} {:?}",
+                new_state.get_report(),
+                result
+            );
+        }
+        Err(e) => {
+            debug!("Failed to notify one of the callbacks! error={e}");
+            let result = cloned_power_state_notifier
+                //TODO: b/353655403 Add more reasons for failing callbacks.
                 .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT);
             debug!(
                 "OEM was notified about power state update {:?} {:?}",
@@ -378,8 +377,8 @@ mod tests {
         power_state_notifier
             .expect_notify()
             .times(1)
-            .withf(move |report, _| *report == new_report)
-            .returning(|_, _| Ok(()));
+            .withf(move |report| *report == new_report)
+            .returning(|_| Ok(()));
 
         // expect OEM to be notified.
         power_state_notifier
@@ -430,8 +429,8 @@ mod tests {
         power_state_notifier
             .expect_notify()
             .times(1)
-            .withf(move |report, _| *report == new_report)
-            .returning(|_, _| Err(PowerStateNotificationError::Failed));
+            .withf(move |report| *report == new_report)
+            .returning(|_| Err(PowerStateNotificationError::Failed));
 
         // expect OEM to be notified.
         power_state_notifier
@@ -482,8 +481,8 @@ mod tests {
         power_state_notifier
             .expect_notify()
             .times(1)
-            .withf(move |report, _| *report == new_report)
-            .returning(|_, _| Ok(()));
+            .withf(move |report| *report == new_report)
+            .returning(|_| Ok(()));
 
         // expect report to be SuspendToRam.
         new_state.expect_get_report().returning(move || new_report);
