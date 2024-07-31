@@ -119,6 +119,10 @@ impl PowerServiceImpl {
                 power_request.timeout_ms
             );
 
+            // Setting the power state so that it can be cancelled if necessary.
+            let new_state: Arc<dyn PowerState> = Arc::from(power_request.power_state);
+            cloned_power_state_watch_sender.send(new_state.clone())?;
+
             let select_result = tokio::select! {
                  _ = sleep(Duration::from_millis(power_request.timeout_ms)) => {
                      debug!("Timeout reached");
@@ -128,12 +132,10 @@ impl PowerServiceImpl {
                     debug!("Power state transition was  cancelled");
                     Err(PowerStateNotificationError::Cancelled)
                 },
-                result  = cloned_power_state_notifier.notify(power_request.power_state.get_report()) => {
+                result  = cloned_power_state_notifier.notify(new_state.get_report()) => {
                     result
                 }
             };
-
-            let new_state: Arc<dyn PowerState> = Arc::from(power_request.power_state);
 
             // Interrupted states which have been cancelled should not be set or notified to OEM.
             // After this point cancellation does not make sense.
@@ -143,7 +145,6 @@ impl PowerServiceImpl {
                 return Err(anyhow!("The state was interrupted and cancelled."));
             }
 
-            cloned_power_state_watch_sender.send(new_state.clone())?;
             debug!("Start post state execution of {:?}", new_state.get_report());
             let execution_result = new_state
                 .execute(cloned_power_state_request_sender, power_request.timeout_ms)
