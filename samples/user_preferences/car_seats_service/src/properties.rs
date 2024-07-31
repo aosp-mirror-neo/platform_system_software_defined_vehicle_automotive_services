@@ -18,7 +18,7 @@ pub(crate) fn seat_position() -> SettingDefinition {
         setting_and_constraints: MessageField::some(SettingAndConstraints {
             setting: MessageField::some(Setting {
                 key: SEAT_POSITION.to_string(),
-                value: Some(Value::Int64(3)),
+                value: Some(Value::Enum(3)),
                 ..Default::default()
             }),
             constraints: Some(Constraints::EnumConstraints(EnumConstraints {
