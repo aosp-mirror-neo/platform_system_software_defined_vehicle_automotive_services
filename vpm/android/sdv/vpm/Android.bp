@@ -100,6 +100,9 @@ rust_test {
         "automotive-sdv-tests",
         "general-tests",
     ],
+    test_options: {
+        unit_test: false,
+    },
     require_root: true,
 }
 
@@ -119,6 +122,9 @@ rust_test {
         "libsdvmiddleware_rpc",
         "libsdvgenerated_vpm_integration_test_bundle",
     ],
+    test_options: {
+        unit_test: false,
+    },
     test_suites: [
         "automotive-sdv-tests",
         "general-tests",
@@ -165,6 +171,9 @@ rust_test {
         "libsdvmiddleware_rpc",
         "libsdvgenerated_vpm_integration_test_bundle",
     ],
+    test_options: {
+        unit_test: false,
+    },
     test_suites: [
         "automotive-sdv-tests",
         "general-tests",
@@ -188,6 +197,9 @@ rust_test {
         "libsdvmiddleware_rpc",
         "libsdvgenerated_vpm_integration_test_bundle",
     ],
+    test_options: {
+        unit_test: false,
+    },
     test_suites: [
         "automotive-sdv-tests",
         "general-tests",
