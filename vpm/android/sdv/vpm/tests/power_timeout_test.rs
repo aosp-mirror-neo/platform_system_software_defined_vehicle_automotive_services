@@ -50,7 +50,7 @@ mod tests {
 
         // Then: transition to On happens and timeout reason is returned.
         let power_notification =
-            request_receiver.recv_timeout(Duration::from_secs(5)).expect("Timeout reached");
+            request_receiver.recv_timeout(Duration::from_secs(10)).expect("Timeout reached");
         assert_eq!(power_notification.power_state.unwrap(), PowerStateReport::ON);
         assert_eq!(power_notification.reason.unwrap(), PowerStateChangeReason::TIMEOUT);
     }

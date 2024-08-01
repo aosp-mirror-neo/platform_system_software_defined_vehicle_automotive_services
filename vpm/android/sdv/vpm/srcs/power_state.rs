@@ -1,6 +1,5 @@
 // Copyright 2024 Google LLC
 use crate::power_service::PowerRequest;
-use anyhow::anyhow;
 use async_trait::async_trait;
 use mockall::automock;
 use sdv_pm::PlatformPowerController;
@@ -39,8 +38,8 @@ pub trait PowerState: Send + Sync {
 
     async fn execute(
         &self,
-        power_state_request_sender: Sender<PowerRequest>,
-        timeout_ms: u64,
+        _power_state_request_sender: Sender<PowerRequest>,
+        _timeout_ms: u64,
     ) -> anyhow::Result<()> {
         Ok(())
     }
@@ -121,7 +120,7 @@ impl PowerState for SuspendToRamEnter {
     ) -> anyhow::Result<()> {
         power_state_request_sender
             .send(PowerRequest::new(Box::new(WaitForFinishSuspendToRam {}), timeout_ms))
-            .await;
+            .await?;
         Ok(())
     }
 }
@@ -146,7 +145,7 @@ impl PowerState for SuspendToDiskEnter {
     ) -> anyhow::Result<()> {
         power_state_request_sender
             .send(PowerRequest::new(Box::new(WaitForFinishSuspendToDisk {}), timeout_ms))
-            .await;
+            .await?;
         Ok(())
     }
 }
@@ -170,7 +169,7 @@ impl PowerState for PowerOffEnter {
     ) -> anyhow::Result<()> {
         power_state_request_sender
             .send(PowerRequest::new(Box::new(WaitForFinishPowerOff {}), timeout_ms))
-            .await;
+            .await?;
         Ok(())
     }
 }
@@ -253,7 +252,7 @@ impl PowerState for SuspendToRamPostFinish {
         suspend_to_ram()?;
         power_state_request_sender
             .send(PowerRequest::new(Box::new(SuspendToRamExit {}), timeout_ms))
-            .await;
+            .await?;
         Ok(())
     }
 }
@@ -281,7 +280,7 @@ impl PowerState for SuspendToDiskPostFinish {
         suspend_to_disk()?;
         power_state_request_sender
             .send(PowerRequest::new(Box::new(SuspendToDiskExit {}), timeout_ms))
-            .await;
+            .await?;
         Ok(())
     }
 }
@@ -291,7 +290,7 @@ pub struct PowerOffPostFinish {}
 
 #[async_trait]
 impl PowerState for PowerOffPostFinish {
-    fn is_valid_next_state(&self, next_state: PowerStateReport) -> bool {
+    fn is_valid_next_state(&self, _next_state: PowerStateReport) -> bool {
         // Terminal state, nothing should come after it.
         false
     }
@@ -304,8 +303,8 @@ impl PowerState for PowerOffPostFinish {
 
     async fn execute(
         &self,
-        power_state_request_sender: Sender<PowerRequest>,
-        timeout_ms: u64,
+        _power_state_request_sender: Sender<PowerRequest>,
+        _timeout_ms: u64,
     ) -> anyhow::Result<()> {
         power_off()
     }

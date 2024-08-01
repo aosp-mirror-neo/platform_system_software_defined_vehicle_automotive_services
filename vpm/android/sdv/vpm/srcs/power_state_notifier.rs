@@ -2,7 +2,6 @@
 
 use crate::power_state_notifier::binder::BinderFeatures;
 use crate::PowerState;
-use anyhow::anyhow;
 use async_trait::async_trait;
 use binder_tokio::Tokio;
 use binder_tokio::TokioRuntime;
@@ -14,27 +13,19 @@ use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateReportListener::IPow
 use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateReportListener::IPowerStateReportListenerAsync;
 use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
 use google_sdv_vpm_aidl::binder;
-use google_sdv_vpm_aidl::binder::{
-    Interface, Result as BinderResult, Status as BinderStatus, Strong,
-};
-use log::{debug, error, info, warn};
+use google_sdv_vpm_aidl::binder::{Interface, Result as BinderResult, Strong};
+use log::{debug, error, info};
 use mockall::automock;
 use sdv_vpm_api::power::PowerStateReport;
 use sdv_vpm_api::vpm::power_state_notification_request::PowerStateChangeReason;
 use sdv_vpm_api::vpm::PowerStateNotificationRequest;
 use sdvgenerated::sdv_vpm_power_notification_service_interface::PowerNotificationService;
 use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
-use std::sync::atomic::AtomicBool;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::sync::Mutex;
 use thiserror::Error;
 use tokio::runtime::Handle;
-use tokio::sync::broadcast::error::RecvError;
-use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::watch::Receiver as WatchReceiver;
-use tokio::task::JoinError;
-use tokio::task::JoinHandle;
 use tokio::task::JoinSet;
 
 #[automock]
@@ -61,6 +52,8 @@ pub enum PowerStateNotificationError {
     Cancelled,
     #[error("Callback client was disconnected!")]
     Disconnected,
+    #[error("Timeout was reached while notifying callbacks!")]
+    TimedOut,
     #[error("Failed to deliver callback!")]
     Failed,
 }
@@ -102,15 +95,13 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
     ) -> anyhow::Result<(), PowerStateNotificationError> {
         info!("Starting callback notifications for {:?}", power_state_report);
         let cloned_callbacks = self.callbacks.lock().unwrap().clone();
-        let cloned_bundle = self.vpm_service_bundle.clone();
         let mut set = JoinSet::new();
         for async_callback in cloned_callbacks.into_iter() {
             set.spawn(async move {
                 let result = async_callback
                     .onPowerStateReportChanged(convert_to_aidl(power_state_report))
                     .await;
-                if (result.is_err()) {
-                    //TODO: This should be handled with death binder not here.
+                if result.is_err() {
                     Err(PowerStateNotificationError::Disconnected)
                 } else {
                     Ok(())
@@ -127,7 +118,6 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
             if let Err(result) = handle {
                 error!("Power notification callback request failed, {:?}", result);
                 notification_failed = true;
-                continue;
             }
         }
 
@@ -158,6 +148,9 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
             .unwrap()
             .get_sdv_vpm_power_notification_service_client("VpmSystemClient")
             .notify_power_state(request);
+
+        // Currently it either succeeds or panics.
+        debug!("OEM notification server was found {:?}", result);
 
         Ok(())
     }

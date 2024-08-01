@@ -35,6 +35,9 @@
     },
     {
       "name": "sdv_vpm_agent_power_timeout_test"
+    },
+    {
+      "name": "sdv_vpm_agent_power_interruption_test"
     }
   ]
 }
