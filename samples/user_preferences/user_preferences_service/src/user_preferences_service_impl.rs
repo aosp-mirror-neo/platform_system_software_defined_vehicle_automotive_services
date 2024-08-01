@@ -294,7 +294,7 @@ impl UserPreferencesServiceImpl {
                 .expect("VSIDL client provider has been dropped")
                 .get_sdv_user_preferences_view_change_notifier_client(&subscriber);
 
-            info!("Notifying {} of settings change\n", subscriber);
+            info!("Notifying {} of settings changes in {}\ncurrent_settings: {:?}\npersisted_settings: {:?}", subscriber, updated_setting_group, current_settings_applied, persisted_settings);
             if let Err(err) = client.on_settings_change(OnSettingsChangeRequest {
                 settings_group_id: MessageField::some(updated_setting_group.clone().into()),
                 settings: current_settings_applied.clone(),
@@ -327,11 +327,12 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
         let user: User = match request.user.into_option() {
             Some(x) => x.into(),
             None => {
+                warn!("Create user request contains nil user field");
                 return error_response!(
                     CreateUserResponse,
                     ResponseCode::INVALID_REQUEST,
                     "User cannot be empty",
-                )
+                );
             }
         };
         if !Self::are_valid_user_flags(user.flags) {
@@ -350,7 +351,7 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
                     warn!("User {} already exists", user.id);
                     return error_response!(
                         CreateUserResponse,
-                        ResponseCode::INVALID_REQUEST,
+                        ResponseCode::ALREADY_EXISTS,
                         "User {} already exists",
                         user.id
                     );
@@ -400,6 +401,7 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
 
         if let Some(previous_user) = previous_user {
             if previous_user.is_ephemeral() {
+                info!("user {:?} is ephemeral, attempting to delete", previous_user);
                 if let Some(err) = self
                     .delete_user(DeleteUserRequest {
                         user_id: previous_user.id,
@@ -410,6 +412,7 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
                     .into_option()
                 {
                     // Since deletion failed, revert the active_user user change
+                    error!("Failed to delete ephemeral user {:?}: {}", previous_user, err);
                     *self.active_user.lock().unwrap() = Some(previous_user);
                     return Ok(SelectUserResponse {
                         error: Some(err).into(),
@@ -459,6 +462,7 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
 
     fn delete_user(&self, request: DeleteUserRequest) -> RpcResult<DeleteUserResponse> {
         if self.active_user.lock().unwrap().is_some_and(|user| user.id == request.user_id) {
+            warn!("Invalid delete user request: {:?}", request);
             return error_response!(
                 DeleteUserResponse,
                 ResponseCode::INVALID_REQUEST,
@@ -497,6 +501,8 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
                 request.user_id
             );
         }
+
+        info!("User {} was successfully deleted", request.user_id);
 
         Ok(DeleteUserResponse::new())
     }
@@ -565,10 +571,14 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
                 );
             }
         }
+        info!("Performed factory reset successfully");
+
         Ok(FactoryResetResponse::new())
     }
 
     fn list_users(&self, _request: ListUsersRequest) -> RpcResult<ListUsersResponse> {
+        info!("Got request to list users");
+
         let users = match self.user_repository.list() {
             Ok(x) => x,
             Err(err) => {
@@ -582,6 +592,7 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
         };
 
         let user_proto_list: Vec<UserProto> = users.into_iter().map_into().collect();
+        info!("List users succeeded");
 
         Ok(ListUsersResponse { users: user_proto_list, ..Default::default() })
     }
@@ -590,6 +601,7 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
         &self,
         request: GetUserSettingsRequest,
     ) -> RpcResult<GetUserSettingsResponse> {
+        info!("Got request to get_user_settings");
         if let Err(err) = self.user_repository.get_user(request.user_id) {
             match err {
                 crate::persistence::error::Error::NotFound => {
@@ -651,6 +663,8 @@ impl UserPreferencesAdminService for UserPreferencesServiceImpl {
             });
         }
 
+        info!("get_user_settings succeeded");
+
         Ok(GetUserSettingsResponse { groups: setting_groups_protos, ..Default::default() })
     }
 }
@@ -663,11 +677,12 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
         let settings_group_id = match request.settings_group_id.into_option() {
             Some(x) => x,
             None => {
+                warn!("Change settings request contains nil settings group id");
                 return error_response!(
                     RequestSettingsChangeResponse,
                     ResponseCode::INVALID_REQUEST,
                     "Settings group id cannot be empty",
-                )
+                );
             }
         };
         let settings_group = match self
@@ -677,7 +692,7 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
             Ok(x) => x,
             Err(err) => match err {
                 crate::persistence::error::Error::NotFound => {
-                    info!(
+                    warn!(
                         "Settings group {}/{} doesn't exist",
                         settings_group_id.service_fqin, settings_group_id.name
                     );
@@ -711,11 +726,14 @@ impl UserPreferencesManagementService for UserPreferencesServiceImpl {
         if request.change_persistence_policy == ChangePersistencePolicy::PERSISTENT_CHANGE.into() {
             let current_user_id = match *self.active_user.lock().unwrap() {
                 Some(user) => user.id,
-                None => return error_response!(
-                    RequestSettingsChangeResponse,
-                    ResponseCode::INVALID_REQUEST,
-                    "Change Persistence Policy cannot be `PERSISTENT_CHANGE` when no user is selected",
-                ),
+                None => {
+                    warn!("Change Persistence Policy cannot be `PERSISTENT_CHANGE` when no user is selected");
+                    return error_response!(
+                        RequestSettingsChangeResponse,
+                        ResponseCode::INVALID_REQUEST,
+                        "Change Persistence Policy cannot be `PERSISTENT_CHANGE` when no user is selected",
+                    );
+                }
             };
 
             let settings: Vec<Setting> = request.settings.iter().cloned().map_into().collect();
@@ -890,12 +908,12 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
     ) -> RpcResult<RegisterSettingsResponse> {
         let group_id = match self.settings_group_repository.store(&SettingsGroup {
             id: 0,
-            name: request.group_name,
-            service_fqin: request.caller_fqin,
+            name: request.group_name.clone(),
+            service_fqin: request.caller_fqin.clone(),
         }) {
             Ok(x) => x,
             Err(err) => {
-                println!("Failed to register settings group: {:?}", err);
+                error!("Failed to register settings group: {:?}", err);
                 return error_response!(
                     RegisterSettingsResponse,
                     ResponseCode::INTERNAL_ERROR,
@@ -920,7 +938,13 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
             .collect_vec();
 
         match self.settings_definition_repository.store(group_id, &definition) {
-            Ok(_) => Ok(RegisterSettingsResponse::new()),
+            Ok(_) => {
+                info!(
+                    "Registered setting group {}/{}\n{:?}",
+                    request.caller_fqin, request.group_name, definition
+                );
+                Ok(RegisterSettingsResponse::new())
+            }
             Err(err) => {
                 println!("Failed to register setting definitions: {}", err);
                 error_response!(
@@ -964,10 +988,10 @@ impl UserPreferencesRegistryService for UserPreferencesServiceImpl {
             },
         };
 
-        if let Err(err) = self
-            .vehicle_settings_repository
-            .store_all(settings_group.id, request.settings.iter().cloned().map_into().collect_vec())
-        {
+        let settings: Vec<Setting> = request.settings.iter().cloned().map_into().collect_vec();
+        info!("Updating vehicle settings in group: {}\n{:?}", settings_group, settings);
+
+        if let Err(err) = self.vehicle_settings_repository.store_all(settings_group.id, settings) {
             error!("Encountered failure when updating vehicle settings repository: {}", err);
             return error_response!(
                 UpdateSettingsResponse,
@@ -1046,7 +1070,11 @@ mod tests {
 
         // Assert that the response contains an error
         assert!(response.error.is_some());
-        assert_eq!(response.error.unwrap().message, "User 1 already exists");
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::ALREADY_EXISTS as i32,
+            "Expected error to have status code already_exists"
+        );
     }
 
     #[test]
@@ -1061,7 +1089,10 @@ mod tests {
         let response = user_preferences_impl.create_user(request).unwrap();
 
         assert!(response.error.is_some());
-        assert_eq!(response.error.unwrap().message, "User cannot be empty");
+        assert_eq!(
+            response.error.unwrap().error_code.value(),
+            ResponseCode::INVALID_REQUEST as i32
+        );
     }
 
     #[test]

@@ -2,6 +2,7 @@ use crate::persistence::error::Error;
 
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::sync::{Arc, Mutex};
 use user_preferences_api::settings_group::SettingsGroupId as SettingsGroupIdProto;
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -10,6 +11,12 @@ pub struct SettingsGroup {
     pub id: i64,
     pub name: String,
     pub service_fqin: String,
+}
+
+impl fmt::Display for SettingsGroup {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}/{}", self.service_fqin, self.name)
+    }
 }
 
 impl From<SettingsGroup> for SettingsGroupIdProto {

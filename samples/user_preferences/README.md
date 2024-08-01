@@ -75,6 +75,15 @@ vsidl_code_generator \
 
     ```
 
+### Retrieving User Preferences service logs
+
+As opposed to the sample hmi_service & hvac_service, the User Preferences service does not log to standard output.
+To retrieve the logs use the following command
+
+```bash
+adb logcat -b main | grep SDV_USER_PREFERENCES
+```
+
 ### Expected output
 
 #### HMI Service output
@@ -92,8 +101,8 @@ Successfully created user 1
 
 Current HVAC settings
 Key ENABLED        , Value: Bool(false), Constraint: "None"
-Key TEMPERATURE    , Value: Int64(16) , Constraint: "Int64Constraints(Int64Constraints { min_value: Some(16), max_value: Some(32), step: None, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })"
 Key FAN_SPEED      , Value: Int64(1)  , Constraint: "Int64Constraints(Int64Constraints { min_value: Some(1), max_value: Some(5), step: None, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })"
+Key TEMPERATURE    , Value: Int64(16) , Constraint: "Int64Constraints(Int64Constraints { min_value: Some(16), max_value: Some(32), step: None, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } })"
 
 
 
@@ -104,14 +113,14 @@ Key TEMPERATURE     Value: Int64(32)
 
 
 Attempting to Adjust HVAC temperature to invalid value 100
-Received error "Int64(\n    100,\n) is not a valid value for Setting TEMPERATURE"
+Received error "error_code: INVALID_REQUEST message: \"Value 100 for setting TEMPERATURE is greater than the maximum allowed value 32\""
 
 Creating another user
 Successfully created user 2
 The following settings were changed in settings group HvacService/HVAC
 Key ENABLED         Value: Bool(false)
-Key TEMPERATURE     Value: Int64(16)
 Key FAN_SPEED       Value: Int64(1)
+Key TEMPERATURE     Value: Int64(16)
 
 
 
@@ -120,8 +129,8 @@ List of available users: "2"
 
 Retrieving settings for user 2
 Settings Group: HVAC
-Key ENABLED         Value: Bool(false)
 Key TEMPERATURE     Value: Int64(16)
+Key ENABLED         Value: Bool(false)
 Key FAN_SPEED       Value: Int64(1)
 
 
@@ -152,9 +161,9 @@ Settings change request
 
 
 Adjusted the following settings:
-Key ENABLED         Value Some(Bool(false     ))
-Key TEMPERATURE     Value Some(Int64(16        ))
 Key FAN_SPEED       Value Some(Int64(1         ))
+Key TEMPERATURE     Value Some(Int64(16        ))
+Key ENABLED         Value Some(Bool(false     ))
 Settings change request
 
 
@@ -164,62 +173,11 @@ Settings change request
 
 
 Adjusted the following settings:
+Key FAN_SPEED       Value Some(Int64(1         ))
 Key ENABLED         Value Some(Bool(false     ))
 Key TEMPERATURE     Value Some(Int64(16        ))
-Key FAN_SPEED       Value Some(Int64(1         ))
 
 Performed factory reset
 ```
 
-#### User Preferences Service output
 
-```bash
-UserPreferencesServer service bundle started.
-Registered settings HvacService/HVAC
-Key ENABLED        , Type: PER_USER, Value: Bool(false)
-Key FAN_SPEED      , Type: PER_USER, Value: Int64(1)
-Key TEMPERATURE    , Type: PER_USER, Value: Int64(16)
-
-
-
-Created user 1
-Loading user 1
-
-Updating the following settings within HvacService/HVAC:
-Key ENABLED         Value: Bool(false)
-Key TEMPERATURE     Value: Int64(16)
-Key FAN_SPEED       Value: Int64(1)
-
-
-
-Successfully registered subscriber to settings: HvacService/HVAC
-
-Updating the following settings within HvacService/HVAC:
-Key TEMPERATURE     Value: Int64(32)
-
-
-
-Notifying HmiService of settings change
-
-Created user 2
-Loading user 2
-
-Deleted user 1
-Deleted ephemeral user: 1
-Updating the following settings within HvacService/HVAC:
-Key ENABLED         Value: Bool(false)
-Key TEMPERATURE     Value: Int64(16)
-Key FAN_SPEED       Value: Int64(1)
-
-
-
-Notifying HmiService of settings change
-
-Created user 3
-Deleted user 3
-Factory resetting HvacService
-Updated the following settings
-Key FAN_SPEED       Value: Int64(1)
-Key TEMPERATURE     Value: Int64(16)
-Key ENABLED         Value: Bool(false)
-```

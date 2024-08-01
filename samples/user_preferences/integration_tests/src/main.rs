@@ -35,6 +35,7 @@ mod tests {
             log::info!("Setting up test environment");
             let test_setup = Self {
                 user_preferences_service: Command::new(USER_PREFERENCES_SERVICE_BINARY)
+                    .args(["--", "--use_temp_db"])
                     .spawn()
                     .expect("Failed to launch User Preferences binary"),
 
@@ -44,7 +45,7 @@ mod tests {
             // add a sleep to ensure tests cannot start before server starts
             // TODO:(b/339145709) Replace this sleep with wait for service
             // API that will be provided by middleware once available
-            std::thread::sleep(std::time::Duration::from_millis(100));
+            std::thread::sleep(std::time::Duration::from_millis(300));
 
             test_setup
         }
