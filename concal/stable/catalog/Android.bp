@@ -1,0 +1,27 @@
+// Copyright 2023 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_protobuf {
+    name: "libconcal_api_stable",
+    crate_name: "concal_api_stable",
+    protos: [
+        "*.proto",
+    ],
+    source_stem: "concal_api_stable",
+    proto_flags: [
+        "-I external/protobuf/src",
+    ],
+    vendor_available: true,
+    product_available: true,
+    apex_available: [
+        "//apex_available:platform",
+    ],
+}
+
+filegroup {
+    name: "libconcal_protos_stable",
+    srcs: ["*.proto"],
+}

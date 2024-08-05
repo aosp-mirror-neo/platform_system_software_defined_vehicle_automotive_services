@@ -1,0 +1,45 @@
+// Copyright 2023 Google LLC. All Rights Reserved.
+
+// This API might change when MW implementation is provided.
+
+syntax = "proto3";
+
+package sdv.concal.calib;
+
+import "configuration.proto";
+
+// Generally available Configuration/Calibration Service Bundle (ConCal) APIs for use by
+// SDV-Services.
+// ConCal delivers customized verhicle-specific service bundles' configurations.
+// ConCal interface allowing to register for notifications about updated calibration values for a
+// specific config.
+service ConCalCalibrationNotificationService {
+  // Allows to register for calibration config update.
+  // Returns an error:
+  // - if this service does not have rights to read the calibration config,
+  // - if the calibration config is not stored in the ConCal,
+  // - if multiple calibration config match the request.
+  // The caller should implement CalibratableService interface.
+  rpc RegisterForCalibrationUpdate(RegisterForCalibrationUpdateRequest)
+      returns (RegisterForCalibrationUpdateResponse) {}
+
+  // Allows to unregister from config calibration.
+  rpc UnregisterFromCalibrationUpdate(UnregisterFromCalibrationUpdateRequest)
+      returns (UnregisterFromCalibrationUpdateResponse) {}
+}
+
+message RegisterForCalibrationUpdateRequest {
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message RegisterForCalibrationUpdateResponse {}
+
+message UnregisterFromCalibrationUpdateRequest {
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message UnregisterFromCalibrationUpdateResponse {}
