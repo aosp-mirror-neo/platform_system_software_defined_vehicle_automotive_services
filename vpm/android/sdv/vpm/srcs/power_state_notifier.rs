@@ -1,8 +1,11 @@
 // Copyright 2024 Google LLC
 
 use crate::power_state_notifier::binder::BinderFeatures;
+use crate::power_state_notifier::binder::ExceptionCode;
+use crate::power_state_notifier::binder::Status;
 use crate::PowerState;
 use async_trait::async_trait;
+use binder::{DeathRecipient, IBinder, SpIBinder};
 use binder_tokio::Tokio;
 use binder_tokio::TokioRuntime;
 use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateClientApi::IPowerStateClientApiAsyncServer;
@@ -21,6 +24,9 @@ use sdv_vpm_api::vpm::power_state_notification_request::PowerStateChangeReason;
 use sdv_vpm_api::vpm::PowerStateNotificationRequest;
 use sdvgenerated::sdv_vpm_power_notification_service_interface::PowerNotificationService;
 use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
+use std::collections::HashMap;
+use std::sync::atomic::AtomicU32;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::sync::Mutex;
 use thiserror::Error;
@@ -60,13 +66,13 @@ pub enum PowerStateNotificationError {
 
 #[derive(Clone)]
 pub struct PowerStateNotifierImpl {
-    callbacks: Arc<Mutex<Vec<Strong<dyn IPowerStateReportListenerAsync<Tokio>>>>>,
+    callbacks: Arc<Mutex<HashMap<u32, ClientCallback>>>,
     vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>,
 }
 
 impl PowerStateNotifierImpl {
     pub fn new(vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>) -> Self {
-        Self { callbacks: Arc::new(Mutex::new(Vec::new())), vpm_service_bundle }
+        Self { callbacks: Arc::new(Mutex::new(HashMap::new())), vpm_service_bundle }
     }
 }
 
@@ -94,10 +100,19 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
         power_state_report: PowerStateReport,
     ) -> anyhow::Result<(), PowerStateNotificationError> {
         info!("Starting callback notifications for {:?}", power_state_report);
-        let cloned_callbacks = self.callbacks.lock().unwrap().clone();
+
+        let callbacks: Vec<_> = self
+            .callbacks
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|(id, client_callback)| (*id, client_callback.async_callback.clone()))
+            .collect();
+
         let mut set = JoinSet::new();
-        for async_callback in cloned_callbacks.into_iter() {
+        for (id, async_callback) in callbacks.into_iter() {
             set.spawn(async move {
+                debug!("Starting callback notification for {:?}", id);
                 let result = async_callback
                     .onPowerStateReportChanged(convert_to_aidl(power_state_report))
                     .await;
@@ -157,33 +172,62 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
 }
 
 struct BinderServer {
-    callbacks: Arc<Mutex<Vec<Strong<dyn IPowerStateReportListenerAsync<Tokio>>>>>,
+    callbacks: Arc<Mutex<HashMap<u32, ClientCallback>>>,
     power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
+    // Should be replaced with another identifier when agents have specific SDV id.
+    id: AtomicU32,
 }
 
 impl BinderServer {
     fn new(
-        callbacks: Arc<Mutex<Vec<Strong<dyn IPowerStateReportListenerAsync<Tokio>>>>>,
+        callbacks: Arc<Mutex<HashMap<u32, ClientCallback>>>,
         power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
     ) -> Self {
-        Self { callbacks, power_state_watch_receiver }
+        Self { callbacks, power_state_watch_receiver, id: AtomicU32::new(1) }
     }
 }
 impl Interface for BinderServer {}
+
+#[allow(dead_code)]
+struct ClientCallback {
+    async_callback: Strong<dyn IPowerStateReportListenerAsync<Tokio>>,
+    // death_recipient has to be kept alive as long as the callback event if not used.
+    death_recipient: DeathRecipient,
+    death_binder: SpIBinder,
+}
 
 #[async_trait]
 impl IPowerStateClientApiAsyncServer for BinderServer {
     async fn subscribeToPowerStateReport(
         &self,
         callback: &Strong<dyn IPowerStateReportListener>,
+        death_binder: &SpIBinder,
     ) -> BinderResult<PowerStateReportAidl> {
         info!("VPM Agent received client request to subscribe to power updates!");
-        self.callbacks.lock().unwrap().push(callback.clone().into_async());
+        let id = self.id.fetch_add(1, Ordering::Relaxed);
+        let callbacks = self.callbacks.clone();
+        let mut death_recipient = DeathRecipient::new(move || {
+            info!("Handling death notification for id {:?}", id);
+            callbacks.lock().unwrap().remove(&id);
+        });
+        let result = death_binder.clone().link_to_death(&mut death_recipient);
+        if result.is_err() {
+            error!("Failed to link death binder {:?}", result);
+            return Err(Status::new_exception(ExceptionCode::SERVICE_SPECIFIC, None));
+        }
+
+        debug!("Death binder linked successfully");
+        let client_callback = ClientCallback {
+            async_callback: callback.clone().into_async(),
+            death_recipient,
+            death_binder: death_binder.clone(),
+        };
+
+        self.callbacks.lock().unwrap().insert(id, client_callback);
         let power_state = self.power_state_watch_receiver.borrow();
         Ok(convert_to_aidl(power_state.get_report()))
     }
 }
-
 fn convert_to_aidl(power_state_report: PowerStateReport) -> PowerStateReportAidl {
     match power_state_report {
         PowerStateReport::POWER_OFF_EXIT => PowerStateReportAidl::POWER_OFF_EXIT,

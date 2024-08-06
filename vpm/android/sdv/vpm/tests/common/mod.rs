@@ -3,6 +3,7 @@
 
 use crate::common::binder::BinderFeatures;
 use crate::common::binder::Strong;
+use binder::{binder_impl::Binder, Interface};
 use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateClientApi::{
     BpPowerStateClientApi, IPowerStateClientApi,
 };
@@ -85,9 +86,10 @@ impl PowerCallbackPreparer {
             get_power_state_client_interface().expect("Cannot find VPM client binder service");
         let power_report_listener =
             BnPowerStateReportListener::new_binder(test_sdv_agent, BinderFeatures::default());
-
-        // Return current state received by the callback
-        power_state_client_interface.subscribeToPowerStateReport(&power_report_listener).unwrap()
+        let link_to_death = Binder::new(()).as_binder();
+        power_state_client_interface
+            .subscribeToPowerStateReport(&power_report_listener, &link_to_death)
+            .unwrap()
     }
 }
 

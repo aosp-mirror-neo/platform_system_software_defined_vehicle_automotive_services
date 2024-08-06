@@ -173,7 +173,10 @@ fn notify_oem(
 ) {
     match select_result {
         Ok(_) => {
-            info!("Successfully notified all callbacks for {:?}!", new_state.get_report());
+            info!(
+                "Successfully notified all callbacks, notifying OEM for {:?}!",
+                new_state.get_report()
+            );
             let result = cloned_power_state_notifier
                 .notify_oem(new_state.get_report(), PowerStateChangeReason::HOST_REQUESTED);
             debug!(

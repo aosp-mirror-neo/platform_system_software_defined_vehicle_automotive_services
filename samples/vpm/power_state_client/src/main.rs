@@ -11,6 +11,7 @@ use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateReportListener::{
 use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport;
 
 use async_trait::async_trait;
+use binder::{binder_impl::Binder, Interface};
 use binder_tokio::Tokio;
 use binder_tokio::TokioRuntime;
 use google_sdv_vpm_aidl::binder;
@@ -48,7 +49,10 @@ async fn main() -> anyhow::Result<()> {
         TokioRuntime(Handle::current()),
         BinderFeatures::default(),
     );
-    let result = vpm_client_service_interface.subscribeToPowerStateReport(&vpm_client_binder).await;
+    let link_to_death = Binder::new(()).as_binder();
+    let result = vpm_client_service_interface
+        .subscribeToPowerStateReport(&vpm_client_binder, &link_to_death)
+        .await;
 
     match result {
         Err(err) => panic!("Cannot subscribe to power state {:?}", err),
