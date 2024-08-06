@@ -29,9 +29,16 @@ impl<'lt> Serialize for MessageSerialize<'lt> {
     where
         S: Serializer,
     {
-        let mut struct_serializer = serializer.serialize_tuple(self.descriptor.fields().count())?;
+        let skip_count = self.descriptor.fields().filter(|field| field.skip_for_diag()).count();
+
+        let mut struct_serializer =
+            serializer.serialize_tuple(self.descriptor.fields().count() - skip_count)?;
 
         for field_descriptor in self.descriptor.fields() {
+            if field_descriptor.skip_for_diag() {
+                continue;
+            }
+
             let field = field_descriptor.get_reflect((*self.message).deref());
             struct_serializer.serialize_element(&FieldSerialize::new(field_descriptor, field))?;
         }
@@ -1460,6 +1467,50 @@ mod tests {
                 Token::I8(-15),
                 Token::Some,
                 Token::I16(160),
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_skipped_fields() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+            import "syntax/diagnostics.proto";
+
+            message TestProto {
+                int64 my_i64 = 1 [(sdv.vsidl.skip_for_diag) = true];
+                int32 my_i32 = 2 [(sdv.vsidl.skip_for_diag) = true];
+                uint64 my_u64 = 3 [(sdv.vsidl.skip_for_diag) = true];
+                uint32 my_u32 = 4 [(sdv.vsidl.skip_for_diag) = true];
+                double my_f64 = 5 [(sdv.vsidl.skip_for_diag) = true];
+                float my_f32 = 6 [(sdv.vsidl.skip_for_diag) = true];
+                bool my_bool = 7 [(sdv.vsidl.skip_for_diag) = true];
+                InnerProto my_not_skipped_inner_proto = 8;
+                InnerProto my_skipped_inner_proto = 9 [(sdv.vsidl.skip_for_diag) = true];
+                repeated bool my_fixed_array = 10 [(sdv.vsidl.repeated_field_max_count) = 0, (sdv.vsidl.skip_for_diag) = true];
+            }
+
+            message InnerProto {
+                optional string my_string = 2 [(sdv.vsidl.skip_for_diag) = true];
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+
+        let message = &MessageRef::default_instance(&message_descriptor);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 1 },
+                Token::Some,
+                Token::Tuple { len: 0 },
+                Token::TupleEnd,
                 Token::TupleEnd,
             ],
         )

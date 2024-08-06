@@ -165,14 +165,17 @@ fn main() {
     // Uds bytes are for the following proto definition:
     //
     // message DataItemOne {
-    //   int32 code = 1 [(sdv.vsidl.primitive_byte_size) = ONE];
-    //   bool enabled = 2;
-    //   string name = 3 [(sdv.vsidl.variable_type_max_size) = 5];
+    //   string skipped_string = 1 [(sdv.vsidl.skip_for_diag) = true];
+    //   int32 code = 2 [(sdv.vsidl.primitive_byte_size) = ONE];
+    //   bool enabled = 3;
+    //   string name = 4 [(sdv.vsidl.variable_type_max_size) = 5];
     // }
     //
     // fields:
-    // - `code`: first byte
-    // - `name`: next five bytes, with `\0` padding
+    // - `skipped_string`: skipped in diag serialization
+    // - `code`: byte 0
+    // - `enabled`: byte 1
+    // - `name`: bytes 2 to 6 inclusive, with `\0` padding
     println!("Fields parsed from UDS bytes: code = '{}'", uds_bytes_for_initial_value[0]);
     let mut name_value = vec![];
     for char in uds_bytes_for_initial_value.iter().skip(2) {

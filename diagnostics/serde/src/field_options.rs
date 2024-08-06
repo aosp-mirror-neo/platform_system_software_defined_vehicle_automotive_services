@@ -14,6 +14,7 @@ pub(crate) trait FieldOptions {
     fn variable_type_size(&self) -> Result<Option<usize>, TryFromIntError>;
     fn primitive_byte_size(&self) -> Option<ByteSize>;
     fn fixed_point_encoding(&self) -> Option<FixedPointEncoding>;
+    fn skip_for_diag(&self) -> bool;
 
     // Convenience method for retrieving all options that affect `float` field
     // encoding.
@@ -78,5 +79,22 @@ impl FieldOptions for FieldDescriptor {
             )
             .map(FixedPointEncoding::parse_from_bytes)
             .and_then(Result::ok)
+    }
+
+    fn skip_for_diag(&self) -> bool {
+        const SKIP_FOR_DIAG: u32 = 50202;
+
+        get_option_by_id(self, SKIP_FOR_DIAG)
+            .and_then(
+                |unknown_value| {
+                    if let Varint(value) = unknown_value {
+                        Some(value)
+                    } else {
+                        None
+                    }
+                },
+            )
+            .map(|value| value != 0)
+            .unwrap_or(false)
     }
 }

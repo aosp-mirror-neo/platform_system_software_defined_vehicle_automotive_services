@@ -61,6 +61,10 @@ impl<'de, 'lt> DeserializeSeed<'de> for MessageDeserializeSeed<'lt> {
                 let mut message = self.descriptor.new_instance();
 
                 for field in self.descriptor.fields() {
+                    if field.skip_for_diag() {
+                        continue;
+                    }
+
                     // `FieldDeserializeSeed::deserialize`` returns () and deserializes
                     // the field directly into the `message` passed to its constructor.
                     let Some(()) =
@@ -756,7 +760,10 @@ mod tests {
     use crate::protobuf_deserialize::MessageDeserializeSeed;
     use crate::translator::runtime_message_descriptor::get_file_descriptor;
     use lazy_static::lazy_static;
-    use protobuf::reflect::{FileDescriptor, ReflectValueBox::*};
+    use protobuf::reflect::{
+        FileDescriptor,
+        ReflectValueBox::{self, *},
+    };
     use protobuf::MessageDyn;
     use serde::de::DeserializeSeed;
     use serde::{Deserialize, Deserializer};
@@ -2134,6 +2141,60 @@ mod tests {
                 Token::Tuple { len: 1 },
                 Token::Some,
                 Token::U32(32),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn deserialize_proto_with_skipped_fields() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "syntax/vsidl.proto";
+            import "syntax/diagnostics.proto";
+
+            message TestProto {
+                int64 my_i64 = 1 [(sdv.vsidl.skip_for_diag) = true];
+                int32 my_i32 = 2 [(sdv.vsidl.skip_for_diag) = true];
+                uint64 my_u64 = 3 [(sdv.vsidl.skip_for_diag) = true];
+                uint32 my_u32 = 4 [(sdv.vsidl.skip_for_diag) = true];
+                double my_f64 = 5 [(sdv.vsidl.skip_for_diag) = true];
+                float my_f32 = 6 [(sdv.vsidl.skip_for_diag) = true];
+                bool my_bool = 7 [(sdv.vsidl.skip_for_diag) = true];
+                InnerProto my_not_skipped_inner_proto = 8;
+                InnerProto my_skipped_inner_proto = 9 [(sdv.vsidl.skip_for_diag) = true];
+                repeated bool my_fixed_array = 10 [(sdv.vsidl.repeated_field_max_count) = 0, (sdv.vsidl.skip_for_diag) = true];
+            }
+
+            message InnerProto {
+                string my_string = 2 [(sdv.vsidl.skip_for_diag) = true];
+            }
+            "#,
+            ".TestProto",
+            file_descriptor,
+            message_descriptor
+        );
+
+        let inner_descriptor = file_descriptor.message_by_full_name(".InnerProto").unwrap();
+        let not_skipped_field_descriptor =
+            message_descriptor.field_by_name("my_not_skipped_inner_proto").unwrap();
+
+        let mut expected_message = message_descriptor.new_instance();
+        not_skipped_field_descriptor.set_singular_field(
+            &mut *expected_message,
+            ReflectValueBox::Message(inner_descriptor.new_instance()),
+        );
+
+        let message_deserialize = DeserializeSeedWrapper { message: expected_message };
+
+        assert_de_tokens(
+            &message_deserialize,
+            &[
+                Token::Tuple { len: 1 },
+                Token::Some,
+                Token::Tuple { len: 0 },
                 Token::TupleEnd,
                 Token::TupleEnd,
             ],

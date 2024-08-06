@@ -1,10 +1,10 @@
 Receiving Data Item via Data Tunnel, translated to UDS: DataItem via DT
 Diagnostics Manager service bundle started.
-Fetch "data_item_id1": Ok(ReadDataItemResponse { value: [8, 1, 16, 1, 26, 3, 104, 101, 121], response_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Fetch "data_item_id1": Ok(ReadDataItemResponse { value: [10, 14, 100, 111, 101, 115, 110, 39, 116, 32, 109, 97, 116, 116, 101, 114, 16, 1, 24, 1, 34, 3, 104, 101, 121], response_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 Fields parsed from UDS bytes: code = '1'
 Fields parsed from UDS bytes: name = 'hey'
-Update "data_item_id1" to a new value [8, 15, 26, 5, 104, 105, 0, 0, 0]. Response: Ok(WriteDataItemResponse { response_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
-Fetch "data_item_id1" data item after update: Ok(ReadDataItemResponse { value: [8, 15, 26, 5, 104, 105, 0, 0, 0], response_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Update "data_item_id1" to a new value [16, 15, 34, 5, 104, 105, 0, 0, 0]. Response: Ok(WriteDataItemResponse { response_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
+Fetch "data_item_id1" data item after update: Ok(ReadDataItemResponse { value: [16, 15, 34, 5, 104, 105, 0, 0, 0], response_code: POSITIVE_RESPONSE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).
 Fields parsed from UDS bytes: code = '15'
 Fields parsed from UDS bytes: name = 'hi'
 Trying to fetch "data_item_id1" from the second provider, fails with response: Ok(ReadDataItemResponse { value: [], response_code: REQUEST_OUT_OF_RANGE, special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None }, cached_size: CachedSize { size: 0 } } }).

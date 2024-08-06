@@ -120,10 +120,15 @@ fn main() {
     let mut service = DiagnosticsProviderService1::new();
 
     // Setup data item server.
-    let data_item_server_impl =
-        service.diagnostics.create_data_item_server(Box::new(DataItemOneHandler::new(
-            DataItemOne { code: 1, name: "hey".to_string(), enabled: true, ..Default::default() },
-        )));
+    let data_item_server_impl = service.diagnostics.create_data_item_server(Box::new(
+        DataItemOneHandler::new(DataItemOne {
+            code: 1,
+            name: "hey".to_string(),
+            skipped_string: "doesn't matter".to_string(),
+            enabled: true,
+            ..Default::default()
+        }),
+    ));
 
     service
         .sdv_diagnostics_data_item_data_item_service_server

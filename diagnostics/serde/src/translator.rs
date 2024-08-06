@@ -144,6 +144,7 @@ mod tests {
                     scale: 0.001
                     offset: 20
                 }, (sdv.vsidl.primitive_byte_size) = TWO];
+                int32 my_skipped_i32 = 17 [(sdv.vsidl.skip_for_diag) = true];
             }
 
             message InnerProto {
@@ -207,6 +208,8 @@ mod tests {
         proto_bytes.put(&20.101f32.to_le_bytes()[..]);
         proto_bytes.put(&[133, 1][..]); // I32 field with field number '16'
         proto_bytes.put(&20.101f32.to_le_bytes()[..]);
+        proto_bytes.put(&[136, 1][..]); // VARINT field with field number '17'
+        proto_bytes.put(&[128, 8][..]); // +1024
 
         let mut expected_uds_bytes = BytesMut::new();
         expected_uds_bytes.put_i64(-64);
@@ -279,6 +282,7 @@ mod tests {
                     scale: 0.001
                     offset: 20
                 }, (sdv.vsidl.primitive_byte_size) = TWO];
+                int32 my_skipped_i32 = 17 [(sdv.vsidl.skip_for_diag) = true];
             }
 
             message InnerProto {

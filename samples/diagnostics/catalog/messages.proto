@@ -14,9 +14,10 @@ import "syntax/vsidl.proto";
 import "syntax/diagnostics.proto";
 
 message DataItemOne {
-  int32 code = 1 [(sdv.vsidl.primitive_byte_size) = ONE];
-  bool enabled = 2;
-  string name = 3 [(sdv.vsidl.variable_type_max_size) = 5];
+  string skipped_string = 1 [(sdv.vsidl.skip_for_diag) = true];
+  int32 code = 2 [(sdv.vsidl.primitive_byte_size) = ONE];
+  bool enabled = 3;
+  string name = 4 [(sdv.vsidl.variable_type_max_size) = 5];
 }
 
 message DataItemTwo {
