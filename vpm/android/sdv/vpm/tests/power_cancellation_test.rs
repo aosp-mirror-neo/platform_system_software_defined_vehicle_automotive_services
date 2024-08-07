@@ -1,10 +1,9 @@
 // Copyright 2024 Google LLC
 
 #[cfg(test)]
-mod common;
+mod setup;
 mod tests {
-    use crate::common::PowerCallbackPreparer;
-    use crate::common::TestVePSM;
+    use crate::setup::TestContext;
     use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
     use sdv_vpm_api::power::PowerStateReport;
     use sdv_vpm_api::vpm::power_state_notification_request::PowerStateChangeReason;
@@ -15,12 +14,9 @@ mod tests {
     #[test]
     fn cancel_power_state_prepare_request() {
         // Given A VM in Power On state.
-        // Setup VePSM
-        let test_vepsm = TestVePSM::new();
-
-        let power_callback_preparer = PowerCallbackPreparer::new();
-        let current_power_state_report = power_callback_preparer.setup_binder_callbacks();
-        assert_eq!(current_power_state_report, PowerStateReportAidl::POWER_OFF_EXIT);
+        let mut test_context = TestContext::new();
+        test_context.power_callback_preparer.setup_binder_callbacks();
+        assert!(test_context.is_good_start_state());
 
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::TURN_ON.into(),
@@ -28,10 +24,10 @@ mod tests {
             ..Default::default()
         };
 
-        test_vepsm.send_power_state_request(request);
+        test_context.vepsm.send_power_state_request(request);
 
-        power_callback_preparer.assert_callback_received(PowerStateReportAidl::ON);
-        test_vepsm.assert_power_notification(
+        test_context.power_callback_preparer.assert_callback_received(PowerStateReportAidl::ON);
+        test_context.vepsm.assert_power_notification(
             PowerStateReport::ON,
             PowerStateChangeReason::HOST_REQUESTED,
         );
@@ -44,17 +40,20 @@ mod tests {
             ..Default::default()
         };
 
-        test_vepsm.send_power_state_request(request);
+        test_context.vepsm.send_power_state_request(request);
 
-        power_callback_preparer
+        test_context
+            .power_callback_preparer
             .assert_callback_received(PowerStateReportAidl::SUSPEND_TO_RAM_ENTER);
-        test_vepsm.assert_power_notification(
+        test_context.vepsm.assert_power_notification(
             PowerStateReport::SUSPEND_TO_RAM_ENTER,
             PowerStateChangeReason::HOST_REQUESTED,
         );
 
-        power_callback_preparer.assert_callback_received(PowerStateReportAidl::WAIT_FOR_FINISH);
-        test_vepsm.assert_power_notification(
+        test_context
+            .power_callback_preparer
+            .assert_callback_received(PowerStateReportAidl::WAIT_FOR_FINISH);
+        test_context.vepsm.assert_power_notification(
             PowerStateReport::WAIT_FOR_FINISH,
             PowerStateChangeReason::HOST_REQUESTED,
         );
@@ -65,10 +64,10 @@ mod tests {
             ..Default::default()
         };
 
-        test_vepsm.send_power_state_request(request);
+        test_context.vepsm.send_power_state_request(request);
 
         // Then: the vm is in shutdown cancelled state.
-        test_vepsm.assert_power_notification(
+        test_context.vepsm.assert_power_notification(
             PowerStateReport::SHUTDOWN_CANCELLED,
             PowerStateChangeReason::HOST_REQUESTED,
         );

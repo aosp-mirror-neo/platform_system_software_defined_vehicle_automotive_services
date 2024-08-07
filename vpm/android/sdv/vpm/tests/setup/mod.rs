@@ -1,8 +1,8 @@
 // Copyright 2024 Google LLC
 #![allow(dead_code)]
 
-use crate::common::binder::BinderFeatures;
-use crate::common::binder::Strong;
+use crate::setup::binder::BinderFeatures;
+use crate::setup::binder::Strong;
 use binder::{binder_impl::Binder, Interface};
 use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateClientApi::{
     BpPowerStateClientApi, IPowerStateClientApi,
@@ -16,7 +16,9 @@ use sdv_vpm_api::vehicle::VehicleStateChange;
 use sdv_vpm_api::vehicle::VpmVehicleState;
 use sdv_vpm_api::vpm::power_state_notification_request::PowerStateChangeReason;
 use sdv_vpm_api::vpm::PowerStateChangeRequest;
+use sdv_vpm_api::vpm::PowerStateRequest;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
+use sdv_vpm_api::vpm::ShutdownType;
 use sdvgenerated::sdv_vpm_power_notification_service_interface::PowerNotificationService;
 use sdvgenerated::sdv_vpm_vpm_system_service_interface::VpmSystemService;
 use sdvgenerated::vpm_system_client::VpmSystemClient;
@@ -33,6 +35,56 @@ use std::thread;
 use std::time::Duration;
 
 pub const TIMEOUT_IN_SECS: Duration = Duration::from_secs(15);
+pub struct TestContext {
+    pub vepsm: TestVePSM,
+    pub power_callback_preparer: PowerCallbackPreparer,
+}
+
+impl TestContext {
+    pub fn new() -> Self {
+        Self { vepsm: TestVePSM::new(), power_callback_preparer: PowerCallbackPreparer::new() }
+    }
+    pub fn is_good_start_state(&self) -> bool {
+        self.vepsm.power_state == PowerStateReport::POWER_OFF_EXIT
+            || self.vepsm.power_state == PowerStateReport::SHUTDOWN_CANCELLED
+    }
+}
+
+impl Drop for TestContext {
+    // Put VM state in SHUTDOWN_CACELLED because it's a BOOTUP_PREPARE state.
+    // We can't put the state in POWER_OFF_EXIT because it can only be set in cold boot.
+    fn drop(&mut self) {
+        if self.vepsm.power_state == PowerStateReport::ON {
+            let request = PowerStateChangeRequest {
+                power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
+                shutdown_type: ShutdownType::SUSPEND_TO_RAM.into(),
+                timeout_ms: 10000,
+                ..Default::default()
+            };
+
+            self.vepsm.send_power_state_request(request);
+            self.vepsm.assert_power_notification(
+                PowerStateReport::SUSPEND_TO_RAM_ENTER,
+                PowerStateChangeReason::HOST_REQUESTED,
+            );
+            self.vepsm.assert_power_notification(
+                PowerStateReport::WAIT_FOR_FINISH,
+                PowerStateChangeReason::HOST_REQUESTED,
+            );
+            let request = PowerStateChangeRequest {
+                power_request: PowerStateRequest::CANCEL_SHUTDOWN.into(),
+                timeout_ms: 10000,
+                ..Default::default()
+            };
+            self.vepsm.send_power_state_request(request);
+            self.vepsm.assert_power_notification(
+                PowerStateReport::SHUTDOWN_CANCELLED,
+                PowerStateChangeReason::HOST_REQUESTED,
+            );
+        }
+    }
+}
+
 pub struct PowerCallbackPreparer {
     // The callback receiver will wait 10 seconds.
     // if power state report is set.
@@ -74,7 +126,7 @@ impl PowerCallbackPreparer {
         assert_eq!(callback_result, power_state_report);
     }
 
-    pub fn setup_binder_callbacks(&self) -> PowerStateReportAidl {
+    pub fn setup_binder_callbacks(&self) {
         binder::ProcessState::start_thread_pool();
         let cloned_sender = self.callback_sender.clone();
         let test_sdv_agent = TestSdvAgent {
@@ -89,7 +141,7 @@ impl PowerCallbackPreparer {
         let link_to_death = Binder::new(()).as_binder();
         power_state_client_interface
             .subscribeToPowerStateReport(&power_report_listener, &link_to_death)
-            .unwrap()
+            .unwrap();
     }
 }
 
@@ -127,6 +179,7 @@ pub struct TestVePSM {
     vehicle_callback_receiver: Receiver<VpmVehicleState>,
     client: Arc<dyn VpmSystemService>,
     bundle: VpmSystemClient,
+    power_state: PowerStateReport,
 }
 
 impl TestVePSM {
@@ -156,7 +209,13 @@ impl TestVePSM {
             .sdv_vpm_power_notification_service_server
             .register_service_interface(Arc::new(power_notification_receiver));
 
-        Self { power_request_receiver, vehicle_callback_receiver, client, bundle }
+        Self {
+            power_request_receiver,
+            vehicle_callback_receiver,
+            client,
+            bundle,
+            power_state: PowerStateReport::POWER_OFF_EXIT,
+        }
     }
 
     pub fn send_power_state_request(&self, request: PowerStateChangeRequest) {
@@ -174,7 +233,7 @@ impl TestVePSM {
     }
 
     pub fn assert_power_notification(
-        &self,
+        &mut self,
         power_state_report: PowerStateReport,
         reason: PowerStateChangeReason,
     ) {
@@ -182,6 +241,7 @@ impl TestVePSM {
             self.power_request_receiver.recv_timeout(TIMEOUT_IN_SECS).expect("Timeout reached");
         assert_eq!(power_notification.power_state.unwrap(), power_state_report);
         assert_eq!(power_notification.reason.unwrap(), reason);
+        self.power_state = power_state_report;
     }
 }
 
