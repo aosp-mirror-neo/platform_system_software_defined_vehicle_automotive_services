@@ -5,7 +5,7 @@ use diagnostics_api::event::Status;
 use diagnostics_api::response_code::ResponseCode;
 use diagnostics_sample_catalog::messages::DataItemViaDataTunnel;
 use diagnostics_sample_catalog::messages::{
-    DataItemOne, FirstEventExt, IoControllableData, RoutineRequestParameter,
+    DataItemOne, Empty, FirstEventExt, IoControllableData, RoutineRequestParameter,
     RoutineResponseParameter, SecondEventExt,
 };
 use sdv_middleware_extension_diagnostics::data_item::DataItemHandler;
@@ -48,8 +48,8 @@ impl
         RoutineResponseParameter,
         RoutineRequestParameter,
         RoutineResponseParameter,
-        RoutineRequestParameter,
-        RoutineResponseParameter,
+        Empty,
+        Empty,
     > for Routine1Handler
 {
     fn start(&self, req: RoutineRequestParameter) -> RoutineResult<RoutineResponseParameter> {
@@ -70,13 +70,6 @@ impl
             },
             ..Default::default()
         })
-    }
-
-    fn request_result(
-        &self,
-        _: RoutineRequestParameter,
-    ) -> RoutineResult<RoutineResponseParameter> {
-        Err(ResponseCode::BUSY_REPEAT_REQUEST)
     }
 }
 

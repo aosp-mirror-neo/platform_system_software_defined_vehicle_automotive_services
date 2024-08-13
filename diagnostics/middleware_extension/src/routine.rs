@@ -1,8 +1,9 @@
 // Copyright 2024 Google LLC
 
 use crate::DiagnosticsResult;
-use diagnostics_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
-use diagnostics_api::response_code::ResponseCode::POSITIVE_RESPONSE;
+use diagnostics_api::response_code::ResponseCode::{
+    INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT, POSITIVE_RESPONSE, SUB_FUNCTION_NOT_SUPPORTED,
+};
 use diagnostics_api::routine_control_service::RoutineControlResponse;
 use protobuf::MessageFull;
 
@@ -39,7 +40,9 @@ pub trait RoutineHandler<
     }
 
     /// See sdv.diagnostics.routine_control.RoutineControl::Stop.
-    fn stop(&self, req: StopRequest) -> RoutineResult<StopResponse>;
+    fn stop(&self, _req: StopRequest) -> RoutineResult<StopResponse> {
+        RoutineResult::Err(SUB_FUNCTION_NOT_SUPPORTED)
+    }
 
     /// Untyped version of `stop`.
     fn stop_untyped(&self, request_bytes: &[u8]) -> RoutineControlResponse {
@@ -47,7 +50,9 @@ pub trait RoutineHandler<
     }
 
     /// See sdv.diagnostics.routine_control.RoutineControl::RequestResult.
-    fn request_result(&self, req: ResultRequest) -> RoutineResult<ResultResponse>;
+    fn request_result(&self, _req: ResultRequest) -> RoutineResult<ResultResponse> {
+        RoutineResult::Err(SUB_FUNCTION_NOT_SUPPORTED)
+    }
 
     /// Untyped version of `request_result`.
     fn request_result_untyped(&self, request_bytes: &[u8]) -> RoutineControlResponse {

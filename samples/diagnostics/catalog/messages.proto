@@ -51,3 +51,5 @@ message SecondEventExt {
 }
 
 message LowPressureEventExt {}
+
+message Empty {}

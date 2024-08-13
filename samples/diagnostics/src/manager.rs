@@ -299,7 +299,7 @@ fn main() {
                         method: RoutineMethod::RequestResult,
                         message: MethodMessage::Request
                     },
-                    &[b'r', b'e', b's', b'u', b'l', b't', 0, 0, 0, 0],
+                    &[],
                 )
                 .unwrap(),
             ..Default::default()
