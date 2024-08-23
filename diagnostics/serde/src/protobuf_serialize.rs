@@ -307,13 +307,13 @@ impl<'lt> Serialize for ValueSerialize<'lt> {
 }
 
 struct RepeatedValueSerialize<'lt> {
-    options: &'lt dyn FieldOptions,
+    descriptor: &'lt FieldDescriptor,
     value: &'lt ReflectRepeatedRef<'lt>,
 }
 
 impl<'lt> RepeatedValueSerialize<'lt> {
-    fn new(options: &'lt dyn FieldOptions, value: &'lt ReflectRepeatedRef<'lt>) -> Self {
-        Self { options, value }
+    fn new(descriptor: &'lt FieldDescriptor, value: &'lt ReflectRepeatedRef<'lt>) -> Self {
+        Self { descriptor, value }
     }
 
     fn serialize_as_sequence<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -323,7 +323,7 @@ impl<'lt> RepeatedValueSerialize<'lt> {
         let mut seq = serializer.serialize_seq(Some(self.value.len()))?;
 
         for element_value in self.value {
-            seq.serialize_element(&ValueSerialize::new(self.options, element_value))?;
+            seq.serialize_element(&ValueSerialize::new(self.descriptor, element_value))?;
         }
 
         seq.end()
@@ -335,7 +335,8 @@ impl<'lt> RepeatedValueSerialize<'lt> {
     {
         if size != self.value.len() {
             return Err(S::Error::custom(format!(
-                "Fixed-size repeated field size mismatch: expected {}, actual {}",
+                "Repeated field {} is a fixed-size repeated field with expected size {}, actually had size {}",
+                self.descriptor.name(),
                 size,
                 self.value.len()
             )));
@@ -344,7 +345,7 @@ impl<'lt> RepeatedValueSerialize<'lt> {
         let mut tuple = serializer.serialize_tuple(size)?;
 
         for element_value in self.value {
-            tuple.serialize_element(&ValueSerialize::new(self.options, element_value))?;
+            tuple.serialize_element(&ValueSerialize::new(self.descriptor, element_value))?;
         }
 
         tuple.end()
@@ -356,7 +357,7 @@ impl<'lt> Serialize for RepeatedValueSerialize<'lt> {
     where
         S: Serializer,
     {
-        if let Some(count) = self.options.repeated_field_count().map_err(S::Error::custom)? {
+        if let Some(count) = self.descriptor.repeated_field_count().map_err(S::Error::custom)? {
             self.serialize_as_tuple(count, serializer)
         } else {
             self.serialize_as_sequence(serializer)
@@ -883,7 +884,7 @@ mod tests {
                 Token::Tuple { len: 1 },
                 // serialization should fail at this point
             ],
-            "Fixed-size repeated field size mismatch: expected 1, actual 2",
+            "Repeated field my_i64 is a fixed-size repeated field with expected size 1, actually had size 2",
         )
     }
 
@@ -924,7 +925,7 @@ mod tests {
                 Token::Tuple { len: 1 },
                 // serialization should fail at this point
             ],
-            "Fixed-size repeated field size mismatch: expected 3, actual 2",
+            "Repeated field my_i64 is a fixed-size repeated field with expected size 3, actually had size 2",
         )
     }
 
