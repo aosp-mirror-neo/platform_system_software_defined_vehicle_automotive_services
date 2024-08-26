@@ -1,0 +1,64 @@
+// Copyright 2024 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+    default_team: "trendy_team_automotive",
+}
+
+rust_defaults {
+    name: "sdv_uds_serde_v1@rust_defaults",
+    srcs: ["src/lib.rs"],
+    defaults: ["sdv@rust_defaults"],
+    rustlibs: [
+        "libnom",
+        "libbytes",
+        "libthiserror",
+        "libprotobuf",
+        "libserde",
+        "libmockall",
+        "libsdv_config_provider",
+        "libvsidl_syntax",
+        "libsdv_vsidl_common",
+        "libmockall",
+        "libsdv_config_provider",
+    ],
+    edition: "2021",
+    lints: "android",
+    clippy_lints: "android",
+}
+
+rust_library {
+    name: "libsdv_uds_serde_v1",
+    crate_name: "sdv_uds_serde",
+    defaults: [
+        "sdv_uds_serde_v1@rust_defaults",
+    ],
+    host_supported: true,
+    product_available: true,
+    vendor_available: true,
+}
+
+rust_test {
+    name: "sdv_uds_serde_v1_tests",
+    defaults: [
+        "sdv_uds_serde_v1@rust_defaults",
+    ],
+    rustlibs: [
+        "liblazy_static",
+        "libtempfile",
+        "libprotobuf_parse",
+        "libserde_test",
+        "libserde_json",
+        "libgoogletest_rust",
+    ],
+    data: [
+        ":sdv_vsidl_protos",
+    ],
+    test_options: {
+        unit_test: true,
+    },
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+}
