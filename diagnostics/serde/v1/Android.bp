@@ -17,10 +17,9 @@ rust_defaults {
         "libserde",
         "libmockall",
         "libsdv_config_provider",
-        "libvsidl_syntax",
+        "libvsidl_v1_proto_rs",
         "libsdv_vsidl_common",
         "libmockall",
-        "libsdv_config_provider",
     ],
     edition: "2021",
     lints: "android",
@@ -52,7 +51,8 @@ rust_test {
         "libgoogletest_rust",
     ],
     data: [
-        ":sdv_vsidl_protos",
+        ":sdv_vsidl_v1_protos",
+        ":sdv_uds_serde_test_fake_protos",
     ],
     test_options: {
         unit_test: true,

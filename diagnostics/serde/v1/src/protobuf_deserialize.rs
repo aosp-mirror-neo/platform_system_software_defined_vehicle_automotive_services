@@ -11,7 +11,7 @@ use protobuf::MessageDyn;
 use serde::de::{DeserializeSeed, Error, SeqAccess, Visitor};
 use serde::Deserializer;
 use std::fmt;
-use vsidl_syntax::diagnostics::ByteSize;
+use vsidl_v1::diagnostics::ByteSize;
 
 // `DeserializeSeed` implementation for deserialization from proto message bytes into
 // `Box<dyn MessageDyn>` - a dynamic in-memory representation of a proto message.
@@ -1002,15 +1002,16 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/vsidl.proto";
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
-                bytes my_bytes = 1 [(sdv.vsidl.variable_type_max_size) = 2];
-                bytes my_owned_bytes = 2 [(sdv.vsidl.variable_type_max_size) = 4];
-                bytes my_borrowed_bytes = 3 [(sdv.vsidl.variable_type_max_size) = 6];
-                string my_string = 4 [(sdv.vsidl.variable_type_max_size) = 2];
-                string my_owned_string = 5 [(sdv.vsidl.variable_type_max_size) = 5];
-                string my_borrowed_string = 6 [(sdv.vsidl.variable_type_max_size) = 1];
+                bytes my_bytes = 1 [(sdv.vsidl.v1.variable_type_max_size) = 2];
+                bytes my_owned_bytes = 2 [(sdv.vsidl.v1.variable_type_max_size) = 4];
+                bytes my_borrowed_bytes = 3 [(sdv.vsidl.v1.variable_type_max_size) = 6];
+                string my_string = 4 [(sdv.vsidl.v1.variable_type_max_size) = 2];
+                string my_owned_string = 5 [(sdv.vsidl.v1.variable_type_max_size) = 5];
+                string my_borrowed_string = 6 [(sdv.vsidl.v1.variable_type_max_size) = 1];
             }
             "#,
             ".TestProto",
@@ -1087,10 +1088,11 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/vsidl.proto";
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
-                string my_string = 1 [(sdv.vsidl.variable_type_max_size) = 2];
+                string my_string = 1 [(sdv.vsidl.v1.variable_type_max_size) = 2];
             }
             "#,
             ".TestProto",
@@ -1120,10 +1122,11 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/vsidl.proto";
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
-                string my_string = 1 [(sdv.vsidl.variable_type_max_size) = 2];
+                string my_string = 1 [(sdv.vsidl.v1.variable_type_max_size) = 2];
             }
             "#,
             ".TestProto",
@@ -1153,10 +1156,11 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/vsidl.proto";
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
-                bytes my_bytes = 1 [(sdv.vsidl.variable_type_max_size) = 2];
+                bytes my_bytes = 1 [(sdv.vsidl.v1.variable_type_max_size) = 2];
             }
             "#,
             ".TestProto",
@@ -1184,10 +1188,11 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/vsidl.proto";
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
-                bytes my_bytes = 1 [(sdv.vsidl.variable_type_max_size) = 2];
+                bytes my_bytes = 1 [(sdv.vsidl.v1.variable_type_max_size) = 2];
             }
             "#,
             ".TestProto",
@@ -1746,12 +1751,13 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/vsidl.proto";
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
-                repeated int64 my_i64 = 1 [(sdv.vsidl.repeated_field_max_count) = 0];
-                repeated TestEnum my_enum = 2 [(sdv.vsidl.repeated_field_max_count) = 2];
-                repeated double my_f64 = 3  [(sdv.vsidl.repeated_field_max_count) = 4];
+                repeated int64 my_i64 = 1 [(sdv.vsidl.v1.repeated_field_max_count) = 0];
+                repeated TestEnum my_enum = 2 [(sdv.vsidl.v1.repeated_field_max_count) = 2];
+                repeated double my_f64 = 3  [(sdv.vsidl.v1.repeated_field_max_count) = 4];
             }
 
             enum TestEnum {
@@ -1815,10 +1821,11 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/vsidl.proto";
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
-                repeated int64 my_i64 = 1 [(sdv.vsidl.repeated_field_max_count) = 2];
+                repeated int64 my_i64 = 1 [(sdv.vsidl.v1.repeated_field_max_count) = 2];
             }
             "#,
             ".TestProto",
@@ -1845,10 +1852,11 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/vsidl.proto";
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
-                repeated int64 my_i64 = 1 [(sdv.vsidl.repeated_field_max_count) = 2];
+                repeated int64 my_i64 = 1 [(sdv.vsidl.v1.repeated_field_max_count) = 2];
             }
             "#,
             ".TestProto",
@@ -1868,11 +1876,12 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/vsidl.proto";
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
                 repeated string my_repeated_strings = 1
-                    [(sdv.vsidl.repeated_field_max_count) = 2, (sdv.vsidl.variable_type_max_size) = 5];
+                    [(sdv.vsidl.v1.repeated_field_max_count) = 2, (sdv.vsidl.v1.variable_type_max_size) = 5];
             }
             "#,
             ".TestProto",
@@ -1908,13 +1917,13 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/diagnostics.proto";
+            import "sdv/diagnostics/v1/diagnostics.proto";
 
             message TestProto {
-                uint32 one_byte_u32 = 1 [(sdv.vsidl.primitive_byte_size) = ONE];
-                uint32 two_bytes_u32 = 2 [(sdv.vsidl.primitive_byte_size) = TWO];
-                int32 one_byte_i32 = 3 [(sdv.vsidl.primitive_byte_size) = ONE];
-                int32 two_bytes_i32 = 4 [(sdv.vsidl.primitive_byte_size) = TWO];
+                uint32 one_byte_u32 = 1 [(sdv.diagnostics.v1.primitive_byte_size) = ONE];
+                uint32 two_bytes_u32 = 2 [(sdv.diagnostics.v1.primitive_byte_size) = TWO];
+                int32 one_byte_i32 = 3 [(sdv.diagnostics.v1.primitive_byte_size) = ONE];
+                int32 two_bytes_i32 = 4 [(sdv.diagnostics.v1.primitive_byte_size) = TWO];
             }
             "#,
             ".TestProto",
@@ -1959,28 +1968,29 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/diagnostics.proto";
-            import "syntax/vsidl.proto";
+            import "sdv/diagnostics/v1/diagnostics.proto";
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
-                repeated float my_fixed_float = 1 [(sdv.vsidl.fixed_point_encoding) = {
+                repeated float my_fixed_float = 1 [(sdv.diagnostics.v1.fixed_point_encoding) = {
                     scale: 0.001
                     offset: 20
-                }, (sdv.vsidl.repeated_field_max_count) = 2];
-                repeated double my_fixed_double = 2 [(sdv.vsidl.fixed_point_encoding) = {
+                }, (sdv.vsidl.v1.repeated_field_max_count) = 2];
+                repeated double my_fixed_double = 2 [(sdv.diagnostics.v1.fixed_point_encoding) = {
                     scale: 0.0001
                     offset: 0
-                }, (sdv.vsidl.repeated_field_max_count) = 2];
-                repeated float my_one_byte_fixed_float = 3 [(sdv.vsidl.fixed_point_encoding) = {
+                }, (sdv.vsidl.v1.repeated_field_max_count) = 2];
+                repeated float my_one_byte_fixed_float = 3 [(sdv.diagnostics.v1.fixed_point_encoding) = {
                     scale: 0.001
                     offset: 20
-                }, (sdv.vsidl.repeated_field_max_count) = 2,
-                (sdv.vsidl.primitive_byte_size) = ONE];
-                repeated float my_two_byte_fixed_float = 4 [(sdv.vsidl.fixed_point_encoding) = {
+                }, (sdv.vsidl.v1.repeated_field_max_count) = 2,
+                (sdv.diagnostics.v1.primitive_byte_size) = ONE];
+                repeated float my_two_byte_fixed_float = 4 [(sdv.diagnostics.v1.fixed_point_encoding) = {
                     scale: 0.001
                     offset: 20
-                }, (sdv.vsidl.repeated_field_max_count) = 2,
-                (sdv.vsidl.primitive_byte_size) = TWO];
+                }, (sdv.vsidl.v1.repeated_field_max_count) = 2,
+                (sdv.diagnostics.v1.primitive_byte_size) = TWO];
             }
             "#,
             ".TestProto",
@@ -2033,7 +2043,7 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/diagnostics.proto";
+            import "sdv/diagnostics/v1/diagnostics.proto";
 
             message TestProto {
                 TestEnumOne my_1_byte_enum = 1;
@@ -2041,13 +2051,13 @@ mod tests {
             }
 
             enum TestEnumOne {
-                option (sdv.vsidl.enum_byte_size) = ONE;
+                option (sdv.diagnostics.v1.enum_byte_size) = ONE;
 
                 A = 0;
             }
 
             enum TestEnumTwo {
-                option (sdv.vsidl.enum_byte_size) = TWO;
+                option (sdv.diagnostics.v1.enum_byte_size) = TWO;
 
                 A = 0;
             }
@@ -2090,8 +2100,9 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/vsidl.proto";
-            import "syntax/diagnostics.proto";
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/vsidl/v1/annotations.proto";
+            import "sdv/diagnostics/v1/diagnostics.proto";
 
             message TestProto {
                 optional int64 my_i64 = 1;
@@ -2152,24 +2163,25 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "syntax/vsidl.proto";
-            import "syntax/diagnostics.proto";
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/vsidl/v1/annotations.proto";
+            import "sdv/diagnostics/v1/diagnostics.proto";
 
             message TestProto {
-                int64 my_i64 = 1 [(sdv.vsidl.skip_for_diag) = true];
-                int32 my_i32 = 2 [(sdv.vsidl.skip_for_diag) = true];
-                uint64 my_u64 = 3 [(sdv.vsidl.skip_for_diag) = true];
-                uint32 my_u32 = 4 [(sdv.vsidl.skip_for_diag) = true];
-                double my_f64 = 5 [(sdv.vsidl.skip_for_diag) = true];
-                float my_f32 = 6 [(sdv.vsidl.skip_for_diag) = true];
-                bool my_bool = 7 [(sdv.vsidl.skip_for_diag) = true];
+                int64 my_i64 = 1 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                int32 my_i32 = 2 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                uint64 my_u64 = 3 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                uint32 my_u32 = 4 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                double my_f64 = 5 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                float my_f32 = 6 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                bool my_bool = 7 [(sdv.diagnostics.v1.skip_for_diag) = true];
                 InnerProto my_not_skipped_inner_proto = 8;
-                InnerProto my_skipped_inner_proto = 9 [(sdv.vsidl.skip_for_diag) = true];
-                repeated bool my_fixed_array = 10 [(sdv.vsidl.repeated_field_max_count) = 0, (sdv.vsidl.skip_for_diag) = true];
+                InnerProto my_skipped_inner_proto = 9 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                repeated bool my_fixed_array = 10 [(sdv.vsidl.v1.repeated_field_max_count) = 0, (sdv.diagnostics.v1.skip_for_diag) = true];
             }
 
             message InnerProto {
-                string my_string = 2 [(sdv.vsidl.skip_for_diag) = true];
+                string my_string = 2 [(sdv.diagnostics.v1.skip_for_diag) = true];
             }
             "#,
             ".TestProto",

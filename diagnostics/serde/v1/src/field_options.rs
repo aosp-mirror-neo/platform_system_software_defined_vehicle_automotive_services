@@ -5,7 +5,7 @@ use protobuf::UnknownValueRef::{self, *};
 use sdv_vsidl_common::field_options::FieldOptions as VsidlFieldOptions;
 use std::num::TryFromIntError;
 use std::result::Result;
-use vsidl_syntax::diagnostics::{ByteSize, FixedPointEncoding};
+use vsidl_v1::diagnostics::{ByteSize, FixedPointEncoding};
 
 /// Trait that allows to retrieve protobuf field options that affect serialization /
 /// deserialization process.
@@ -19,8 +19,8 @@ pub(crate) trait FieldOptions {
     // Convenience method for retrieving all options that affect `float` field
     // encoding.
     //
-    // This method also enforces that (sdv.vsidl.primitive_byte_size) option is only
-    // applicable when (sdv.vsidl.fixed_point_encoding) option is present.
+    // This method also enforces that (sdv.diagnostics.v1.primitive_byte_size) option is only
+    // applicable when (sdv.diagnostics.v1.fixed_point_encoding) option is present.
     fn float_encoding(&self) -> Option<(FixedPointEncoding, Option<ByteSize>)> {
         self.fixed_point_encoding()
             .map(|fixed_point_encoding| (fixed_point_encoding, self.primitive_byte_size()))

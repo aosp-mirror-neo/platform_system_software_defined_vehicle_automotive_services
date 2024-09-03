@@ -7,24 +7,27 @@ use crate::entity_id::MethodMessage::*;
 use crate::entity_id::RoutineMethod::*;
 use crate::translator::{Translator, TranslatorError, TranslatorImpl};
 use protobuf::reflect::MessageDescriptor;
-use sdv_config_provider::{VsidlConfigProvider, VsidlProvider};
-use vsidl_syntax::diagnostics::DiagnosticsDeclaration;
+use sdv_config_provider::vsidl_provider::{VsidlConfigProviderV1, VsidlProviderV1};
+use vsidl_v1::diagnostics::DiagnosticsDeclaration;
 
 /// UDS to SDV translator for diagnostic entities.
 /// Provides methods to translate protobuf bytes to UDS-compatible bytes to and back,
 /// taking diagnostics entity id as a description of message format.
 pub struct DiagnosticsTranslator {
-    vsidl_provider: Box<dyn VsidlConfigProvider>,
+    vsidl_provider: Box<dyn VsidlConfigProviderV1>,
     translator: Box<dyn Translator>,
 }
 
 impl DiagnosticsTranslator {
     /// Creates new instance.
     pub fn new() -> Self {
-        Self::init(Box::new(VsidlProvider::new().unwrap()), Box::new(TranslatorImpl))
+        Self::init(Box::new(VsidlProviderV1::new().unwrap()), Box::new(TranslatorImpl))
     }
 
-    fn init(vsidl_provider: Box<dyn VsidlConfigProvider>, translator: Box<dyn Translator>) -> Self {
+    fn init(
+        vsidl_provider: Box<dyn VsidlConfigProviderV1>,
+        translator: Box<dyn Translator>,
+    ) -> Self {
         Self { vsidl_provider, translator }
     }
 
@@ -154,9 +157,9 @@ mod tests {
     use googletest::prelude::{eq, matches_pattern};
     use mockall::predicate::{always, eq as mock_eq};
     use protobuf::MessageField;
-    use sdv_config_provider::{MockVsidlConfigProvider, VsidlProviderError};
+    use sdv_config_provider::vsidl_provider::{MockVsidlConfigProviderV1, VsidlProviderErrorV1};
     use std::collections::HashMap;
-    use vsidl_syntax::diagnostics::{
+    use vsidl_v1::diagnostics::{
         diagnostics_declaration::{routine::Method, *},
         DiagnosticsDeclaration,
     };
@@ -191,7 +194,7 @@ mod tests {
             "#,
         );
 
-        let mut mock_vsidl_provider = MockVsidlConfigProvider::new();
+        let mut mock_vsidl_provider = MockVsidlConfigProviderV1::new();
         mock_vsidl_provider.expect_get_diagnostics_declarations().returning(move || {
             let mut result = HashMap::new();
             result.insert(service_fqbn.to_string(), declaration.clone());
@@ -200,7 +203,7 @@ mod tests {
         mock_vsidl_provider.expect_get_message_descriptor().returning(move |message_name| {
             file_descriptor
                 .message_by_full_name(message_name)
-                .ok_or(VsidlProviderError::Error("Message not found!".to_string()))
+                .ok_or(VsidlProviderErrorV1::Error("Message not found!".to_string()))
         });
 
         let mut mock_translator = MockTranslator::new();
