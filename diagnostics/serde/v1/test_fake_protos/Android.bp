@@ -1,0 +1,14 @@
+// Copyright 2024 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+// Workaround for testing, to avoid including actual proto definitions from
+// android.hardware.automotive.vehicle.
+filegroup {
+    name: "sdv_uds_serde_test_fake_protos",
+    srcs: [
+        "**/*.proto",
+    ],
+}

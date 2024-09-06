@@ -1,7 +1,7 @@
 // Copyright 2024 Google LLC
 use protobuf::reflect::EnumDescriptor;
 use protobuf::UnknownValueRef::{self, Varint};
-use vsidl_syntax::diagnostics::ByteSize;
+use vsidl_v1::diagnostics::ByteSize;
 
 /// Trait that allows to retrieve protobuf field options that affect serialization /
 /// deserialization process.
@@ -27,7 +27,7 @@ fn get_option_by_id(enum_descriptor: &EnumDescriptor, option_id: u32) -> Option<
 
 impl EnumOptions for EnumDescriptor {
     fn enum_byte_size(&self) -> Option<ByteSize> {
-        // id of sdv.diag.enum_type_size field option
+        // id of sdv.diagnostics.v1.enum_type_size field option
         const ENUM_BYTE_SIZE: u32 = 50200;
 
         // convert raw int value to enum value
