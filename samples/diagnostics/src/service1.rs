@@ -1,5 +1,6 @@
-#![allow(missing_docs, unused_imports)]
 // Copyright 2023 Google LLC
+
+#![allow(missing_docs, unused_imports)]
 
 use diagnostics_api::event::Status;
 use diagnostics_api::response_code::ResponseCode;

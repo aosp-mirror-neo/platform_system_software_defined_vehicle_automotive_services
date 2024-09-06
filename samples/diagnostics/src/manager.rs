@@ -1,5 +1,6 @@
-#![allow(missing_docs)]
 // Copyright 2023 Google LLC
+
+#![allow(missing_docs)]
 
 use diagnostics_api::connection::ConnectionMetadata;
 use diagnostics_api::connection::SessionType;

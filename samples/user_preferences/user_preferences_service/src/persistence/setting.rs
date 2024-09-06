@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use super::setting_definition::SettingDefinition;
 
 use serde::{Deserialize, Serialize};

@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use crate::persistence::error::Error;
 use rusqlite::Connection;
 use serde_json::{from_str, to_string};

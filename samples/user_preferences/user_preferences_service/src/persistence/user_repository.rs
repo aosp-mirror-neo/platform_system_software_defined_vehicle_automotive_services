@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use crate::persistence::error::Error;
 use protobuf::Enum;
 use rusqlite::Connection;

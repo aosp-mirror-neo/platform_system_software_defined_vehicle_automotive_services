@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use lazy_static::lazy_static;
 use protobuf::MessageField;
 use user_preferences_api::{

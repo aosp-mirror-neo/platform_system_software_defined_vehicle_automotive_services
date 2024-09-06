@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use anyhow::{anyhow, bail, Result};
 use serde::{Deserialize, Serialize};
 use user_preferences_api::setting::SettingDefinition as SettingDefinitionProto;

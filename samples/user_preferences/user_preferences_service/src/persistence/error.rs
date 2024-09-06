@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use rusqlite::{Error as RusqliteError, ErrorCode as RusqliteErrorCode};
 use serde_json::Error as SerdeJsonError;
 use thiserror::Error;

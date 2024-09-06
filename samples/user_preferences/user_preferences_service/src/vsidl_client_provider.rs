@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use mockall::{automock, mock};
 use sdvgenerated::user_preferences_server::UserPreferencesServer;
 use sdvgenerated_rpc_sdv_user_preferences_user_controllable_user_controllable_service::client::UserControllableServiceClient;

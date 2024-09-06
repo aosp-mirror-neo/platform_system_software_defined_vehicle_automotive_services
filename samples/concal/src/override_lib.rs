@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC. All Rights Reserved.
+// Copyright 2023 Google LLC
 
 //! ProtoManager maintains schema of protobuf messages with their dependencies.
 #![allow(missing_docs)]

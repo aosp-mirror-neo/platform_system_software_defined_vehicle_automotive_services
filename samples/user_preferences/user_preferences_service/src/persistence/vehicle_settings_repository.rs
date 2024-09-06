@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use anyhow::Result;
 use rusqlite::Connection;
 use serde_json::{from_str, to_string};

@@ -1,3 +1,5 @@
+// Copyright 2024 Google LLC
+
 use serde::{Deserialize, Serialize};
 use user_preferences_api::setting::{
     setting_and_constraints::Constraints as ConstraintsProto,
