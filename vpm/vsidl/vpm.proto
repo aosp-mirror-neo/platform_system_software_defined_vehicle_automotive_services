@@ -5,101 +5,107 @@ import "power.proto";
 import "vehicle.proto";
 package sdv.vpm;
 
-// OEM-facing representation of the request to set a vehicle state.
+/* OEM-facing representation of the request to set a vehicle state. */
 message SetVehicleStateRequest {
-  // The new vehicle state to be set in the SDV VM.
+  /* Required. The new vehicle state to be set in the SDV VM. */
   vehicle.VpmVehicleState vehicle_state = 1;
 }
 
-// OEM-facing representation of the set vehicle state response.
+/* OEM-facing representation of the set vehicle state response. */
 message SetVehicleStateResponse {}
 
-// OEM-facing representation of power states that can be requested by the OEM.
+/* OEM-facing representation of power states that can be requested by the OEM. */
 enum PowerStateRequest {
+  /* Default value when request ist not specified. */
   REQUEST_UNSPECIFIED = 0;
+  /* Set the power state of the VM to on.*/
   TURN_ON = 1;
+  /* Prepare the VM to suspend or shutdown.*/
   PREPARE_SHUTDOWN = 2;
+  /* Cancel the suspend or shutdown preparation.*/
   CANCEL_SHUTDOWN = 3;
+  /* Execute final suspend or shutdown. */
   FINISH_SHUTDOWN = 4;
 }
 
-// OEM-facing representation of shutdown types that can be chosen with PREPARE_SHUTDOWN
-// PowerStateRequest.
+/* OEM-facing representation of shutdown types that can be chosen with PREPARE_SHUTDOWN
+ * PowerStateRequest. */
 enum ShutdownType {
+  /* Default value when shutdown type is not specified. */
   SHUTDOWN_TYPE_UNSPECIFIED = 0;
+  /* Shutdown type to completely turning off the VM.*/
   POWER_OFF = 1;
+  /* Shutdown type to suspend the VM to RAM.*/
   SUSPEND_TO_RAM = 2;
+  /* Shutdown type to suspend the VM to DISK.*/
   SUSPEND_TO_DISK = 3;
 }
 
-// OEM-facing representation of the power state change request message.
+/* OEM-facing representation of the power state change request message. */
 message PowerStateChangeRequest {
+  /* Required. The power state to request. */
   PowerStateRequest power_request = 1;
+  /* Optional. One of the shutdown types if its prepare or finish shutdown. */
   ShutdownType shutdown_type = 2;
+  /* Required. The timeout allowed to execute the request if the request is accepted.
+   * Cannot be zero. */
   uint64 timeout_ms = 3;
 }
-// OEM-facing representation of the power state change response message.
+
+/* OEM-facing representation of the power state change response message. */
 message PowerStateChangeResponse {
   PowerStateChangeRequestError error = 1;
-  // OEM-facing representation of the errors that could occur during power state change requests.
+  /* OEM-facing representation of the errors that could occur during power state change requests. */
   enum PowerStateChangeRequestError {
-    // Default value, no error occurred and power state change request was received.
+    /* Default value, no error occurred and power state change request was received.*/
     NO_ERROR = 0;
-
-    // Transition for the current state to the requested one is invalid.
+    /* Transition for the current state to the requested one is invalid. */
     INVALID_TRANSITION = 1;
   }
 }
 
-/**
- * Experimental SDV VPM System API.
- * Unstable until API council approval.
- */
-// VPM RPC API available only to the OEM.
+/** VPM RPC API available only to the OEM. */
+
 service VpmSystemService {
-  // RPC request that allows the OEM to set the vehicle state in the SDV VM.
+  /* RPC request that allows the OEM to set the vehicle state in the SDV VM.
 
-  // * If the request is successful, the new vehicle state is set and is broadcasted to the vehicle
-  // state listeners in the SDV VM
+   * If the request is successful, the new vehicle state is set and is broadcasted to the vehicle
+   * state listeners in the SDV VM
 
-  // * If the request fails, an error is returned with the corresponding response code.
-  rpc SetVehicleState(SetVehicleStateRequest) returns (SetVehicleStateResponse) {};
+   * If the request fails, an error is returned with the corresponding response code.
+   * rpc SetVehicleState(SetVehicleStateRequest) returns (SetVehicleStateResponse) {};
 
-  // RPC request that allows the OEM to set the power state in the SDV VM.
+   * RPC request that allows the OEM to set the power state in the SDV VM.
 
-  // * If the request is successful, the new power state is sent to the Orchestrator and SDV agents.
-  // OEM will receive a callback via PowerNotificationService either after successful execution of
-  // the power state changes or after a timeout.
+   * If the request is successful, the new power state is sent to the Orchestrator and SDV agents.
+   * OEM will receive a callback via PowerNotificationService either after successful execution of
+   * the power state changes or after a timeout.
 
-  // * If the request fails, an error is returned with the corresponding response code.
+   * If the request fails, an error is returned with the corresponding response code. */
   rpc SetPowerState(PowerStateChangeRequest) returns (PowerStateChangeResponse) {};
 }
 
 message PowerStateNotificationRequest {
   power.PowerStateReport power_state = 1;
   PowerStateChangeReason reason = 2;
-  // OEM-facing representation of the reasons why the state has been tranisitoned.
+  /* OEM-facing representation of the reasons why the state has been tranisitoned. */
   enum PowerStateChangeReason {
-    // Default value, power state changed because host requested it either by VePSM power state
-    // change request or through cold boot or resume from disk/ram.
+    /* Default value, power state changed because host requested it either by VePSM power state
+     * change request or through cold boot or resume from disk/ram. */
     HOST_REQUESTED = 0;
 
-    // The given timeout for the power state change has been exceeded.
-    // If this error occurs the state transition is executed but a timeout is reported.
+    /* The given timeout for the power state change has been exceeded.
+     * If this error occurs the state transition is executed but a timeout is reported. */
     TIMEOUT = 1;
   }
 }
 
-// Empty message for power state notification response.
+/* Empty message for power state notification response. */
 message PowerStateNotificationResponse {}
 
-/**
- * Experimental SDV VPM Power Notification API.
- * Unstable until API council approval.
- */
-// VPM RPC API available only to the OEM.
+/* VPM RPC API available only to the OEM. */
 service PowerNotificationService {
-  // RPC request that notifies the OEM when a state update has been successfully executed or a
-  // timeout has occurred.
+  /* RPC request that notifies the OEM when a state update has been successfully executed or a
+   * timeout has occurred. */
   rpc NotifyPowerState(PowerStateNotificationRequest) returns (PowerStateNotificationResponse) {};
 }
