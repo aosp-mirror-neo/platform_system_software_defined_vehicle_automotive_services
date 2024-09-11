@@ -14,4 +14,17 @@ sdv_service_bundle {
     unit_type {
         type: "event.EnableCondition"
     }
+
+    unit_type {
+        type: "data_item.DataItemService"
+    }
+
+    client {
+        interface: "sdv.diagnostics.data_item.DataItemService"
+    }
+
+    # TODO(b/4076731): remove once MW generator declaring unit types without service units
+    server {
+        interface: "sdv.diagnostics.data_item.DataItemService"
+    }
 }
