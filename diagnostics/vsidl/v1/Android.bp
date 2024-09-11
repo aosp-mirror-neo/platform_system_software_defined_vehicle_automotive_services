@@ -1,0 +1,22 @@
+// Copyright 2024 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_protobuf {
+    name: "libdiagnostics_v1_api",
+    crate_name: "diagnostics_v1_api",
+    protos: [
+        "*.proto",
+    ],
+    source_stem: "diagnostics_v1_api",
+    proto_flags: [
+        "-I external/protobuf/src",
+    ],
+    rustlibs: [
+        "libvsidl_v1_proto_rs",
+    ],
+    vendor_available: true,
+    product_available: true,
+}

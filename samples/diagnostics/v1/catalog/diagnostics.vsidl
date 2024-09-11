@@ -1,0 +1,27 @@
+# Copyright 2024 Google LLC
+# proto-file: //system/software_defined_vehicle/core_services/vsidl/protos/sdv/vsidl/v1/syntax.proto
+# proto-message: VsidlEntry
+
+package: "sdv.sample.diagnostics"
+
+sdv_service_bundle {
+    name: "DiagnosticsProvider1"
+
+    diagnostics_declaration {
+        event {
+            id: "event1"
+            extended_data_message_name: "FirstEventExt"
+        }
+    }
+}
+
+sdv_service_bundle {
+    name: "DiagnosticsProvider2"
+
+    diagnostics_declaration {
+        event {
+            id: "event2"
+            extended_data_message_name: "SecondEventExt"
+        }
+    }
+}
