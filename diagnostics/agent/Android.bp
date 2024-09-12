@@ -1,0 +1,18 @@
+// Copyright 2024 Google LLC
+
+rust_binary {
+    name: "sdv_diagnostics_agent",
+    defaults: [
+        "sdv_tracing@rust_defaults",
+        "sdv@rust_defaults",
+    ],
+    srcs: [
+        "src/main.rs",
+    ],
+    rustlibs: [
+        "libsdv_log_rust",
+        "liblog_rust",
+        "libbinder_rs",
+    ],
+    product_specific: true,
+}
