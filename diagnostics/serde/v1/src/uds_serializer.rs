@@ -84,9 +84,8 @@ impl<'ser_lt, 'buffer_lt> Serializer for &'ser_lt mut UdsSerializer<'buffer_lt> 
         Ok(())
     }
 
-    fn serialize_char(self, value: char) -> Result<Self::Ok, Self::Error> {
-        self.output.put_u8(value.try_into().map_err(|_| Self::Error::CharEncodingError(value))?);
-        Ok(())
+    fn serialize_char(self, _value: char) -> Result<Self::Ok, Self::Error> {
+        Err(Self::Error::UnsupportedType("Char (use u8 instead)".to_string()))
     }
 
     fn serialize_str(self, _: &str) -> Result<Self::Ok, Self::Error> {
@@ -279,7 +278,6 @@ mod tests {
             my_u64: u64,
             my_f32: f32,
             my_f64: f64,
-            my_char: char,
             my_bool: bool,
             my_inner_struct: InnerStruct,
         }
@@ -287,7 +285,7 @@ mod tests {
         #[derive(Serialize)]
         struct InnerStruct {
             my_fixed_bytes: [u8; 3],
-            my_fixed_string: [char; 5],
+            my_fixed_string: [u8; 8],
         }
 
         let value = TestStruct {
@@ -301,11 +299,10 @@ mod tests {
             my_u64: 64,
             my_f32: 3.2,
             my_f64: 6.4,
-            my_char: '!',
             my_bool: false,
             my_inner_struct: InnerStruct {
                 my_fixed_bytes: [1, 2, 3],
-                my_fixed_string: ['h', 'e', 'l', 'l', 'o'],
+                my_fixed_string: [b'h', b'e', b'l', b'l', b'o', b'\xE2', b'\x9D', b'\xA4'],
             },
         };
 
@@ -320,11 +317,10 @@ mod tests {
         expected_bytes.put_u64(64);
         expected_bytes.put_f32(3.2);
         expected_bytes.put_f64(6.4);
-        expected_bytes.put_u8('!'.try_into().unwrap());
         expected_bytes.put_u8(0x00);
         expected_bytes.put(&[1, 2, 3][..]);
-        for char in "hello".chars() {
-            expected_bytes.put_u8(char.try_into().unwrap());
+        for byte in "hello❤".bytes() {
+            expected_bytes.put_u8(byte);
         }
 
         let mut byte_buffer = BytesMut::new();

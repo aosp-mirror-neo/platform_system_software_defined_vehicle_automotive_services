@@ -609,26 +609,34 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                         if let Some(seq_size) = seq.size_hint() {
                             if seq_size != self.size {
                                 return Err(A::Error::custom(format!(
-                                    "Fixed-size string field size mismatch: expected {}, actual {}",
+                                    "Fixed-size string field size mismatch: expected {} bytes, actual {} bytes",
                                     self.size, seq_size
                                 )));
                             }
                         }
 
-                        let mut characters = Vec::with_capacity(self.size);
+                        let mut bytes = Vec::with_capacity(self.size);
 
                         for index in 0..self.size {
-                            if let Some(char) = seq.next_element::<char>()? {
-                                characters.push(char)
+                            if let Some(byte) = seq.next_element::<u8>()? {
+                                bytes.push(byte)
                             } else {
                                 return Err(A::Error::custom(format!(
-                                    "Fixed-size string field size mismatch: expected {}, actual {}",
+                                    "Fixed-size string field size mismatch: expected {} bytes, actual {} bytes",
                                     self.size, index
                                 )));
                             }
                         }
 
-                        Ok(String(characters.iter().collect()))
+                        let string_value =
+                            std::string::String::from_utf8(bytes).map_err(|utf8_err| {
+                                A::Error::custom(format!(
+                                    "Error decoding string from utf8 bytes: {}",
+                                    utf8_err
+                                ))
+                            })?;
+
+                        Ok(String(string_value))
                     }
                 }
 
@@ -1011,7 +1019,7 @@ mod tests {
                 bytes my_borrowed_bytes = 3 [(sdv.vsidl.v1.variable_type_max_size) = 6];
                 string my_string = 4 [(sdv.vsidl.v1.variable_type_max_size) = 2];
                 string my_owned_string = 5 [(sdv.vsidl.v1.variable_type_max_size) = 5];
-                string my_borrowed_string = 6 [(sdv.vsidl.v1.variable_type_max_size) = 1];
+                string my_borrowed_string = 6 [(sdv.vsidl.v1.variable_type_max_size) = 3];
             }
             "#,
             ".TestProto",
@@ -1027,7 +1035,7 @@ mod tests {
                 2 => Bytes(vec![1, 2, 3, 4, 5, 6]),
                 3 => String("hi".to_string()),
                 4 => String("world".to_string()),
-                5 => String("!".to_string()),
+                5 => String("❤".to_string()),
                 _ => unreachable!(),
             };
 
@@ -1063,20 +1071,22 @@ mod tests {
                 Token::TupleEnd,
                 Token::Some,
                 Token::Tuple { len: 2 },
-                Token::Char('h'),
-                Token::Char('i'),
+                Token::U8(b'h'),
+                Token::U8(b'i'),
                 Token::TupleEnd,
                 Token::Some,
                 Token::Tuple { len: 5 },
-                Token::Char('w'),
-                Token::Char('o'),
-                Token::Char('r'),
-                Token::Char('l'),
-                Token::Char('d'),
+                Token::U8(b'w'),
+                Token::U8(b'o'),
+                Token::U8(b'r'),
+                Token::U8(b'l'),
+                Token::U8(b'd'),
                 Token::TupleEnd,
                 Token::Some,
-                Token::Tuple { len: 1 },
-                Token::Char('!'),
+                Token::Tuple { len: 3 },
+                Token::U8(b'\xE2'),
+                Token::U8(b'\x9D'),
+                Token::U8(b'\xA4'),
                 Token::TupleEnd,
                 Token::TupleEnd,
             ],
@@ -1105,19 +1115,17 @@ mod tests {
                 Token::Tuple { len: 1 },
                 Token::Some,
                 Token::Tuple { len: 2 },
-                Token::Char('!'),
+                Token::U8(b'!'),
                 Token::TupleEnd,
                 // Deserialization should failed by this point
                 // Token::TupleEnd
             ],
-            "Fixed-size string field size mismatch: expected 2, actual 1",
+            "Fixed-size string field size mismatch: expected 2 bytes, actual 1 bytes",
         )
     }
 
     #[test]
-    #[should_panic(
-        expected = "expected Token::Char('l') but deserialization wants Token::TupleEnd"
-    )]
+    #[should_panic(expected = "expected Token::U8(108) but deserialization wants Token::TupleEnd")]
     fn deserialize_proto_with_fixed_size_string_field_too_long() {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
@@ -1139,15 +1147,15 @@ mod tests {
                 Token::Tuple { len: 1 },
                 Token::Some,
                 Token::Tuple { len: 5 },
-                Token::Char('h'),
-                Token::Char('e'),
-                Token::Char('l'),
-                Token::Char('l'),
-                Token::Char('o'),
+                Token::U8(b'h'),
+                Token::U8(b'e'),
+                Token::U8(b'l'),
+                Token::U8(b'l'),
+                Token::U8(b'o'),
                 Token::TupleEnd,
                 Token::TupleEnd,
             ],
-            "Fixed-size string field size mismatch: expected 2, actual 5",
+            "Fixed-size string field size mismatch: expected 2 bytes, actual 5 bytes",
         )
     }
 
@@ -1894,21 +1902,21 @@ mod tests {
                 Token::Tuple { len: 1 },
                 Token::Tuple { len: 2 },
                 Token::Tuple { len: 5 },
-                Token::Char('h'),
-                Token::Char('e'),
-                Token::Char('l'),
-                Token::Char('l'),
-                Token::Char('o'),
+                Token::U8(b'h'),
+                Token::U8(b'e'),
+                Token::U8(b'l'),
+                Token::U8(b'l'),
+                Token::U8(b'o'),
                 Token::TupleEnd,
                 Token::Tuple { len: 2 },
-                Token::Char('h'),
-                Token::Char('i'),
+                Token::U8(b'h'),
+                Token::U8(b'i'),
                 Token::TupleEnd,
                 // Deserialization should fail by this point
                 // Token::TupleEnd,
                 // Token::TupleEnd,
             ],
-            "Fixed-size string field size mismatch: expected 5, actual 2",
+            "Fixed-size string field size mismatch: expected 5 bytes, actual 2 bytes",
         )
     }
 

@@ -166,22 +166,23 @@ impl<'lt> ValueSerialize<'lt> {
     {
         if size < value.len() {
             Err(S::Error::custom(format!(
-                "Fixed-size string field size mismatch: expected {}, actual {}",
+                "Fixed-size string field size mismatch: expected {} bytes, actual {} bytes",
                 size,
                 value.len()
             )))
         } else {
             let mut tuple = serializer.serialize_tuple(size)?;
 
-            for char in value.chars() {
-                tuple.serialize_element(&char)?;
+            for byte in value.bytes() {
+                tuple.serialize_element(&byte)?;
             }
 
             // pad the value with the appropriate number of '\0' chars
             let padding_size = size - value.len();
 
+            let padding: u8 = 0;
             for _ in 0..padding_size {
-                tuple.serialize_element(&'\0')?;
+                tuple.serialize_element(&padding)?;
             }
 
             tuple.end()
@@ -505,7 +506,7 @@ mod tests {
         for (index, field) in message_descriptor.fields().enumerate() {
             let value = match index {
                 0 => Bytes(vec![1, 2, 3]),
-                1 => String("hello".to_string()),
+                1 => String("hello❤".to_string()),
                 _ => unreachable!(),
             };
 
@@ -527,16 +528,16 @@ mod tests {
                 Token::TupleEnd,
                 Token::Some,
                 Token::Tuple { len: 10 },
-                Token::Char('h'),
-                Token::Char('e'),
-                Token::Char('l'),
-                Token::Char('l'),
-                Token::Char('o'),
-                Token::Char('\0'),
-                Token::Char('\0'),
-                Token::Char('\0'),
-                Token::Char('\0'),
-                Token::Char('\0'),
+                Token::U8(b'h'),
+                Token::U8(b'e'),
+                Token::U8(b'l'),
+                Token::U8(b'l'),
+                Token::U8(b'o'),
+                Token::U8(b'\xE2'),
+                Token::U8(b'\x9D'),
+                Token::U8(b'\xA4'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
                 Token::TupleEnd,
                 Token::TupleEnd,
             ],
@@ -578,7 +579,7 @@ mod tests {
                 Token::Some,
                 // serialization should fail at this point
             ],
-            "Fixed-size string field size mismatch: expected 10, actual 12",
+            "Fixed-size string field size mismatch: expected 10 bytes, actual 12 bytes",
         )
     }
 
@@ -973,28 +974,28 @@ mod tests {
                 Token::Tuple { len: 1 },
                 Token::Tuple { len: 2 },
                 Token::Tuple { len: 10 },
-                Token::Char('h'),
-                Token::Char('e'),
-                Token::Char('l'),
-                Token::Char('l'),
-                Token::Char('o'),
-                Token::Char('\0'),
-                Token::Char('\0'),
-                Token::Char('\0'),
-                Token::Char('\0'),
-                Token::Char('\0'),
+                Token::U8(b'h'),
+                Token::U8(b'e'),
+                Token::U8(b'l'),
+                Token::U8(b'l'),
+                Token::U8(b'o'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
                 Token::TupleEnd,
                 Token::Tuple { len: 10 },
-                Token::Char('w'),
-                Token::Char('o'),
-                Token::Char('r'),
-                Token::Char('l'),
-                Token::Char('d'),
-                Token::Char('!'),
-                Token::Char('\0'),
-                Token::Char('\0'),
-                Token::Char('\0'),
-                Token::Char('\0'),
+                Token::U8(b'w'),
+                Token::U8(b'o'),
+                Token::U8(b'r'),
+                Token::U8(b'l'),
+                Token::U8(b'd'),
+                Token::U8(b'!'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
                 Token::TupleEnd,
                 Token::TupleEnd,
                 Token::TupleEnd,

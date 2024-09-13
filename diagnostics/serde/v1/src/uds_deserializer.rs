@@ -127,13 +127,11 @@ impl<'de_lt, 'buffer_lt> Deserializer<'buffer_lt> for &'de_lt mut UdsDeserialize
         visitor.visit_f64(value)
     }
 
-    fn deserialize_char<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    fn deserialize_char<V>(self, _visitor: V) -> Result<V::Value, Self::Error>
     where
         V: Visitor<'buffer_lt>,
     {
-        let (_, value) = be_u8(self.input.as_ref())?;
-        self.input.advance(1);
-        visitor.visit_char(char::from_u32(value.into()).unwrap())
+        Err(Self::Error::UnsupportedType("Char (use u8 instead)".to_string()))
     }
 
     fn deserialize_str<V>(self, _: V) -> Result<V::Value, Self::Error>
@@ -352,7 +350,6 @@ mod tests {
             my_u64: u64,
             my_f32: f32,
             my_f64: f64,
-            my_char: char,
             my_bool: bool,
             my_inner_struct: InnerStruct,
         }
@@ -360,7 +357,7 @@ mod tests {
         #[derive(Deserialize, Debug, PartialEq)]
         struct InnerStruct {
             my_fixed_bytes: [u8; 3],
-            my_fixed_string: [char; 5],
+            my_fixed_string: [u8; 8],
         }
 
         let expected_struct = TestStruct {
@@ -374,11 +371,10 @@ mod tests {
             my_u64: 64,
             my_f32: 3.2,
             my_f64: 6.4,
-            my_char: '!',
             my_bool: false,
             my_inner_struct: InnerStruct {
                 my_fixed_bytes: [1, 2, 3],
-                my_fixed_string: ['h', 'e', 'l', 'l', 'o'],
+                my_fixed_string: [b'h', b'e', b'l', b'l', b'o', b'\xE2', b'\x9D', b'\xA4'],
             },
         };
 
@@ -393,11 +389,10 @@ mod tests {
         byte_buffer.put_u64(64);
         byte_buffer.put_f32(3.2);
         byte_buffer.put_f64(6.4);
-        byte_buffer.put_u8('!'.try_into().unwrap());
         byte_buffer.put_u8(0x00);
         byte_buffer.put(&[1, 2, 3][..]);
-        for char in "hello".chars() {
-            byte_buffer.put_u8(char.try_into().unwrap());
+        for byte in "hello❤".bytes() {
+            byte_buffer.put_u8(byte);
         }
 
         let mut deserializer = UdsDeserializer::new(&mut byte_buffer);
@@ -416,8 +411,8 @@ mod tests {
         }
 
         let mut byte_buffer = BytesMut::new();
-        for char in "Hello".chars() {
-            byte_buffer.put_u8(char.try_into().unwrap());
+        for byte in "Hello".bytes() {
+            byte_buffer.put_u8(byte);
         }
 
         let mut deserializer = UdsDeserializer::new(&mut byte_buffer);
