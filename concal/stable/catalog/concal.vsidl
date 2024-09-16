@@ -16,15 +16,15 @@ sdv_service_bundle {
   }
   unit_type {
     access_modifier: PRIVATE
-    type: "sdv.concal.calib.ConCalCalibrationService"
+    type: "calib.ConCalCalibrationService"
   }
   unit_type {
     access_modifier: PRIVATE
-    type: "sdv.concal.calib.ConCalCalibrationNotificationService"
+    type: "calib.ConCalCalibrationNotificationService"
   }
   unit_type {
     access_modifier: PUBLIC
-    type: "sdv.concal.calib.CalibratableService"
+    type: "calib.CalibratableService"
   }
   server {
     interface: "ConCalRegistrationService"
