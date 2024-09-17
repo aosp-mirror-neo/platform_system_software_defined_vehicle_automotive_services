@@ -1,0 +1,58 @@
+// Copyright 2024 Google LLC
+
+// The set of APIs available to SDV services that need to expose customizable settings to vehicle
+// users.
+
+syntax = "proto3";
+
+package sdv.user_preferences;
+
+import "setting.proto";
+
+service UserPreferencesRegistryService {
+  // Registers a new settings group for a user-controllable service, including default values.
+  //
+  // If the group doesn't exist, it is created. If it exists and the provided version matches the
+  // existing version, no changes are made.
+  //
+  // If the version doesn't match, the service checks if the request contains all existing settings
+  // without modifications. If so, it attempts to register the new settings. If any existing
+  // settings have been changed, the request fails.
+  rpc RegisterSettings(RegisterSettingsRequest) returns (RegisterSettingsResponse) {}
+
+  // Updates the values of existing settings within a specified group for a user-controllable
+  // service. The request will fail if it attempts to update any non-existent settings.
+  // If the request fails, no changes will be made.
+  rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse) {}
+}
+
+message RegisterSettingsRequest {
+  // Required.
+  // The name of the settings group to create.
+  string group_name = 1;
+
+  // Required.
+  // Schema version for the settings.
+  string version = 2;
+
+  // Required.
+  // Definitions of the settings within the group.
+  repeated SettingDefinition settings_definitions = 3;
+}
+
+message RegisterSettingsResponse {}
+
+message UpdateSettingsRequest {
+  // Required.
+  // The name of the settings group that needs to be updated.
+  // The settings group is stored within a namespace which is automatically
+  // defined for each UserControllableService therefore the name does not need to be globally
+  // unique.
+  string group_name = 1;
+
+  // Required.
+  // The list of keys to update along with their respective values.
+  repeated Setting settings = 2;
+}
+
+message UpdateSettingsResponse {}

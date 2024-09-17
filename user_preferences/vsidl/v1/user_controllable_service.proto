@@ -1,0 +1,39 @@
+// Copyright 2024 Google LLC
+
+// APIs that must be implemented by services that contain user customizable settings.
+
+syntax = "proto3";
+
+package sdv.user_preferences.user_controllable;
+
+import "setting.proto";
+
+service UserControllableService {
+  // Accepts a request to update settings with the provided values.
+  rpc RequestSettingsChange(RequestSettingsChangeRequest) returns (RequestSettingsChangeResponse) {}
+
+  // Resets the service to its default settings.
+  // The service will notify the UserPreferencesRegistryService of the actual setting
+  // values via the UpdateSettings API after the changes are applied.
+  rpc FactoryReset(FactoryResetRequest) returns (FactoryResetResponse) {}
+}
+
+message RequestSettingsChangeRequest {
+  // Required.
+  // The name of the settings group that needs to be updated.
+  string group_name = 1;
+
+  // Required.
+  // The list of settings along with the new values they should be set too.
+  repeated Setting settings = 2;
+}
+
+message RequestSettingsChangeResponse {
+  // The actual value of the settings, this may be different from the values requested by
+  // the caller of RequestSettingsChange due to hardware issues, or invalid requested values.
+  repeated Setting settings = 1;
+}
+
+message FactoryResetRequest {}
+
+message FactoryResetResponse {}

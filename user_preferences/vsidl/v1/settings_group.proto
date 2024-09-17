@@ -1,0 +1,35 @@
+// Copyright 2024 Google LLC
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.android.sdv.sdvgrpclibrary";
+option java_outer_classname = "SettingsGroupProto";
+
+package sdv.user_preferences;
+
+import "setting.proto";
+
+message SettingsGroup {
+  // Required.
+  // The identifier for this group.
+  SettingsGroupId id = 1;
+
+  // Required.
+  // The version number of schema used by this setting group.
+  string version = 2;
+
+  // Required.
+  // The list of settings within the setting group.
+  repeated Setting settings = 3;
+}
+
+message SettingsGroupId {
+  // Required.
+  // FQIN of the service that declared the settings group.
+  string service_fqin = 1;
+
+  // Required.
+  // The name of the settings group.
+  string name = 2;
+}
