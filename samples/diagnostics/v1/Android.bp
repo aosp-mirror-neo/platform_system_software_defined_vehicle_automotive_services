@@ -1,0 +1,42 @@
+// Copyright 2024 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_defaults {
+    name: "diag_v1_samples@rust_defaults",
+    defaults: ["sdv@rust_defaults"],
+    crate_name: "diag_v1_samples",
+    rustlibs: [
+        "libdiagnostics_v1_api",
+        "libprotobuf",
+        "libanyhow",
+        "liblog_rust",
+        "libsdv_log_rust",
+        "libprotobuf",
+        "libsdvmiddleware_rpc",
+        "libdiagnostics_v1_sample_catalog",
+        "libsdv_middleware_extension_diagnostics",
+    ],
+    apex_available: ["//apex_available:platform"],
+    product_specific: true,
+}
+
+rust_binary {
+    name: "diag_v1_provider1_sample",
+    defaults: ["diag_v1_samples@rust_defaults"],
+    srcs: ["src/service1.rs"],
+    rustlibs: [
+        "libsdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider1",
+    ],
+}
+
+rust_binary {
+    name: "diag_v1_provider2_sample",
+    defaults: ["diag_v1_samples@rust_defaults"],
+    srcs: ["src/service2.rs"],
+    rustlibs: [
+        "libsdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider2",
+    ],
+}
