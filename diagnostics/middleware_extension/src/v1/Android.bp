@@ -1,0 +1,52 @@
+// Copyright 2024 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+    default_team: "trendy_team_automotive",
+}
+
+rust_defaults {
+    name: "sdv_mw_rs_diag@rust_defaults",
+    srcs: ["lib.rs"],
+    defaults: ["sdv@rust_defaults"],
+    rustlibs: [
+        "libprotobuf",
+        "libparking_lot",
+        "libdiagnostics_v1_api",
+        "libsdv_mw_rs_comms",
+        "libsdv_status_rs",
+    ],
+    edition: "2021",
+    lints: "android",
+    clippy_lints: "android",
+}
+
+rust_library {
+    name: "libsdv_mw_rs_diag",
+    crate_name: "sdv_mw_rs_diag",
+    defaults: [
+        "sdv_mw_rs_diag@rust_defaults",
+    ],
+    vendor_available: true,
+    product_available: true,
+}
+
+rust_test {
+    name: "sdv_mw_rs_diag_tests",
+    crate_name: "sdv_mw_rs_diag_tests",
+    defaults: [
+        "sdv_mw_rs_diag@rust_defaults",
+    ],
+    test_options: {
+        unit_test: true,
+    },
+    rustlibs: [
+        "libsdv_mw_local_comms",
+        "libgoogletest_rust",
+        "libtokio",
+    ],
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+}

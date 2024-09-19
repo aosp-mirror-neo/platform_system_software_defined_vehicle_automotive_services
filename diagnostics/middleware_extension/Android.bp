@@ -2,6 +2,7 @@
 
 package {
     default_applicable_licenses: ["sdv_license"],
+    default_team: "trendy_team_automotive",
 }
 
 rust_defaults {
