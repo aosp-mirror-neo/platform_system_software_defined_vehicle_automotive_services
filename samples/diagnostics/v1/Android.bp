@@ -14,19 +14,23 @@ rust_defaults {
         "libanyhow",
         "liblog_rust",
         "libsdv_log_rust",
-        "libprotobuf",
         "libsdvmiddleware_rpc",
         "libdiagnostics_v1_sample_catalog",
         "libsdv_middleware_extension_diagnostics",
+        "libsdv_mw_rs_sdv_comms",
+        "libsdv_mw_rs_comms",
+        "libtokio",
+        "libsdv_status_rs",
+        "libsdv_comms_rs",
     ],
-    apex_available: ["//apex_available:platform"],
-    product_specific: true,
+    system_ext_specific: true,
 }
 
 rust_binary {
     name: "diag_v1_provider1_sample",
     defaults: ["diag_v1_samples@rust_defaults"],
     srcs: ["src/service1.rs"],
+    ld_flags: ["-Wl,--no-as-needed"],
     rustlibs: [
         "libsdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider1",
     ],
@@ -36,7 +40,15 @@ rust_binary {
     name: "diag_v1_provider2_sample",
     defaults: ["diag_v1_samples@rust_defaults"],
     srcs: ["src/service2.rs"],
+    ld_flags: ["-Wl,--no-as-needed"],
     rustlibs: [
         "libsdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider2",
     ],
+}
+
+rust_binary {
+    name: "diag_v1_receiver",
+    defaults: ["diag_v1_samples@rust_defaults"],
+    srcs: ["src/receiver.rs"],
+    ld_flags: ["-Wl,--no-as-needed"],
 }

@@ -9,8 +9,8 @@ sdv_service_bundle {
 
     diagnostics_declaration {
         event {
-            id: "event1"
-            extended_data_message_name: "FirstEventExt"
+            id: "lowpressure"
+            extended_data_message_name: "LowPressureData"
         }
     }
 }
@@ -20,8 +20,8 @@ sdv_service_bundle {
 
     diagnostics_declaration {
         event {
-            id: "event2"
-            extended_data_message_name: "SecondEventExt"
+            id: "overheating"
+            extended_data_message_name: "OverheatingData"
         }
     }
 }

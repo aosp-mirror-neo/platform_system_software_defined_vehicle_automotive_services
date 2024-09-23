@@ -52,7 +52,7 @@ impl DiagnosticsManager {
             std::sync::Arc<dyn sdv_diagnostics_fault_fault_listener_service_rpc::Interface>,
         ),
     ) -> sdv_status_rs::SdvResult<Self> {
-        let mut service = Self { comms, servers: std::vec::Vec::new() };
+        let mut service = Self { comms: comms.clone(), servers: std::vec::Vec::new() };
         service
             .add_server::<dyn sdv_diagnostics_data_item_data_item_service_rpc::Interface>(
                 sdv_diagnostics_data_item_data_item_service_rpc::internal::DEFAULT_UNIT_NAME
