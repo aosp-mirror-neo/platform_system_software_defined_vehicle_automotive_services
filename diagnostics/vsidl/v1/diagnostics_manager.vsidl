@@ -19,12 +19,19 @@ sdv_service_bundle {
         type: "data_item.DataItemService"
     }
 
+    unit_type {
+        type: "routine_control.RoutineControlService"
+    }
+
     client {
         interface: "sdv.diagnostics.data_item.DataItemService"
     }
 
-    # TODO(b/4076731): remove once MW generator declaring unit types without service units
-    server {
-        interface: "sdv.diagnostics.data_item.DataItemService"
+    client {
+        interface: "sdv.diagnostics.routine_control.RoutineControlService"
     }
+
+    # TODO(b/366419229): remove once MW generator declaring unit types without service units
+    server { interface: "sdv.diagnostics.data_item.DataItemService" }
+    server { interface: "sdv.diagnostics.routine_control.RoutineControlService" }
 }
