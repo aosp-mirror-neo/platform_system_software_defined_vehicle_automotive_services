@@ -4,11 +4,7 @@ package google.sdv.vpm;
 
 import google.sdv.vpm.PowerStateReport;
 
-/**
- * Experimental SDV VPM Client API.
- * Unstable until API council approval.
- *
- * Callback interface for power state machine updates.
+/* Callback interface for power state machine updates.
  *
  * The VPM will wait on the execution of onPowerStateReportChanged method.
  *
