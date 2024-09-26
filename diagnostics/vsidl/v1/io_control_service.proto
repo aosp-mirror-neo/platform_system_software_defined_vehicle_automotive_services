@@ -1,0 +1,82 @@
+// Copyright 2024 Google LLC
+
+syntax = "proto3";
+
+package sdv.diagnostics.io_control;
+
+import "response_code.proto";
+
+// Diagnostics interface for InputOutputControlByIdentifier (UDS 0x2F) service.
+//
+// See ISO 14229-1:2020, section 13.2.
+//
+// IoControlService interface allows to control parameters referenced by identifier.
+//
+// Each identifier may reference contain a number of primitive parameters that can be manipulated
+// granularly (see `mask` request fields):
+//
+//  - Mapping between IoControl ids and corresponding protobuf message is defined in diagnostics
+// declaration of the service bundle (see "sdv/diagnostics/v1/diagnostics.proto").
+//  - For the purposes of IoControl, each primitive field of the protobuf message represents a
+// parameter.
+//  - In case of nested protobuf message, parameters are numbered in order of "inorder" traversal.
+//
+// ** Common error codes **
+// See ISO 14229-1:2020, section 13.2.4 and "response_code.proto".
+service IoControlService {
+  // Request that indicates that the client no longer has control of the input signals,
+  // internal parameters and/or output signals referenced by the identifier.
+  rpc ReturnControlToEcu(IoControlRequest) returns (IoControlResponse) {}
+
+  // Request to reset the input signals, internal parameters and/or output signals
+  // referenced by the identifier to its default state.
+  rpc ResetToDefault(IoControlRequest) returns (IoControlResponse) {}
+
+  // Request to freeze the current state of the input signals, internal parameters and/or
+  // output signals referenced by the identifier.
+  rpc FreezeCurrentState(IoControlRequest) returns (IoControlResponse) {}
+
+  // Request to adjust the current state of the input signals, internal parameters and/or
+  // output signals referenced by the identifier in RAM to the values included in the
+  // request.
+  rpc PerformShortTermAdjustment(PerformShortTermAdjustmentRequest) returns (IoControlResponse) {}
+}
+
+message IoControlRequest {
+  // Required. Identifier for input signals, internal parameters and/or output signals.
+  string id = 1;
+
+  // Required. In case identifier references more than one parameter, specifies which of the
+  // referenced parameters are affected.
+  //
+  // The most significant bit of `mask[0]`` corresponds to the first parameter, the second most
+  // significant bit of `mask[0]`` corresponds to the second parameter, and continuing on in this
+  // fashion utilising as many `mask`` bytes as necessary to mask all parameters.
+  bytes mask = 2;
+}
+
+message PerformShortTermAdjustmentRequest {
+  // Required. Identifier for input signals, internal parameters and/or output signals.
+  string id = 1;
+
+  // Required. Adjusted state of controls referenced by the identifier.
+  bytes adjusted_value = 2;
+
+  // Required. In case identifier references more than one parameter, specifies which of the
+  // referenced parameters are affected.
+  //
+  // The most significant bit of `mask[0]`` corresponds to the first parameter, the second most
+  // significant bit of `mask[0]`` corresponds to the second parameter, and continuing on in this
+  // fashion utilising as many `mask`` bytes as necessary to mask all parameters.
+  bytes mask = 3;
+}
+
+message IoControlResponse {
+  // Required. State of contols referenced by the identifier provided in request.
+  bytes value = 1;
+
+  // Response code.
+  //
+  // If not set, request was successful.
+  ResponseCode response_code = 2;
+}
