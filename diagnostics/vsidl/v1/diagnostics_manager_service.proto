@@ -1,0 +1,43 @@
+// Copyright 2024 Google LLC
+
+syntax = "proto3";
+
+package sdv.diagnostics;
+
+import "connection.proto";
+import "response_code.proto";
+
+// Diagnostics RPC API available to SDV services.
+//
+// Based on ISO 14229-1:2020. See README for external links.
+service DiagnosticsManagerService {
+  // Get diagnostics connection parameters by connection id.
+  //
+  // Allows diagnostic services to query the parameters of the current connection.
+  // Connection id is provided as a parameter on every method of the following diagnostic
+  // services:
+  // - AuthenticationService
+  // - FileTransferService
+  // - EcuResetService
+  // - SecurityAccessService
+  rpc GetConnectionParameters(GetConnectionParametersRequest)
+      returns (GetConnectionParametersResponse) {}
+}
+
+message GetConnectionParametersRequest {
+  // Required. Id of the connection which parameters is being queried.
+  ConnectionId id = 1;
+}
+
+// Parameters of the underlying diagnostics connection.
+//
+// This data is retrieved from the UDS payload that triggered a service call.
+message GetConnectionParametersResponse {
+  // Required. Parameters related to the underlying diagnostics connection.
+  ConnectionParameters parameters = 1;
+
+  // Response code.
+  //
+  // If not set, request was successful.
+  ResponseCode response_code = 2;
+}

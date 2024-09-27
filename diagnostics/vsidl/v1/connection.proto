@@ -1,0 +1,55 @@
+// Copyright 2024 Google LLC
+
+syntax = "proto3";
+
+package sdv.diagnostics;
+
+// Unique id of diagnostic connection.
+message ConnectionId {
+  // Required.
+  int32 id = 1;
+}
+
+// Diagnostic session types.
+//
+// Use `EnumOrUnknown::<SessionType>::from_i32(...)` to provide a non-standard
+// session type value.
+//
+// See ISO 14229-1:2020, section 10.2.2.2.
+enum SessionType {
+  RESERVED = 0x00;
+
+  DEFAULT_SESSION = 0x01;
+  PROGRAMMING_SESSION = 0x02;
+  EXTENDED_DIAGNOSTIC_SESSION = 0x03;
+  SAFETY_SYSTEM_DIAGNOSTIC_SESSION = 0x04;
+
+  // 0x05 to 0x3F: Reserved
+  // 0x40 to 0x5F: Vehicle manufacturer specific
+  // 0x60 to 0x7F: System supplier specific
+  // 0x7F: Reserved
+}
+
+// Connection parameters.
+//
+// These parameters are mandatory for any diagnostic requests and can be queried by Diagnostics RPC
+// API servers if needed.
+//
+// See DiagnosticsManagerService::GetConnectionParameters.
+// See ISO 14229-1:2020, section 7.4.1.
+message ConnectionParameters {
+  // Required. Application layer source address.
+  //
+  // See ISO 14229-1:2020 section 7.4.1.3.
+  int32 source_address = 1;
+
+  // Required. Application layer target address.
+  //
+  // See ISO 14229-1:2020 section 7.4.1.4.
+  int32 target_address = 2;
+
+  // Required. Session type of the diagnostic session.
+  //
+  // See ISO 14229-1:2020 section 10.2.2.2.
+  SessionType session_type = 3;
+}
