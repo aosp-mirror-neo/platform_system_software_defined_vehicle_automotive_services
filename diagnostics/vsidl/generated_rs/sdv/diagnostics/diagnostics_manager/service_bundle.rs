@@ -45,6 +45,12 @@ impl UnitType for dyn sdv_diagnostics_security_access_security_access_service_rp
     const TYPENAME: &'static str = "security_access.SecurityAccessService";
 }
 
+impl UnitType for dyn sdv_diagnostics_authentication_authentication_service_rpc::Interface {
+    const PACKAGE: &'static str = "sdv.diagnostics";
+    const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
+    const TYPENAME: &'static str = "authentication.AuthenticationService";
+}
+
 impl UnitType for dyn sdv_diagnostics_diagnostics_manager_service_rpc::Interface {
     const PACKAGE: &'static str = "sdv.diagnostics";
     const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
@@ -72,6 +78,9 @@ impl DiagnosticsManager {
             std::sync::Arc<dyn sdv_diagnostics_ecu_reset_ecu_reset_service_rpc::Interface>,
             std::sync::Arc<
                 dyn sdv_diagnostics_security_access_security_access_service_rpc::Interface,
+            >,
+            std::sync::Arc<
+                dyn sdv_diagnostics_authentication_authentication_service_rpc::Interface,
             >,
         ),
     ) -> sdv_status_rs::SdvResult<Self> {
@@ -129,6 +138,11 @@ impl DiagnosticsManager {
         service.add_server::<dyn sdv_diagnostics_security_access_security_access_service_rpc::Interface>(
                 sdv_diagnostics_security_access_security_access_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
                 sdv_diagnostics_security_access_security_access_service_rpc::internal::get_method_map(servers.6.clone()),
+            )
+            .await?;
+        service.add_server::<dyn sdv_diagnostics_authentication_authentication_service_rpc::Interface>(
+                sdv_diagnostics_authentication_authentication_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
+                sdv_diagnostics_authentication_authentication_service_rpc::internal::get_method_map(servers.7.clone()),
             )
             .await?;
         Ok(service)

@@ -43,6 +43,10 @@ sdv_service_bundle {
         type: "security_access.SecurityAccessService"
     }
 
+    unit_type {
+        type: "authentication.AuthenticationService"
+    }
+
     client {
         interface: "sdv.diagnostics.data_item.DataItemService"
     }
@@ -67,6 +71,10 @@ sdv_service_bundle {
         interface: "sdv.diagnostics.security_access.SecurityAccessService"
     }
 
+    client {
+        interface: "sdv.diagnostics.authentication.AuthenticationService"
+    }
+
     server {
         interface: "sdv.diagnostics.DiagnosticsManagerService"
     }
@@ -78,4 +86,5 @@ sdv_service_bundle {
     server { interface: "sdv.diagnostics.fault.FaultListenerService" }
     server { interface: "sdv.diagnostics.ecu_reset.EcuResetService" }
     server { interface: "sdv.diagnostics.security_access.SecurityAccessService" }
+    server { interface: "sdv.diagnostics.authentication.AuthenticationService" }
 }
