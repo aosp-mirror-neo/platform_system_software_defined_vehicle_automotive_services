@@ -39,6 +39,12 @@ impl UnitType for dyn sdv_diagnostics_ecu_reset_ecu_reset_service_rpc::Interface
     const TYPENAME: &'static str = "ecu_reset.EcuResetService";
 }
 
+impl UnitType for dyn sdv_diagnostics_security_access_security_access_service_rpc::Interface {
+    const PACKAGE: &'static str = "sdv.diagnostics";
+    const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
+    const TYPENAME: &'static str = "security_access.SecurityAccessService";
+}
+
 impl UnitType for dyn sdv_diagnostics_diagnostics_manager_service_rpc::Interface {
     const PACKAGE: &'static str = "sdv.diagnostics";
     const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
@@ -64,6 +70,9 @@ impl DiagnosticsManager {
             std::sync::Arc<dyn sdv_diagnostics_io_control_io_control_service_rpc::Interface>,
             std::sync::Arc<dyn sdv_diagnostics_fault_fault_listener_service_rpc::Interface>,
             std::sync::Arc<dyn sdv_diagnostics_ecu_reset_ecu_reset_service_rpc::Interface>,
+            std::sync::Arc<
+                dyn sdv_diagnostics_security_access_security_access_service_rpc::Interface,
+            >,
         ),
     ) -> sdv_status_rs::SdvResult<Self> {
         let mut service = Self { comms, servers: std::vec::Vec::new() };
@@ -115,6 +124,11 @@ impl DiagnosticsManager {
                 sdv_diagnostics_ecu_reset_ecu_reset_service_rpc::internal::get_method_map(
                     servers.5.clone(),
                 ),
+            )
+            .await?;
+        service.add_server::<dyn sdv_diagnostics_security_access_security_access_service_rpc::Interface>(
+                sdv_diagnostics_security_access_security_access_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
+                sdv_diagnostics_security_access_security_access_service_rpc::internal::get_method_map(servers.6.clone()),
             )
             .await?;
         Ok(service)

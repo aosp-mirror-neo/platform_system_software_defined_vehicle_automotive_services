@@ -39,6 +39,10 @@ sdv_service_bundle {
         type: "ecu_reset.EcuResetService"
     }
 
+    unit_type {
+        type: "security_access.SecurityAccessService"
+    }
+
     client {
         interface: "sdv.diagnostics.data_item.DataItemService"
     }
@@ -59,6 +63,10 @@ sdv_service_bundle {
         interface: "sdv.diagnostics.ecu_reset.EcuResetService"
     }
 
+    client {
+        interface: "sdv.diagnostics.security_access.SecurityAccessService"
+    }
+
     server {
         interface: "sdv.diagnostics.DiagnosticsManagerService"
     }
@@ -69,4 +77,5 @@ sdv_service_bundle {
     server { interface: "sdv.diagnostics.io_control.IoControlService" }
     server { interface: "sdv.diagnostics.fault.FaultListenerService" }
     server { interface: "sdv.diagnostics.ecu_reset.EcuResetService" }
+    server { interface: "sdv.diagnostics.security_access.SecurityAccessService" }
 }
