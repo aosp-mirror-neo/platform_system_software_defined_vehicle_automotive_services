@@ -47,6 +47,10 @@ sdv_service_bundle {
         type: "authentication.AuthenticationService"
     }
 
+    unit_type {
+        type: "file_transfer.FileTransferService"
+    }
+
     client {
         interface: "sdv.diagnostics.data_item.DataItemService"
     }
@@ -75,6 +79,10 @@ sdv_service_bundle {
         interface: "sdv.diagnostics.authentication.AuthenticationService"
     }
 
+    client {
+        interface: "sdv.diagnostics.file_transfer.FileTransferService"
+    }
+
     server {
         interface: "sdv.diagnostics.DiagnosticsManagerService"
     }
@@ -87,4 +95,5 @@ sdv_service_bundle {
     server { interface: "sdv.diagnostics.ecu_reset.EcuResetService" }
     server { interface: "sdv.diagnostics.security_access.SecurityAccessService" }
     server { interface: "sdv.diagnostics.authentication.AuthenticationService" }
+    server { interface: "sdv.diagnostics.file_transfer.FileTransferService" }
 }
