@@ -4,3 +4,20 @@
 
 /// Event API related utilities.
 pub mod event;
+
+/// Data item API related utilities.
+pub mod data_item;
+
+/// Routine control API related utilities.
+pub mod routine;
+
+/// Input output data control API related utilities.
+pub mod io_control;
+
+/// Fault listener API related utilities.
+pub mod fault_listener;
+
+use diagnostics_v1_api::response_code::ResponseCode;
+
+/// Result with diagnostics error.
+pub type DiagnosticsResult<T> = Result<T, ResponseCode>;

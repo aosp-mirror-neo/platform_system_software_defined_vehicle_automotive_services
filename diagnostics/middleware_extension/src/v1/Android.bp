@@ -16,6 +16,9 @@ rust_defaults {
         "libsdv_mw_rs_comms",
         "libsdv_status_rs",
     ],
+    proc_macros: [
+        "libasync_trait",
+    ],
     edition: "2021",
     lints: "android",
     clippy_lints: "android",
