@@ -12,6 +12,10 @@ message LowPressureData {
   int32 status = 1;
 }
 
+message Pressure {
+  float value = 1;
+}
+
 message OverheatingData {
   string status = 1 [(sdv.vsidl.v1.variable_type_max_size) = 10];
 }

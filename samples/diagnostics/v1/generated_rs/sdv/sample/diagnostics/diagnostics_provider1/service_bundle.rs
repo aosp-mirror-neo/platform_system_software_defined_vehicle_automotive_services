@@ -5,9 +5,22 @@
 pub mod diagnostics;
 use crate::diagnostics::Diagnostics;
 
+trait UnitType {
+    const PACKAGE: &'static str;
+    const SERVICE_BUNDLE: &'static str;
+    const TYPENAME: &'static str;
+}
+
+impl UnitType for dyn sdv_diagnostics_data_item_data_item_service_rpc::Interface {
+    const PACKAGE: &'static str = "sdv.diagnostics";
+    const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
+    const TYPENAME: &'static str = "data_item.DataItemService";
+}
+
 /// Service bundle
 pub struct DiagnosticsProvider1 {
-    _comms: std::sync::Arc<dyn sdv_mw_rs_comms::Communicate>,
+    comms: std::sync::Arc<dyn sdv_mw_rs_comms::Communicate>,
+    servers: std::vec::Vec<std::sync::Arc<dyn sdv_mw_rs_comms::ServerTransport>>,
     /// Diagnostic capabilities of the service bundle.
     pub diagnostics: Diagnostics,
 }
@@ -16,8 +29,42 @@ impl DiagnosticsProvider1 {
     /// Creates a new instance of the service bundle
     pub async fn new(
         comms: std::sync::Arc<dyn sdv_mw_rs_comms::Communicate>,
+        servers: (std::sync::Arc<dyn sdv_diagnostics_data_item_data_item_service_rpc::Interface>,),
     ) -> sdv_status_rs::SdvResult<Self> {
-        let service = Self { _comms: comms.clone(), diagnostics: Diagnostics::new(comms).await? };
+        let mut service = Self {
+            comms: comms.clone(),
+            servers: std::vec::Vec::new(),
+            diagnostics: Diagnostics::new(comms).await?,
+        };
+        service
+            .add_server::<dyn sdv_diagnostics_data_item_data_item_service_rpc::Interface>(
+                sdv_diagnostics_data_item_data_item_service_rpc::internal::DEFAULT_UNIT_NAME
+                    .to_string(),
+                sdv_diagnostics_data_item_data_item_service_rpc::internal::get_method_map(
+                    servers.0.clone(),
+                ),
+            )
+            .await?;
         Ok(service)
+    }
+
+    async fn add_server<T: UnitType + ?Sized + 'static + Send + Sync>(
+        &mut self,
+        unit_name: String,
+        methods: std::collections::HashMap<String, sdv_comms::rpc::UnaryRpcMethod>,
+    ) -> sdv_status_rs::SdvResult<()> {
+        let attributes = sdv_mw_rs_comms::ServerAttributes {
+            server_name: unit_name,
+            type_name: sdv_mw_rs_comms::TypeName {
+                package: T::PACKAGE.to_string(),
+                bundle: T::SERVICE_BUNDLE.to_string(),
+                name: T::TYPENAME.to_string(),
+            },
+            options: sdv_mw_rs_comms::ServerOptions { timeout_in_sec: 30 },
+        };
+
+        let transport = self.comms.create_server_transport(&attributes, methods).await?;
+        self.servers.push(transport.into());
+        Ok(())
     }
 }

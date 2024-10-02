@@ -7,10 +7,25 @@ package: "sdv.sample.diagnostics"
 sdv_service_bundle {
     name: "DiagnosticsProvider1"
 
+    server {
+        interface: "sdv.diagnostics.data_item.DataItemService"
+    }
+
     diagnostics_declaration {
         event {
             id: "lowpressure"
             extended_data_message_name: "LowPressureData"
+        }
+
+        data_item {
+            id: "pressure"
+            message_name: "Pressure"
+        }
+
+        data_item {
+            id: "low_pressure_threshold"
+            message_name: "Pressure"
+            is_writable: true
         }
     }
 }
