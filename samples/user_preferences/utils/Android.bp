@@ -19,5 +19,6 @@ rust_library {
     apex_available: [
         "//apex_available:platform",
     ],
-    vendor: true,
+    vendor_available: true,
+    product_available: true,
 }
