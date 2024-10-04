@@ -6,7 +6,9 @@ use diagnostics_v1_api::response_code::ResponseCode;
 use diagnostics_v1_sample_catalog::messages::*;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
-use sdv_mw_rs_diag::{data_item::*, io_control::*, routine::*, DiagnosticsResult};
+use sdv_mw_rs_diag::{
+    data_item::*, fault_listener::*, io_control::*, routine::*, DiagnosticsResult,
+};
 use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider1::{
     diagnostics::Diagnostics, DiagnosticsProvider1,
@@ -66,6 +68,14 @@ impl IoControlHandler<Pressure> for PressureIoControl {
     }
 }
 
+struct LowPressureFault;
+#[async_trait::async_trait]
+impl FaultListenerHandler<LowPressureData> for LowPressureFault {
+    async fn on_fault_status_change(&self, _status: u8, _data: Option<LowPressureData>) {
+        todo!();
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let sdv_comms = SdvComms {
@@ -83,6 +93,7 @@ async fn main() {
             ),
             Diagnostics::create_routine_control_server(Arc::new(PressurizationRoutine {})),
             Diagnostics::create_io_control_server(Arc::new(PressureIoControl {})),
+            Diagnostics::create_fault_listener_server(Arc::new(LowPressureFault {})),
         ),
     )
     .await

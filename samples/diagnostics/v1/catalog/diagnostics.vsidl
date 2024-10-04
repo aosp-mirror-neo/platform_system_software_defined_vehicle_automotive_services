@@ -16,11 +16,15 @@ sdv_service_bundle {
     server {
         interface: "sdv.diagnostics.io_control.IoControlService"
     }
+    server {
+        interface: "sdv.diagnostics.fault.FaultListenerService"
+    }
 
     diagnostics_declaration {
         event {
             id: "lowpressure"
             extended_data_message_name: "LowPressureData"
+            fault_listener_mask: 0x3
         }
 
         data_item {

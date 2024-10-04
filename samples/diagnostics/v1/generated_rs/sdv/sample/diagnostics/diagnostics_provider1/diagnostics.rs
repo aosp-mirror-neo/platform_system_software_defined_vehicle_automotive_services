@@ -4,14 +4,17 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use diagnostics_v1_api::data_item_service::*;
+use diagnostics_v1_api::fault_listener_service::*;
 use diagnostics_v1_api::io_control_service::*;
 use diagnostics_v1_api::routine_control_service::*;
 use sdv_diagnostics_data_item_data_item_service_rpc::Interface as DataItemService;
+use sdv_diagnostics_fault_fault_listener_service_rpc::Interface as FaultListenerService;
 use sdv_diagnostics_io_control_io_control_service_rpc::Interface as IoControlService;
 use sdv_diagnostics_routine_control_routine_control_service_rpc::Interface as RoutineControlService;
 use sdv_mw_rs_comms::Communicate;
 use sdv_mw_rs_diag::data_item::*;
 use sdv_mw_rs_diag::event::EventPublisher;
+use sdv_mw_rs_diag::fault_listener::*;
 use sdv_mw_rs_diag::io_control::*;
 use sdv_mw_rs_diag::routine::*;
 use sdv_status_rs::SdvResult;
@@ -73,6 +76,15 @@ impl Diagnostics {
         >,
     ) -> Arc<dyn IoControlService> {
         Arc::new(IoControlServer { pressure_handler })
+    }
+
+    /// Create FaultListenerSrvice implementation.
+    pub fn create_fault_listener_server(
+        lowpressure_fault_listener: Arc<
+            dyn FaultListenerHandler<diagnostics_v1_sample_catalog::messages::LowPressureData>,
+        >,
+    ) -> Arc<dyn FaultListenerService> {
+        Arc::new(FaultListenerServer { lowpressure_fault_listener })
     }
 }
 
@@ -228,6 +240,30 @@ impl IoControlService for IoControlServer {
                 response_code: REQUEST_OUT_OF_RANGE.into(),
                 ..Default::default()
             }),
+        }
+    }
+}
+
+struct FaultListenerServer {
+    lowpressure_fault_listener:
+        Arc<dyn FaultListenerHandler<diagnostics_v1_sample_catalog::messages::LowPressureData>>,
+}
+
+#[async_trait::async_trait]
+impl FaultListenerService for FaultListenerServer {
+    async fn OnFaultStatusChange(
+        &self,
+        request: &OnFaultStatusChangeRequest,
+    ) -> SdvResult<OnFaultStatusChangeResponse> {
+        match request.id.as_str() {
+            "lowpressure" => Ok(self
+                .lowpressure_fault_listener
+                .on_fault_status_change_untyped(
+                    request.status as u8,
+                    request.extended_data.as_deref(),
+                )
+                .await),
+            _ => Ok(OnFaultStatusChangeResponse::default()),
         }
     }
 }
