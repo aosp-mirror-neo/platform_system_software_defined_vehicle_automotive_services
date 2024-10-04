@@ -6,7 +6,7 @@ use diagnostics_v1_api::response_code::ResponseCode;
 use diagnostics_v1_sample_catalog::messages::*;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
-use sdv_mw_rs_diag::{data_item::*, routine::*, DiagnosticsResult};
+use sdv_mw_rs_diag::{data_item::*, io_control::*, routine::*, DiagnosticsResult};
 use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider1::{
     diagnostics::Diagnostics, DiagnosticsProvider1,
@@ -45,6 +45,27 @@ impl RoutineHandler<Pressure, Empty, Empty, Empty, Empty, Empty> for Pressurizat
     }
 }
 
+struct PressureIoControl;
+#[async_trait::async_trait]
+impl IoControlHandler<Pressure> for PressureIoControl {
+    async fn return_control_to_ecu(&self, _mask: &[u8]) -> DiagnosticsResult<Pressure> {
+        todo!();
+    }
+    async fn reset_to_default(&self, _mask: &[u8]) -> DiagnosticsResult<Pressure> {
+        todo!();
+    }
+    async fn freeze_current_state(&self, _mask: &[u8]) -> DiagnosticsResult<Pressure> {
+        todo!();
+    }
+    async fn short_term_adjustment(
+        &self,
+        _adjusted_value: Pressure,
+        _mask: &[u8],
+    ) -> DiagnosticsResult<Pressure> {
+        todo!();
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let sdv_comms = SdvComms {
@@ -61,6 +82,7 @@ async fn main() {
                 Arc::new(LowPressureThresholdDataItem {}),
             ),
             Diagnostics::create_routine_control_server(Arc::new(PressurizationRoutine {})),
+            Diagnostics::create_io_control_server(Arc::new(PressureIoControl {})),
         ),
     )
     .await

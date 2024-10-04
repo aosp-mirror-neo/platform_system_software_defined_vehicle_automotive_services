@@ -4,12 +4,15 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use diagnostics_v1_api::data_item_service::*;
+use diagnostics_v1_api::io_control_service::*;
 use diagnostics_v1_api::routine_control_service::*;
 use sdv_diagnostics_data_item_data_item_service_rpc::Interface as DataItemService;
+use sdv_diagnostics_io_control_io_control_service_rpc::Interface as IoControlService;
 use sdv_diagnostics_routine_control_routine_control_service_rpc::Interface as RoutineControlService;
 use sdv_mw_rs_comms::Communicate;
 use sdv_mw_rs_diag::data_item::*;
 use sdv_mw_rs_diag::event::EventPublisher;
+use sdv_mw_rs_diag::io_control::*;
 use sdv_mw_rs_diag::routine::*;
 use sdv_status_rs::SdvResult;
 use std::sync::Arc;
@@ -61,6 +64,15 @@ impl Diagnostics {
         >,
     ) -> Arc<dyn RoutineControlService> {
         Arc::new(RoutineServer { pressurization_handler })
+    }
+
+    /// Create IoControlService implementation.
+    pub fn create_io_control_server(
+        pressure_handler: Arc<
+            dyn IoControlHandler<diagnostics_v1_sample_catalog::messages::Pressure>,
+        >,
+    ) -> Arc<dyn IoControlService> {
+        Arc::new(IoControlServer { pressure_handler })
     }
 }
 
@@ -156,6 +168,63 @@ impl RoutineControlService for RoutineServer {
                 Ok(self.pressurization_handler.request_result_untyped(&request.request).await)
             }
             _ => Ok(RoutineControlResponse {
+                response_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
+        }
+    }
+}
+
+struct IoControlServer {
+    pressure_handler: Arc<dyn IoControlHandler<diagnostics_v1_sample_catalog::messages::Pressure>>,
+}
+
+#[async_trait::async_trait]
+impl IoControlService for IoControlServer {
+    async fn ReturnControlToEcu(&self, request: &IoControlRequest) -> SdvResult<IoControlResponse> {
+        match request.id.as_str() {
+            "pressure" => {
+                Ok(self.pressure_handler.return_control_to_ecu_untyped(&request.mask).await)
+            }
+            _ => Ok(IoControlResponse {
+                response_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
+        }
+    }
+
+    async fn ResetToDefault(&self, request: &IoControlRequest) -> SdvResult<IoControlResponse> {
+        match request.id.as_str() {
+            "pressure" => Ok(self.pressure_handler.reset_to_default_untyped(&request.mask).await),
+            _ => Ok(IoControlResponse {
+                response_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
+        }
+    }
+
+    async fn FreezeCurrentState(&self, request: &IoControlRequest) -> SdvResult<IoControlResponse> {
+        match request.id.as_str() {
+            "pressure" => {
+                Ok(self.pressure_handler.freeze_current_state_untyped(&request.mask).await)
+            }
+            _ => Ok(IoControlResponse {
+                response_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
+        }
+    }
+
+    async fn PerformShortTermAdjustment(
+        &self,
+        request: &PerformShortTermAdjustmentRequest,
+    ) -> SdvResult<IoControlResponse> {
+        match request.id.as_str() {
+            "pressure" => Ok(self
+                .pressure_handler
+                .short_term_adjustment_untyped(&request.adjusted_value, &request.mask)
+                .await),
+            _ => Ok(IoControlResponse {
                 response_code: REQUEST_OUT_OF_RANGE.into(),
                 ..Default::default()
             }),

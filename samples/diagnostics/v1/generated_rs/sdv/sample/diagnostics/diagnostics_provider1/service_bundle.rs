@@ -23,6 +23,12 @@ impl UnitType for dyn sdv_diagnostics_routine_control_routine_control_service_rp
     const TYPENAME: &'static str = "routine_control.RoutineControlService";
 }
 
+impl UnitType for dyn sdv_diagnostics_io_control_io_control_service_rpc::Interface {
+    const PACKAGE: &'static str = "sdv.diagnostics";
+    const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
+    const TYPENAME: &'static str = "io_control.IoControlService";
+}
+
 /// Service bundle
 pub struct DiagnosticsProvider1 {
     comms: std::sync::Arc<dyn sdv_mw_rs_comms::Communicate>,
@@ -40,6 +46,7 @@ impl DiagnosticsProvider1 {
             std::sync::Arc<
                 dyn sdv_diagnostics_routine_control_routine_control_service_rpc::Interface,
             >,
+            std::sync::Arc<dyn sdv_diagnostics_io_control_io_control_service_rpc::Interface>,
         ),
     ) -> sdv_status_rs::SdvResult<Self> {
         let mut service = Self {
@@ -59,6 +66,15 @@ impl DiagnosticsProvider1 {
         service.add_server::<dyn sdv_diagnostics_routine_control_routine_control_service_rpc::Interface>(
                 sdv_diagnostics_routine_control_routine_control_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
                 sdv_diagnostics_routine_control_routine_control_service_rpc::internal::get_method_map(servers.1.clone()),
+            )
+            .await?;
+        service
+            .add_server::<dyn sdv_diagnostics_io_control_io_control_service_rpc::Interface>(
+                sdv_diagnostics_io_control_io_control_service_rpc::internal::DEFAULT_UNIT_NAME
+                    .to_string(),
+                sdv_diagnostics_io_control_io_control_service_rpc::internal::get_method_map(
+                    servers.2.clone(),
+                ),
             )
             .await?;
         Ok(service)

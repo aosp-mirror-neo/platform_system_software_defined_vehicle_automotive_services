@@ -13,6 +13,9 @@ sdv_service_bundle {
     server {
         interface: "sdv.diagnostics.routine_control.RoutineControlService"
     }
+    server {
+        interface: "sdv.diagnostics.io_control.IoControlService"
+    }
 
     diagnostics_declaration {
         event {
@@ -36,6 +39,11 @@ sdv_service_bundle {
             start {
                 request: "Pressure"
             }
+        }
+
+        io_control {
+            id: "pressure"
+            message_name: "Pressure"
         }
     }
 }
