@@ -1,0 +1,51 @@
+// Copyright 2024 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+apex {
+    name: "com.sdv.google.sample.concal",
+    // The ConCal service bundle to be included in the apex.
+    native_shared_libs: [
+        "libconcal_service_bundle_runner",
+    ],
+    prebuilts: [
+        // SDV service bundles manifest file.
+        "com.sdv.google.sample.concal.service_bundles_manifest",
+        // Linker configuration to enable loading library from apex.
+        "com.sdv.google.sample.concal.linker_config",
+    ],
+    // Json manifest file describes metadata of the APEX package.
+    // The 'name' filed from the json is used as mounting point.
+    manifest: "apex_manifest.json",
+    // Setting the security contexts to files in this APEX bundle.
+    file_contexts: "apex_file_contexts",
+    // Name of the apex_key module that provides the private key to sign the APEX bundle.
+    key: "com.android.sdv.samples.key",
+    // Mark apex as non-updatable for now, this might be revisited going forward.
+    updatable: false,
+    // Service bundle package is installed into /product partition.
+    product_specific: true,
+}
+
+// SDV manifest file prebuilt.
+prebuilt_etc {
+    name: "com.sdv.google.sample.concal.service_bundles_manifest",
+    // The source filename of the manifest file.
+    src: "sdv_service_bundles_manifest.textproto",
+    // The name of the installed file needs be `sdv_service_bundles_manifest.textproto`.
+    filename: "sdv_service_bundles_manifest.textproto",
+    // Disable direct installation of the prebuilt to one of the partitions.
+    // The manifest is used only inside of an apex.
+    installable: false,
+}
+
+// The linker config to allow libraries for the apex to be linkable.
+linker_config {
+    name: "com.sdv.google.sample.concal.linker_config",
+    src: "linker.config.json",
+    // Disable direct installation of the prebuilt to one of the partitions.
+    // The linker configuration is used only inside of an apex.
+    installable: false,
+}

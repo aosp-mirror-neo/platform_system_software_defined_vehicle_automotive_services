@@ -1,0 +1,28 @@
+// Copyright 2024 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+// Lifecycle-Manager Required Library for ConCal Service Bundle.
+rust_ffi_shared {
+    name: "libconcal_service_bundle_runner",
+    crate_name: "concal_service_bundle_runner",
+    srcs: ["src/concal_sb_lib.rs"],
+    rustlibs: [
+        // Contains service bundle interface definitions and helper macros.
+        "libsdv_lifecycle_client_rust",
+        // commstack library that provides context object reference.
+        "libsdv_comms_rs",
+        // Generated MW code for ConCal Service Bundle.
+        "libsdv_mw_rs_sdv_concal_con_cal_service_bundle",
+    ],
+    // Allows the library to be available inside APEX.
+    apex_available: [
+        "//apex_available:platform",
+        "//apex_available:anyapex",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
+    // ConCal service bundle package is packed into /product apexes.
+    product_specific: true,
+}
