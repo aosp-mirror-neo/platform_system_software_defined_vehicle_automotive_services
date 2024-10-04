@@ -31,6 +31,22 @@ sdv_service_bundle {
         type: "fault.FaultListenerService"
     }
 
+    unit_type {
+        type: "DiagnosticsManagerService"
+    }
+
+    unit_type {
+        type: "ecu_reset.EcuResetService"
+    }
+
+    unit_type {
+        type: "security_access.SecurityAccessService"
+    }
+
+    unit_type {
+        type: "authentication.AuthenticationService"
+    }
+
     client {
         interface: "sdv.diagnostics.data_item.DataItemService"
     }
@@ -47,9 +63,28 @@ sdv_service_bundle {
         interface: "sdv.diagnostics.fault.FaultListenerService"
     }
 
-    # TODO(b/366419229): remove once MW generator declaring unit types without service units
+    client {
+        interface: "sdv.diagnostics.ecu_reset.EcuResetService"
+    }
+
+    client {
+        interface: "sdv.diagnostics.security_access.SecurityAccessService"
+    }
+
+    client {
+        interface: "sdv.diagnostics.authentication.AuthenticationService"
+    }
+
+    server {
+        interface: "sdv.diagnostics.DiagnosticsManagerService"
+    }
+
+    # TODO(b/366419229): remove once MW generator allows declaring unit types without service units
     server { interface: "sdv.diagnostics.data_item.DataItemService" }
     server { interface: "sdv.diagnostics.routine_control.RoutineControlService" }
     server { interface: "sdv.diagnostics.io_control.IoControlService" }
     server { interface: "sdv.diagnostics.fault.FaultListenerService" }
+    server { interface: "sdv.diagnostics.ecu_reset.EcuResetService" }
+    server { interface: "sdv.diagnostics.security_access.SecurityAccessService" }
+    server { interface: "sdv.diagnostics.authentication.AuthenticationService" }
 }
