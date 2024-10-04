@@ -8,6 +8,9 @@ use sdv_mw_rs_diag::event::EventPublisher;
 use sdv_status_rs::SdvResult;
 use std::sync::Arc;
 
+#[allow(unused_imports)]
+use diagnostics_v1_api::response_code::ResponseCode::*;
+
 /// Diagnostics extension struct.
 pub struct Diagnostics {
     /// Publisher for event "overheating".

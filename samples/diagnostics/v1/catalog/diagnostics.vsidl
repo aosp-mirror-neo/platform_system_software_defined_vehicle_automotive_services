@@ -10,6 +10,9 @@ sdv_service_bundle {
     server {
         interface: "sdv.diagnostics.data_item.DataItemService"
     }
+    server {
+        interface: "sdv.diagnostics.routine_control.RoutineControlService"
+    }
 
     diagnostics_declaration {
         event {
@@ -26,6 +29,13 @@ sdv_service_bundle {
             id: "low_pressure_threshold"
             message_name: "Pressure"
             is_writable: true
+        }
+
+        routine {
+            id: "pressurization"
+            start {
+                request: "Pressure"
+            }
         }
     }
 }

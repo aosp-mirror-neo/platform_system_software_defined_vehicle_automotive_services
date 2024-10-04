@@ -4,13 +4,18 @@
 //! WARNING: PLEASE DO NOT EDIT.
 
 use diagnostics_v1_api::data_item_service::*;
-use diagnostics_v1_api::response_code::ResponseCode::*;
+use diagnostics_v1_api::routine_control_service::*;
 use sdv_diagnostics_data_item_data_item_service_rpc::Interface as DataItemService;
+use sdv_diagnostics_routine_control_routine_control_service_rpc::Interface as RoutineControlService;
 use sdv_mw_rs_comms::Communicate;
 use sdv_mw_rs_diag::data_item::*;
 use sdv_mw_rs_diag::event::EventPublisher;
+use sdv_mw_rs_diag::routine::*;
 use sdv_status_rs::SdvResult;
 use std::sync::Arc;
+
+#[allow(unused_imports)]
+use diagnostics_v1_api::response_code::ResponseCode::*;
 
 /// Diagnostics extension struct.
 pub struct Diagnostics {
@@ -41,6 +46,22 @@ impl Diagnostics {
     ) -> Arc<dyn DataItemService> {
         Arc::new(DataItemServer { pressure_handler, low_pressure_threshold_handler })
     }
+
+    /// Create RoutineControlService implementation.
+    pub fn create_routine_control_server(
+        pressurization_handler: Arc<
+            dyn RoutineHandler<
+                diagnostics_v1_sample_catalog::messages::Pressure,
+                protobuf::well_known_types::empty::Empty,
+                protobuf::well_known_types::empty::Empty,
+                protobuf::well_known_types::empty::Empty,
+                protobuf::well_known_types::empty::Empty,
+                protobuf::well_known_types::empty::Empty,
+            >,
+        >,
+    ) -> Arc<dyn RoutineControlService> {
+        Arc::new(RoutineServer { pressurization_handler })
+    }
 }
 
 struct DataItemServer {
@@ -52,10 +73,7 @@ struct DataItemServer {
 
 #[async_trait::async_trait]
 impl DataItemService for DataItemServer {
-    async fn ReadDataItem(
-        &self,
-        request: &ReadDataItemRequest,
-    ) -> sdv_status_rs::SdvResult<ReadDataItemResponse> {
+    async fn ReadDataItem(&self, request: &ReadDataItemRequest) -> SdvResult<ReadDataItemResponse> {
         match request.id.as_str() {
             "pressure" => Ok(self.pressure_handler.read_untyped().await),
             "low_pressure_threshold" => {
@@ -71,12 +89,73 @@ impl DataItemService for DataItemServer {
     async fn WriteDataItem(
         &self,
         request: &WriteDataItemRequest,
-    ) -> sdv_status_rs::SdvResult<WriteDataItemResponse> {
+    ) -> SdvResult<WriteDataItemResponse> {
         match request.id.as_str() {
             "low_pressure_threshold" => {
                 Ok(self.low_pressure_threshold_handler.write_untyped(&request.value).await)
             }
             _ => Ok(WriteDataItemResponse {
+                response_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
+        }
+    }
+}
+
+struct RoutineServer {
+    pressurization_handler: Arc<
+        dyn RoutineHandler<
+            diagnostics_v1_sample_catalog::messages::Pressure,
+            protobuf::well_known_types::empty::Empty,
+            protobuf::well_known_types::empty::Empty,
+            protobuf::well_known_types::empty::Empty,
+            protobuf::well_known_types::empty::Empty,
+            protobuf::well_known_types::empty::Empty,
+        >,
+    >,
+}
+
+#[async_trait::async_trait]
+impl RoutineControlService for RoutineServer {
+    async fn StartRoutine(
+        &self,
+        request: &RoutineControlRequest,
+    ) -> SdvResult<RoutineControlResponse> {
+        match request.id.as_str() {
+            "pressurization" => {
+                Ok(self.pressurization_handler.start_untyped(&request.request).await)
+            }
+            _ => Ok(RoutineControlResponse {
+                response_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
+        }
+    }
+
+    async fn StopRoutine(
+        &self,
+        request: &RoutineControlRequest,
+    ) -> SdvResult<RoutineControlResponse> {
+        match request.id.as_str() {
+            "pressurization" => {
+                Ok(self.pressurization_handler.stop_untyped(&request.request).await)
+            }
+            _ => Ok(RoutineControlResponse {
+                response_code: REQUEST_OUT_OF_RANGE.into(),
+                ..Default::default()
+            }),
+        }
+    }
+
+    async fn RequestResult(
+        &self,
+        request: &RoutineControlRequest,
+    ) -> SdvResult<RoutineControlResponse> {
+        match request.id.as_str() {
+            "pressurization" => {
+                Ok(self.pressurization_handler.request_result_untyped(&request.request).await)
+            }
+            _ => Ok(RoutineControlResponse {
                 response_code: REQUEST_OUT_OF_RANGE.into(),
                 ..Default::default()
             }),

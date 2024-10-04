@@ -21,6 +21,7 @@ rust_library {
         "libsdv_comms_rs",
         "libfutures",
         "libsdv_diagnostics_data_item_data_item_service_rpc_rs",
+        "libsdv_diagnostics_routine_control_routine_control_service_rpc_rs",
         "libsdv_mw_rs_diag",
         "libdiagnostics_v1_api",
         "libdiagnostics_v1_sample_catalog",

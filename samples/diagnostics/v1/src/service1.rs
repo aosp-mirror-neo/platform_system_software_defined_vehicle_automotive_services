@@ -6,7 +6,7 @@ use diagnostics_v1_api::response_code::ResponseCode;
 use diagnostics_v1_sample_catalog::messages::*;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
-use sdv_mw_rs_diag::{data_item::*, DiagnosticsResult};
+use sdv_mw_rs_diag::{data_item::*, routine::*, DiagnosticsResult};
 use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider1::{
     diagnostics::Diagnostics, DiagnosticsProvider1,
@@ -15,6 +15,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use diagnostics_v1_api::event::Status;
+use protobuf::well_known_types::empty::Empty;
 
 struct PressureDataItem;
 #[async_trait::async_trait]
@@ -36,6 +37,14 @@ impl DataItemHandler<Pressure> for LowPressureThresholdDataItem {
     }
 }
 
+struct PressurizationRoutine;
+#[async_trait::async_trait]
+impl RoutineHandler<Pressure, Empty, Empty, Empty, Empty, Empty> for PressurizationRoutine {
+    async fn start(&self, _pressure: Pressure) -> RoutineResult<Empty> {
+        todo!()
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let sdv_comms = SdvComms {
@@ -46,10 +55,13 @@ async fn main() {
 
     let service = DiagnosticsProvider1::new(
         Arc::new(sdv_comms),
-        (Diagnostics::create_data_item_server(
-            Arc::new(PressureDataItem {}),
-            Arc::new(LowPressureThresholdDataItem {}),
-        ),),
+        (
+            Diagnostics::create_data_item_server(
+                Arc::new(PressureDataItem {}),
+                Arc::new(LowPressureThresholdDataItem {}),
+            ),
+            Diagnostics::create_routine_control_server(Arc::new(PressurizationRoutine {})),
+        ),
     )
     .await
     .unwrap();
