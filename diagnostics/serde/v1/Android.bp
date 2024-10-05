@@ -20,7 +20,9 @@ rust_defaults {
         "libvsidl_v1_proto_rs",
         "libsdv_vsidl_common",
         "libmockall",
+        "libsdv_comms_rs",
     ],
+    ld_flags: ["-Wl,--no-as-needed"],
     edition: "2021",
     lints: "android",
     clippy_lints: "android",
@@ -32,7 +34,6 @@ rust_library {
     defaults: [
         "sdv_uds_serde_v1@rust_defaults",
     ],
-    host_supported: true,
     product_available: true,
     vendor_available: true,
 }
