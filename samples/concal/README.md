@@ -6,7 +6,7 @@ The sample contains a test implementation for the ConCal service and library
 which can apply ConfigOverride messages to the config. It shows the syntax for
 ConfigOverride messages.
 
-## SDV ConCal Sample Code Generation
+## SDV ConCal Sample Code Generation (Old Syntax)
 
 To generate code from the VSIDL definitions, run the following command from this
 folder:
@@ -72,3 +72,18 @@ overrides, and performs a rollback. To run the demo, follow the steps below:
 3.  Once executed the client will register the following configuration and you
     will see the output as in
     [expected client stdout file](../../concal/integration_test/tests/client_stdout.txt)
+
+## SDV ConCal Sample Code Generation (New Syntax)
+
+To generate code from the VSIDL definitions, run the following command from
+`system/software_defined_vehicle/automotive_services/concal/stable`:
+
+```bash
+vsidlc   --catalog-path catalog/     --output-path ../../samples/concal/
+```
+
+If you get an error that *vsidlc* is not found, build it first:
+
+```bash
+mm vsidlc
+```
