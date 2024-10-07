@@ -79,7 +79,7 @@ impl DiagnosticsTranslator {
             .ok_or_else(|| MissingEntityDeclarationError(service_fqbn.to_string(), entity_id))?;
 
         self.vsidl_provider
-            .get_message_descriptor(message_name)
+            .get_message_descriptor(service_fqbn, message_name)
             .map_err(|vsidl_provider_error| VsidlError(vsidl_provider_error.to_string()))
     }
 
@@ -203,11 +203,13 @@ mod tests {
                 None
             }
         });
-        mock_vsidl_provider.expect_get_message_descriptor().returning(move |message_name| {
-            file_descriptor
-                .message_by_full_name(message_name)
-                .ok_or(VsidlProviderErrorV1::Error("Message not found!".to_string()))
-        });
+        mock_vsidl_provider.expect_get_message_descriptor().returning(
+            move |_source_fqin, message_name| {
+                file_descriptor
+                    .message_by_full_name(message_name)
+                    .ok_or(VsidlProviderErrorV1::Error("Message not found!".to_string()))
+            },
+        );
 
         let mut mock_translator = MockTranslator::new();
         mock_translator
