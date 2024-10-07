@@ -18,7 +18,6 @@ rust_defaults {
         "libsdvmiddleware_rpc",
     ],
     apex_available: ["//apex_available:platform"],
-    product_specific: true,
 }
 
 rust_binary {
@@ -30,6 +29,7 @@ rust_binary {
         "libdiagnostics_sample_catalog",
         "libsdv_middleware_extension_diagnostics",
     ],
+    product_specific: true,
 }
 
 rust_binary {
@@ -41,6 +41,7 @@ rust_binary {
         "libdiagnostics_sample_catalog",
         "libsdv_middleware_extension_diagnostics",
     ],
+    product_specific: true,
 }
 
 rust_binary {
