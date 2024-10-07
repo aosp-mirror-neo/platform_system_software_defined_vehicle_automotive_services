@@ -15,6 +15,8 @@ use sdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider1::{
 };
 use std::str::FromStr;
 use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
 
 use diagnostics_v1_api::event::Status;
 use protobuf::well_known_types::empty::Empty;
@@ -103,6 +105,7 @@ async fn main() {
 
     let result = service.diagnostics.lowpressure_event_publisher.publish(Status::PASS);
     println!("{result:#?}");
+    thread::sleep(Duration::from_secs(1));
     let result = service.diagnostics.lowpressure_event_publisher.publish(Status::PRE_FAIL);
     println!("{result:#?}");
 
