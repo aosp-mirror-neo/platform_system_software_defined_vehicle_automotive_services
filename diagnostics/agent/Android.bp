@@ -14,5 +14,6 @@ rust_binary {
         "liblog_rust",
         "libbinder_rs",
     ],
-    product_specific: true,
+    // product_specific: true,
+    system_ext_specific: true,
 }
