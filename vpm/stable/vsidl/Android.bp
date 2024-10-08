@@ -1,0 +1,27 @@
+// Copyright 2023 Google LLC
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_protobuf {
+    name: "libsdv_vpm_api_stable",
+    crate_name: "sdv_vpm",
+    protos: [
+        "*.proto",
+    ],
+    source_stem: "sdv_vpm",
+    proto_flags: [
+        "-I external/protobuf/src",
+    ],
+    rustlibs: [
+        "libvsidl_v1_proto_rs",
+    ],
+    vendor_available: true,
+    product_available: true,
+    host_supported: true,
+}
+
+filegroup {
+    name: "libsdv_vpm_api_stable_protos",
+    srcs: ["*.proto"],
+}
