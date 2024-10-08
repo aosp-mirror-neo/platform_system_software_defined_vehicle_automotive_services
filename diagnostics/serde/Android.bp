@@ -30,7 +30,6 @@ rust_library {
     defaults: [
         "sdv_uds_serde@rust_defaults",
     ],
-    host_supported: true,
     product_available: true,
     vendor_available: true,
 }
