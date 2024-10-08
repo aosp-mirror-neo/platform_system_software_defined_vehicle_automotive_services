@@ -10,14 +10,13 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use log::{debug, error, info};
 use mockall::automock;
+use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_vpm_api::power::PowerStateReport;
-use sdv_vpm_api::vpm::power_state_notification_request::PowerStateChangeReason;
 use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateRequest;
 use sdv_vpm_api::vpm::ShutdownType;
-use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
+use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
 use std::sync::Arc;
-use std::sync::Mutex;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::watch::{
     channel as watch_channel, Receiver as WatchReceiver, Sender as WatchSender,
@@ -73,10 +72,8 @@ impl PowerServiceImpl {
     /// Creates a new PowerServiceImpl with the default value of the power state being POWER_OFF_EXIST.
     /// The POWER_OFF_EXIT state is the only possible state at this step because calling new() means we are coming from cold boot.
     /// If we resume from S2R or S2D new() should not be called again.
-    pub fn new(vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>) -> Self {
-        let power_state_notifier =
-            Arc::new(PowerStateNotifierImpl::new(vpm_service_bundle.clone()));
-        Self::new_with_notifier(power_state_notifier)
+    pub fn new(comms: Arc<SdvComms>) -> Self {
+        Self::new_with_notifier(Arc::new(PowerStateNotifierImpl::new(comms)))
     }
 
     fn new_with_notifier(power_state_notifier: Arc<dyn PowerStateNotifier>) -> Self {
@@ -132,6 +129,7 @@ impl PowerServiceImpl {
                     debug!("Power state transition was  cancelled");
                     Err(PowerStateNotificationError::Cancelled)
                 },
+                // Notify SDV agent callbacks.
                 result  = cloned_power_state_notifier.notify(new_state.get_report()) => {
                     result
                 }
@@ -158,7 +156,7 @@ impl PowerServiceImpl {
             // If the VM suspends, the following code will only be executed once the process resumes from suspension, therefore the report will be outdated.
             // The new_state.execute will also request a transition to the new resume state which will be received by the power_state_request_receiver.
             if !new_state.is_sleep_state() {
-                notify_oem(new_state, select_result, cloned_power_state_notifier);
+                notify_oem(new_state, select_result, cloned_power_state_notifier).await;
             }
 
             Ok(())
@@ -166,7 +164,7 @@ impl PowerServiceImpl {
     }
 }
 
-fn notify_oem(
+async fn notify_oem(
     new_state: Arc<dyn PowerState>,
     select_result: anyhow::Result<(), PowerStateNotificationError>,
     cloned_power_state_notifier: Arc<dyn PowerStateNotifier>,
@@ -178,7 +176,8 @@ fn notify_oem(
                 new_state.get_report()
             );
             let result = cloned_power_state_notifier
-                .notify_oem(new_state.get_report(), PowerStateChangeReason::HOST_REQUESTED);
+                .notify_oem(new_state.get_report(), PowerStateChangeReason::HOST_REQUESTED)
+                .await;
             debug!(
                 "OEM was notified about power state update {:?} {:?}",
                 new_state.get_report(),
@@ -188,7 +187,8 @@ fn notify_oem(
         Err(PowerStateNotificationError::TimedOut) => {
             debug!("Call to notify callbacks has timed-out!");
             let result = cloned_power_state_notifier
-                .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT);
+                .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT)
+                .await;
             debug!(
                 "OEM was notified about power state update {:?} {:?}",
                 new_state.get_report(),
@@ -199,7 +199,8 @@ fn notify_oem(
             debug!("Failed to notify one of the callbacks! error={e}");
             let result = cloned_power_state_notifier
                 //TODO: b/353655403 Add more reasons for failing callbacks.
-                .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT);
+                .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT)
+                .await;
             debug!(
                 "OEM was notified about power state update {:?} {:?}",
                 new_state.get_report(),
@@ -271,11 +272,12 @@ impl PowerRequest {
 }
 
 #[automock]
+#[async_trait]
 pub trait PowerStateRequestHandler: Send + Sync {
     /// Requests a state change in the power state machine from the VM owner.
     /// returns Ok() if the request passes the state machine validation.
     /// otherwise returns an error.
-    fn handle_set_power_state(&self, request: PowerStateChangeRequest) -> anyhow::Result<()>;
+    async fn handle_set_power_state(&self, request: PowerStateChangeRequest) -> anyhow::Result<()>;
 }
 
 pub struct PowerStateRequestHandlerImpl {
@@ -292,10 +294,12 @@ impl PowerStateRequestHandlerImpl {
     }
 }
 
+#[async_trait]
 impl PowerStateRequestHandler for PowerStateRequestHandlerImpl {
-    fn handle_set_power_state(&self, request: PowerStateChangeRequest) -> anyhow::Result<()> {
+    async fn handle_set_power_state(&self, request: PowerStateChangeRequest) -> anyhow::Result<()> {
         let power_request = validate_power_state_request(request)?;
-        let current_state = self.power_state_watch_receiver.borrow();
+
+        let current_state = self.power_state_watch_receiver.borrow().clone();
         if !current_state.is_valid_next_state(power_request.power_state.get_report()) {
             error!(
                 "Power state transition is invalid, current={:?} requested {:?}",
@@ -309,7 +313,8 @@ impl PowerStateRequestHandler for PowerStateRequestHandlerImpl {
             "Request for power state change {:?} approved!",
             power_request.power_state.get_report()
         );
-        self.power_state_request_sender.blocking_send(power_request)?;
+
+        self.power_state_request_sender.send(power_request).await?;
         Ok(())
     }
 }

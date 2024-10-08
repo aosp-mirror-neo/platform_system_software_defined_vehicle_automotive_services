@@ -4,6 +4,7 @@ use crate::power_state_notifier::binder::BinderFeatures;
 use crate::power_state_notifier::binder::ExceptionCode;
 use crate::power_state_notifier::binder::Status;
 use crate::PowerState;
+use anyhow::anyhow;
 use async_trait::async_trait;
 use binder::{DeathRecipient, IBinder, SpIBinder};
 use binder_tokio::Tokio;
@@ -19,11 +20,13 @@ use google_sdv_vpm_aidl::binder;
 use google_sdv_vpm_aidl::binder::{Interface, Result as BinderResult, Strong};
 use log::{debug, error, info};
 use mockall::automock;
+use sdv_mw_rs_comms::{ClientAttributes, ClientOptions, Communicate, RpcClient, UnitName};
+use sdv_mw_rs_sdv_comms::SdvComms;
+use sdv_status_rs::SdvStatusCode;
 use sdv_vpm_api::power::PowerStateReport;
-use sdv_vpm_api::vpm::power_state_notification_request::PowerStateChangeReason;
-use sdv_vpm_api::vpm::PowerStateNotificationRequest;
-use sdvgenerated::sdv_vpm_power_notification_service_interface::PowerNotificationService;
-use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
+use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
+use sdv_vpm_api::vpm_notifications::PowerStateNotificationRequest;
+use sdv_vpm_client_power_notification_service_rpc::Client;
 use std::collections::HashMap;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering;
@@ -32,6 +35,7 @@ use std::sync::Mutex;
 use thiserror::Error;
 use tokio::runtime::Handle;
 use tokio::sync::watch::Receiver as WatchReceiver;
+use tokio::sync::Mutex as AsyncMutex;
 use tokio::task::JoinSet;
 
 #[automock]
@@ -45,7 +49,7 @@ pub trait PowerStateNotifier: Send + Sync {
         &self,
         power_state_report: PowerStateReport,
     ) -> anyhow::Result<(), PowerStateNotificationError>;
-    fn notify_oem(
+    async fn notify_oem(
         &self,
         power_state_report: PowerStateReport,
         reason: PowerStateChangeReason,
@@ -67,12 +71,43 @@ pub enum PowerStateNotificationError {
 #[derive(Clone)]
 pub struct PowerStateNotifierImpl {
     callbacks: Arc<Mutex<HashMap<u32, ClientCallback>>>,
-    vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>,
+    comms: Arc<SdvComms>,
+    notification_rpc_client: Arc<AsyncMutex<Option<Arc<Client>>>>,
 }
 
 impl PowerStateNotifierImpl {
-    pub fn new(vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>) -> Self {
-        Self { callbacks: Arc::new(Mutex::new(HashMap::new())), vpm_service_bundle }
+    pub fn new(comms: Arc<SdvComms>) -> Self {
+        Self {
+            callbacks: Arc::new(Mutex::new(HashMap::new())),
+            comms,
+            notification_rpc_client: Arc::new(AsyncMutex::new(None)),
+        }
+    }
+
+    pub async fn get_notification_client(&self) -> anyhow::Result<Arc<Client>> {
+        let client_guard = self.notification_rpc_client.lock().await;
+        let client = client_guard.clone();
+        client.ok_or_else(|| anyhow!("No notification client is stored"))
+    }
+
+    async fn update_client(&self) -> anyhow::Result<()> {
+        let mut client = self.notification_rpc_client.lock().await;
+        let attributes = ClientAttributes {
+            server_name: UnitName {
+                package: "sdv.vpm.client".to_string(),
+                bundle: "VpmSystemClient".to_string(),
+                vm: String::new(),
+                name: Client::DEFAULT_UNIT_NAME.to_string(),
+            },
+            options: ClientOptions::default(),
+        };
+        let result = self.comms.create_client_transport(&attributes).await;
+        if result.is_err() {
+            error!("Could not get a client for vpm notifications");
+            return Err(anyhow!("Could not get a client for vpm notifications"));
+        }
+        *client = Some(Client::new(result.unwrap()).into());
+        Ok(())
     }
 }
 
@@ -143,7 +178,7 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
         }
     }
 
-    fn notify_oem(
+    async fn notify_oem(
         &self,
         power_state_report: PowerStateReport,
         reason: PowerStateChangeReason,
@@ -154,19 +189,27 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
             ..Default::default()
         };
 
-        // This should be changed to just getting a reference to the client rather than
-        // sending the bundle here.
+        if self.get_notification_client().await.is_err() {
+            debug!("Updating the notification client");
+            self.update_client().await?;
+            debug!("Successfully created a new OEM notification client");
+        }
 
-        let result = self
-            .vpm_service_bundle
-            .lock()
-            .unwrap()
-            .get_sdv_vpm_power_notification_service_client("VpmSystemClient")
-            .notify_power_state(request);
+        // Call the notification server.
+        let client = self.get_notification_client().await?;
+        let mut result = client.NotifyPowerState(&request).await;
 
-        // Currently it either succeeds or panics.
-        debug!("OEM notification server was found {:?}", result);
-
+        // Only retry if the client was unavailable.
+        if let Err(ref sdv_status) = result {
+            if sdv_status.status_code() == SdvStatusCode::Unavailable {
+                debug!("Updating the notification client because it was unavailable");
+                self.update_client().await?;
+                result = self.get_notification_client().await?.NotifyPowerState(&request).await;
+            }
+        }
+        if result.is_err() {
+            return Err(anyhow!("Request to notify VPM client failed {:?}", result));
+        }
         Ok(())
     }
 }

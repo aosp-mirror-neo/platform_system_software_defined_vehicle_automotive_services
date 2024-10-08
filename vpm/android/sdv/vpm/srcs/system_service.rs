@@ -8,6 +8,10 @@ use crate::PowerStateRequestHandlerImpl;
 use async_trait::async_trait;
 use log::{error, info};
 use mockall::automock;
+use sdv_mw_rs_comms::Publisher;
+use sdv_status_rs::SdvResult;
+use sdv_status_rs::SdvStatus;
+use sdv_status_rs::SdvStatusCode;
 use sdv_vpm_api::vehicle::VehicleStateChange;
 use sdv_vpm_api::vehicle::VpmVehicleState;
 use sdv_vpm_api::vpm::power_state_change_response::PowerStateChangeRequestError;
@@ -15,17 +19,14 @@ use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateChangeResponse;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
 use sdv_vpm_api::vpm::SetVehicleStateResponse;
-use sdvgenerated::sdv_vpm_vpm_system_service_interface::VpmSystemService;
-use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
-use sdvmiddleware_rpc::error::RpcError;
-use sdvmiddleware_rpc::RpcResult;
-use std::sync::mpsc::channel;
-use std::sync::mpsc::Sender;
+use sdv_vpm_vpm_system_service_rpc::Interface;
 use std::sync::Arc;
-use std::sync::Mutex;
+use tokio::sync::mpsc::channel;
+use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender as MpscSender;
 use tokio::sync::watch::Receiver as WatchReceiver;
-use tokio::task;
+
+const VEHICLE_STATE_CHANNEL_QUEUE_SIZE: usize = 1;
 
 #[automock]
 #[async_trait]
@@ -33,86 +34,62 @@ use tokio::task;
 // It also helps with testing the VPM agent while mocking the middleware generated code.
 pub trait VpmService: Send + Sync {
     // Starts the rpc server that receives incoming RPC requests from the OEM to set the vehicle and power state in the SDV VM.
-    async fn start(
-        &self,
-        power_state_request_sender: MpscSender<PowerRequest>,
-        power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
-    );
+    async fn start(&mut self, vehicle_state_publisher: Option<Publisher<VehicleStateChange>>);
 }
 
 pub struct VpmServiceImpl {
-    vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>,
+    vehicle_state_receiver: Receiver<VpmVehicleState>,
 }
 
 impl VpmServiceImpl {
-    pub fn new(vpm_service_bundle: Arc<Mutex<VpmSystemServiceBundle>>) -> Self {
-        Self { vpm_service_bundle }
+    // Returns the new vpm service and the RPC server used for handling the RPC calls.
+    pub fn new(
+        power_state_request_sender: MpscSender<PowerRequest>,
+        power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
+    ) -> (Self, RpcServer) {
+        let (vehicle_state_sender, vehicle_state_receiver) =
+            channel(VEHICLE_STATE_CHANNEL_QUEUE_SIZE);
+        let power_state_request_handler = Box::new(PowerStateRequestHandlerImpl::new(
+            power_state_request_sender,
+            power_state_watch_receiver,
+        ));
+        (
+            Self { vehicle_state_receiver },
+            RpcServer::new(vehicle_state_sender, power_state_request_handler),
+        )
     }
 }
 
 #[async_trait]
 impl VpmService for VpmServiceImpl {
-    async fn start(
-        &self,
-        power_state_request_sender: MpscSender<PowerRequest>,
-        power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
-    ) {
-        let (vehicle_state_sender, vehicle_state_receiver) = channel();
+    async fn start(&mut self, vehicle_state_publisher: Option<Publisher<VehicleStateChange>>) {
+        if vehicle_state_publisher.is_none() {
+            error!("Vehicle state publisher could not be started!");
+            return;
+        }
+        let vehicle_state_publisher = vehicle_state_publisher.unwrap();
 
-        let power_state_request_handler = Box::new(PowerStateRequestHandlerImpl::new(
-            power_state_request_sender,
-            power_state_watch_receiver,
-        ));
-
-        let rpc_server = RpcServer::new(vehicle_state_sender, power_state_request_handler);
-
-        // Register GRPC interface for Vehicle states
-        self.vpm_service_bundle
-            .lock()
-            .unwrap()
-            .sdv_vpm_vpm_system_service_server
-            .register_service_interface(Arc::new(rpc_server));
-
-        //TODO: refactor this part, if spawn_blocking might not be needed
-        // RpcServer can be removed to the agent.
-        // Receiver can be part of the VpmService struct.
-
-        // Start a blocking thread to listen to incoming vehicle mode changes
-        let cloned_bundle = self.vpm_service_bundle.clone();
-        let _ = task::spawn_blocking(move || loop {
-            match vehicle_state_receiver.recv() {
-                Ok(vehicle_state) => {
-                    let mut vehicle_state_change_message = VehicleStateChange::new();
-                    vehicle_state_change_message.vehicle_state = vehicle_state.into();
-                    info!("Publishing Vpm vehicle mode, {:?}!", vehicle_state);
-                    let result =
-                        cloned_bundle.lock().unwrap().sdv_vpm_vehicle_vehicle_state_change_publish(
-                            &vehicle_state_change_message,
-                        );
-
-                    if result.is_err() {
-                        error!("Failed to publish vehicle state {:?}", vehicle_state);
-                    }
-                }
-                Err(err) => {
-                    error!("Channel error: {}", err);
-                    break;
-                }
+        while let Some(vehicle_state) = self.vehicle_state_receiver.recv().await {
+            let mut vehicle_state_change_message = VehicleStateChange::new();
+            vehicle_state_change_message.vehicle_state = vehicle_state.into();
+            info!("Publishing Vpm vehicle mode, {:?}!", vehicle_state);
+            let result = vehicle_state_publisher.publish(&vehicle_state_change_message);
+            if result.is_err() {
+                error!("Failed to publish vehicle state {:?}", vehicle_state);
             }
-        })
-        .await;
+        }
     }
 }
 
 /// A listener struct that handles incoming RPC requests for setting the vpm.
-struct RpcServer {
-    vehicle_state_sender: Sender<VpmVehicleState>,
+pub struct RpcServer {
+    vehicle_state_sender: MpscSender<VpmVehicleState>,
     power_state_request_handler: Box<dyn PowerStateRequestHandler>,
 }
 
 impl RpcServer {
     pub fn new(
-        vehicle_state_sender: Sender<VpmVehicleState>,
+        vehicle_state_sender: MpscSender<VpmVehicleState>,
         power_state_request_handler: Box<dyn PowerStateRequestHandler>,
     ) -> Self {
         Self { vehicle_state_sender, power_state_request_handler }
@@ -120,29 +97,38 @@ impl RpcServer {
 }
 
 /// Middleware RPC server trait implementation for RPC server.
-impl VpmSystemService for RpcServer {
-    fn set_vehicle_state(
+#[allow(non_snake_case, missing_docs)]
+#[async_trait::async_trait]
+impl Interface for RpcServer {
+    async fn SetVehicleState(
         &self,
-        request: SetVehicleStateRequest,
-    ) -> RpcResult<SetVehicleStateResponse, RpcError> {
+        _caller_id: sdv_comms::id::ServiceFqin,
+        request: &SetVehicleStateRequest,
+    ) -> SdvResult<SetVehicleStateResponse> {
         info!("Received Vehicle state change request! {}", request);
         let state = request.vehicle_state.enum_value_or_default();
         if state == VpmVehicleState::VEHICLE_STATE_UNSPECIFIED {
-            return Err(RpcError::InvalidRequest);
+            return Err(SdvStatus::with_message(
+                SdvStatusCode::Internal,
+                "Vehicle state was not set!".to_string(),
+            ));
         }
-        let result = self.vehicle_state_sender.send(state);
+        let result = self.vehicle_state_sender.send(state).await;
         if result.is_err() {
-            error!("Could not publish vehicle state!");
-            return Err(RpcError::Other);
+            return Err(SdvStatus::with_message(
+                SdvStatusCode::Internal,
+                "Could not publish vehicle state!".to_string(),
+            ));
         }
         Ok(SetVehicleStateResponse::new())
     }
 
-    fn set_power_state(
+    async fn SetPowerState(
         &self,
-        request: PowerStateChangeRequest,
-    ) -> RpcResult<PowerStateChangeResponse, RpcError> {
-        let result = self.power_state_request_handler.handle_set_power_state(request);
+        _caller_id: sdv_comms::id::ServiceFqin,
+        request: &PowerStateChangeRequest,
+    ) -> SdvResult<PowerStateChangeResponse> {
+        let result = self.power_state_request_handler.handle_set_power_state(request.clone()).await;
         if result.is_ok() {
             let mut response = PowerStateChangeResponse::new();
             response.error = PowerStateChangeRequestError::NO_ERROR.into();

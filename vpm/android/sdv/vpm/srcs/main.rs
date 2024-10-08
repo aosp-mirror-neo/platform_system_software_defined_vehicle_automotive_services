@@ -2,6 +2,7 @@
 //! Vehicle Mode and Power Management Agent.
 
 use google_sdv_vpm_aidl::binder;
+use log::error;
 use sdv_vpm::Agent;
 use tokio::task;
 
@@ -12,8 +13,13 @@ async fn main() -> anyhow::Result<()> {
     sdv_log::init_logger(LOG_TAG)?;
     binder::ProcessState::start_thread_pool();
 
+    let res = sdv_comms_ctx::wait_for_agents();
+    if res.is_err() {
+        error!("wait_for_agents() failed with error: {:?}", res.unwrap_err());
+    }
+
     tokio::spawn(async {
-        Agent::new().start().await;
+        Agent::new().await.start().await;
     });
 
     task::block_in_place(move || {

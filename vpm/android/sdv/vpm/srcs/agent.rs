@@ -13,43 +13,53 @@ use crate::power_state_notifier::PowerStateNotifier;
 use crate::power_state_notifier::PowerStateNotifierImpl;
 use crate::system_service::VpmService;
 use crate::system_service::VpmServiceImpl;
-
 use log::info;
-use sdvgenerated::vpm_system_service_bundle::VpmSystemServiceBundle;
+use sdv_comms::id::ServiceFqin;
+use sdv_comms::ContextRef;
+use sdv_mw_rs_sdv_comms::SdvComms;
+use sdv_mw_rs_sdv_vpm_vpm_system_service_bundle::publisher::Variant;
+use sdv_mw_rs_sdv_vpm_vpm_system_service_bundle::VpmSystemServiceBundle;
+use std::str::FromStr;
 use std::sync::Arc;
-use std::sync::Mutex;
+
 const POWER_STATE_CHANNEL_QUEUE_SIZE: usize = 1;
+
+const FQIN: &str = "vm:sdv.vpm.VpmSystemServiceBundle/default";
 
 /// VPM agent.
 /// The agent contains service implementation for vehicle and power mode management.
 pub struct Agent {
     system_service: Box<dyn VpmService>,
     power_service: Box<dyn PowerService>,
-}
-
-impl Default for Agent {
-    fn default() -> Self {
-        Self::new()
-    }
+    vpm_bundle: VpmSystemServiceBundle,
 }
 
 /// VPM agent implementation.
 impl Agent {
     /// Creates a new VPM agent.
-    pub fn new() -> Self {
-        let mut vpm_bundle = VpmSystemServiceBundle::new();
-        vpm_bundle.start().unwrap();
-        let protected_bundle = Arc::new(Mutex::new(vpm_bundle));
-        let power_service = Box::new(PowerServiceImpl::new(protected_bundle.clone()));
-        let system_service = Box::new(VpmServiceImpl::new(protected_bundle));
-        Self::new_with_services(system_service, power_service)
+    pub async fn new() -> Self {
+        let service_fqin = ServiceFqin::from_str(FQIN).expect("Could not create context for VPM!");
+        let context = ContextRef::create(service_fqin.clone());
+        let sdv_comms = Arc::new(SdvComms { context });
+        let power_service = Box::new(PowerServiceImpl::new(sdv_comms.clone()));
+        let (system_service, rpc_server) = VpmServiceImpl::new(
+            power_service.get_power_state_request_sender(),
+            power_service.get_power_state_watch_receiver(),
+        );
+        let vpm_bundle = VpmSystemServiceBundle::new(sdv_comms, (Arc::new(rpc_server),)).await;
+        Self::new_with_services(
+            Box::new(system_service),
+            power_service,
+            vpm_bundle.expect("VPM Bundle failed to initialize"),
+        )
     }
 
     fn new_with_services(
         system_service: Box<dyn VpmService>,
         power_service: Box<dyn PowerService>,
+        vpm_bundle: VpmSystemServiceBundle,
     ) -> Self {
-        Self { system_service, power_service }
+        Self { system_service, power_service, vpm_bundle }
     }
 
     /// Starts the VPM agent.
@@ -57,10 +67,7 @@ impl Agent {
     pub async fn start(&mut self) {
         info!("Starting VPM Agent.");
         let _ = tokio::join!(
-            self.system_service.start(
-                self.power_service.get_power_state_request_sender(),
-                self.power_service.get_power_state_watch_receiver()
-            ),
+            self.system_service.start(self.vpm_bundle.take_publisher(Variant::UNIQUE)),
             self.power_service.start()
         );
     }
