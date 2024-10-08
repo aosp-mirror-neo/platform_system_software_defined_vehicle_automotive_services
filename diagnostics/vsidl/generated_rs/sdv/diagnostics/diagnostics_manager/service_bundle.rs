@@ -9,6 +9,12 @@ trait UnitType {
     const TYPENAME: &'static str;
 }
 
+impl UnitType for dyn sdv_diagnostics_diagnostics_manager_service_rpc::Interface {
+    const PACKAGE: &'static str = "sdv.diagnostics";
+    const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
+    const TYPENAME: &'static str = "DiagnosticsManagerService";
+}
+
 impl UnitType for dyn sdv_diagnostics_data_item_data_item_service_rpc::Interface {
     const PACKAGE: &'static str = "sdv.diagnostics";
     const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
@@ -51,10 +57,10 @@ impl UnitType for dyn sdv_diagnostics_authentication_authentication_service_rpc:
     const TYPENAME: &'static str = "authentication.AuthenticationService";
 }
 
-impl UnitType for dyn sdv_diagnostics_diagnostics_manager_service_rpc::Interface {
+impl UnitType for dyn sdv_diagnostics_file_transfer_file_transfer_service_rpc::Interface {
     const PACKAGE: &'static str = "sdv.diagnostics";
     const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
-    const TYPENAME: &'static str = "DiagnosticsManagerService";
+    const TYPENAME: &'static str = "file_transfer.FileTransferService";
 }
 
 /// Service bundle
@@ -82,6 +88,7 @@ impl DiagnosticsManager {
             std::sync::Arc<
                 dyn sdv_diagnostics_authentication_authentication_service_rpc::Interface,
             >,
+            std::sync::Arc<dyn sdv_diagnostics_file_transfer_file_transfer_service_rpc::Interface>,
         ),
     ) -> sdv_status_rs::SdvResult<Self> {
         let mut service = Self { comms: comms.clone(), servers: std::vec::Vec::new() };
@@ -143,6 +150,11 @@ impl DiagnosticsManager {
         service.add_server::<dyn sdv_diagnostics_authentication_authentication_service_rpc::Interface>(
                 sdv_diagnostics_authentication_authentication_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
                 sdv_diagnostics_authentication_authentication_service_rpc::internal::get_method_map(servers.7.clone()),
+            )
+            .await?;
+        service.add_server::<dyn sdv_diagnostics_file_transfer_file_transfer_service_rpc::Interface>(
+                sdv_diagnostics_file_transfer_file_transfer_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
+                sdv_diagnostics_file_transfer_file_transfer_service_rpc::internal::get_method_map(servers.8.clone()),
             )
             .await?;
         Ok(service)
