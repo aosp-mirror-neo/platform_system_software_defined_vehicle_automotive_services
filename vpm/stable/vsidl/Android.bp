@@ -4,12 +4,12 @@ package {
 }
 
 rust_protobuf {
-    name: "libsdv_vpm_api_stable",
-    crate_name: "sdv_vpm",
+    name: "libsdv_vpm_api",
+    crate_name: "sdv_vpm_api",
     protos: [
         "*.proto",
     ],
-    source_stem: "sdv_vpm",
+    source_stem: "sdv_vpm_api",
     proto_flags: [
         "-I external/protobuf/src",
     ],
@@ -22,6 +22,6 @@ rust_protobuf {
 }
 
 filegroup {
-    name: "libsdv_vpm_api_stable_protos",
+    name: "libsdv_vpm_protos",
     srcs: ["*.proto"],
 }

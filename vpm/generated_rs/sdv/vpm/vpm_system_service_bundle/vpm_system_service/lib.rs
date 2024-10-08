@@ -14,7 +14,7 @@ pub mod internal {
         server: std::sync::Arc<dyn super::Interface>,
     ) -> std::collections::HashMap<String, sdv_comms::rpc::UnaryRpcMethod> {
         sdv_mw_rs_comms::MethodMapBuilder::new()
-        .add_method::<sdv_vpm::vpm::SetVehicleStateRequest, sdv_vpm::vpm::SetVehicleStateResponse>(
+        .add_method::<sdv_vpm_api::vpm::SetVehicleStateRequest, sdv_vpm_api::vpm::SetVehicleStateResponse>(
             "SetVehicleState",
             {
                 let srv = server.clone();
@@ -25,7 +25,7 @@ pub mod internal {
                 })
             })},
         )
-        .add_method::<sdv_vpm::vpm::PowerStateChangeRequest, sdv_vpm::vpm::PowerStateChangeResponse>(
+        .add_method::<sdv_vpm_api::vpm::PowerStateChangeRequest, sdv_vpm_api::vpm::PowerStateChangeResponse>(
             "SetPowerState",
             {
                 let srv = server.clone();
@@ -46,15 +46,15 @@ pub trait Interface: Send + Sync {
     async fn SetVehicleState(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
-        _request: &sdv_vpm::vpm::SetVehicleStateRequest,
-    ) -> sdv_status_rs::SdvResult<sdv_vpm::vpm::SetVehicleStateResponse> {
+        _request: &sdv_vpm_api::vpm::SetVehicleStateRequest,
+    ) -> sdv_status_rs::SdvResult<sdv_vpm_api::vpm::SetVehicleStateResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn SetPowerState(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
-        _request: &sdv_vpm::vpm::PowerStateChangeRequest,
-    ) -> sdv_status_rs::SdvResult<sdv_vpm::vpm::PowerStateChangeResponse> {
+        _request: &sdv_vpm_api::vpm::PowerStateChangeRequest,
+    ) -> sdv_status_rs::SdvResult<sdv_vpm_api::vpm::PowerStateChangeResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
 }
@@ -66,14 +66,14 @@ pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 impl Client {
     pub async fn SetVehicleState(
         &self,
-        request: &sdv_vpm::vpm::SetVehicleStateRequest,
-    ) -> sdv_status_rs::SdvResult<sdv_vpm::vpm::SetVehicleStateResponse> {
+        request: &sdv_vpm_api::vpm::SetVehicleStateRequest,
+    ) -> sdv_status_rs::SdvResult<sdv_vpm_api::vpm::SetVehicleStateResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "SetVehicleState", request).await
     }
     pub async fn SetPowerState(
         &self,
-        request: &sdv_vpm::vpm::PowerStateChangeRequest,
-    ) -> sdv_status_rs::SdvResult<sdv_vpm::vpm::PowerStateChangeResponse> {
+        request: &sdv_vpm_api::vpm::PowerStateChangeRequest,
+    ) -> sdv_status_rs::SdvResult<sdv_vpm_api::vpm::PowerStateChangeResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "SetPowerState", request).await
     }
 }

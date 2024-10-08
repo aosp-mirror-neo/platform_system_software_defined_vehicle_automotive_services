@@ -9,7 +9,7 @@ trait UnitType {
     const TYPENAME: &'static str;
 }
 
-impl UnitType for sdv_vpm::vehicle::VehicleStateChange {
+impl UnitType for sdv_vpm_api::vehicle::VehicleStateChange {
     const PACKAGE: &'static str = "sdv.vpm";
     const SERVICE_BUNDLE: &'static str = "VpmSystemServiceBundle";
     const TYPENAME: &'static str = "vehicle.VehicleStateChange";
@@ -39,13 +39,13 @@ pub mod publisher {
         const IS_MULTIPUB: bool;
     }
 
-    impl Metadata for sdv_vpm::vehicle::VehicleStateChange {
+    impl Metadata for sdv_vpm_api::vehicle::VehicleStateChange {
         const MESSAGE_SIZE: u32 = 11;
         const MESSAGE_COUNT: u32 = 1;
         const IS_MULTIPUB: bool = false;
     }
 
-    impl Variant<sdv_vpm::vehicle::VehicleStateChange> {
+    impl Variant<sdv_vpm_api::vehicle::VehicleStateChange> {
         /// Publication variant 'UNIQUE' of 'sdv.vpm.vehicle.VehicleStateChange'
         pub const UNIQUE: &Self = &Self {
             _proto: std::marker::PhantomData,
@@ -78,7 +78,7 @@ impl VpmSystemServiceBundle {
         };
         service
             .fill_publication_variants(
-                publisher::Variant::<sdv_vpm::vehicle::VehicleStateChange>::ALL_VARIANTS,
+                publisher::Variant::<sdv_vpm_api::vehicle::VehicleStateChange>::ALL_VARIANTS,
             )
             .await?;
         service

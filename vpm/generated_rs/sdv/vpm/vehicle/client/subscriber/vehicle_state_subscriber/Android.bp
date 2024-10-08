@@ -20,7 +20,7 @@ rust_library {
         "libsdv_status_rs",
         "libsdv_comms_rs",
         "libfutures",
-        "libsdv_vpm_api_stable",
+        "libsdv_vpm_api",
         "libvsidl_v1_proto_rs",
     ],
     apex_available: [

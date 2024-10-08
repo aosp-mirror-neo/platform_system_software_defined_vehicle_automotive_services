@@ -16,7 +16,7 @@ pub mod subscriber {
         pub(super) service_unit: &'static str,
     }
 
-    impl Variant<sdv_vpm::vehicle::VehicleStateChange> {
+    impl Variant<sdv_vpm_api::vehicle::VehicleStateChange> {
         /// Enables access to subscription variant 'UNIQUE' of 'sdv.vpm.vehicle.VehicleStateChange'
         pub const UNIQUE: &Self = &Self {
             _proto: std::marker::PhantomData,

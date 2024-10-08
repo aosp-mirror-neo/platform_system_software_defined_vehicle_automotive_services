@@ -14,7 +14,7 @@ pub mod internal {
         server: std::sync::Arc<dyn super::Interface>,
     ) -> std::collections::HashMap<String, sdv_comms::rpc::UnaryRpcMethod> {
         sdv_mw_rs_comms::MethodMapBuilder::new()
-        .add_method::<sdv_vpm::vpm_notifications::PowerStateNotificationRequest, sdv_vpm::vpm_notifications::PowerStateNotificationResponse>(
+        .add_method::<sdv_vpm_api::vpm_notifications::PowerStateNotificationRequest, sdv_vpm_api::vpm_notifications::PowerStateNotificationResponse>(
             "NotifyPowerState",
             {
                 let srv = server.clone();
@@ -35,8 +35,9 @@ pub trait Interface: Send + Sync {
     async fn NotifyPowerState(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
-        _request: &sdv_vpm::vpm_notifications::PowerStateNotificationRequest,
-    ) -> sdv_status_rs::SdvResult<sdv_vpm::vpm_notifications::PowerStateNotificationResponse> {
+        _request: &sdv_vpm_api::vpm_notifications::PowerStateNotificationRequest,
+    ) -> sdv_status_rs::SdvResult<sdv_vpm_api::vpm_notifications::PowerStateNotificationResponse>
+    {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
 }
@@ -48,8 +49,9 @@ pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 impl Client {
     pub async fn NotifyPowerState(
         &self,
-        request: &sdv_vpm::vpm_notifications::PowerStateNotificationRequest,
-    ) -> sdv_status_rs::SdvResult<sdv_vpm::vpm_notifications::PowerStateNotificationResponse> {
+        request: &sdv_vpm_api::vpm_notifications::PowerStateNotificationRequest,
+    ) -> sdv_status_rs::SdvResult<sdv_vpm_api::vpm_notifications::PowerStateNotificationResponse>
+    {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "NotifyPowerState", request).await
     }
 }
