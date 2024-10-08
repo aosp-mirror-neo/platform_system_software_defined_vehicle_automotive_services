@@ -25,7 +25,8 @@ struct PressureDataItem;
 #[async_trait::async_trait]
 impl ReadOnlyDataItemHandler<Pressure> for PressureDataItem {
     async fn read(&self) -> DiagnosticsResult<Pressure> {
-        todo!()
+        println!("Read Pressure DataItem called");
+        Ok(Pressure { value: 100.1f32, ..Default::default() })
     }
 }
 
@@ -33,19 +34,22 @@ struct LowPressureThresholdDataItem;
 #[async_trait::async_trait]
 impl DataItemHandler<Pressure> for LowPressureThresholdDataItem {
     async fn read(&self) -> DiagnosticsResult<Pressure> {
-        todo!()
+        println!("Read LowPressureThreshold DataItem called");
+        Ok(Pressure { value: 100.1f32, ..Default::default() })
     }
 
     async fn write(&self, _: Pressure) -> ResponseCode {
-        todo!()
+        println!("Write LowPressureThreshold DataItem called: unimplemented");
+        ResponseCode::GENERAL_REJECT
     }
 }
 
 struct PressurizationRoutine;
 #[async_trait::async_trait]
 impl RoutineHandler<Pressure, Empty, Empty, Empty, Empty, Empty> for PressurizationRoutine {
-    async fn start(&self, _pressure: Pressure) -> RoutineResult<Empty> {
-        todo!()
+    async fn start(&self, pressure: Pressure) -> RoutineResult<Empty> {
+        println!("Start PressurizationRoutine called, pressure [{}]", pressure);
+        Ok(RoutineResponse::<Empty>::default())
     }
 }
 
@@ -59,7 +63,8 @@ impl IoControlHandler<Pressure> for PressureIoControl {
         todo!();
     }
     async fn freeze_current_state(&self, _mask: &[u8]) -> DiagnosticsResult<Pressure> {
-        todo!();
+        println!("Freeze current state for PressureIoControl called");
+        Ok(Pressure { value: 100.1f32, ..Default::default() })
     }
     async fn short_term_adjustment(
         &self,
@@ -73,8 +78,11 @@ impl IoControlHandler<Pressure> for PressureIoControl {
 struct LowPressureFault;
 #[async_trait::async_trait]
 impl FaultListenerHandler<LowPressureData> for LowPressureFault {
-    async fn on_fault_status_change(&self, _status: u8, _data: Option<LowPressureData>) {
-        todo!();
+    async fn on_fault_status_change(&self, status: u8, data: Option<LowPressureData>) {
+        println!(
+            "On fault status change for LowPressureFault called: status [{}], data [{:?}]",
+            status, data
+        )
     }
 }
 

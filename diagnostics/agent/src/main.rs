@@ -2,14 +2,22 @@
 
 //! Diagnostics agent implementation.
 
-use diagnostics_v1_api::event::Event;
+use diagnostics_v1_api::{
+    event::Event,
+    fault_listener_service::{OnFaultStatusChangeRequest, OnFaultStatusChangeResponse},
+    io_control_service::{IoControlRequest, IoControlResponse},
+    data_item_service::{ReadDataItemRequest, ReadDataItemResponse},
+    routine_control_service::{RoutineControlRequest, RoutineControlResponse},
+};
 use futures::stream::StreamExt;
 use log::info;
-use protobuf::Message;
+use protobuf::MessageFull;
 use sdv_comms::dt::{Subscriber, SubscriberOptions};
 use sdv_comms::id::ServiceFqin;
-use sdv_comms::sd::ServiceDiscoveryManager;
-use sdv_comms::sd::UnitType;
+use sdv_comms::rpc::{Client, ClientOptions};
+use sdv_comms::sd::{
+    ServiceDiscoveryManager, ServiceUnitDefinition, UnitNameDiscoveryArgs, UnitType,
+};
 use sdv_comms::ContextRef;
 use std::collections::HashSet;
 use std::str::FromStr;
@@ -29,9 +37,32 @@ async fn main() {
         ServiceFqin::from_str("vm:sdv.google.diagnostics.DiagnosticsAgent/default").unwrap();
     let context = ContextRef::create(self_fqin.clone());
 
-    info!("Starting diagnostics: {self_fqin:#?}");
+    info!("Starting Diagnostics Agent");
 
-    listen_to_events(context).await;
+    tokio::spawn(async move {
+        info!("Starting interaction with Events");
+        listen_to_events(context).await;
+    });
+
+    tokio::spawn(async move {
+        info!("Starting interaction with DataItems");
+        data_item_interaction(context).await;
+    });
+
+    tokio::spawn(async move {
+        info!("Starting interaction with IoControls");
+        io_control_interaction(context).await;
+    });
+
+    tokio::spawn(async move {
+        info!("Starting interaction with RoutineControls");
+        routine_control_interaction(context).await;
+    });
+
+    tokio::spawn(async move {
+        info!("Starting interaction with FaultListeners");
+        fault_listener_interaction(context).await;
+    });
 
     binder::ProcessState::start_thread_pool();
 
@@ -91,10 +122,10 @@ async fn subscribe_to_event(subscriber: Subscriber) {
                 .collect::<Vec<_>>();
 
             for message_bytes in &messages_bytes {
-                let event = decode::<Event>(message_bytes);
+                let event = decode_with_len::<Event>(message_bytes);
                 info!("Event received: {:#?}", event);
 
-                if let Some(ref extended_data) = event.extended_data {
+                if let Some(ref extended_data) = event.unwrap().extended_data {
                     // TODO(372607401): use VsidlProvider to parse the extended data message.
                     info!("Event extended data received: {:#?}", extended_data);
                 }
@@ -105,6 +136,132 @@ async fn subscribe_to_event(subscriber: Subscriber) {
     }
 }
 
+async fn data_item_interaction(context: ContextRef) {
+    let service_unit = wait_for_service_unit(
+        context,
+        UnitNameDiscoveryArgs::new_builder()
+            .set_sdv_package_name("sdv.diagnostics.sample")
+            .set_service_bundle_name("DiagnosticsProvider1")
+            .set_service_unit_name("sdv-diagnostics-data-item-data-item-service")
+            .build()
+            .unwrap(),
+    )
+    .await;
+
+    // TODO(372607401): use VsidlProvider to parse the response message.
+    let _ = perform_and_log_rpc_call::<ReadDataItemRequest, ReadDataItemResponse>(
+        context,
+        service_unit,
+        "ReadDataItem",
+        ReadDataItemRequest { id: "pressure".to_string(), ..Default::default() },
+    )
+    .await;
+}
+
+async fn io_control_interaction(context: ContextRef) {
+    let service_unit = wait_for_service_unit(
+        context,
+        UnitNameDiscoveryArgs::new_builder()
+            .set_sdv_package_name("sdv.diagnostics.sample")
+            .set_service_bundle_name("DiagnosticsProvider1")
+            .set_service_unit_name("sdv-diagnostics-io-control-io-control-service")
+            .build()
+            .unwrap(),
+    )
+    .await;
+
+    // TODO(372607401): use VsidlProvider to parse the response message.
+    let _ = perform_and_log_rpc_call::<IoControlRequest, IoControlResponse>(
+        context,
+        service_unit,
+        "FreezeCurrentState",
+        IoControlRequest { id: "pressure".to_string(), ..Default::default() },
+    )
+    .await;
+}
+
+async fn routine_control_interaction(context: ContextRef) {
+    let service_unit = wait_for_service_unit(
+        context,
+        UnitNameDiscoveryArgs::new_builder()
+            .set_sdv_package_name("sdv.diagnostics.sample")
+            .set_service_bundle_name("DiagnosticsProvider1")
+            .set_service_unit_name("sdv-diagnostics-routine-control-routine-control-service")
+            .build()
+            .unwrap(),
+    )
+    .await;
+
+    // TODO(372607401): use VsidlProvider to parse the response message.
+    let _ = perform_and_log_rpc_call::<RoutineControlRequest, RoutineControlResponse>(
+        context,
+        service_unit,
+        "StartRoutine",
+        RoutineControlRequest { id: "pressurization".to_string(), ..Default::default() },
+    )
+    .await;
+}
+
+async fn fault_listener_interaction(context: ContextRef) {
+    let service_unit = wait_for_service_unit(
+        context,
+        UnitNameDiscoveryArgs::new_builder()
+            .set_sdv_package_name("sdv.diagnostics.sample")
+            .set_service_bundle_name("DiagnosticsProvider1")
+            .set_service_unit_name("sdv-diagnostics-fault-fault-listener-service")
+            .build()
+            .unwrap(),
+    )
+    .await;
+
+    // TODO(372607401): use VsidlProvider to parse the response message.
+    let _ = perform_and_log_rpc_call::<OnFaultStatusChangeRequest, OnFaultStatusChangeResponse>(
+        context,
+        service_unit,
+        "OnFaultStatusChange",
+        OnFaultStatusChangeRequest {
+            id: "lowpressure".to_string(),
+            status: 1,
+            ..Default::default()
+        },
+    )
+    .await;
+}
+
+async fn wait_for_service_unit(
+    context: ContextRef,
+    args: UnitNameDiscoveryArgs,
+) -> ServiceUnitDefinition {
+    info!("Waiting for service unit: {:?}", args.get_unit_name());
+    let sd = ServiceDiscoveryManager::new(context);
+
+    loop {
+        let units = sd.list_units_by_name(&args).next().await;
+        if let Some(unit) = units {
+            info!("Found service unit: {:?}", unit);
+            return unit;
+        }
+
+        thread::sleep(Duration::from_secs(1));
+    }
+}
+
+async fn perform_and_log_rpc_call<Req: MessageFull, Resp: MessageFull>(
+    context: ContextRef,
+    service_unit: ServiceUnitDefinition,
+    method: &'static str,
+    request: Req,
+) -> Resp {
+    let client =
+        Client::create(context, service_unit.get_unit_identifier(), &ClientOptions::default())
+            .await
+            .unwrap();
+    let response = client.unary_call(method, &encode::<Req>(&request).unwrap()).await.unwrap();
+    let response_decoded = decode::<Resp>(&response);
+    info!("Response for RPC call [{}]: {:?}", method, response_decoded);
+    response_decoded.unwrap()
+}
+
 fn wait_for_comms_stack() {
     let descriptor = <BpServiceDiscoveryAgent as IServiceDiscoveryAgent>::get_descriptor()
         .to_owned()
@@ -113,20 +270,30 @@ fn wait_for_comms_stack() {
 
     let descriptor = <BpRpcAgent as IRpcAgent>::get_descriptor().to_owned() + "/default";
     with_retry(|| binder::wait_for_interface::<dyn IRpcAgent>(&descriptor));
+    thread::sleep(Duration::from_secs(10));
 }
 
 fn with_retry<T, E, F>(function: F) -> T
 where
     F: Fn() -> Result<T, E>,
 {
+    info!("Retrying wait for comms stack");
     function().unwrap_or_else(|_| with_retry(function))
 }
 
-fn decode<T: Message>(message_bytes: &[u8]) -> T {
+fn encode<M: MessageFull>(message: &M) -> Result<Vec<u8>, protobuf::Error> {
+    message.write_to_bytes()
+}
+
+fn decode<T: MessageFull>(message_bytes: &[u8]) -> Result<T, protobuf::Error> {
+    T::parse_from_bytes(message_bytes)
+}
+
+fn decode_with_len<T: MessageFull>(message_bytes: &[u8]) -> Result<T, protobuf::Error> {
     let mut input_stream = protobuf::CodedInputStream::from_bytes(message_bytes);
     let size = input_stream.read_raw_varint32().unwrap().into();
     // And parse only the part of the byte array that contains the message
     let _ = input_stream.push_limit(size);
 
-    T::parse_from(&mut input_stream).unwrap()
+    T::parse_from(&mut input_stream)
 }
