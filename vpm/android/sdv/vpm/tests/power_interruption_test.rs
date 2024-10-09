@@ -6,15 +6,15 @@ mod tests {
     use crate::setup::TestContext;
     use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
     use sdv_vpm_api::power::PowerStateReport;
-    use sdv_vpm_api::vpm::power_state_notification_request::PowerStateChangeReason;
     use sdv_vpm_api::vpm::PowerStateChangeRequest;
     use sdv_vpm_api::vpm::PowerStateRequest;
     use sdv_vpm_api::vpm::ShutdownType;
+    use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
 
-    #[test]
-    fn interrupt_prepare_power_state_no_oem_response_sent() {
+    #[tokio::test]
+    async fn interrupt_prepare_power_state_no_oem_response_sent() {
         // Given A VM in Power On state.
-        let mut test_context = TestContext::new();
+        let mut test_context = TestContext::new().await;
 
         // We simulate that it takes too long to execute WaitForFinish
         // Add a sleep time in WaitForFinish in the client to simulate its taking too long.
@@ -31,13 +31,13 @@ mod tests {
             ..Default::default()
         };
 
-        test_context.vepsm.send_power_state_request(request);
+        test_context.vepsm.send_power_state_request(request).await;
 
         test_context.power_callback_preparer.assert_callback_received(PowerStateReportAidl::ON);
-        test_context.vepsm.assert_power_notification(
-            PowerStateReport::ON,
-            PowerStateChangeReason::HOST_REQUESTED,
-        );
+        test_context
+            .vepsm
+            .assert_power_notification(PowerStateReport::ON, PowerStateChangeReason::HOST_REQUESTED)
+            .await;
 
         // When: the VM is on prepare state for ram suspension and a cancellation is requested
         // in the middle of execution of WaitForFinish.
@@ -48,15 +48,18 @@ mod tests {
             ..Default::default()
         };
 
-        test_context.vepsm.send_power_state_request(request);
+        test_context.vepsm.send_power_state_request(request).await;
 
         test_context
             .power_callback_preparer
             .assert_callback_received(PowerStateReportAidl::SUSPEND_TO_RAM_ENTER);
-        test_context.vepsm.assert_power_notification(
-            PowerStateReport::SUSPEND_TO_RAM_ENTER,
-            PowerStateChangeReason::HOST_REQUESTED,
-        );
+        test_context
+            .vepsm
+            .assert_power_notification(
+                PowerStateReport::SUSPEND_TO_RAM_ENTER,
+                PowerStateChangeReason::HOST_REQUESTED,
+            )
+            .await;
 
         //When: Cancel shutdown in middle of wait for finish.
         let request = PowerStateChangeRequest {
@@ -65,14 +68,19 @@ mod tests {
             ..Default::default()
         };
 
-        test_context.vepsm.send_power_state_request(request);
+        test_context.vepsm.send_power_state_request(request).await;
 
         // Then: the vm is in shutdown cancelled state.
         // State WaitForFinish is never received by the OEM.
         // The state might take more time than usual because it waits for the previous state to be cancelled.
-        test_context.vepsm.assert_power_notification(
-            PowerStateReport::SHUTDOWN_CANCELLED,
-            PowerStateChangeReason::HOST_REQUESTED,
-        );
+        test_context
+            .vepsm
+            .assert_power_notification(
+                PowerStateReport::SHUTDOWN_CANCELLED,
+                PowerStateChangeReason::HOST_REQUESTED,
+            )
+            .await;
+
+        test_context.async_drop().await;
     }
 }

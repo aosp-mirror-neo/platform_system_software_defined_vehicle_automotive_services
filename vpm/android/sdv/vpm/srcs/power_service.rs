@@ -178,22 +178,14 @@ async fn notify_oem(
             let result = cloned_power_state_notifier
                 .notify_oem(new_state.get_report(), PowerStateChangeReason::HOST_REQUESTED)
                 .await;
-            debug!(
-                "OEM was notified about power state update {:?} {:?}",
-                new_state.get_report(),
-                result
-            );
+            debug!("OEM state update result {:?} {:?}", new_state.get_report(), result);
         }
         Err(PowerStateNotificationError::TimedOut) => {
             debug!("Call to notify callbacks has timed-out!");
             let result = cloned_power_state_notifier
                 .notify_oem(new_state.get_report(), PowerStateChangeReason::TIMEOUT)
                 .await;
-            debug!(
-                "OEM was notified about power state update {:?} {:?}",
-                new_state.get_report(),
-                result
-            );
+            debug!("OEM state update result {:?} {:?}", new_state.get_report(), result);
         }
         Err(e) => {
             debug!("Failed to notify one of the callbacks! error={e}");
@@ -364,10 +356,10 @@ mod tests {
     use crate::PowerStateRequestHandlerImpl;
     use googletest::fail;
     use sdv_vpm_api::power::PowerStateReport;
-    use sdv_vpm_api::vpm::power_state_notification_request::PowerStateChangeReason;
     use sdv_vpm_api::vpm::PowerStateChangeRequest;
     use sdv_vpm_api::vpm::PowerStateRequest;
     use sdv_vpm_api::vpm::ShutdownType;
+    use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
     use std::sync::Arc;
     use tokio::sync::mpsc::channel;
     use tokio::sync::watch::channel as WatchChannel;
@@ -521,8 +513,8 @@ mod tests {
         assert_eq!(power_state_watch_receiver.borrow().get_report(), new_report);
     }
 
-    #[test]
-    fn handle_power_state_fails_invalid_timeout() {
+    #[tokio::test]
+    async fn handle_power_state_fails_invalid_timeout() {
         // Given: the power state request handler.
         let (tx, _) = channel::<PowerRequest>(1);
         let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
@@ -536,12 +528,12 @@ mod tests {
         };
 
         // Then: power state is set.
-        let result = power_state_request_handler.handle_set_power_state(request);
+        let result = power_state_request_handler.handle_set_power_state(request).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn handle_power_state_fails_unspecified_power_state() {
+    #[tokio::test]
+    async fn handle_power_state_fails_unspecified_power_state() {
         // Given: the power state request handler.
         let (tx, _) = channel::<PowerRequest>(1);
         let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
@@ -551,12 +543,12 @@ mod tests {
         let request = PowerStateChangeRequest { ..Default::default() };
 
         // Then: power state is set.
-        let result = power_state_request_handler.handle_set_power_state(request);
+        let result = power_state_request_handler.handle_set_power_state(request).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn handle_power_state_fails_prepare_no_shutdown_type() {
+    #[tokio::test]
+    async fn handle_power_state_fails_prepare_no_shutdown_type() {
         // Given: the power state request handler.
         let (tx, _) = channel::<PowerRequest>(1);
         let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
@@ -570,12 +562,12 @@ mod tests {
         };
 
         // Then: power state is set.
-        let result = power_state_request_handler.handle_set_power_state(request);
+        let result = power_state_request_handler.handle_set_power_state(request).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn handle_power_state_fails_turn_off_no_shutdown_type() {
+    #[tokio::test]
+    async fn handle_power_state_fails_turn_off_no_shutdown_type() {
         // Given: the power state request handler.
         let (tx, _) = channel::<PowerRequest>(1);
         let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
@@ -589,12 +581,12 @@ mod tests {
         };
 
         // Then: power state is set.
-        let result = power_state_request_handler.handle_set_power_state(request);
+        let result = power_state_request_handler.handle_set_power_state(request).await;
         assert!(result.is_err());
     }
 
-    #[test]
-    fn handle_power_state_on() {
+    #[tokio::test]
+    async fn handle_power_state_on() {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
@@ -608,16 +600,16 @@ mod tests {
         };
 
         // Then: power state is set.
-        let result = power_state_request_handler.handle_set_power_state(request);
+        let result = power_state_request_handler.handle_set_power_state(request).await;
         assert_eq!(
             PowerStateReport::ON,
-            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
+            rx.recv().await.expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn handle_power_state_prepare_s2r() {
+    #[tokio::test]
+    async fn handle_power_state_prepare_s2r() {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(On {}));
@@ -632,16 +624,16 @@ mod tests {
         };
 
         // Then: power state is set.
-        let result = power_state_request_handler.handle_set_power_state(request);
+        let result = power_state_request_handler.handle_set_power_state(request).await;
         assert_eq!(
             PowerStateReport::SUSPEND_TO_RAM_ENTER,
-            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
+            rx.recv().await.expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn handle_power_state_prepare_s2d() {
+    #[tokio::test]
+    async fn handle_power_state_prepare_s2d() {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(On {}));
@@ -656,16 +648,16 @@ mod tests {
         };
 
         // Then: power state is set.
-        let result = power_state_request_handler.handle_set_power_state(request);
+        let result = power_state_request_handler.handle_set_power_state(request).await;
         assert_eq!(
             PowerStateReport::SUSPEND_TO_DISK_ENTER,
-            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
+            rx.recv().await.expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn handle_power_state_prepare_off() {
+    #[tokio::test]
+    async fn handle_power_state_prepare_off() {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(On {}));
@@ -680,16 +672,16 @@ mod tests {
         };
 
         // Then: power state is set.
-        let result = power_state_request_handler.handle_set_power_state(request);
+        let result = power_state_request_handler.handle_set_power_state(request).await;
         assert_eq!(
             PowerStateReport::POWER_OFF_ENTER,
-            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
+            rx.recv().await.expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn handle_power_state_cancel_shutdown() {
+    #[tokio::test]
+    async fn handle_power_state_cancel_shutdown() {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffEnter {}));
@@ -703,16 +695,16 @@ mod tests {
         };
 
         // Then: power state is set.
-        let result = power_state_request_handler.handle_set_power_state(request);
+        let result = power_state_request_handler.handle_set_power_state(request).await;
         assert_eq!(
             PowerStateReport::SHUTDOWN_CANCELLED,
-            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
+            rx.recv().await.expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn handle_power_state_s2r() {
+    #[tokio::test]
+    async fn handle_power_state_s2r() {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinishSuspendToRam {}));
@@ -727,16 +719,16 @@ mod tests {
         };
 
         // Then: power state is set.
-        let result = power_state_request_handler.handle_set_power_state(request);
+        let result = power_state_request_handler.handle_set_power_state(request).await;
         assert_eq!(
             PowerStateReport::SUSPEND_TO_RAM_POST_FINISH,
-            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
+            rx.recv().await.expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn handle_power_state_s2d() {
+    #[tokio::test]
+    async fn handle_power_state_s2d() {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinishSuspendToDisk {}));
@@ -751,16 +743,16 @@ mod tests {
         };
 
         // Then: power state is set.
-        let result = power_state_request_handler.handle_set_power_state(request);
+        let result = power_state_request_handler.handle_set_power_state(request).await;
         assert_eq!(
             PowerStateReport::SUSPEND_TO_DISK_POST_FINISH,
-            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
+            rx.recv().await.expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn handle_power_state_off() {
+    #[tokio::test]
+    async fn handle_power_state_off() {
         // Given: the power state request handler.
         let (tx, mut rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinishPowerOff {}));
@@ -775,10 +767,10 @@ mod tests {
         };
 
         // Then: power state is set.
-        let result = power_state_request_handler.handle_set_power_state(request);
+        let result = power_state_request_handler.handle_set_power_state(request).await;
         assert_eq!(
             PowerStateReport::POWER_OFF_POST_FINISH,
-            rx.blocking_recv().expect("Nothing was received!").power_state.get_report()
+            rx.recv().await.expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
     }

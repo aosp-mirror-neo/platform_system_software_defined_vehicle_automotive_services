@@ -77,6 +77,7 @@ rust_test {
     rustlibs: [
         "libgoogletest_rust",
     ],
+    ld_flags: ["-Wl,--no-as-needed"],
     test_options: {
         unit_test: true,
     },
@@ -87,124 +88,124 @@ rust_test {
     prefer_rlib: true,
 }
 
-// rust_test {
-//     name: "sdv_vpm_agent_integration_test",
-//     srcs: ["tests/integration_test.rs"],
-//     defaults: [
-//         "sdv_tracing@rust_defaults",
-//     ],
-//     rustlibs: [
-//         "google.sdv.vpm-aidl-rust",
-//         "librpcbinder_rs",
-//         "libsdv_vpm_api",
-//         "libanyhow",
-//         "libsdv_middleware_pubsub",
-//         "libsdvmiddleware_rpc",
-//         "libsdvgenerated_vpm_integration_test_bundle",
-//     ],
-//     test_suites: [
-//         "automotive-sdv-tests",
-//         "general-tests",
-//     ],
-//     test_options: {
-//         unit_test: false,
-//     },
-//     require_root: true,
-// }
-//
-// rust_test {
-//     name: "sdv_vpm_agent_power_cancellation_test",
-//     srcs: ["tests/power_cancellation_test.rs"],
-//     defaults: [
-//         "sdv_tracing@rust_defaults",
-//     ],
-//     rustlibs: [
-//         "google.sdv.vpm-aidl-rust",
-//         "librpcbinder_rs",
-//         "libsdv_vpm_api",
-//         "libanyhow",
-//         "libsdv_middleware_pubsub",
-//         "libsdvmiddleware_rpc",
-//         "libsdvgenerated_vpm_integration_test_bundle",
-//     ],
-//     test_options: {
-//         unit_test: false,
-//     },
-//     test_suites: [
-//         "automotive-sdv-tests",
-//         "general-tests",
-//     ],
-//     require_root: true,
-// }
+rust_test {
+    name: "sdv_vpm_agent_integration_test",
+    srcs: ["tests/integration_test.rs"],
+    defaults: [
+        "sdv_tracing@rust_defaults",
+        "vpm_agent@rust_defaults",
+    ],
+    rustlibs: [
+        "libfutures_util",
+        "libsdv_mw_rs_test_sdv_vpm_vpm_system_client",
+    ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+    test_options: {
+        unit_test: false,
+    },
+    require_root: true,
+}
 
-// rust_test {
-//     name: "sdv_vpm_agent_power_interruption_test",
-//     srcs: ["tests/power_interruption_test.rs"],
-//     defaults: [
-//         "sdv_tracing@rust_defaults",
-//     ],
-//     rustlibs: [
-//         "google.sdv.vpm-aidl-rust",
-//         "librpcbinder_rs",
-//         "libsdv_vpm_api",
-//         "libanyhow",
-//         "libsdv_middleware_pubsub",
-//         "libsdvmiddleware_rpc",
-//         "libsdvgenerated_vpm_integration_test_bundle",
-//     ],
-//     test_suites: [
-//         "automotive-sdv-tests",
-//         "general-tests",
-//     ],
-//     require_root: true,
-// }
+rust_test {
+    name: "sdv_vpm_agent_power_cancellation_test",
+    srcs: ["tests/power_cancellation_test.rs"],
+    defaults: [
+        "sdv_tracing@rust_defaults",
+        "vpm_agent@rust_defaults",
+    ],
+    rustlibs: [
+        "libfutures_util",
+        "libsdv_mw_rs_test_sdv_vpm_vpm_system_client",
+    ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
+    test_options: {
+        unit_test: false,
+    },
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+    require_root: true,
+}
 
-// rust_test {
-//     name: "sdv_vpm_agent_power_timeout_test",
-//     srcs: ["tests/power_timeout_test.rs"],
-//     defaults: [
-//         "sdv_tracing@rust_defaults",
-//     ],
-//     rustlibs: [
-//         "google.sdv.vpm-aidl-rust",
-//         "librpcbinder_rs",
-//         "libsdv_vpm_api",
-//         "libanyhow",
-//         "libsdv_middleware_pubsub",
-//         "libsdvmiddleware_rpc",
-//         "libsdvgenerated_vpm_integration_test_bundle",
-//     ],
-//     test_options: {
-//         unit_test: false,
-//     },
-//     test_suites: [
-//         "automotive-sdv-tests",
-//         "general-tests",
-//     ],
-//     require_root: true,
-// }
+rust_test {
+    name: "sdv_vpm_agent_power_interruption_test",
+    srcs: ["tests/power_interruption_test.rs"],
+    defaults: [
+        "sdv_tracing@rust_defaults",
+        "vpm_agent@rust_defaults",
+    ],
+    rustlibs: [
+        "libfutures_util",
+        "libsdv_mw_rs_test_sdv_vpm_vpm_system_client",
+    ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+    require_root: true,
+}
 
-// rust_test {
-//     name: "sdv_vpm_agent_power_prepare_interruption_test",
-//     srcs: ["tests/power_prepare_interruption_test.rs"],
-//     defaults: [
-//         "sdv_tracing@rust_defaults",
-//     ],
-//     rustlibs: [
-//         "google.sdv.vpm-aidl-rust",
-//         "librpcbinder_rs",
-//         "libsdv_vpm_api",
-//         "libanyhow",
-//         "libsdv_middleware_pubsub",
-//         "libsdvmiddleware_rpc",
-//         "libsdvgenerated_vpm_integration_test_bundle",
-//     ],
-//     test_options: {
-//         unit_test: false,
-//     },
-//     test_suites: [
-//         "automotive-sdv-tests",
-//         "general-tests",
-//     ],
-//     require_root: true,
-// }
+rust_test {
+    name: "sdv_vpm_agent_power_timeout_test",
+    srcs: ["tests/power_timeout_test.rs"],
+    defaults: [
+        "sdv_tracing@rust_defaults",
+        "vpm_agent@rust_defaults",
+    ],
+    rustlibs: [
+        "libfutures_util",
+        "libsdv_mw_rs_test_sdv_vpm_vpm_system_client",
+    ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
+    test_options: {
+        unit_test: false,
+    },
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+    require_root: true,
+}
+
+rust_test {
+    name: "sdv_vpm_agent_power_prepare_interruption_test",
+    srcs: ["tests/power_prepare_interruption_test.rs"],
+    defaults: [
+        "sdv_tracing@rust_defaults",
+        "vpm_agent@rust_defaults",
+    ],
+    rustlibs: [
+        "libfutures_util",
+        "libsdv_mw_rs_test_sdv_vpm_vpm_system_client",
+    ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
+    test_options: {
+        unit_test: false,
+    },
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+    require_root: true,
+}

@@ -4,56 +4,65 @@
 use crate::setup::binder::BinderFeatures;
 use crate::setup::binder::Strong;
 use binder::{binder_impl::Binder, Interface};
+use futures_util::StreamExt;
 use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateClientApi::{
     BpPowerStateClientApi, IPowerStateClientApi,
 };
 use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateReportListener::{
     BnPowerStateReportListener, IPowerStateReportListener,
 };
-use sdv_middleware_pubsub::Result;
+use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
+use google_sdv_vpm_aidl::binder;
+use sdv_comms::id::ServiceFqin;
+use sdv_comms::ContextRef;
+use sdv_mw_rs_comms::ClientOptions;
+use sdv_mw_rs_comms::SubscribeOptions;
+use sdv_mw_rs_sdv_comms::SdvComms;
+use sdv_mw_rs_test_sdv_vpm_vpm_system_client::subscriber;
+use sdv_mw_rs_test_sdv_vpm_vpm_system_client::VpmSystemClient;
 use sdv_vpm_api::power::PowerStateReport;
-use sdv_vpm_api::vehicle::VehicleStateChange;
 use sdv_vpm_api::vehicle::VpmVehicleState;
-use sdv_vpm_api::vpm::power_state_notification_request::PowerStateChangeReason;
 use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateRequest;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
 use sdv_vpm_api::vpm::ShutdownType;
-use sdvgenerated::sdv_vpm_power_notification_service_interface::PowerNotificationService;
-use sdvgenerated::sdv_vpm_vpm_system_service_interface::VpmSystemService;
-use sdvgenerated::vpm_system_client::VpmSystemClient;
-use sdvgenerated::vpm_system_client::VpmSystemClientCallbacks;
-
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
-use google_sdv_vpm_aidl::binder;
-use sdv_vpm_api::vpm::PowerStateNotificationRequest;
-use sdv_vpm_api::vpm::PowerStateNotificationResponse;
-use sdvmiddleware_rpc::RpcResult;
+use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
+use sdv_vpm_api::vpm_notifications::PowerStateNotificationRequest;
+use sdv_vpm_api::vpm_notifications::PowerStateNotificationResponse;
+use sdv_vpm_client_power_notification_service_rpc::Interface as NotificationInterface;
+use sdv_vpm_vpm_system_service_rpc::Client;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+use tokio::sync::mpsc::{
+    channel as tokio_channel, Receiver as TokioReceiver, Sender as TokioSender,
+};
+use tokio::time::timeout;
 
-pub const TIMEOUT_IN_SECS: Duration = Duration::from_secs(15);
+pub const TIMEOUT_IN_SECS: Duration = Duration::from_secs(30);
+pub const OEM_NOTIFICATION_CHANNEL_SIZE: usize = 1;
+
 pub struct TestContext {
     pub vepsm: TestVePSM,
     pub power_callback_preparer: PowerCallbackPreparer,
 }
 
 impl TestContext {
-    pub fn new() -> Self {
-        Self { vepsm: TestVePSM::new(), power_callback_preparer: PowerCallbackPreparer::new() }
+    pub async fn new() -> Self {
+        Self {
+            vepsm: TestVePSM::new().await,
+            power_callback_preparer: PowerCallbackPreparer::new(),
+        }
     }
     pub fn is_good_start_state(&self) -> bool {
         self.vepsm.power_state == PowerStateReport::POWER_OFF_EXIT
             || self.vepsm.power_state == PowerStateReport::SHUTDOWN_CANCELLED
     }
-}
 
-impl Drop for TestContext {
-    // Put VM state in SHUTDOWN_CACELLED because it's a BOOTUP_PREPARE state.
+    // Put VM state in SHUTDOWN_CANCELLED because it's a BOOTUP_PREPARE state.
     // We can't put the state in POWER_OFF_EXIT because it can only be set in cold boot.
-    fn drop(&mut self) {
+    pub async fn async_drop(&mut self) {
         if self.vepsm.power_state == PowerStateReport::ON {
             let request = PowerStateChangeRequest {
                 power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
@@ -62,25 +71,35 @@ impl Drop for TestContext {
                 ..Default::default()
             };
 
-            self.vepsm.send_power_state_request(request);
-            self.vepsm.assert_power_notification(
-                PowerStateReport::SUSPEND_TO_RAM_ENTER,
-                PowerStateChangeReason::HOST_REQUESTED,
-            );
-            self.vepsm.assert_power_notification(
-                PowerStateReport::WAIT_FOR_FINISH,
-                PowerStateChangeReason::HOST_REQUESTED,
-            );
+            self.vepsm.send_power_state_request(request).await;
+
+            self.vepsm
+                .assert_power_notification(
+                    PowerStateReport::SUSPEND_TO_RAM_ENTER,
+                    PowerStateChangeReason::HOST_REQUESTED,
+                )
+                .await;
+
+            self.vepsm
+                .assert_power_notification(
+                    PowerStateReport::WAIT_FOR_FINISH,
+                    PowerStateChangeReason::HOST_REQUESTED,
+                )
+                .await;
+
             let request = PowerStateChangeRequest {
                 power_request: PowerStateRequest::CANCEL_SHUTDOWN.into(),
                 timeout_ms: 10000,
                 ..Default::default()
             };
-            self.vepsm.send_power_state_request(request);
-            self.vepsm.assert_power_notification(
-                PowerStateReport::SHUTDOWN_CANCELLED,
-                PowerStateChangeReason::HOST_REQUESTED,
-            );
+            self.vepsm.send_power_state_request(request).await;
+
+            self.vepsm
+                .assert_power_notification(
+                    PowerStateReport::SHUTDOWN_CANCELLED,
+                    PowerStateChangeReason::HOST_REQUESTED,
+                )
+                .await;
         }
     }
 }
@@ -175,55 +194,75 @@ impl IPowerStateReportListener for TestSdvAgent {
 }
 
 pub struct TestVePSM {
-    power_request_receiver: Receiver<PowerStateNotificationRequest>,
+    power_request_receiver: TokioReceiver<PowerStateNotificationRequest>,
     vehicle_callback_receiver: Receiver<VpmVehicleState>,
-    client: Arc<dyn VpmSystemService>,
+    client: Arc<Client>,
     bundle: VpmSystemClient,
     power_state: PowerStateReport,
 }
 
 impl TestVePSM {
-    pub fn new() -> TestVePSM {
+    pub async fn new() -> TestVePSM {
         let (vehicle_request_sender, vehicle_callback_receiver): (
             Sender<VpmVehicleState>,
             Receiver<VpmVehicleState>,
         ) = channel();
         let (power_request_sender, power_request_receiver): (
-            Sender<PowerStateNotificationRequest>,
-            Receiver<PowerStateNotificationRequest>,
-        ) = channel();
-
-        let callback = move |message: Result<VehicleStateChange>| {
-            vehicle_request_sender.send(message.unwrap().vehicle_state.unwrap()).unwrap();
-        };
-        let mut bundle = VpmSystemClient::new(VpmSystemClientCallbacks {
-            sdv_vpm_vehicle_vehicle_state_change_cb: Box::new(callback),
-        });
-        bundle.start().unwrap();
-
-        let client = bundle.get_sdv_vpm_vpm_system_service_client("VpmSystemServiceBundle");
+            TokioSender<PowerStateNotificationRequest>,
+            TokioReceiver<PowerStateNotificationRequest>,
+        ) = tokio_channel(OEM_NOTIFICATION_CHANNEL_SIZE);
 
         let power_notification_receiver =
             PowerNotificationReceiver { sender: power_request_sender };
-        bundle
-            .sdv_vpm_power_notification_service_server
-            .register_service_interface(Arc::new(power_notification_receiver));
+
+        let context = create_context();
+        let comms = SdvComms { context };
+        let mut bundle =
+            VpmSystemClient::new(Arc::new(comms), (Arc::new(power_notification_receiver),))
+                .await
+                .unwrap();
+        let client = bundle
+            .create_rpc_client(
+                "sdv.vpm".to_string(),
+                "VpmSystemServiceBundle".to_string(),
+                ClientOptions::default(),
+            )
+            .await
+            .unwrap();
+
+        let mut subscriber = bundle
+            .create_observer(
+                subscriber::Variant::<sdv_vpm_api::vehicle::VehicleStateChange>::UNIQUE,
+                &SubscribeOptions::default(),
+            )
+            .await
+            .unwrap();
+
+        tokio::spawn(async move {
+            while let Some(Ok(vehicle_state_changes)) = subscriber.next().await {
+                for vehicle_state_change in vehicle_state_changes {
+                    vehicle_request_sender
+                        .send(vehicle_state_change.vehicle_state.unwrap())
+                        .unwrap();
+                }
+            }
+        });
 
         Self {
             power_request_receiver,
             vehicle_callback_receiver,
-            client,
+            client: Arc::new(client),
             bundle,
             power_state: PowerStateReport::POWER_OFF_EXIT,
         }
     }
 
-    pub fn send_power_state_request(&self, request: PowerStateChangeRequest) {
-        self.client.set_power_state(request).unwrap();
+    pub async fn send_power_state_request(&self, request: PowerStateChangeRequest) {
+        self.client.SetPowerState(&request).await.unwrap();
     }
 
-    pub fn send_vehicle_state_request(&self, request: SetVehicleStateRequest) {
-        self.client.set_vehicle_state(request).unwrap();
+    pub async fn send_vehicle_state_request(&self, request: SetVehicleStateRequest) {
+        self.client.SetVehicleState(&request).await.unwrap();
     }
 
     pub fn assert_vehicle_state_received(&self, vehicle_state: VpmVehicleState) {
@@ -232,28 +271,49 @@ impl TestVePSM {
         assert_eq!(result, vehicle_state);
     }
 
-    pub fn assert_power_notification(
+    pub async fn assert_power_notification(
         &mut self,
         power_state_report: PowerStateReport,
         reason: PowerStateChangeReason,
     ) {
-        let power_notification =
-            self.power_request_receiver.recv_timeout(TIMEOUT_IN_SECS).expect("Timeout reached");
-        assert_eq!(power_notification.power_state.unwrap(), power_state_report);
-        assert_eq!(power_notification.reason.unwrap(), reason);
-        self.power_state = power_state_report;
+        if let Ok(power_notification) =
+            timeout(TIMEOUT_IN_SECS, self.power_request_receiver.recv()).await
+        {
+            let notification = power_notification.unwrap();
+            assert_eq!(notification.power_state.unwrap(), power_state_report);
+            assert_eq!(notification.reason.unwrap(), reason);
+            self.power_state = power_state_report;
+        } else {
+            panic!("Timeout reached waiting for OEM notification");
+        }
     }
 }
 
 struct PowerNotificationReceiver {
-    sender: Sender<PowerStateNotificationRequest>,
+    sender: TokioSender<PowerStateNotificationRequest>,
 }
-impl PowerNotificationService for PowerNotificationReceiver {
-    fn notify_power_state(
+
+#[async_trait::async_trait]
+impl NotificationInterface for PowerNotificationReceiver {
+    async fn NotifyPowerState(
         &self,
-        request: PowerStateNotificationRequest,
-    ) -> RpcResult<PowerStateNotificationResponse> {
-        self.sender.send(request).unwrap();
+        _caller_id: sdv_comms::id::ServiceFqin,
+        request: &sdv_vpm_api::vpm_notifications::PowerStateNotificationRequest,
+    ) -> sdv_status_rs::SdvResult<sdv_vpm_api::vpm_notifications::PowerStateNotificationResponse>
+    {
+        self.sender.send(request.clone()).await.unwrap();
         Ok(PowerStateNotificationResponse { ..Default::default() })
     }
+}
+
+fn create_context() -> ContextRef {
+    let fqin = ServiceFqin::builder()
+        .sdv_vm_name("vm")
+        .sdv_package_name("sdv.vpm.client")
+        .service_bundle_name("VpmSystemClient")
+        .service_instance_name("default")
+        .build()
+        .unwrap();
+
+    ContextRef::create(fqin)
 }

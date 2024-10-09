@@ -44,6 +44,9 @@
       "name": "sdv_vpm_agent_power_cancellation_test"
     },
     {
+      "name": "sdv_vpm_agent_power_prepare_interruption_test"
+    },
+    {
       "name": "sdv_vpm_agent_power_timeout_test"
     },
     {

@@ -145,33 +145,38 @@ impl Interface for RpcServer {
 mod tests {
     use crate::power_service::MockPowerStateRequestHandler;
     use crate::system_service::RpcServer;
+    use crate::system_service::VEHICLE_STATE_CHANNEL_QUEUE_SIZE;
     use anyhow::anyhow;
-    use googletest::prelude::{assert_that, matches_pattern};
+    use sdv_comms::id::ServiceFqin;
+    use sdv_status_rs::SdvStatusCode;
     use sdv_vpm_api::vehicle::VpmVehicleState;
     use sdv_vpm_api::vpm::power_state_change_response::PowerStateChangeRequestError;
     use sdv_vpm_api::vpm::PowerStateChangeRequest;
     use sdv_vpm_api::vpm::PowerStateRequest;
     use sdv_vpm_api::vpm::SetVehicleStateRequest;
     use sdv_vpm_api::vpm::ShutdownType;
-    use sdvgenerated::sdv_vpm_vpm_system_service_interface::VpmSystemService;
-    use sdvmiddleware_rpc::error::RpcError;
-    use std::sync::mpsc::channel;
+    use sdv_vpm_vpm_system_service_rpc::Interface;
+    use std::str::FromStr;
+    use tokio::sync::mpsc::channel;
 
     #[tokio::test]
     async fn set_rpc_vehicle_state() {
         // Given: mock services.
-        let (vehicle_state_sender, vehicle_state_receiver) = channel();
+        let (vehicle_state_sender, mut vehicle_state_receiver) =
+            channel(VEHICLE_STATE_CHANNEL_QUEUE_SIZE);
         let mock_power_state_request_handler = MockPowerStateRequestHandler::default();
         let rpc_server =
             RpcServer::new(vehicle_state_sender, Box::new(mock_power_state_request_handler));
-        let vehicle_state_handle = tokio::spawn(async move { vehicle_state_receiver.recv() });
+        let vehicle_state_handle = tokio::spawn(async move { vehicle_state_receiver.recv().await });
 
         // When: a vehicle state request is sent
         let request = SetVehicleStateRequest {
             vehicle_state: VpmVehicleState::VEHICLE_ON.into(),
             ..Default::default()
         };
-        let result = rpc_server.set_vehicle_state(request);
+        let fqin = ServiceFqin::from_str("vm:sdv.vpm.VpmSystemServiceBundle/default")
+            .expect("Could not create context for tests!");
+        let result = rpc_server.SetVehicleState(fqin, &request).await;
 
         // Then: vehicle state should be received by the channel.
         let expected_vehicle_state = vehicle_state_handle.await.unwrap();
@@ -185,7 +190,7 @@ mod tests {
     #[tokio::test]
     async fn set_rpc_vehicle_state_fails_request_invalid() {
         // Given: mock services.
-        let (vehicle_state_sender, _) = channel();
+        let (vehicle_state_sender, _) = channel(VEHICLE_STATE_CHANNEL_QUEUE_SIZE);
         let mock_power_state_request_handler = MockPowerStateRequestHandler::default();
         let rpc_server =
             RpcServer::new(vehicle_state_sender, Box::new(mock_power_state_request_handler));
@@ -194,16 +199,17 @@ mod tests {
         let request = SetVehicleStateRequest { ..Default::default() };
 
         // Then: result should be error.
-        assert_that!(
-            rpc_server.set_vehicle_state(request),
-            matches_pattern!(Err(matches_pattern!(RpcError::InvalidRequest)))
-        );
+        let fqin = ServiceFqin::from_str("vm:sdv.vpm.VpmSystemServiceBundle/default")
+            .expect("Could not create context for tests!");
+        let err = rpc_server.SetVehicleState(fqin, &request).await.err().unwrap();
+        assert_eq!(err.status_code(), SdvStatusCode::Internal);
     }
 
     #[tokio::test]
     async fn set_rpc_vehicle_state_fails_no_receiver() {
         // Given: mock services without a receiver.
-        let (vehicle_state_sender, vehicle_state_receiver) = channel();
+        let (vehicle_state_sender, vehicle_state_receiver) =
+            channel(VEHICLE_STATE_CHANNEL_QUEUE_SIZE);
         let mock_power_state_request_handler = MockPowerStateRequestHandler::default();
         let rpc_server =
             RpcServer::new(vehicle_state_sender, Box::new(mock_power_state_request_handler));
@@ -216,16 +222,16 @@ mod tests {
         drop(vehicle_state_receiver);
 
         // Then: result should be error.
-        assert_that!(
-            rpc_server.set_vehicle_state(request),
-            matches_pattern!(Err(matches_pattern!(RpcError::Other)))
-        );
+        let fqin = ServiceFqin::from_str("vm:sdv.vpm.VpmSystemServiceBundle/default")
+            .expect("Could not create context for tests!");
+        let err = rpc_server.SetVehicleState(fqin, &request).await.err().unwrap();
+        assert_eq!(err.status_code(), SdvStatusCode::Internal);
     }
 
-    #[test]
-    fn set_rpc_power_state_succeeds() {
+    #[tokio::test]
+    async fn set_rpc_power_state_succeeds() {
         // Given: a mock power service.
-        let (vehicle_state_sender, _) = channel();
+        let (vehicle_state_sender, _) = channel(VEHICLE_STATE_CHANNEL_QUEUE_SIZE);
         let mut mock_power_state_request_handler = MockPowerStateRequestHandler::default();
         mock_power_state_request_handler
             .expect_handle_set_power_state()
@@ -240,16 +246,18 @@ mod tests {
             shutdown_type: ShutdownType::POWER_OFF.into(),
             ..Default::default()
         };
-        let response = rpc_server.set_power_state(request);
+        let fqin = ServiceFqin::from_str("vm:sdv.vpm.VpmSystemServiceBundle/default")
+            .expect("Could not create context for tests!");
+        let response = rpc_server.SetPowerState(fqin, &request).await;
 
         // Then: power state should be set in the power service.
         assert_eq!(response.unwrap().error, PowerStateChangeRequestError::NO_ERROR.into());
     }
 
-    #[test]
-    fn set_rpc_power_state_fails() {
+    #[tokio::test]
+    async fn set_rpc_power_state_fails() {
         // Given: a mock power service.
-        let (vehicle_state_sender, _) = channel();
+        let (vehicle_state_sender, _) = channel(VEHICLE_STATE_CHANNEL_QUEUE_SIZE);
         let mut mock_power_state_request_handler = MockPowerStateRequestHandler::default();
         mock_power_state_request_handler
             .expect_handle_set_power_state()
@@ -264,7 +272,9 @@ mod tests {
             shutdown_type: ShutdownType::POWER_OFF.into(),
             ..Default::default()
         };
-        let response = rpc_server.set_power_state(request);
+        let fqin = ServiceFqin::from_str("vm:sdv.vpm.VpmSystemServiceBundle/default")
+            .expect("Could not create context for tests!");
+        let response = rpc_server.SetPowerState(fqin, &request).await;
 
         // Then: power state should not be set in the power service.
         // Failure is reported.
