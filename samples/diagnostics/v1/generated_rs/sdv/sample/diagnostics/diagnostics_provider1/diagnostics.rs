@@ -80,11 +80,11 @@ impl Diagnostics {
 
     /// Create FaultListenerSrvice implementation.
     pub fn create_fault_listener_server(
-        lowpressure_fault_listener: Arc<
+        lowpressure_handler: Arc<
             dyn FaultListenerHandler<diagnostics_v1_sample_catalog::messages::LowPressureData>,
         >,
     ) -> Arc<dyn FaultListenerService> {
-        Arc::new(FaultListenerServer { lowpressure_fault_listener })
+        Arc::new(FaultListenerServer { lowpressure_handler })
     }
 }
 
@@ -245,7 +245,7 @@ impl IoControlService for IoControlServer {
 }
 
 struct FaultListenerServer {
-    lowpressure_fault_listener:
+    lowpressure_handler:
         Arc<dyn FaultListenerHandler<diagnostics_v1_sample_catalog::messages::LowPressureData>>,
 }
 
@@ -257,7 +257,7 @@ impl FaultListenerService for FaultListenerServer {
     ) -> SdvResult<OnFaultStatusChangeResponse> {
         match request.id.as_str() {
             "lowpressure" => Ok(self
-                .lowpressure_fault_listener
+                .lowpressure_handler
                 .on_fault_status_change_untyped(
                     request.status as u8,
                     request.extended_data.as_deref(),
