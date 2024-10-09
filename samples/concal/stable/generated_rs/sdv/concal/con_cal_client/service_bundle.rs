@@ -42,14 +42,14 @@ impl ConCalClient {
     /// Attempts to connect to an RPC server, returns a client stub if succeed.
     pub async fn create_rpc_client<T: sdv_mw_rs_comms::RpcClient>(
         &self,
-        package: String,
-        bundle: String,
+        package: impl Into<String>,
+        bundle: impl Into<String>,
         options: sdv_mw_rs_comms::ClientOptions,
     ) -> sdv_status_rs::SdvResult<T> {
         let attributes = sdv_mw_rs_comms::ClientAttributes {
             server_name: sdv_mw_rs_comms::UnitName {
-                package,
-                bundle,
+                package: package.into(),
+                bundle: bundle.into(),
                 vm: "".to_string(),
                 name: T::DEFAULT_UNIT_NAME.to_string(),
             },

@@ -18,49 +18,49 @@ impl UnitType for dyn sdv_diagnostics_diagnostics_manager_service_rpc::Interface
 impl UnitType for dyn sdv_diagnostics_data_item_data_item_service_rpc::Interface {
     const PACKAGE: &'static str = "sdv.diagnostics";
     const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
-    const TYPENAME: &'static str = "DataItemDataItemService";
+    const TYPENAME: &'static str = "data_item.DataItemService";
 }
 
 impl UnitType for dyn sdv_diagnostics_routine_control_routine_control_service_rpc::Interface {
     const PACKAGE: &'static str = "sdv.diagnostics";
     const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
-    const TYPENAME: &'static str = "RoutineControlRoutineControlService";
+    const TYPENAME: &'static str = "routine_control.RoutineControlService";
 }
 
 impl UnitType for dyn sdv_diagnostics_io_control_io_control_service_rpc::Interface {
     const PACKAGE: &'static str = "sdv.diagnostics";
     const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
-    const TYPENAME: &'static str = "IoControlIoControlService";
+    const TYPENAME: &'static str = "io_control.IoControlService";
 }
 
 impl UnitType for dyn sdv_diagnostics_fault_fault_listener_service_rpc::Interface {
     const PACKAGE: &'static str = "sdv.diagnostics";
     const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
-    const TYPENAME: &'static str = "IoControlFaultListenerService";
+    const TYPENAME: &'static str = "fault.FaultListenerService";
 }
 
 impl UnitType for dyn sdv_diagnostics_ecu_reset_ecu_reset_service_rpc::Interface {
     const PACKAGE: &'static str = "sdv.diagnostics";
     const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
-    const TYPENAME: &'static str = "EcuResetEcuResetService";
+    const TYPENAME: &'static str = "ecu_reset.EcuResetService";
 }
 
 impl UnitType for dyn sdv_diagnostics_security_access_security_access_service_rpc::Interface {
     const PACKAGE: &'static str = "sdv.diagnostics";
     const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
-    const TYPENAME: &'static str = "SecurityAccessSecurityAccessService";
+    const TYPENAME: &'static str = "security_access.SecurityAccessService";
 }
 
 impl UnitType for dyn sdv_diagnostics_authentication_authentication_service_rpc::Interface {
     const PACKAGE: &'static str = "sdv.diagnostics";
     const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
-    const TYPENAME: &'static str = "AuthenticationAuthenticationService";
+    const TYPENAME: &'static str = "authentication.AuthenticationService";
 }
 
 impl UnitType for dyn sdv_diagnostics_file_transfer_file_transfer_service_rpc::Interface {
     const PACKAGE: &'static str = "sdv.diagnostics";
     const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
-    const TYPENAME: &'static str = "FileTransferFileTransferService";
+    const TYPENAME: &'static str = "file_transfer.FileTransferService";
 }
 
 /// Service bundle
@@ -163,14 +163,14 @@ impl DiagnosticsManager {
     /// Attempts to connect to an RPC server, returns a client stub if succeed.
     pub async fn create_rpc_client<T: sdv_mw_rs_comms::RpcClient>(
         &self,
-        package: String,
-        bundle: String,
+        package: impl Into<String>,
+        bundle: impl Into<String>,
         options: sdv_mw_rs_comms::ClientOptions,
     ) -> sdv_status_rs::SdvResult<T> {
         let attributes = sdv_mw_rs_comms::ClientAttributes {
             server_name: sdv_mw_rs_comms::UnitName {
-                package,
-                bundle,
+                package: package.into(),
+                bundle: bundle.into(),
                 vm: "".to_string(),
                 name: T::DEFAULT_UNIT_NAME.to_string(),
             },

@@ -18,10 +18,10 @@ pub mod internal {
             "StartCalibration",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.StartCalibration(&req).await }
+                    async move { srv.StartCalibration(id, &req).await }
                 })
             })},
         )
@@ -29,10 +29,10 @@ pub mod internal {
             "UpdateConfig",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.UpdateConfig(&req).await }
+                    async move { srv.UpdateConfig(id, &req).await }
                 })
             })},
         )
@@ -40,10 +40,10 @@ pub mod internal {
             "FinishCalibration",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.FinishCalibration(&req).await }
+                    async move { srv.FinishCalibration(id, &req).await }
                 })
             })},
         ).build()
@@ -52,10 +52,11 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// calib.CalibratableService RPC interface trait
+/// calib.CalibratableService RPC server interface trait
 pub trait Interface: Send + Sync {
     async fn StartCalibration(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::calibratable_service::StartCalibrationRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::StartCalibrationResponse>
     {
@@ -63,6 +64,7 @@ pub trait Interface: Send + Sync {
     }
     async fn UpdateConfig(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::calibratable_service::UpdateConfigRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::UpdateConfigResponse>
     {
@@ -70,6 +72,7 @@ pub trait Interface: Send + Sync {
     }
     async fn FinishCalibration(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::calibratable_service::FinishCalibrationRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::FinishCalibrationResponse>
     {
@@ -80,23 +83,23 @@ pub trait Interface: Send + Sync {
 /// Client for calib.CalibratableService RPC interface
 pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 
-#[async_trait::async_trait]
-impl Interface for Client {
-    async fn StartCalibration(
+#[allow(non_snake_case, missing_docs)]
+impl Client {
+    pub async fn StartCalibration(
         &self,
         request: &concal_api_stable::calibratable_service::StartCalibrationRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::StartCalibrationResponse>
     {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "StartCalibration", request).await
     }
-    async fn UpdateConfig(
+    pub async fn UpdateConfig(
         &self,
         request: &concal_api_stable::calibratable_service::UpdateConfigRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::UpdateConfigResponse>
     {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "UpdateConfig", request).await
     }
-    async fn FinishCalibration(
+    pub async fn FinishCalibration(
         &self,
         request: &concal_api_stable::calibratable_service::FinishCalibrationRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::FinishCalibrationResponse>

@@ -18,10 +18,10 @@ pub mod internal {
             "AddFile",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.AddFile(&req).await }
+                    async move { srv.AddFile(id, &req).await }
                 })
             })},
         )
@@ -29,10 +29,10 @@ pub mod internal {
             "ReplaceFile",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.ReplaceFile(&req).await }
+                    async move { srv.ReplaceFile(id, &req).await }
                 })
             })},
         )
@@ -40,10 +40,10 @@ pub mod internal {
             "ResumeFile",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.ResumeFile(&req).await }
+                    async move { srv.ResumeFile(id, &req).await }
                 })
             })},
         )
@@ -51,10 +51,10 @@ pub mod internal {
             "ReadFile",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.ReadFile(&req).await }
+                    async move { srv.ReadFile(id, &req).await }
                 })
             })},
         )
@@ -62,10 +62,10 @@ pub mod internal {
             "DeleteFile",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.DeleteFile(&req).await }
+                    async move { srv.DeleteFile(id, &req).await }
                 })
             })},
         )
@@ -73,10 +73,10 @@ pub mod internal {
             "ExitFileTransfer",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.ExitFileTransfer(&req).await }
+                    async move { srv.ExitFileTransfer(id, &req).await }
                 })
             })},
         ).build()
@@ -85,16 +85,18 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// file_transfer.FileTransferService RPC interface trait
+/// file_transfer.FileTransferService RPC server interface trait
 pub trait Interface: Send + Sync {
     async fn AddFile(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::file_transfer_service::AddFileRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::file_transfer_service::AddFileResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn ReplaceFile(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::file_transfer_service::ReplaceFileRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::file_transfer_service::ReplaceFileResponse>
     {
@@ -102,6 +104,7 @@ pub trait Interface: Send + Sync {
     }
     async fn ResumeFile(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::file_transfer_service::ResumeFileRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::file_transfer_service::ResumeFileResponse>
     {
@@ -109,12 +112,14 @@ pub trait Interface: Send + Sync {
     }
     async fn ReadFile(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::file_transfer_service::ReadFileRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::file_transfer_service::ReadFileResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn DeleteFile(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::file_transfer_service::DeleteFileRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::file_transfer_service::DeleteFileResponse>
     {
@@ -122,6 +127,7 @@ pub trait Interface: Send + Sync {
     }
     async fn ExitFileTransfer(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::file_transfer_service::ExitFileTransferRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::file_transfer_service::ExitFileTransferResponse>
     {
@@ -132,42 +138,42 @@ pub trait Interface: Send + Sync {
 /// Client for file_transfer.FileTransferService RPC interface
 pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 
-#[async_trait::async_trait]
-impl Interface for Client {
-    async fn AddFile(
+#[allow(non_snake_case, missing_docs)]
+impl Client {
+    pub async fn AddFile(
         &self,
         request: &diagnostics_v1_api::file_transfer_service::AddFileRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::file_transfer_service::AddFileResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "AddFile", request).await
     }
-    async fn ReplaceFile(
+    pub async fn ReplaceFile(
         &self,
         request: &diagnostics_v1_api::file_transfer_service::ReplaceFileRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::file_transfer_service::ReplaceFileResponse>
     {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "ReplaceFile", request).await
     }
-    async fn ResumeFile(
+    pub async fn ResumeFile(
         &self,
         request: &diagnostics_v1_api::file_transfer_service::ResumeFileRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::file_transfer_service::ResumeFileResponse>
     {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "ResumeFile", request).await
     }
-    async fn ReadFile(
+    pub async fn ReadFile(
         &self,
         request: &diagnostics_v1_api::file_transfer_service::ReadFileRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::file_transfer_service::ReadFileResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "ReadFile", request).await
     }
-    async fn DeleteFile(
+    pub async fn DeleteFile(
         &self,
         request: &diagnostics_v1_api::file_transfer_service::DeleteFileRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::file_transfer_service::DeleteFileResponse>
     {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "DeleteFile", request).await
     }
-    async fn ExitFileTransfer(
+    pub async fn ExitFileTransfer(
         &self,
         request: &diagnostics_v1_api::file_transfer_service::ExitFileTransferRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::file_transfer_service::ExitFileTransferResponse>

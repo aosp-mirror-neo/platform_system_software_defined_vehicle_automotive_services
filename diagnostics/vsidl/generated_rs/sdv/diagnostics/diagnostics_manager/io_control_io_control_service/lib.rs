@@ -18,10 +18,10 @@ pub mod internal {
             "ReturnControlToEcu",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.ReturnControlToEcu(&req).await }
+                    async move { srv.ReturnControlToEcu(id, &req).await }
                 })
             })},
         )
@@ -29,10 +29,10 @@ pub mod internal {
             "ResetToDefault",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.ResetToDefault(&req).await }
+                    async move { srv.ResetToDefault(id, &req).await }
                 })
             })},
         )
@@ -40,10 +40,10 @@ pub mod internal {
             "FreezeCurrentState",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.FreezeCurrentState(&req).await }
+                    async move { srv.FreezeCurrentState(id, &req).await }
                 })
             })},
         )
@@ -51,10 +51,10 @@ pub mod internal {
             "PerformShortTermAdjustment",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.PerformShortTermAdjustment(&req).await }
+                    async move { srv.PerformShortTermAdjustment(id, &req).await }
                 })
             })},
         ).build()
@@ -63,28 +63,32 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// io_control.IoControlService RPC interface trait
+/// io_control.IoControlService RPC server interface trait
 pub trait Interface: Send + Sync {
     async fn ReturnControlToEcu(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::io_control_service::IoControlRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::io_control_service::IoControlResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn ResetToDefault(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::io_control_service::IoControlRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::io_control_service::IoControlResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn FreezeCurrentState(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::io_control_service::IoControlRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::io_control_service::IoControlResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn PerformShortTermAdjustment(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::io_control_service::PerformShortTermAdjustmentRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::io_control_service::IoControlResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
@@ -94,27 +98,27 @@ pub trait Interface: Send + Sync {
 /// Client for io_control.IoControlService RPC interface
 pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 
-#[async_trait::async_trait]
-impl Interface for Client {
-    async fn ReturnControlToEcu(
+#[allow(non_snake_case, missing_docs)]
+impl Client {
+    pub async fn ReturnControlToEcu(
         &self,
         request: &diagnostics_v1_api::io_control_service::IoControlRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::io_control_service::IoControlResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "ReturnControlToEcu", request).await
     }
-    async fn ResetToDefault(
+    pub async fn ResetToDefault(
         &self,
         request: &diagnostics_v1_api::io_control_service::IoControlRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::io_control_service::IoControlResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "ResetToDefault", request).await
     }
-    async fn FreezeCurrentState(
+    pub async fn FreezeCurrentState(
         &self,
         request: &diagnostics_v1_api::io_control_service::IoControlRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::io_control_service::IoControlResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "FreezeCurrentState", request).await
     }
-    async fn PerformShortTermAdjustment(
+    pub async fn PerformShortTermAdjustment(
         &self,
         request: &diagnostics_v1_api::io_control_service::PerformShortTermAdjustmentRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::io_control_service::IoControlResponse> {
