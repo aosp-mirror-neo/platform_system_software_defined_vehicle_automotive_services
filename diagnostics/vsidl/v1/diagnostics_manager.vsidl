@@ -16,6 +16,15 @@ sdv_service_bundle {
     }
 
     unit_type {
+        # This unit type is handled by Diagnostics MW generation.
+        # By setting it to PRIVATE we ensure that Service Bundles can only declare Events via Diagnostics declaration.
+        #
+        # See sdv.diagnostics.v1.DiagnosticsDeclaration.Event.
+        access_modifier: PRIVATE
+        type: "event.Event"
+    }
+
+    unit_type {
         type: "data_item.DataItemService"
     }
 
