@@ -8,7 +8,9 @@ use crate::entity_id::RoutineMethod::*;
 use crate::translator::{Translator, TranslatorError, TranslatorImpl};
 use protobuf::reflect::MessageDescriptor;
 use sdv_comms::id::ServiceFqin;
-use sdv_config_provider::vsidl_provider::{VsidlConfigProviderV1, VsidlProviderV1};
+use sdv_config_provider::{
+    vsidl_provider::VsidlProviderV1, vsidl_provider_api::VsidlConfigProviderV1,
+};
 use vsidl_v1::diagnostics::DiagnosticsDeclaration;
 
 /// UDS to SDV translator for diagnostic entities.
@@ -158,7 +160,7 @@ mod tests {
     use mockall::predicate::{always, eq as mock_eq};
     use protobuf::MessageField;
     use sdv_comms::id::ServiceFqin;
-    use sdv_config_provider::vsidl_provider::MockVsidlConfigProviderV1;
+    use sdv_config_provider::vsidl_provider_api::MockVsidlConfigProviderV1;
     use std::str::FromStr;
     use vsidl_v1::diagnostics::{
         diagnostics_declaration::{routine::Method, *},
