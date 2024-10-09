@@ -1,6 +1,6 @@
 // Copyright 2024 Google LLC
 use crate::diagnostics_translator::DiagnosticsTranslatorError::{
-    MissingEntityDeclarationError, MissingServiceBundleDeclarationError, VsidlError,
+    MissingEntityDeclarationError, MissingServiceBundleDeclarationError, VsidlProviderError,
 };
 use crate::entity_id::EntityId::{self, *};
 use crate::entity_id::MethodMessage::*;
@@ -80,7 +80,7 @@ impl DiagnosticsTranslator {
 
         self.vsidl_provider
             .get_message_descriptor(service_fqbn, message_name)
-            .map_err(|vsidl_provider_error| VsidlError(vsidl_provider_error.to_string()))
+            .ok_or_else(|| VsidlProviderError(service_fqbn.to_string(), message_name.to_string()))
     }
 
     fn extract_message_name<'lt>(
@@ -131,8 +131,8 @@ impl Default for DiagnosticsTranslator {
 #[derive(Debug, thiserror::Error)]
 pub enum DiagnosticsTranslatorError {
     /// Error getting information from VSIDL
-    #[error("Error getting information from VSIDL: {0}")]
-    VsidlError(String),
+    #[error("Error getting information from VSIDL provider for message [{1}] from source [{0}]")]
+    VsidlProviderError(String, String),
 
     /// Declaration of service bundle is missing
     #[error("Diagnostics declaration of [{0}] is missing")]
@@ -158,7 +158,7 @@ mod tests {
     use mockall::predicate::{always, eq as mock_eq};
     use protobuf::MessageField;
     use sdv_comms::id::ServiceFqin;
-    use sdv_config_provider::vsidl_provider::{MockVsidlConfigProviderV1, VsidlProviderErrorV1};
+    use sdv_config_provider::vsidl_provider::MockVsidlConfigProviderV1;
     use std::str::FromStr;
     use vsidl_v1::diagnostics::{
         diagnostics_declaration::{routine::Method, *},
@@ -204,11 +204,7 @@ mod tests {
             }
         });
         mock_vsidl_provider.expect_get_message_descriptor().returning(
-            move |_source_fqin, message_name| {
-                file_descriptor
-                    .message_by_full_name(message_name)
-                    .ok_or(VsidlProviderErrorV1::Error("Message not found!".to_string()))
-            },
+            move |_source_fqin, message_name| file_descriptor.message_by_full_name(message_name),
         );
 
         let mut mock_translator = MockTranslator::new();
