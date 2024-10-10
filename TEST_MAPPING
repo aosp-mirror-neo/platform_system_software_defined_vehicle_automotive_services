@@ -5,6 +5,9 @@
       "name": "libsdv_uds_serde_tests"
     },
     {
+      "name": "sdv_uds_serde_v1_tests"
+    },
+    {
       "name": "sdv_con_cal_service_tests"
     },
     {
@@ -18,6 +21,9 @@
     },
     {
       "name": "sdv_middleware_extension_diagnostics_tests"
+    },
+    {
+      "name": "sdv_mw_rs_diag_tests"
     }
   ],
   "sdv_automotive_service_postsubmit": [],
