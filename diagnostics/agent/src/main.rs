@@ -75,7 +75,12 @@ async fn listen_to_events(context: ContextRef) {
 
     loop {
         let mut service_units = sd.list_units_by_type(
-            &UnitType::from_str("sdv.diagnostics.DiagnosticsManager#EventEvent").unwrap(),
+            &UnitType::builder()
+                .set_sdv_package_name("sdv.diagnostics")
+                .set_service_bundle_name("DiagnosticsManager")
+                .set_unit_type_name("event.Event")
+                .build()
+                .unwrap(),
         );
 
         while let Some(service_unit) = service_units.next().await {
