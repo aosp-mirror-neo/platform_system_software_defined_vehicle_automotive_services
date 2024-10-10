@@ -48,10 +48,3 @@ rust_binary {
         "libsdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider2",
     ],
 }
-
-rust_binary {
-    name: "diag_v1_receiver",
-    defaults: ["diag_v1_samples@rust_defaults"],
-    srcs: ["src/receiver.rs"],
-    ld_flags: ["-Wl,--no-as-needed"],
-}
