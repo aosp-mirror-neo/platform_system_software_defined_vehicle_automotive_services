@@ -18,10 +18,10 @@ pub mod internal {
             "HardReset",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.HardReset(&req).await }
+                    async move { srv.HardReset(id, &req).await }
                 })
             })},
         )
@@ -29,10 +29,10 @@ pub mod internal {
             "KeyOnOffReset",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.KeyOnOffReset(&req).await }
+                    async move { srv.KeyOnOffReset(id, &req).await }
                 })
             })},
         )
@@ -40,10 +40,10 @@ pub mod internal {
             "SoftReset",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.SoftReset(&req).await }
+                    async move { srv.SoftReset(id, &req).await }
                 })
             })},
         )
@@ -51,10 +51,10 @@ pub mod internal {
             "EnableRapidPowerShutdown",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.EnableRapidPowerShutdown(&req).await }
+                    async move { srv.EnableRapidPowerShutdown(id, &req).await }
                 })
             })},
         )
@@ -62,10 +62,10 @@ pub mod internal {
             "DisableRapidPowerShutdown",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.DisableRapidPowerShutdown(&req).await }
+                    async move { srv.DisableRapidPowerShutdown(id, &req).await }
                 })
             })},
         )
@@ -73,10 +73,10 @@ pub mod internal {
             "CustomReset",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.CustomReset(&req).await }
+                    async move { srv.CustomReset(id, &req).await }
                 })
             })},
         ).build()
@@ -85,28 +85,32 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// ecu_reset.EcuResetService RPC interface trait
+/// ecu_reset.EcuResetService RPC server interface trait
 pub trait Interface: Send + Sync {
     async fn HardReset(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::ecu_reset_service::ResetRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::ecu_reset_service::ResetResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn KeyOnOffReset(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::ecu_reset_service::ResetRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::ecu_reset_service::ResetResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn SoftReset(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::ecu_reset_service::ResetRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::ecu_reset_service::ResetResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn EnableRapidPowerShutdown(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::ecu_reset_service::ResetRequest,
     ) -> sdv_status_rs::SdvResult<
         diagnostics_v1_api::ecu_reset_service::EnableRapidPowerShutdownResponse,
@@ -115,12 +119,14 @@ pub trait Interface: Send + Sync {
     }
     async fn DisableRapidPowerShutdown(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::ecu_reset_service::ResetRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::ecu_reset_service::ResetResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn CustomReset(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::ecu_reset_service::CustomResetRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::ecu_reset_service::CustomResetResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
@@ -130,27 +136,27 @@ pub trait Interface: Send + Sync {
 /// Client for ecu_reset.EcuResetService RPC interface
 pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 
-#[async_trait::async_trait]
-impl Interface for Client {
-    async fn HardReset(
+#[allow(non_snake_case, missing_docs)]
+impl Client {
+    pub async fn HardReset(
         &self,
         request: &diagnostics_v1_api::ecu_reset_service::ResetRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::ecu_reset_service::ResetResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "HardReset", request).await
     }
-    async fn KeyOnOffReset(
+    pub async fn KeyOnOffReset(
         &self,
         request: &diagnostics_v1_api::ecu_reset_service::ResetRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::ecu_reset_service::ResetResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "KeyOnOffReset", request).await
     }
-    async fn SoftReset(
+    pub async fn SoftReset(
         &self,
         request: &diagnostics_v1_api::ecu_reset_service::ResetRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::ecu_reset_service::ResetResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "SoftReset", request).await
     }
-    async fn EnableRapidPowerShutdown(
+    pub async fn EnableRapidPowerShutdown(
         &self,
         request: &diagnostics_v1_api::ecu_reset_service::ResetRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -158,13 +164,13 @@ impl Interface for Client {
     > {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "EnableRapidPowerShutdown", request).await
     }
-    async fn DisableRapidPowerShutdown(
+    pub async fn DisableRapidPowerShutdown(
         &self,
         request: &diagnostics_v1_api::ecu_reset_service::ResetRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::ecu_reset_service::ResetResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "DisableRapidPowerShutdown", request).await
     }
-    async fn CustomReset(
+    pub async fn CustomReset(
         &self,
         request: &diagnostics_v1_api::ecu_reset_service::CustomResetRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::ecu_reset_service::CustomResetResponse> {

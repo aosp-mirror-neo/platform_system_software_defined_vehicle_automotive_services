@@ -18,10 +18,10 @@ pub mod internal {
             "RequestSeed",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.RequestSeed(&req).await }
+                    async move { srv.RequestSeed(id, &req).await }
                 })
             })},
         )
@@ -29,10 +29,10 @@ pub mod internal {
             "SendKey",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.SendKey(&req).await }
+                    async move { srv.SendKey(id, &req).await }
                 })
             })},
         ).build()
@@ -41,16 +41,18 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// security_access.SecurityAccessService RPC interface trait
+/// security_access.SecurityAccessService RPC server interface trait
 pub trait Interface: Send + Sync {
     async fn RequestSeed(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::security_access_service::SeedRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::security_access_service::SeedResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn SendKey(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::security_access_service::SendKeyRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::security_access_service::SendKeyResponse>
     {
@@ -61,15 +63,15 @@ pub trait Interface: Send + Sync {
 /// Client for security_access.SecurityAccessService RPC interface
 pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 
-#[async_trait::async_trait]
-impl Interface for Client {
-    async fn RequestSeed(
+#[allow(non_snake_case, missing_docs)]
+impl Client {
+    pub async fn RequestSeed(
         &self,
         request: &diagnostics_v1_api::security_access_service::SeedRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::security_access_service::SeedResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "RequestSeed", request).await
     }
-    async fn SendKey(
+    pub async fn SendKey(
         &self,
         request: &diagnostics_v1_api::security_access_service::SendKeyRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::security_access_service::SendKeyResponse>

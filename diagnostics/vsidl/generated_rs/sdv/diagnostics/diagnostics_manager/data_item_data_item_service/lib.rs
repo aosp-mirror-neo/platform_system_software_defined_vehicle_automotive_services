@@ -18,10 +18,10 @@ pub mod internal {
             "ReadDataItem",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.ReadDataItem(&req).await }
+                    async move { srv.ReadDataItem(id, &req).await }
                 })
             })},
         )
@@ -29,10 +29,10 @@ pub mod internal {
             "WriteDataItem",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.WriteDataItem(&req).await }
+                    async move { srv.WriteDataItem(id, &req).await }
                 })
             })},
         ).build()
@@ -41,16 +41,18 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// data_item.DataItemService RPC interface trait
+/// data_item.DataItemService RPC server interface trait
 pub trait Interface: Send + Sync {
     async fn ReadDataItem(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::data_item_service::ReadDataItemRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::data_item_service::ReadDataItemResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn WriteDataItem(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::data_item_service::WriteDataItemRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::data_item_service::WriteDataItemResponse>
     {
@@ -61,15 +63,15 @@ pub trait Interface: Send + Sync {
 /// Client for data_item.DataItemService RPC interface
 pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 
-#[async_trait::async_trait]
-impl Interface for Client {
-    async fn ReadDataItem(
+#[allow(non_snake_case, missing_docs)]
+impl Client {
+    pub async fn ReadDataItem(
         &self,
         request: &diagnostics_v1_api::data_item_service::ReadDataItemRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::data_item_service::ReadDataItemResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "ReadDataItem", request).await
     }
-    async fn WriteDataItem(
+    pub async fn WriteDataItem(
         &self,
         request: &diagnostics_v1_api::data_item_service::WriteDataItemRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::data_item_service::WriteDataItemResponse>

@@ -18,10 +18,10 @@ pub mod internal {
             "GetConnectionParameters",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.GetConnectionParameters(&req).await }
+                    async move { srv.GetConnectionParameters(id, &req).await }
                 })
             })},
         ).build()
@@ -30,10 +30,11 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// DiagnosticsManagerService RPC interface trait
+/// DiagnosticsManagerService RPC server interface trait
 pub trait Interface: Send + Sync {
     async fn GetConnectionParameters(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::diagnostics_manager_service::GetConnectionParametersRequest,
     ) -> sdv_status_rs::SdvResult<
         diagnostics_v1_api::diagnostics_manager_service::GetConnectionParametersResponse,
@@ -45,9 +46,9 @@ pub trait Interface: Send + Sync {
 /// Client for DiagnosticsManagerService RPC interface
 pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 
-#[async_trait::async_trait]
-impl Interface for Client {
-    async fn GetConnectionParameters(
+#[allow(non_snake_case, missing_docs)]
+impl Client {
+    pub async fn GetConnectionParameters(
         &self,
         request: &diagnostics_v1_api::diagnostics_manager_service::GetConnectionParametersRequest,
     ) -> sdv_status_rs::SdvResult<

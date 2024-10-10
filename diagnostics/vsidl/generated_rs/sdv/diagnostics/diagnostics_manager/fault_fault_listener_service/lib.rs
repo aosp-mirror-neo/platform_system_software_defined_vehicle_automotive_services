@@ -18,10 +18,10 @@ pub mod internal {
             "OnFaultStatusChange",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.OnFaultStatusChange(&req).await }
+                    async move { srv.OnFaultStatusChange(id, &req).await }
                 })
             })},
         ).build()
@@ -30,10 +30,11 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// fault.FaultListenerService RPC interface trait
+/// fault.FaultListenerService RPC server interface trait
 pub trait Interface: Send + Sync {
     async fn OnFaultStatusChange(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::fault_listener_service::OnFaultStatusChangeRequest,
     ) -> sdv_status_rs::SdvResult<
         diagnostics_v1_api::fault_listener_service::OnFaultStatusChangeResponse,
@@ -45,9 +46,9 @@ pub trait Interface: Send + Sync {
 /// Client for fault.FaultListenerService RPC interface
 pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 
-#[async_trait::async_trait]
-impl Interface for Client {
-    async fn OnFaultStatusChange(
+#[allow(non_snake_case, missing_docs)]
+impl Client {
+    pub async fn OnFaultStatusChange(
         &self,
         request: &diagnostics_v1_api::fault_listener_service::OnFaultStatusChangeRequest,
     ) -> sdv_status_rs::SdvResult<

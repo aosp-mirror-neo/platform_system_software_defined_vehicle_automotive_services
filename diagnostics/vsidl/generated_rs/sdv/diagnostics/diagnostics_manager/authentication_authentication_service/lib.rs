@@ -18,10 +18,10 @@ pub mod internal {
             "PerformDeauthentication",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.PerformDeauthentication(&req).await }
+                    async move { srv.PerformDeauthentication(id, &req).await }
                 })
             })},
         )
@@ -29,10 +29,10 @@ pub mod internal {
             "VerifyCertificate",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.VerifyCertificate(&req).await }
+                    async move { srv.VerifyCertificate(id, &req).await }
                 })
             })},
         )
@@ -40,10 +40,10 @@ pub mod internal {
             "VerifyCertificateBidirectional",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.VerifyCertificateBidirectional(&req).await }
+                    async move { srv.VerifyCertificateBidirectional(id, &req).await }
                 })
             })},
         )
@@ -51,10 +51,10 @@ pub mod internal {
             "GetProofOfOwnership",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.GetProofOfOwnership(&req).await }
+                    async move { srv.GetProofOfOwnership(id, &req).await }
                 })
             })},
         )
@@ -62,10 +62,10 @@ pub mod internal {
             "TransmitCertificate",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.TransmitCertificate(&req).await }
+                    async move { srv.TransmitCertificate(id, &req).await }
                 })
             })},
         )
@@ -73,10 +73,10 @@ pub mod internal {
             "RequestChallengeForAuthentication",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.RequestChallengeForAuthentication(&req).await }
+                    async move { srv.RequestChallengeForAuthentication(id, &req).await }
                 })
             })},
         )
@@ -84,10 +84,10 @@ pub mod internal {
             "VerifyProofOfOwnership",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.VerifyProofOfOwnership(&req).await }
+                    async move { srv.VerifyProofOfOwnership(id, &req).await }
                 })
             })},
         )
@@ -95,10 +95,10 @@ pub mod internal {
             "VerifyProofOfOwnershipBidirectional",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.VerifyProofOfOwnershipBidirectional(&req).await }
+                    async move { srv.VerifyProofOfOwnershipBidirectional(id, &req).await }
                 })
             })},
         )
@@ -106,10 +106,10 @@ pub mod internal {
             "GetAuthenticationConfiguration",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.GetAuthenticationConfiguration(&req).await }
+                    async move { srv.GetAuthenticationConfiguration(id, &req).await }
                 })
             })},
         ).build()
@@ -118,10 +118,11 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// authentication.AuthenticationService RPC interface trait
+/// authentication.AuthenticationService RPC server interface trait
 pub trait Interface: Send + Sync {
     async fn PerformDeauthentication(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::authentication_service::PerformDeauthenticationRequest,
     ) -> sdv_status_rs::SdvResult<
         diagnostics_v1_api::authentication_service::PerformDeauthenticationResponse,
@@ -130,6 +131,7 @@ pub trait Interface: Send + Sync {
     }
     async fn VerifyCertificate(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::authentication_service::VerifyCertificateRequest,
     ) -> sdv_status_rs::SdvResult<
         diagnostics_v1_api::authentication_service::VerifyCertificateResponse,
@@ -138,6 +140,7 @@ pub trait Interface: Send + Sync {
     }
     async fn VerifyCertificateBidirectional(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::authentication_service::VerifyCertificateRequest,
     ) -> sdv_status_rs::SdvResult<
         diagnostics_v1_api::authentication_service::VerifyCertificateBidirectionalResponse,
@@ -146,6 +149,7 @@ pub trait Interface: Send + Sync {
     }
     async fn GetProofOfOwnership(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::authentication_service::GetProofOfOwnershipRequest,
     ) -> sdv_status_rs::SdvResult<
         diagnostics_v1_api::authentication_service::GetProofOfOwnershipResponse,
@@ -154,6 +158,7 @@ pub trait Interface: Send + Sync {
     }
     async fn TransmitCertificate(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::authentication_service::TransmitCertificateRequest,
     ) -> sdv_status_rs::SdvResult<
         diagnostics_v1_api::authentication_service::TransmitCertificateResponse,
@@ -162,6 +167,7 @@ pub trait Interface: Send + Sync {
     }
     async fn RequestChallengeForAuthentication(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::authentication_service::RequestChallengeRequest,
     ) -> sdv_status_rs::SdvResult<
         diagnostics_v1_api::authentication_service::RequestChallengeResponse,
@@ -170,6 +176,7 @@ pub trait Interface: Send + Sync {
     }
     async fn VerifyProofOfOwnership(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::authentication_service::VerifyProofOfOwnershipRequest,
     ) -> sdv_status_rs::SdvResult<
         diagnostics_v1_api::authentication_service::VerifyProofOfOwnershipResponse,
@@ -178,6 +185,7 @@ pub trait Interface: Send + Sync {
     }
     async fn VerifyProofOfOwnershipBidirectional(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::authentication_service::VerifyProofOfOwnershipRequest,
     ) -> sdv_status_rs::SdvResult<
         diagnostics_v1_api::authentication_service::VerifyProofOfOwnershipBidirectionalResponse,
@@ -186,6 +194,7 @@ pub trait Interface: Send + Sync {
     }
     async fn GetAuthenticationConfiguration(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::authentication_service::GetAuthenticationConfigurationRequest,
     ) -> sdv_status_rs::SdvResult<
         diagnostics_v1_api::authentication_service::GetAuthenticationConfigurationResponse,
@@ -197,9 +206,9 @@ pub trait Interface: Send + Sync {
 /// Client for authentication.AuthenticationService RPC interface
 pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 
-#[async_trait::async_trait]
-impl Interface for Client {
-    async fn PerformDeauthentication(
+#[allow(non_snake_case, missing_docs)]
+impl Client {
+    pub async fn PerformDeauthentication(
         &self,
         request: &diagnostics_v1_api::authentication_service::PerformDeauthenticationRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -207,7 +216,7 @@ impl Interface for Client {
     > {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "PerformDeauthentication", request).await
     }
-    async fn VerifyCertificate(
+    pub async fn VerifyCertificate(
         &self,
         request: &diagnostics_v1_api::authentication_service::VerifyCertificateRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -215,7 +224,7 @@ impl Interface for Client {
     > {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "VerifyCertificate", request).await
     }
-    async fn VerifyCertificateBidirectional(
+    pub async fn VerifyCertificateBidirectional(
         &self,
         request: &diagnostics_v1_api::authentication_service::VerifyCertificateRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -224,7 +233,7 @@ impl Interface for Client {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "VerifyCertificateBidirectional", request)
             .await
     }
-    async fn GetProofOfOwnership(
+    pub async fn GetProofOfOwnership(
         &self,
         request: &diagnostics_v1_api::authentication_service::GetProofOfOwnershipRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -232,7 +241,7 @@ impl Interface for Client {
     > {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "GetProofOfOwnership", request).await
     }
-    async fn TransmitCertificate(
+    pub async fn TransmitCertificate(
         &self,
         request: &diagnostics_v1_api::authentication_service::TransmitCertificateRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -240,7 +249,7 @@ impl Interface for Client {
     > {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "TransmitCertificate", request).await
     }
-    async fn RequestChallengeForAuthentication(
+    pub async fn RequestChallengeForAuthentication(
         &self,
         request: &diagnostics_v1_api::authentication_service::RequestChallengeRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -249,7 +258,7 @@ impl Interface for Client {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "RequestChallengeForAuthentication", request)
             .await
     }
-    async fn VerifyProofOfOwnership(
+    pub async fn VerifyProofOfOwnership(
         &self,
         request: &diagnostics_v1_api::authentication_service::VerifyProofOfOwnershipRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -257,7 +266,7 @@ impl Interface for Client {
     > {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "VerifyProofOfOwnership", request).await
     }
-    async fn VerifyProofOfOwnershipBidirectional(
+    pub async fn VerifyProofOfOwnershipBidirectional(
         &self,
         request: &diagnostics_v1_api::authentication_service::VerifyProofOfOwnershipRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -270,7 +279,7 @@ impl Interface for Client {
         )
         .await
     }
-    async fn GetAuthenticationConfiguration(
+    pub async fn GetAuthenticationConfiguration(
         &self,
         request: &diagnostics_v1_api::authentication_service::GetAuthenticationConfigurationRequest,
     ) -> sdv_status_rs::SdvResult<

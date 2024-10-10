@@ -18,10 +18,10 @@ pub mod internal {
             "RegisterForCalibrationUpdate",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.RegisterForCalibrationUpdate(&req).await }
+                    async move { srv.RegisterForCalibrationUpdate(id, &req).await }
                 })
             })},
         )
@@ -29,10 +29,10 @@ pub mod internal {
             "UnregisterFromCalibrationUpdate",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.UnregisterFromCalibrationUpdate(&req).await }
+                    async move { srv.UnregisterFromCalibrationUpdate(id, &req).await }
                 })
             })},
         ).build()
@@ -41,13 +41,17 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// calib.ConCalCalibrationNotificationService RPC interface trait
+/// calib.ConCalCalibrationNotificationService RPC server interface trait
 pub trait Interface: Send + Sync {
-    async fn RegisterForCalibrationUpdate(&self, _request: &concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateRequest)
+    async fn RegisterForCalibrationUpdate(&self,
+            _caller_id: sdv_comms::id::ServiceFqin,
+            _request: &concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateRequest)
     -> sdv_status_rs::SdvResult<concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateResponse>{
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
-    async fn UnregisterFromCalibrationUpdate(&self, _request: &concal_api_stable::concal_calibration_notification_service::UnregisterFromCalibrationUpdateRequest)
+    async fn UnregisterFromCalibrationUpdate(&self,
+            _caller_id: sdv_comms::id::ServiceFqin,
+            _request: &concal_api_stable::concal_calibration_notification_service::UnregisterFromCalibrationUpdateRequest)
     -> sdv_status_rs::SdvResult<concal_api_stable::concal_calibration_notification_service::UnregisterFromCalibrationUpdateResponse>{
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
@@ -56,13 +60,13 @@ pub trait Interface: Send + Sync {
 /// Client for calib.ConCalCalibrationNotificationService RPC interface
 pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 
-#[async_trait::async_trait]
-impl Interface for Client {
-    async fn RegisterForCalibrationUpdate(&self, request: &concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateRequest)
+#[allow(non_snake_case, missing_docs)]
+impl Client {
+    pub async fn RegisterForCalibrationUpdate(&self, request: &concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateRequest)
     -> sdv_status_rs::SdvResult<concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateResponse>{
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "RegisterForCalibrationUpdate", request).await
     }
-    async fn UnregisterFromCalibrationUpdate(&self, request: &concal_api_stable::concal_calibration_notification_service::UnregisterFromCalibrationUpdateRequest)
+    pub async fn UnregisterFromCalibrationUpdate(&self, request: &concal_api_stable::concal_calibration_notification_service::UnregisterFromCalibrationUpdateRequest)
     -> sdv_status_rs::SdvResult<concal_api_stable::concal_calibration_notification_service::UnregisterFromCalibrationUpdateResponse>{
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "UnregisterFromCalibrationUpdate", request)
             .await

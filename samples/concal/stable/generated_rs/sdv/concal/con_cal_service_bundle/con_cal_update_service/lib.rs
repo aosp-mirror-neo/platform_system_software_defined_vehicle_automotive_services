@@ -18,10 +18,10 @@ pub mod internal {
             "StartConfigUpdate",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.StartConfigUpdate(&req).await }
+                    async move { srv.StartConfigUpdate(id, &req).await }
                 })
             })},
         )
@@ -29,10 +29,10 @@ pub mod internal {
             "AddOrUpdateConfigOverride",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.AddOrUpdateConfigOverride(&req).await }
+                    async move { srv.AddOrUpdateConfigOverride(id, &req).await }
                 })
             })},
         )
@@ -40,10 +40,10 @@ pub mod internal {
             "RemoveConfigOverride",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.RemoveConfigOverride(&req).await }
+                    async move { srv.RemoveConfigOverride(id, &req).await }
                 })
             })},
         )
@@ -51,10 +51,10 @@ pub mod internal {
             "CancelConfigUpdate",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.CancelConfigUpdate(&req).await }
+                    async move { srv.CancelConfigUpdate(id, &req).await }
                 })
             })},
         )
@@ -62,10 +62,10 @@ pub mod internal {
             "FinishConfigUpdate",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.FinishConfigUpdate(&req).await }
+                    async move { srv.FinishConfigUpdate(id, &req).await }
                 })
             })},
         )
@@ -73,10 +73,10 @@ pub mod internal {
             "Rollback",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.Rollback(&req).await }
+                    async move { srv.Rollback(id, &req).await }
                 })
             })},
         )
@@ -84,10 +84,10 @@ pub mod internal {
             "Reset",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.Reset(&req).await }
+                    async move { srv.Reset(id, &req).await }
                 })
             })},
         )
@@ -95,10 +95,10 @@ pub mod internal {
             "UninstallConfig",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.UninstallConfig(&req).await }
+                    async move { srv.UninstallConfig(id, &req).await }
                 })
             })},
         ).build()
@@ -107,10 +107,11 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// ConCalUpdateService RPC interface trait
+/// ConCalUpdateService RPC server interface trait
 pub trait Interface: Send + Sync {
     async fn StartConfigUpdate(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::concal_update_service::StartConfigUpdateRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::concal_update_service::StartConfigUpdateResponse>
     {
@@ -118,6 +119,7 @@ pub trait Interface: Send + Sync {
     }
     async fn AddOrUpdateConfigOverride(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::concal_update_service::AddOrUpdateConfigOverrideRequest,
     ) -> sdv_status_rs::SdvResult<
         concal_api_stable::concal_update_service::AddOrUpdateConfigOverrideResponse,
@@ -126,6 +128,7 @@ pub trait Interface: Send + Sync {
     }
     async fn RemoveConfigOverride(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::concal_update_service::RemoveConfigOverrideRequest,
     ) -> sdv_status_rs::SdvResult<
         concal_api_stable::concal_update_service::RemoveConfigOverrideResponse,
@@ -134,6 +137,7 @@ pub trait Interface: Send + Sync {
     }
     async fn CancelConfigUpdate(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::concal_update_service::CancelConfigUpdateRequest,
     ) -> sdv_status_rs::SdvResult<
         concal_api_stable::concal_update_service::CancelConfigUpdateResponse,
@@ -142,6 +146,7 @@ pub trait Interface: Send + Sync {
     }
     async fn FinishConfigUpdate(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::concal_update_service::FinishConfigUpdateRequest,
     ) -> sdv_status_rs::SdvResult<
         concal_api_stable::concal_update_service::FinishConfigUpdateResponse,
@@ -150,18 +155,21 @@ pub trait Interface: Send + Sync {
     }
     async fn Rollback(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::concal_update_service::RollbackRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::concal_update_service::RollbackResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn Reset(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::concal_update_service::ResetRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::concal_update_service::ResetResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
     async fn UninstallConfig(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::concal_update_service::UninstallConfigRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::concal_update_service::UninstallConfigResponse>
     {
@@ -172,16 +180,16 @@ pub trait Interface: Send + Sync {
 /// Client for ConCalUpdateService RPC interface
 pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 
-#[async_trait::async_trait]
-impl Interface for Client {
-    async fn StartConfigUpdate(
+#[allow(non_snake_case, missing_docs)]
+impl Client {
+    pub async fn StartConfigUpdate(
         &self,
         request: &concal_api_stable::concal_update_service::StartConfigUpdateRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::concal_update_service::StartConfigUpdateResponse>
     {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "StartConfigUpdate", request).await
     }
-    async fn AddOrUpdateConfigOverride(
+    pub async fn AddOrUpdateConfigOverride(
         &self,
         request: &concal_api_stable::concal_update_service::AddOrUpdateConfigOverrideRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -189,7 +197,7 @@ impl Interface for Client {
     > {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "AddOrUpdateConfigOverride", request).await
     }
-    async fn RemoveConfigOverride(
+    pub async fn RemoveConfigOverride(
         &self,
         request: &concal_api_stable::concal_update_service::RemoveConfigOverrideRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -197,7 +205,7 @@ impl Interface for Client {
     > {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "RemoveConfigOverride", request).await
     }
-    async fn CancelConfigUpdate(
+    pub async fn CancelConfigUpdate(
         &self,
         request: &concal_api_stable::concal_update_service::CancelConfigUpdateRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -205,7 +213,7 @@ impl Interface for Client {
     > {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "CancelConfigUpdate", request).await
     }
-    async fn FinishConfigUpdate(
+    pub async fn FinishConfigUpdate(
         &self,
         request: &concal_api_stable::concal_update_service::FinishConfigUpdateRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -213,19 +221,19 @@ impl Interface for Client {
     > {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "FinishConfigUpdate", request).await
     }
-    async fn Rollback(
+    pub async fn Rollback(
         &self,
         request: &concal_api_stable::concal_update_service::RollbackRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::concal_update_service::RollbackResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "Rollback", request).await
     }
-    async fn Reset(
+    pub async fn Reset(
         &self,
         request: &concal_api_stable::concal_update_service::ResetRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::concal_update_service::ResetResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "Reset", request).await
     }
-    async fn UninstallConfig(
+    pub async fn UninstallConfig(
         &self,
         request: &concal_api_stable::concal_update_service::UninstallConfigRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::concal_update_service::UninstallConfigResponse>

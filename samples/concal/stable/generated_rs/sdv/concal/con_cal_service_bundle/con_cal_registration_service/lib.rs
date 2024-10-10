@@ -18,10 +18,10 @@ pub mod internal {
             "GetConfig",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.GetConfig(&req).await }
+                    async move { srv.GetConfig(id, &req).await }
                 })
             })},
         )
@@ -29,10 +29,10 @@ pub mod internal {
             "RegisterConfigMetadata",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.RegisterConfigMetadata(&req).await }
+                    async move { srv.RegisterConfigMetadata(id, &req).await }
                 })
             })},
         )
@@ -40,10 +40,10 @@ pub mod internal {
             "GetConfigMetadata",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.GetConfigMetadata(&req).await }
+                    async move { srv.GetConfigMetadata(id, &req).await }
                 })
             })},
         ).build()
@@ -52,10 +52,11 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// ConCalRegistrationService RPC interface trait
+/// ConCalRegistrationService RPC server interface trait
 pub trait Interface: Send + Sync {
     async fn GetConfig(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::concal_registration_service::GetConfigRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::concal_registration_service::GetConfigResponse>
     {
@@ -63,6 +64,7 @@ pub trait Interface: Send + Sync {
     }
     async fn RegisterConfigMetadata(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::concal_registration_service::RegisterConfigMetadataRequest,
     ) -> sdv_status_rs::SdvResult<
         concal_api_stable::concal_registration_service::RegisterConfigMetadataResponse,
@@ -71,6 +73,7 @@ pub trait Interface: Send + Sync {
     }
     async fn GetConfigMetadata(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &concal_api_stable::concal_registration_service::GetConfigMetadataRequest,
     ) -> sdv_status_rs::SdvResult<
         concal_api_stable::concal_registration_service::GetConfigMetadataResponse,
@@ -82,16 +85,16 @@ pub trait Interface: Send + Sync {
 /// Client for ConCalRegistrationService RPC interface
 pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 
-#[async_trait::async_trait]
-impl Interface for Client {
-    async fn GetConfig(
+#[allow(non_snake_case, missing_docs)]
+impl Client {
+    pub async fn GetConfig(
         &self,
         request: &concal_api_stable::concal_registration_service::GetConfigRequest,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::concal_registration_service::GetConfigResponse>
     {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "GetConfig", request).await
     }
-    async fn RegisterConfigMetadata(
+    pub async fn RegisterConfigMetadata(
         &self,
         request: &concal_api_stable::concal_registration_service::RegisterConfigMetadataRequest,
     ) -> sdv_status_rs::SdvResult<
@@ -99,7 +102,7 @@ impl Interface for Client {
     > {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "RegisterConfigMetadata", request).await
     }
-    async fn GetConfigMetadata(
+    pub async fn GetConfigMetadata(
         &self,
         request: &concal_api_stable::concal_registration_service::GetConfigMetadataRequest,
     ) -> sdv_status_rs::SdvResult<

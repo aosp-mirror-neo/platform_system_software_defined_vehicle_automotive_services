@@ -18,10 +18,10 @@ pub mod internal {
             "StartRoutine",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.StartRoutine(&req).await }
+                    async move { srv.StartRoutine(id, &req).await }
                 })
             })},
         )
@@ -29,10 +29,10 @@ pub mod internal {
             "StopRoutine",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.StopRoutine(&req).await }
+                    async move { srv.StopRoutine(id, &req).await }
                 })
             })},
         )
@@ -40,10 +40,10 @@ pub mod internal {
             "RequestResult",
             {
                 let srv = server.clone();
-            std::sync::Arc::new(move |req| {
+            std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.RequestResult(&req).await }
+                    async move { srv.RequestResult(id, &req).await }
                 })
             })},
         ).build()
@@ -52,10 +52,11 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// routine_control.RoutineControlService RPC interface trait
+/// routine_control.RoutineControlService RPC server interface trait
 pub trait Interface: Send + Sync {
     async fn StartRoutine(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::routine_control_service::RoutineControlRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::routine_control_service::RoutineControlResponse>
     {
@@ -63,6 +64,7 @@ pub trait Interface: Send + Sync {
     }
     async fn StopRoutine(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::routine_control_service::RoutineControlRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::routine_control_service::RoutineControlResponse>
     {
@@ -70,6 +72,7 @@ pub trait Interface: Send + Sync {
     }
     async fn RequestResult(
         &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
         _request: &diagnostics_v1_api::routine_control_service::RoutineControlRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::routine_control_service::RoutineControlResponse>
     {
@@ -80,23 +83,23 @@ pub trait Interface: Send + Sync {
 /// Client for routine_control.RoutineControlService RPC interface
 pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
 
-#[async_trait::async_trait]
-impl Interface for Client {
-    async fn StartRoutine(
+#[allow(non_snake_case, missing_docs)]
+impl Client {
+    pub async fn StartRoutine(
         &self,
         request: &diagnostics_v1_api::routine_control_service::RoutineControlRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::routine_control_service::RoutineControlResponse>
     {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "StartRoutine", request).await
     }
-    async fn StopRoutine(
+    pub async fn StopRoutine(
         &self,
         request: &diagnostics_v1_api::routine_control_service::RoutineControlRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::routine_control_service::RoutineControlResponse>
     {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "StopRoutine", request).await
     }
-    async fn RequestResult(
+    pub async fn RequestResult(
         &self,
         request: &diagnostics_v1_api::routine_control_service::RoutineControlRequest,
     ) -> sdv_status_rs::SdvResult<diagnostics_v1_api::routine_control_service::RoutineControlResponse>
