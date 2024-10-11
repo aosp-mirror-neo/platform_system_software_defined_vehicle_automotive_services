@@ -17,6 +17,7 @@ rust_protobuf {
         "-I external/protobuf/src",
     ],
     product_available: true,
+    vendor_available: true,
 }
 
 filegroup {

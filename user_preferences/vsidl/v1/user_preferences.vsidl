@@ -5,18 +5,18 @@
 package: "sdv.user_preferences"
 
 sdv_service_bundle {
-    name: "UserPreferencesServer"
+    name: "UserPreferencesServiceBundle"
 
     unit_type {
-        access_modifier: PRIVATE
+        access_modifier: PUBLIC
         type: "UserPreferencesAdminService"
     }
     unit_type {
-        access_modifier: PRIVATE
+        access_modifier: PUBLIC
         type: "UserPreferencesManagementService"
     }
     unit_type {
-        access_modifier: PRIVATE
+        access_modifier: PUBLIC
         type: "UserPreferencesRegistryService"
     }
     unit_type {
