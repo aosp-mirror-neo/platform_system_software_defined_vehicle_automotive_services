@@ -22,6 +22,7 @@ use sdv_mw_rs_test_sdv_vpm_vpm_system_client::subscriber;
 use sdv_mw_rs_test_sdv_vpm_vpm_system_client::VpmSystemClient;
 use sdv_vpm_api::power::PowerStateReport;
 use sdv_vpm_api::vehicle::VpmVehicleState;
+use sdv_vpm_api::vpm::GetPowerStateRequest;
 use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateRequest;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
@@ -259,6 +260,12 @@ impl TestVePSM {
 
     pub async fn send_power_state_request(&self, request: PowerStateChangeRequest) {
         self.client.SetPowerState(&request).await.unwrap();
+    }
+
+    pub async fn get_current_power_state(&self) -> PowerStateReport {
+        let response =
+            self.client.GetPowerState(&GetPowerStateRequest { ..Default::default() }).await;
+        response.unwrap().power_state.unwrap()
     }
 
     pub async fn send_vehicle_state_request(&self, request: SetVehicleStateRequest) {

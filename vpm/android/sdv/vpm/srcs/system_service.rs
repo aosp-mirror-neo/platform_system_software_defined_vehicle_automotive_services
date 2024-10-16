@@ -15,6 +15,8 @@ use sdv_status_rs::SdvStatusCode;
 use sdv_vpm_api::vehicle::VehicleStateChange;
 use sdv_vpm_api::vehicle::VpmVehicleState;
 use sdv_vpm_api::vpm::power_state_change_response::PowerStateChangeRequestError;
+use sdv_vpm_api::vpm::GetPowerStateRequest;
+use sdv_vpm_api::vpm::GetPowerStateResponse;
 use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateChangeResponse;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
@@ -139,6 +141,17 @@ impl Interface for RpcServer {
             Ok(response)
         }
     }
+
+    async fn GetPowerState(
+        &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
+        _request: &GetPowerStateRequest,
+    ) -> SdvResult<GetPowerStateResponse> {
+        let power_state = self.power_state_request_handler.get_current_power_state().await;
+        let mut response = GetPowerStateResponse::new();
+        response.power_state = power_state.into();
+        Ok(response)
+    }
 }
 
 #[cfg(test)]
@@ -149,8 +162,10 @@ mod tests {
     use anyhow::anyhow;
     use sdv_comms::id::ServiceFqin;
     use sdv_status_rs::SdvStatusCode;
+    use sdv_vpm_api::power::PowerStateReport;
     use sdv_vpm_api::vehicle::VpmVehicleState;
     use sdv_vpm_api::vpm::power_state_change_response::PowerStateChangeRequestError;
+    use sdv_vpm_api::vpm::GetPowerStateRequest;
     use sdv_vpm_api::vpm::PowerStateChangeRequest;
     use sdv_vpm_api::vpm::PowerStateRequest;
     use sdv_vpm_api::vpm::SetVehicleStateRequest;
@@ -252,6 +267,29 @@ mod tests {
 
         // Then: power state should be set in the power service.
         assert_eq!(response.unwrap().error, PowerStateChangeRequestError::NO_ERROR.into());
+    }
+
+    #[tokio::test]
+    async fn get_rpc_power_state_succeeds() {
+        // Given: a mock power service.
+        let power_state = PowerStateReport::ON;
+        let (vehicle_state_sender, _) = channel(VEHICLE_STATE_CHANNEL_QUEUE_SIZE);
+        let mut mock_power_state_request_handler = MockPowerStateRequestHandler::default();
+        mock_power_state_request_handler
+            .expect_get_current_power_state()
+            .times(1)
+            .returning(move || power_state);
+        let rpc_server =
+            RpcServer::new(vehicle_state_sender, Box::new(mock_power_state_request_handler));
+
+        // When: a power state request is sent
+        let request = GetPowerStateRequest { ..Default::default() };
+        let fqin = ServiceFqin::from_str("vm:sdv.vpm.VpmSystemServiceBundle/default")
+            .expect("Could not create context for tests!");
+        let response = rpc_server.GetPowerState(fqin, &request).await;
+
+        // Then: power state should be returned.
+        assert_eq!(response.unwrap().power_state.unwrap(), power_state);
     }
 
     #[tokio::test]

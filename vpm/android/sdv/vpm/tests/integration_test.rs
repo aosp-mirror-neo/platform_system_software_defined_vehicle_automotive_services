@@ -22,6 +22,14 @@ mod tests {
             vehicle_state: VpmVehicleState::SOFTWARE_UPDATE.into(),
             ..Default::default()
         };
+
+        // Get the current power state
+        let power_state = test_context.vepsm.get_current_power_state().await;
+        assert!(
+            power_state == PowerStateReport::POWER_OFF_EXIT
+                || power_state == PowerStateReport::SHUTDOWN_CANCELLED
+        );
+
         test_context.vepsm.send_vehicle_state_request(request).await;
 
         // Then: the new vehicle state should be received by the subscriber.

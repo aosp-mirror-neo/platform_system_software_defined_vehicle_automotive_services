@@ -35,6 +35,17 @@ pub mod internal {
                     async move { srv.SetPowerState(id, &req).await }
                 })
             })},
+        )
+        .add_method::<sdv_vpm_api::vpm::GetPowerStateRequest, sdv_vpm_api::vpm::GetPowerStateResponse>(
+            "GetPowerState",
+            {
+                let srv = server.clone();
+            std::sync::Arc::new(move |id, req| {
+                Box::pin({
+                    let srv = srv.clone();
+                    async move { srv.GetPowerState(id, &req).await }
+                })
+            })},
         ).build()
     }
 }
@@ -57,6 +68,13 @@ pub trait Interface: Send + Sync {
     ) -> sdv_status_rs::SdvResult<sdv_vpm_api::vpm::PowerStateChangeResponse> {
         Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
     }
+    async fn GetPowerState(
+        &self,
+        _caller_id: sdv_comms::id::ServiceFqin,
+        _request: &sdv_vpm_api::vpm::GetPowerStateRequest,
+    ) -> sdv_status_rs::SdvResult<sdv_vpm_api::vpm::GetPowerStateResponse> {
+        Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
+    }
 }
 
 /// Client for VpmSystemService RPC interface
@@ -75,6 +93,12 @@ impl Client {
         request: &sdv_vpm_api::vpm::PowerStateChangeRequest,
     ) -> sdv_status_rs::SdvResult<sdv_vpm_api::vpm::PowerStateChangeResponse> {
         sdv_mw_rs_comms::call_method(self.0.as_ref(), "SetPowerState", request).await
+    }
+    pub async fn GetPowerState(
+        &self,
+        request: &sdv_vpm_api::vpm::GetPowerStateRequest,
+    ) -> sdv_status_rs::SdvResult<sdv_vpm_api::vpm::GetPowerStateResponse> {
+        sdv_mw_rs_comms::call_method(self.0.as_ref(), "GetPowerState", request).await
     }
 }
 

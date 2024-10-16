@@ -2,6 +2,8 @@
 
 syntax = "proto3";
 import "vehicle.proto";
+import "power.proto";
+
 package sdv.vpm;
 
 /* OEM-facing representation of the request to set a vehicle state. */
@@ -63,6 +65,15 @@ message PowerStateChangeResponse {
   }
 }
 
+/* OEM-facing representation of the power state response message. */
+message GetPowerStateResponse {
+  /* The current power state report of the VM. */
+  power.PowerStateReport power_state = 1;
+}
+
+/* OEM-facing representation of the power state request message. */
+message GetPowerStateRequest {}
+
 /** VPM RPC API available only to the OEM. */
 
 service VpmSystemService {
@@ -82,4 +93,7 @@ service VpmSystemService {
 
    * If the request fails, an error is returned with the corresponding response code. */
   rpc SetPowerState(PowerStateChangeRequest) returns (PowerStateChangeResponse) {};
+
+  /* RPC request that allows the OEM to get the current power state in the SDV VM.*/
+  rpc GetPowerState(GetPowerStateRequest) returns (GetPowerStateResponse) {};
 }

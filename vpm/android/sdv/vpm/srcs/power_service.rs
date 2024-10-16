@@ -270,6 +270,9 @@ pub trait PowerStateRequestHandler: Send + Sync {
     /// returns Ok() if the request passes the state machine validation.
     /// otherwise returns an error.
     async fn handle_set_power_state(&self, request: PowerStateChangeRequest) -> anyhow::Result<()>;
+
+    /// Gets the current power state
+    async fn get_current_power_state(&self) -> PowerStateReport;
 }
 
 pub struct PowerStateRequestHandlerImpl {
@@ -308,6 +311,10 @@ impl PowerStateRequestHandler for PowerStateRequestHandlerImpl {
 
         self.power_state_request_sender.send(power_request).await?;
         Ok(())
+    }
+
+    async fn get_current_power_state(&self) -> PowerStateReport {
+        self.power_state_watch_receiver.borrow().get_report()
     }
 }
 
@@ -773,5 +780,19 @@ mod tests {
             rx.recv().await.expect("Nothing was received!").power_state.get_report()
         );
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn handle_get_power_state() {
+        // Given: the power state request handler.
+        let (tx, _) = channel::<PowerRequest>(1);
+        let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(On {}));
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
+
+        //When we get the current power state request.
+        let result = power_state_request_handler.get_current_power_state().await;
+
+        // Then: power state is returned.
+        assert_eq!(PowerStateReport::ON, result);
     }
 }
