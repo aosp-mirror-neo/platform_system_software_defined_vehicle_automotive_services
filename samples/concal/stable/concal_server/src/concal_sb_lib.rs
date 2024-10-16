@@ -2,9 +2,31 @@
 
 //! SDV ConCal Server Sample Library to be used by the Lifecycle Manager Runner.
 
+mod concal_impl;
+use crate::concal_impl::ConCalServiceBundleImpl;
+
+use log::info;
+use sdv_mw_rs_sdv_comms::SdvComms;
+use sdv_mw_rs_sdv_concal_con_cal_service_bundle::ConCalServiceBundle as ConCalServiceBundleMw;
+use std::time::Duration;
+use std::{sync::Arc, thread};
+use tokio_util::sync::CancellationToken;
+
 /// Service bundle struct definition.
 pub struct ConCalServiceBundle {
-    _context: ContextRef,
+    // Entry point for comm stack APIs
+    context: sdv_comms::ContextRef,
+    // Used to shutdown a runtime after on_stop request
+    cancellation_token: Option<CancellationToken>,
+    background_thread: Option<std::thread::JoinHandle<()>>,
+}
+
+impl ConCalServiceBundle {
+    async fn main_loop(cancellation_token: CancellationToken) {
+        while !cancellation_token.is_cancelled() {
+            thread::sleep(Duration::from_millis(1000));
+        }
+    }
 }
 
 // Register the new service bundle.
@@ -16,33 +38,57 @@ impl ServiceBundle for ConCalServiceBundle {
     ///
     /// Context object is provided as a parameter that gives access to the
     /// communication stack APIs.
-    fn new(_context: ContextRef) -> ConCalServiceBundle {
-        // Memory allocations and static data loading should be done as
-        // part of this method.
-        //
-        // Loading of the dynamic resources (sockets, files, etc)
-        // is strongly discouraged due to possible Suspend-to-RAM scenario.
-        //
-        // The dynamic data can be loaded in the [Self::on_start()] method.
-        ConCalServiceBundle { _context }
+    fn new(context: ContextRef) -> ConCalServiceBundle {
+        ConCalServiceBundle { context, cancellation_token: None, background_thread: None }
     }
 
     /// Called when the service bundle is started by the system.
     fn on_start(&mut self) {
-        // Dynamic resources(sockets, files, etc) should be allocated during this call.
+        info!("Starting ConCal service bundle...");
+        let context = self.context;
+        // Create a cancellation token and pass it down the thread to a runtime
+        let cancellation_token = CancellationToken::new();
+        self.cancellation_token = Some(cancellation_token.clone());
+        self.background_thread = Some(thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap();
+            rt.block_on(async {
+                match ConCalServiceBundleMw::new(
+                    Arc::new(SdvComms { context }),
+                    (
+                        Arc::new(ConCalServiceBundleImpl {}),
+                        Arc::new(ConCalServiceBundleImpl {}),
+                        Arc::new(ConCalServiceBundleImpl {}),
+                        Arc::new(ConCalServiceBundleImpl {}),
+                    ),
+                )
+                .await
+                {
+                    Ok(service) => service,
+                    Err(e) => panic!("{e}"),
+                };
+                Self::main_loop(cancellation_token.clone()).await;
+            });
+        }));
+        info!("ConCal service bundle is running");
     }
 
     /// Called when the service bundle is stopped by the system in preparation
     /// for shutdown or suspend to RAM/Disc.
     fn on_stop(&mut self) {
-        // Stop phase requires the service bundle to delete the dynamic resources
-        // (sockets, files, etc) that were previously allocated in the [Self::on_start()] method.
+        info!("Stopping ConCal service bundle");
+        // Trigger cancellation token to exit Tokio runtime execution and drop it
+        self.cancellation_token.as_mut().expect("Must have been created on_start").cancel();
+        if let Some(thread) = self.background_thread.take() {
+            let _ = thread.join();
+        }
+        self.cancellation_token = None;
+        info!("ConCal service bundle stopped");
     }
 }
 
 /// Called when the service bundle is destroyed by the system.
 impl Drop for ConCalServiceBundle {
     fn drop(&mut self) {
-        // Static resources deallocation needs to be implemented in the drop method.
+        self.on_stop();
     }
 }
