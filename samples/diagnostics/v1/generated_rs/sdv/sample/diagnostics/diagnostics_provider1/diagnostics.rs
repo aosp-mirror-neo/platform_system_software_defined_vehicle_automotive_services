@@ -7,17 +7,17 @@ use diagnostics_v1_api::data_item_service::*;
 use diagnostics_v1_api::fault_listener_service::*;
 use diagnostics_v1_api::io_control_service::*;
 use diagnostics_v1_api::routine_control_service::*;
+use sdv::diagnostics::data_item::*;
+use sdv::diagnostics::event::EventPublisher;
+use sdv::diagnostics::fault_listener::*;
+use sdv::diagnostics::io_control::*;
+use sdv::diagnostics::routine::*;
+use sdv::mw::Communicate;
+use sdv::status::SdvResult;
 use sdv_diagnostics_data_item_data_item_service_rpc::Interface as DataItemService;
 use sdv_diagnostics_fault_fault_listener_service_rpc::Interface as FaultListenerService;
 use sdv_diagnostics_io_control_io_control_service_rpc::Interface as IoControlService;
 use sdv_diagnostics_routine_control_routine_control_service_rpc::Interface as RoutineControlService;
-use sdv_mw_rs_comms::Communicate;
-use sdv_mw_rs_diag::data_item::*;
-use sdv_mw_rs_diag::event::EventPublisher;
-use sdv_mw_rs_diag::fault_listener::*;
-use sdv_mw_rs_diag::io_control::*;
-use sdv_mw_rs_diag::routine::*;
-use sdv_status_rs::SdvResult;
 use std::sync::Arc;
 
 #[allow(unused_imports)]
@@ -99,7 +99,7 @@ struct DataItemServer {
 impl DataItemService for DataItemServer {
     async fn ReadDataItem(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
+        _caller_id: sdv::comms::id::ServiceFqin,
         request: &ReadDataItemRequest,
     ) -> SdvResult<ReadDataItemResponse> {
         match request.id.as_str() {
@@ -116,7 +116,7 @@ impl DataItemService for DataItemServer {
 
     async fn WriteDataItem(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
+        _caller_id: sdv::comms::id::ServiceFqin,
         request: &WriteDataItemRequest,
     ) -> SdvResult<WriteDataItemResponse> {
         match request.id.as_str() {
@@ -148,7 +148,7 @@ struct RoutineServer {
 impl RoutineControlService for RoutineServer {
     async fn StartRoutine(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
+        _caller_id: sdv::comms::id::ServiceFqin,
         request: &RoutineControlRequest,
     ) -> SdvResult<RoutineControlResponse> {
         match request.id.as_str() {
@@ -164,7 +164,7 @@ impl RoutineControlService for RoutineServer {
 
     async fn StopRoutine(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
+        _caller_id: sdv::comms::id::ServiceFqin,
         request: &RoutineControlRequest,
     ) -> SdvResult<RoutineControlResponse> {
         match request.id.as_str() {
@@ -180,7 +180,7 @@ impl RoutineControlService for RoutineServer {
 
     async fn RequestResult(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
+        _caller_id: sdv::comms::id::ServiceFqin,
         request: &RoutineControlRequest,
     ) -> SdvResult<RoutineControlResponse> {
         match request.id.as_str() {
@@ -203,7 +203,7 @@ struct IoControlServer {
 impl IoControlService for IoControlServer {
     async fn ReturnControlToEcu(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
+        _caller_id: sdv::comms::id::ServiceFqin,
         request: &IoControlRequest,
     ) -> SdvResult<IoControlResponse> {
         match request.id.as_str() {
@@ -219,7 +219,7 @@ impl IoControlService for IoControlServer {
 
     async fn ResetToDefault(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
+        _caller_id: sdv::comms::id::ServiceFqin,
         request: &IoControlRequest,
     ) -> SdvResult<IoControlResponse> {
         match request.id.as_str() {
@@ -233,7 +233,7 @@ impl IoControlService for IoControlServer {
 
     async fn FreezeCurrentState(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
+        _caller_id: sdv::comms::id::ServiceFqin,
         request: &IoControlRequest,
     ) -> SdvResult<IoControlResponse> {
         match request.id.as_str() {
@@ -249,7 +249,7 @@ impl IoControlService for IoControlServer {
 
     async fn PerformShortTermAdjustment(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
+        _caller_id: sdv::comms::id::ServiceFqin,
         request: &PerformShortTermAdjustmentRequest,
     ) -> SdvResult<IoControlResponse> {
         match request.id.as_str() {
@@ -274,7 +274,7 @@ struct FaultListenerServer {
 impl FaultListenerService for FaultListenerServer {
     async fn OnFaultStatusChange(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
+        _caller_id: sdv::comms::id::ServiceFqin,
         request: &OnFaultStatusChangeRequest,
     ) -> SdvResult<OnFaultStatusChangeResponse> {
         match request.id.as_str() {

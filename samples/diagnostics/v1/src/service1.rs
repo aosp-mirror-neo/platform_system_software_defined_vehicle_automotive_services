@@ -4,12 +4,12 @@
 
 use diagnostics_v1_api::response_code::ResponseCode;
 use diagnostics_v1_sample_catalog::messages::*;
-use sdv_comms::id::ServiceFqin;
-use sdv_comms::ContextRef;
-use sdv_mw_rs_diag::{
+use sdv::comms::id::ServiceFqin;
+use sdv::comms::ContextRef;
+use sdv::diagnostics::{
     data_item::*, fault_listener::*, io_control::*, routine::*, DiagnosticsResult,
 };
-use sdv_mw_rs_sdv_comms::SdvComms;
+use sdv::mw::SdvComms;
 use sdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider1::{
     diagnostics::Diagnostics, DiagnosticsProvider1,
 };

@@ -37,8 +37,8 @@ impl UnitType for dyn sdv_diagnostics_fault_fault_listener_service_rpc::Interfac
 
 /// Service bundle
 pub struct DiagnosticsProvider1 {
-    comms: std::sync::Arc<dyn sdv_mw_rs_comms::Communicate>,
-    servers: std::vec::Vec<std::sync::Arc<dyn sdv_mw_rs_comms::ServerTransport>>,
+    comms: std::sync::Arc<dyn sdv::mw::Communicate>,
+    servers: std::vec::Vec<std::sync::Arc<dyn sdv::mw::ServerTransport>>,
     /// Diagnostic capabilities of the service bundle.
     pub diagnostics: Diagnostics,
 }
@@ -46,7 +46,7 @@ pub struct DiagnosticsProvider1 {
 impl DiagnosticsProvider1 {
     /// Creates a new instance of the service bundle
     pub async fn new(
-        comms: std::sync::Arc<dyn sdv_mw_rs_comms::Communicate>,
+        comms: std::sync::Arc<dyn sdv::mw::Communicate>,
         servers: (
             std::sync::Arc<dyn sdv_diagnostics_data_item_data_item_service_rpc::Interface>,
             std::sync::Arc<
@@ -55,7 +55,7 @@ impl DiagnosticsProvider1 {
             std::sync::Arc<dyn sdv_diagnostics_io_control_io_control_service_rpc::Interface>,
             std::sync::Arc<dyn sdv_diagnostics_fault_fault_listener_service_rpc::Interface>,
         ),
-    ) -> sdv_status_rs::SdvResult<Self> {
+    ) -> sdv::status::SdvResult<Self> {
         let mut service = Self {
             comms: comms.clone(),
             servers: std::vec::Vec::new(),
@@ -99,16 +99,16 @@ impl DiagnosticsProvider1 {
     async fn add_server<T: UnitType + ?Sized + 'static + Send + Sync>(
         &mut self,
         unit_name: String,
-        methods: std::collections::HashMap<String, sdv_comms::rpc::UnaryRpcMethod>,
-    ) -> sdv_status_rs::SdvResult<()> {
-        let attributes = sdv_mw_rs_comms::ServerAttributes {
+        methods: std::collections::HashMap<String, sdv::comms::rpc::UnaryRpcMethod>,
+    ) -> sdv::status::SdvResult<()> {
+        let attributes = sdv::mw::ServerAttributes {
             server_name: unit_name,
-            type_name: sdv_mw_rs_comms::TypeName {
+            type_name: sdv::mw::TypeName {
                 package: T::PACKAGE.to_string(),
                 bundle: T::SERVICE_BUNDLE.to_string(),
                 name: T::TYPENAME.to_string(),
             },
-            options: sdv_mw_rs_comms::ServerOptions { timeout_in_sec: 30 },
+            options: sdv::mw::ServerOptions { timeout_in_sec: 30 },
         };
 
         let transport = self.comms.create_server_transport(&attributes, methods).await?;

@@ -7,7 +7,7 @@ use crate::diagnostics::Diagnostics;
 
 /// Service bundle
 pub struct DiagnosticsProvider2 {
-    _comms: std::sync::Arc<dyn sdv_mw_rs_comms::Communicate>,
+    _comms: std::sync::Arc<dyn sdv::mw::Communicate>,
     /// Diagnostic capabilities of the service bundle.
     pub diagnostics: Diagnostics,
 }
@@ -15,8 +15,8 @@ pub struct DiagnosticsProvider2 {
 impl DiagnosticsProvider2 {
     /// Creates a new instance of the service bundle
     pub async fn new(
-        comms: std::sync::Arc<dyn sdv_mw_rs_comms::Communicate>,
-    ) -> sdv_status_rs::SdvResult<Self> {
+        comms: std::sync::Arc<dyn sdv::mw::Communicate>,
+    ) -> sdv::status::SdvResult<Self> {
         let service = Self { _comms: comms.clone(), diagnostics: Diagnostics::new(comms).await? };
         Ok(service)
     }

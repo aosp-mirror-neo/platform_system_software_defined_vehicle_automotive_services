@@ -2,9 +2,9 @@
 
 #![allow(missing_docs)]
 
-use sdv_comms::id::ServiceFqin;
-use sdv_comms::ContextRef;
-use sdv_mw_rs_sdv_comms::SdvComms;
+use sdv::comms::id::ServiceFqin;
+use sdv::comms::ContextRef;
+use sdv::mw::SdvComms;
 use sdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider2::DiagnosticsProvider2;
 use std::str::FromStr;
 use std::sync::Arc;

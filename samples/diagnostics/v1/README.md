@@ -2,7 +2,8 @@
 
 # Diagnostics middleware generation and implementation example
 
-The example consist of the simple diagnostics provider implementation that works with Diagnostics Agent and exposes a number of diagnostics entities.
+The example consist of the simple diagnostics provider implementation that works
+with Diagnostics Agent and exposes a number of diagnostics entities.
 
 ## Running the samples
 
@@ -16,7 +17,7 @@ to build it:
 ### Start the cloud virtual device
 
 ```bash
-cvd start --noresume -vsock_guest_cid=3 -base_instance_num=1 --extra_bootconfig_args="androidboot.sdv.instance_name=instance1 androidboot.virt.address=3"
+cvd create --noresume -vsock_guest_cid=3 -base_instance_num=1 --extra_bootconfig_args="androidboot.sdv.instance_name=instance1 androidboot.virt.address=3"
 
 # Waits a few seconds for message "Virtual device booted successfully"
 
@@ -25,10 +26,12 @@ adb devices
 # Expects "List of devices attached" and two devices below it
 ```
 
-On VM boot Diagnostics Agent is started, which subscribes to any discovered diagnostics Events publications as well as waits for `Diagnostics provider 1`
+On VM boot Diagnostics Agent is started, which subscribes to any discovered
+diagnostics Events publications as well as waits for `Diagnostics provider 1`
 servers to appear.
 
-On receiving Event publications and connecting to server, diagnostics agents performs a basic interaction with them and log the results.
+On receiving Event publications and connecting to server, diagnostics agents
+performs a basic interaction with them and log the results.
 
 Use the following command to observe the outputs:
 
@@ -44,4 +47,5 @@ Using root, because the binary is on the `/product` partition.
 adb -s <VM address> shell su root diag_v1_provider1_sample
 ```
 
-Diagnostics provider 1 registers RPC servers for diagnostics interfaces as well as publishes Events.
+Diagnostics provider 1 registers RPC servers for diagnostics interfaces as well
+as publishes Events.
