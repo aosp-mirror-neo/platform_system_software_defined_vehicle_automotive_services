@@ -1,0 +1,34 @@
+// Copyright 2023 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_protobuf {
+    name: "libsdvsampleconcal_proto_rust",
+    crate_name: "sdvsampleconcal_proto_rust",
+    protos: [
+        "test_configuration.proto",
+        "inner_test_configuration.proto",
+        "inner_test_configuration_different_package.proto",
+        "concal_rear_view_camera.proto",
+    ],
+    proto_flags: [
+        "-I external/protobuf/src",
+        "-I .",
+    ],
+    source_stem: "sdvsampleconcal_proto_rust",
+    vendor_available: true,
+    product_available: true,
+}
+
+filegroup {
+    name: "libsdvsampleconcal_proto_files",
+    srcs: ["*.proto"],
+}
+
+prebuilt_etc {
+    name: "concal_rear_view_camera.proto",
+    sub_dir: "protos",
+    src: "concal_rear_view_camera.proto",
+}

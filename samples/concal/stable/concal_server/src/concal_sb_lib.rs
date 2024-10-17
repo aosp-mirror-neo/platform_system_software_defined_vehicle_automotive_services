@@ -2,7 +2,16 @@
 
 //! SDV ConCal Server Sample Library to be used by the Lifecycle Manager Runner.
 
+#[cfg(test)]
+mod tests;
+
 mod concal_impl;
+mod configuration;
+mod hashable_config_id;
+mod message_editor;
+mod trie;
+mod versioned_object;
+
 use crate::concal_impl::ConCalServiceBundleImpl;
 
 use log::info;
@@ -52,14 +61,10 @@ impl ServiceBundle for ConCalServiceBundle {
         self.background_thread = Some(thread::spawn(move || {
             let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap();
             rt.block_on(async {
+                let concal = Arc::new(ConCalServiceBundleImpl::new());
                 match ConCalServiceBundleMw::new(
                     Arc::new(SdvComms { context }),
-                    (
-                        Arc::new(ConCalServiceBundleImpl {}),
-                        Arc::new(ConCalServiceBundleImpl {}),
-                        Arc::new(ConCalServiceBundleImpl {}),
-                        Arc::new(ConCalServiceBundleImpl {}),
-                    ),
+                    (concal.clone(), concal.clone(), concal.clone(), concal.clone()),
                 )
                 .await
                 {
