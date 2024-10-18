@@ -9,8 +9,8 @@ use sdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider2::DiagnosticsProvider2
 use std::str::FromStr;
 use std::sync::Arc;
 
-use diagnostics_v1_api::event::Status;
 use diagnostics_v1_sample_catalog::messages::OverheatingData;
+use sdv::diagnostics::api::event::Status;
 
 #[tokio::main]
 async fn main() {

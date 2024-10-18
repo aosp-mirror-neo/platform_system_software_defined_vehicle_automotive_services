@@ -2,10 +2,10 @@
 
 #![allow(missing_docs)]
 
-use diagnostics_v1_api::response_code::ResponseCode;
 use diagnostics_v1_sample_catalog::messages::*;
 use sdv::comms::id::ServiceFqin;
 use sdv::comms::ContextRef;
+use sdv::diagnostics::api::response_code::ResponseCode;
 use sdv::diagnostics::{
     data_item::*, fault_listener::*, io_control::*, routine::*, DiagnosticsResult,
 };
@@ -18,8 +18,8 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use diagnostics_v1_api::event::Status;
 use protobuf::well_known_types::empty::Empty;
+use sdv::diagnostics::api::event::Status;
 
 struct PressureDataItem;
 #[async_trait::async_trait]

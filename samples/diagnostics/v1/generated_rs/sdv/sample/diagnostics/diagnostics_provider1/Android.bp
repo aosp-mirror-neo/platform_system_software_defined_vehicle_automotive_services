@@ -21,8 +21,6 @@ rust_library {
         "libsdv_diagnostics_routine_control_routine_control_service_rpc_rs",
         "libsdv_diagnostics_io_control_io_control_service_rpc_rs",
         "libsdv_diagnostics_fault_fault_listener_service_rpc_rs",
-        "libsdv_mw_rs_diag",
-        "libdiagnostics_v1_api",
         "libdiagnostics_v1_sample_catalog",
     ],
     proc_macros: [
