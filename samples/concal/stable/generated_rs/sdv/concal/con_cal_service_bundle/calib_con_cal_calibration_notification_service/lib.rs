@@ -12,8 +12,8 @@ pub mod internal {
     /// Creates a method map for an object which implements the RPC interface trait
     pub fn get_method_map(
         server: std::sync::Arc<dyn super::Interface>,
-    ) -> std::collections::HashMap<String, sdv_comms::rpc::UnaryRpcMethod> {
-        sdv_mw_rs_comms::MethodMapBuilder::new()
+    ) -> std::collections::HashMap<String, sdv::comms::rpc::UnaryRpcMethod> {
+        sdv::mw::MethodMapBuilder::new()
         .add_method::<concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateRequest, concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateResponse>(
             "RegisterForCalibrationUpdate",
             {
@@ -44,40 +44,39 @@ pub mod internal {
 /// calib.ConCalCalibrationNotificationService RPC server interface trait
 pub trait Interface: Send + Sync {
     async fn RegisterForCalibrationUpdate(&self,
-            _caller_id: sdv_comms::id::ServiceFqin,
+            _caller_id: sdv::comms::id::ServiceFqin,
             _request: &concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateRequest)
-    -> sdv_status_rs::SdvResult<concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateResponse>{
-        Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
+    -> sdv::status::SdvResult<concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateResponse>{
+        Err(sdv::status::SdvStatus::new(sdv::status::SdvStatusCode::Unimplemented))
     }
     async fn UnregisterFromCalibrationUpdate(&self,
-            _caller_id: sdv_comms::id::ServiceFqin,
+            _caller_id: sdv::comms::id::ServiceFqin,
             _request: &concal_api_stable::concal_calibration_notification_service::UnregisterFromCalibrationUpdateRequest)
-    -> sdv_status_rs::SdvResult<concal_api_stable::concal_calibration_notification_service::UnregisterFromCalibrationUpdateResponse>{
-        Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
+    -> sdv::status::SdvResult<concal_api_stable::concal_calibration_notification_service::UnregisterFromCalibrationUpdateResponse>{
+        Err(sdv::status::SdvStatus::new(sdv::status::SdvStatusCode::Unimplemented))
     }
 }
 
 /// Client for calib.ConCalCalibrationNotificationService RPC interface
-pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
+pub struct Client(Box<dyn sdv::mw::ClientTransport>);
 
 #[allow(non_snake_case, missing_docs)]
 impl Client {
     pub async fn RegisterForCalibrationUpdate(&self, request: &concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateRequest)
-    -> sdv_status_rs::SdvResult<concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateResponse>{
-        sdv_mw_rs_comms::call_method(self.0.as_ref(), "RegisterForCalibrationUpdate", request).await
+    -> sdv::status::SdvResult<concal_api_stable::concal_calibration_notification_service::RegisterForCalibrationUpdateResponse>{
+        sdv::mw::call_method(self.0.as_ref(), "RegisterForCalibrationUpdate", request).await
     }
     pub async fn UnregisterFromCalibrationUpdate(&self, request: &concal_api_stable::concal_calibration_notification_service::UnregisterFromCalibrationUpdateRequest)
-    -> sdv_status_rs::SdvResult<concal_api_stable::concal_calibration_notification_service::UnregisterFromCalibrationUpdateResponse>{
-        sdv_mw_rs_comms::call_method(self.0.as_ref(), "UnregisterFromCalibrationUpdate", request)
-            .await
+    -> sdv::status::SdvResult<concal_api_stable::concal_calibration_notification_service::UnregisterFromCalibrationUpdateResponse>{
+        sdv::mw::call_method(self.0.as_ref(), "UnregisterFromCalibrationUpdate", request).await
     }
 }
 
-impl sdv_mw_rs_comms::RpcClient for Client {
+impl sdv::mw::RpcClient for Client {
     /// Default unit name for the RPC
     const DEFAULT_UNIT_NAME: &'static str = internal::DEFAULT_UNIT_NAME;
     /// Create a client
-    fn new(transport: Box<dyn sdv_mw_rs_comms::ClientTransport>) -> Self {
+    fn new(transport: Box<dyn sdv::mw::ClientTransport>) -> Self {
         Self(transport)
     }
 }

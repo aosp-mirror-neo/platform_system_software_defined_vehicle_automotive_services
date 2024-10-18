@@ -12,8 +12,8 @@ pub mod internal {
     /// Creates a method map for an object which implements the RPC interface trait
     pub fn get_method_map(
         server: std::sync::Arc<dyn super::Interface>,
-    ) -> std::collections::HashMap<String, sdv_comms::rpc::UnaryRpcMethod> {
-        sdv_mw_rs_comms::MethodMapBuilder::new()
+    ) -> std::collections::HashMap<String, sdv::comms::rpc::UnaryRpcMethod> {
+        sdv::mw::MethodMapBuilder::new()
         .add_method::<concal_api_stable::calibratable_service::StartCalibrationRequest, concal_api_stable::calibratable_service::StartCalibrationResponse>(
             "StartCalibration",
             {
@@ -56,63 +56,61 @@ pub mod internal {
 pub trait Interface: Send + Sync {
     async fn StartCalibration(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
+        _caller_id: sdv::comms::id::ServiceFqin,
         _request: &concal_api_stable::calibratable_service::StartCalibrationRequest,
-    ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::StartCalibrationResponse>
+    ) -> sdv::status::SdvResult<concal_api_stable::calibratable_service::StartCalibrationResponse>
     {
-        Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
+        Err(sdv::status::SdvStatus::new(sdv::status::SdvStatusCode::Unimplemented))
     }
     async fn UpdateConfig(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
+        _caller_id: sdv::comms::id::ServiceFqin,
         _request: &concal_api_stable::calibratable_service::UpdateConfigRequest,
-    ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::UpdateConfigResponse>
-    {
-        Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
+    ) -> sdv::status::SdvResult<concal_api_stable::calibratable_service::UpdateConfigResponse> {
+        Err(sdv::status::SdvStatus::new(sdv::status::SdvStatusCode::Unimplemented))
     }
     async fn FinishCalibration(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
+        _caller_id: sdv::comms::id::ServiceFqin,
         _request: &concal_api_stable::calibratable_service::FinishCalibrationRequest,
-    ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::FinishCalibrationResponse>
+    ) -> sdv::status::SdvResult<concal_api_stable::calibratable_service::FinishCalibrationResponse>
     {
-        Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
+        Err(sdv::status::SdvStatus::new(sdv::status::SdvStatusCode::Unimplemented))
     }
 }
 
 /// Client for calib.CalibratableService RPC interface
-pub struct Client(Box<dyn sdv_mw_rs_comms::ClientTransport>);
+pub struct Client(Box<dyn sdv::mw::ClientTransport>);
 
 #[allow(non_snake_case, missing_docs)]
 impl Client {
     pub async fn StartCalibration(
         &self,
         request: &concal_api_stable::calibratable_service::StartCalibrationRequest,
-    ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::StartCalibrationResponse>
+    ) -> sdv::status::SdvResult<concal_api_stable::calibratable_service::StartCalibrationResponse>
     {
-        sdv_mw_rs_comms::call_method(self.0.as_ref(), "StartCalibration", request).await
+        sdv::mw::call_method(self.0.as_ref(), "StartCalibration", request).await
     }
     pub async fn UpdateConfig(
         &self,
         request: &concal_api_stable::calibratable_service::UpdateConfigRequest,
-    ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::UpdateConfigResponse>
-    {
-        sdv_mw_rs_comms::call_method(self.0.as_ref(), "UpdateConfig", request).await
+    ) -> sdv::status::SdvResult<concal_api_stable::calibratable_service::UpdateConfigResponse> {
+        sdv::mw::call_method(self.0.as_ref(), "UpdateConfig", request).await
     }
     pub async fn FinishCalibration(
         &self,
         request: &concal_api_stable::calibratable_service::FinishCalibrationRequest,
-    ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::FinishCalibrationResponse>
+    ) -> sdv::status::SdvResult<concal_api_stable::calibratable_service::FinishCalibrationResponse>
     {
-        sdv_mw_rs_comms::call_method(self.0.as_ref(), "FinishCalibration", request).await
+        sdv::mw::call_method(self.0.as_ref(), "FinishCalibration", request).await
     }
 }
 
-impl sdv_mw_rs_comms::RpcClient for Client {
+impl sdv::mw::RpcClient for Client {
     /// Default unit name for the RPC
     const DEFAULT_UNIT_NAME: &'static str = internal::DEFAULT_UNIT_NAME;
     /// Create a client
-    fn new(transport: Box<dyn sdv_mw_rs_comms::ClientTransport>) -> Self {
+    fn new(transport: Box<dyn sdv::mw::ClientTransport>) -> Self {
         Self(transport)
     }
 }

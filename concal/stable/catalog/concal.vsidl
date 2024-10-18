@@ -45,12 +45,11 @@ sdv_service_bundle {
 }
 
 sdv_service_bundle {
-  name: "ConCalClient"
-  server {
-    interface: "sdv.concal.calib.CalibratableService"
-    acl: "only-concal-can-connect"
-  }
+  name: "ConCalClientServiceBundle"
   client {
     interface: "ConCalRegistrationService"
+  }
+  client {
+    interface: "ConCalUpdateService"
   }
 }
