@@ -1,33 +1,47 @@
 // Copyright 2023 Google LLC
 //! Vehicle and Power Mode Service.
 
-use log::{error, info};
-use sdv_middleware_pubsub::Result;
-use sdv_vpm_api::vehicle::VehicleStateChange;
-use sdvgenerated::vehicle_state_subscriber::VehicleStateSubscriber;
-use sdvgenerated::vehicle_state_subscriber::VehicleStateSubscriberCallbacks;
+use futures_util::StreamExt;
+use log::info;
+use sdv_comms::id::ServiceFqin;
+use sdv_comms::ContextRef;
+use sdv_mw_rs_comms::SubscribeOptions;
+use sdv_mw_rs_sdv_comms::SdvComms;
+use sdv_mw_rs_sdv_vpm_vehicle_client_subscriber_vehicle_state_subscriber::subscriber;
+use sdv_mw_rs_sdv_vpm_vehicle_client_subscriber_vehicle_state_subscriber::VehicleStateSubscriber;
+use std::sync::Arc;
 
 static LOG_TAG: &str = "vehicle-state-subs";
 
-fn main() {
+#[tokio::main]
+async fn main() {
     sdv_log::init_logger(LOG_TAG).unwrap();
     info!("Vehicle State subscriber is starting client starting");
-
-    let mut subscriber = VehicleStateSubscriber::new(VehicleStateSubscriberCallbacks {
-        sdv_vpm_vehicle_vehicle_state_change_cb: Box::new(on_vehicle_state),
-    });
-
-    if let Err(err) = subscriber.start() {
-        error!("Vehicle state subscriber service starting failed: {:?}", err);
-        return;
-    }
-
-    loop {
-        std::thread::park();
+    let context = create_context();
+    let comms = SdvComms { context };
+    let mut bundle = VehicleStateSubscriber::new(Arc::new(comms)).await.unwrap();
+    let mut subscriber = bundle
+        .create_observer(
+            subscriber::Variant::<sdv_vpm_api::vehicle::VehicleStateChange>::UNIQUE,
+            &SubscribeOptions::default(),
+        )
+        .await
+        .unwrap();
+    while let Some(Ok(vehicle_state_changes)) = subscriber.next().await {
+        for vehicle_state_change in vehicle_state_changes {
+            println!("Received vehicle state {:?}", vehicle_state_change)
+        }
     }
 }
 
-fn on_vehicle_state(message: Result<VehicleStateChange>) {
-    let vehicle_state_change = message.unwrap();
-    println!("Received vehicle state {:?}", vehicle_state_change.vehicle_state)
+fn create_context() -> ContextRef {
+    let fqin = ServiceFqin::builder()
+        .sdv_vm_name("vm")
+        .sdv_package_name("sdv.vpm.vehicle.client.subscriber")
+        .service_bundle_name("VehicleStateSubscriber")
+        .service_instance_name("default")
+        .build()
+        .unwrap();
+
+    ContextRef::create(fqin)
 }

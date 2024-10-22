@@ -1,0 +1,39 @@
+# Copyright 2024 Google LLC
+# proto-file: //system/software_defined_vehicle/core_services/vsidl/protos/sdv/vsidl/v1/syntax.proto
+# proto-message: VsidlEntry
+
+package: "sdv.vpm"
+
+# VPM Service allows to set the Vehicle mode via RPC.
+# After a successful vehicle state change, the state change is going to be published with data tunnel publicly in the SDV VM.
+sdv_service_bundle {
+    name: "VpmSystemServiceBundle"
+
+    # Unit type for the vehicle state change.
+    unit_type {
+        access_modifier: PUBLIC
+        type: "vehicle.VehicleStateChange"
+    }
+
+    # Unit type for the VPM system service.
+    unit_type {
+        access_modifier: PUBLIC
+        type: "VpmSystemService"
+    }
+
+    # OEM-facing RPC server that allows the OEM to set the vehicle state [Not to third party applications and services].
+    server {
+      interface: "sdv.vpm.VpmSystemService"
+    }
+
+    # OEM-facing RPC client that notifies the OEM with power state update [Not to third party applications and services].
+    client {
+      interface: "sdv.vpm.client.PowerNotificationService"
+    }
+
+    # Public Data tunnel publisher for vehicle state.
+    publisher {
+        type: "sdv.vpm.vehicle.VehicleStateChange"
+    }
+
+}

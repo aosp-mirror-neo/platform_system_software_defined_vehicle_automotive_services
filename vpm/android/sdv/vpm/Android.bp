@@ -24,7 +24,14 @@ rust_defaults {
         "libtokio_util",
         "libthiserror",
         "libsdvmiddleware_rpc",
-        "libsdvgenerated_vpm_system_service_bundle",
+        "libsdv_comms_ctx_impl",
+        "libsdv_comms_rs",
+        "libsdv_status_rs",
+        "libsdv_mw_rs_sdv_comms",
+        "libsdv_mw_rs_comms",
+        "libsdv_mw_rs_sdv_vpm_vpm_system_service_bundle",
+        "libsdv_vpm_vpm_system_service_rpc_rs",
+        "libsdv_vpm_client_power_notification_service_rpc_rs",
         "google.sdv.vpm-aidl-rust",
     ],
     proc_macros: [
@@ -70,6 +77,7 @@ rust_test {
     rustlibs: [
         "libgoogletest_rust",
     ],
+    ld_flags: ["-Wl,--no-as-needed"],
     test_options: {
         unit_test: true,
     },
@@ -85,16 +93,16 @@ rust_test {
     srcs: ["tests/integration_test.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
+        "vpm_agent@rust_defaults",
     ],
     rustlibs: [
-        "google.sdv.vpm-aidl-rust",
-        "librpcbinder_rs",
-        "libsdv_vpm_api",
-        "libanyhow",
-        "libsdv_middleware_pubsub",
-        "libsdvmiddleware_rpc",
-        "libsdvgenerated_vpm_integration_test_bundle",
+        "libfutures_util",
+        "libsdv_mw_rs_test_sdv_vpm_vpm_system_client",
     ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
     test_suites: [
         "automotive-sdv-tests",
         "general-tests",
@@ -110,16 +118,16 @@ rust_test {
     srcs: ["tests/power_cancellation_test.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
+        "vpm_agent@rust_defaults",
     ],
     rustlibs: [
-        "google.sdv.vpm-aidl-rust",
-        "librpcbinder_rs",
-        "libsdv_vpm_api",
-        "libanyhow",
-        "libsdv_middleware_pubsub",
-        "libsdvmiddleware_rpc",
-        "libsdvgenerated_vpm_integration_test_bundle",
+        "libfutures_util",
+        "libsdv_mw_rs_test_sdv_vpm_vpm_system_client",
     ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
     test_options: {
         unit_test: false,
     },
@@ -135,16 +143,16 @@ rust_test {
     srcs: ["tests/power_interruption_test.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
+        "vpm_agent@rust_defaults",
     ],
     rustlibs: [
-        "google.sdv.vpm-aidl-rust",
-        "librpcbinder_rs",
-        "libsdv_vpm_api",
-        "libanyhow",
-        "libsdv_middleware_pubsub",
-        "libsdvmiddleware_rpc",
-        "libsdvgenerated_vpm_integration_test_bundle",
+        "libfutures_util",
+        "libsdv_mw_rs_test_sdv_vpm_vpm_system_client",
     ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
     test_suites: [
         "automotive-sdv-tests",
         "general-tests",
@@ -157,16 +165,16 @@ rust_test {
     srcs: ["tests/power_timeout_test.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
+        "vpm_agent@rust_defaults",
     ],
     rustlibs: [
-        "google.sdv.vpm-aidl-rust",
-        "librpcbinder_rs",
-        "libsdv_vpm_api",
-        "libanyhow",
-        "libsdv_middleware_pubsub",
-        "libsdvmiddleware_rpc",
-        "libsdvgenerated_vpm_integration_test_bundle",
+        "libfutures_util",
+        "libsdv_mw_rs_test_sdv_vpm_vpm_system_client",
     ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
     test_options: {
         unit_test: false,
     },
@@ -182,16 +190,16 @@ rust_test {
     srcs: ["tests/power_prepare_interruption_test.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
+        "vpm_agent@rust_defaults",
     ],
     rustlibs: [
-        "google.sdv.vpm-aidl-rust",
-        "librpcbinder_rs",
-        "libsdv_vpm_api",
-        "libanyhow",
-        "libsdv_middleware_pubsub",
-        "libsdvmiddleware_rpc",
-        "libsdvgenerated_vpm_integration_test_bundle",
+        "libfutures_util",
+        "libsdv_mw_rs_test_sdv_vpm_vpm_system_client",
     ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
     test_options: {
         unit_test: false,
     },

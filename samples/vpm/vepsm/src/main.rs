@@ -1,46 +1,67 @@
 // Copyright 2023 Google LLC
 //! Vehicle and Power Mode Service.
-
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
 use log::{error, info};
+use sdv_comms::id::ServiceFqin;
+use sdv_comms::ContextRef;
+use sdv_mw_rs_comms::ClientOptions;
+use sdv_mw_rs_sdv_comms::SdvComms;
+use sdv_mw_rs_sdv_vpm_client_vpm_system_client::VpmSystemClient;
 use sdv_vpm_api::vehicle::VpmVehicleState;
 use sdv_vpm_api::vpm::power_state_change_response::PowerStateChangeRequestError;
 use sdv_vpm_api::vpm::PowerStateChangeRequest;
-use sdv_vpm_api::vpm::PowerStateNotificationRequest;
-use sdv_vpm_api::vpm::PowerStateNotificationResponse;
 use sdv_vpm_api::vpm::PowerStateRequest;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
 use sdv_vpm_api::vpm::ShutdownType;
-use sdvgenerated::sdv_vpm_power_notification_service_interface::PowerNotificationService;
-use sdvgenerated::sdv_vpm_vpm_system_service_interface::VpmSystemService;
-use sdvgenerated::vpm_system_client::VpmSystemClient;
-use sdvmiddleware_rpc::RpcResult;
+use sdv_vpm_api::vpm_notifications::PowerStateNotificationResponse;
+use sdv_vpm_client_power_notification_service_rpc::Interface as NotificationInterface;
+use sdv_vpm_vpm_system_service_rpc::Client;
 use std::sync::Arc;
 
 static LOG_TAG: &str = "vepsm";
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     sdv_log::init_logger(LOG_TAG)?;
-    let client = VpmSystemClient::new();
-    client.sdv_vpm_power_notification_service_server.register_service_interface(Arc::new(VePSM {}));
-
+    let context = create_context();
+    let comms = SdvComms { context };
+    let bundle = VpmSystemClient::new(Arc::new(comms), (Arc::new(VePSM {}),)).await?;
+    let client = bundle
+        .create_rpc_client(
+            "sdv.vpm".to_string(),
+            "VpmSystemServiceBundle".to_string(),
+            ClientOptions::default(),
+        )
+        .await?;
     let mut parse_from_cli = true;
     loop {
         let input_args = if parse_from_cli { Cli::try_parse().ok() } else { parse_input() };
         if let Some(args) = input_args {
             match args.command {
                 VpmCommand::VehicleState(vehicle_state) => {
-                    handle_vehicle_state(vehicle_state, &client)?;
+                    handle_vehicle_state(vehicle_state, &client).await?;
                 }
                 VpmCommand::PowerState(cmd) => {
-                    handle_power_state(cmd, &client)?;
+                    handle_power_state(cmd, &client).await?;
                 }
             }
         }
         parse_from_cli = false;
     }
+}
+
+fn create_context() -> ContextRef {
+    let fqin = ServiceFqin::builder()
+        .sdv_vm_name("vm")
+        .sdv_package_name("sdv.vpm.client")
+        .service_bundle_name("VpmSystemClient")
+        .service_instance_name("default")
+        .build()
+        .unwrap();
+
+    ContextRef::create(fqin)
 }
 
 fn parse_input() -> Option<Cli> {
@@ -57,24 +78,19 @@ fn parse_input() -> Option<Cli> {
     }
 }
 
-fn handle_vehicle_state(
+async fn handle_vehicle_state(
     vehicle_state_args: VehicleStateArgs,
-    client: &VpmSystemClient,
+    client: &Client,
 ) -> anyhow::Result<()> {
     let vehicle_state: VpmVehicleState = vehicle_state_args.clone().into();
-
     let request =
         SetVehicleStateRequest { vehicle_state: vehicle_state.into(), ..Default::default() };
-
-    client
-        .get_sdv_vpm_vpm_system_service_client("VpmSystemServiceBundle")
-        .set_vehicle_state(request)?;
-
+    client.SetVehicleState(&request).await?;
     println!("Vehicle mode set successfully {:?}", vehicle_state_args);
     Ok(())
 }
 
-fn handle_power_state(power_cmd: PowerCommand, client: &VpmSystemClient) -> anyhow::Result<()> {
+async fn handle_power_state(power_cmd: PowerCommand, client: &Client) -> anyhow::Result<()> {
     let timeout_ms = 10000;
     let request = match power_cmd {
         PowerCommand::PowerOn => PowerStateChangeRequest {
@@ -129,9 +145,7 @@ fn handle_power_state(power_cmd: PowerCommand, client: &VpmSystemClient) -> anyh
         },
     };
 
-    let result = client
-        .get_sdv_vpm_vpm_system_service_client("VpmSystemServiceBundle")
-        .set_power_state(request);
+    let result = client.SetPowerState(&request).await;
 
     if let Ok(response) = result {
         if response.error == PowerStateChangeRequestError::NO_ERROR.into() {
@@ -147,11 +161,14 @@ fn handle_power_state(power_cmd: PowerCommand, client: &VpmSystemClient) -> anyh
 
 struct VePSM {}
 
-impl PowerNotificationService for VePSM {
-    fn notify_power_state(
+#[async_trait::async_trait]
+impl NotificationInterface for VePSM {
+    async fn NotifyPowerState(
         &self,
-        request: PowerStateNotificationRequest,
-    ) -> RpcResult<PowerStateNotificationResponse> {
+        _caller_id: sdv_comms::id::ServiceFqin,
+        request: &sdv_vpm_api::vpm_notifications::PowerStateNotificationRequest,
+    ) -> sdv_status_rs::SdvResult<sdv_vpm_api::vpm_notifications::PowerStateNotificationResponse>
+    {
         println!(
             "Received power-state-report from VPM {:?} , reason {:?}",
             request.power_state, request.reason
