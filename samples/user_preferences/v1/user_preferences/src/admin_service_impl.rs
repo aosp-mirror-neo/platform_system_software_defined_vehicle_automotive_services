@@ -4,12 +4,18 @@ use sdv_user_preferences_user_preferences_admin_service_rpc::Interface as AdminS
 
 use crate::persistence::user_repository::User;
 use crate::persistence::Persistence;
+use crate::settings_retrieval_utils::retrieve_user_settings_including_defaults_for_group;
 use async_trait::async_trait;
+use itertools::Itertools;
 use log::{error, info, warn};
 use protobuf::Enum;
 use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
 use std::sync::Arc;
+use user_preferences_api::settings_group::{
+    SettingsGroup as SettingsGroupProto, SettingsGroupId as SettingsGroupIdProto,
+};
 use user_preferences_api::user::user::UserFlags;
+use user_preferences_api::user::User as UserProto;
 use user_preferences_api::user_preferences_admin_service::*;
 
 pub struct AdminServiceImpl {
@@ -142,14 +148,53 @@ impl AdminService for AdminServiceImpl {
         _caller_id: sdv_comms::id::ServiceFqin,
         _request: &ListUsersRequest,
     ) -> SdvResult<ListUsersResponse> {
-        Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
+        info!("Got request to list users");
+        let users = match self.persistence.users.list() {
+            Ok(x) => x,
+            Err(err) => {
+                error!("Failed to list users: {}", err);
+                return Err(err);
+            }
+        };
+
+        let user_proto_list: Vec<UserProto> = users.into_iter().map_into().collect();
+        info!("List users succeeded");
+
+        Ok(ListUsersResponse { users: user_proto_list, ..Default::default() })
     }
 
     async fn GetUserSettings(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
-        _request: &GetUserSettingsRequest,
+        request: &GetUserSettingsRequest,
     ) -> SdvResult<GetUserSettingsResponse> {
-        Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
+        info!("Got request to get_user_settings");
+
+        let settings_groups = self.persistence.setting_groups.list()?;
+
+        let mut setting_groups_protos: Vec<SettingsGroupProto> = Vec::new();
+        for setting_group in settings_groups.into_iter() {
+            let user_settings = retrieve_user_settings_including_defaults_for_group(
+                &self.persistence.setting_definitions,
+                &self.persistence.user_settings,
+                request.user_id,
+                setting_group.id,
+            )?;
+
+            setting_groups_protos.push(SettingsGroupProto {
+                id: Some(SettingsGroupIdProto {
+                    name: setting_group.name,
+                    service_fqin: setting_group.service_fqin,
+                    ..Default::default()
+                })
+                .into(),
+                settings: user_settings.into_iter().map_into().collect(),
+                ..Default::default()
+            });
+        }
+
+        info!("get_user_settings succeeded");
+
+        Ok(GetUserSettingsResponse { groups: setting_groups_protos, ..Default::default() })
     }
 }
