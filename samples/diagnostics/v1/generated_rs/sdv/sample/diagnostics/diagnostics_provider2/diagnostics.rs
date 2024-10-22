@@ -9,7 +9,7 @@ use sdv::status::SdvResult;
 use std::sync::Arc;
 
 #[allow(unused_imports)]
-use diagnostics_v1_api::response_code::ResponseCode::*;
+use sdv::diagnostics::api::response_code::ResponseCode::*;
 
 /// Diagnostics extension struct.
 pub struct Diagnostics {

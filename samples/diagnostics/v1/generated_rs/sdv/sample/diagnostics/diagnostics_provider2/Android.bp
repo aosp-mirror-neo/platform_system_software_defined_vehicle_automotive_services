@@ -17,8 +17,6 @@ rust_library {
         "liblog_rust",
         "libsdv_rs",
         "libfutures",
-        "libsdv_mw_rs_diag",
-        "libdiagnostics_v1_api",
         "libdiagnostics_v1_sample_catalog",
     ],
     proc_macros: [

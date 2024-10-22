@@ -9,7 +9,6 @@ rust_defaults {
     defaults: ["sdv@rust_defaults"],
     crate_name: "diag_v1_samples",
     rustlibs: [
-        "libdiagnostics_v1_api",
         "libprotobuf",
         "libanyhow",
         "liblog_rust",
