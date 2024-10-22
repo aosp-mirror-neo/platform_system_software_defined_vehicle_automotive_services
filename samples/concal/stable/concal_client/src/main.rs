@@ -34,17 +34,21 @@ async fn main() {
         ),
     };
 
+    println!("Context for Sample ConCal Client is created.");
+
     let service_bundle = ConCalClientServiceBundle::new(Arc::new(sdv_comms)).await.unwrap();
     let client = service_bundle
         .create_rpc_client::<RegistrationClient>(
-            "sdv.concal".to_string(),
-            "ConCalServiceBundle".to_string(),
+            "com.sdv.google.sample.concal".to_string(),
+            "SampleConCalServiceBundle".to_string(),
             ClientOptions::default(),
         )
-        .await
-        .unwrap();
-
-    println!("ConCal Client Sample started.");
+        .await;
+    if client.is_err() {
+        panic!("Failed to create an RPC client");
+    }
+    let client = client.unwrap();
+    println!("Sample ConCal RPC Client started.");
 
     // using the prebuilt_etc build rule within automotive_services/samples/concal/stable/proto/Android.bp,
     // a sample proto rear_view_camera.proto has been placed within the /etc/protos directory for this demo
@@ -61,8 +65,8 @@ async fn main() {
     println!("\nApplying the following overrides:\n{:#?}", &overrides);
     let update_client = service_bundle
         .create_rpc_client::<UpdateClient>(
-            "sdv.concal".to_string(),
-            "ConCalServiceBundle".to_string(),
+            "com.sdv.google.sample.concal".to_string(),
+            "SampleConCalServiceBundle".to_string(),
             ClientOptions::default(),
         )
         .await

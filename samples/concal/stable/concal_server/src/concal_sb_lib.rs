@@ -62,7 +62,7 @@ impl ServiceBundle for ConCalServiceBundle {
             let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap();
             rt.block_on(async {
                 let concal = Arc::new(ConCalServiceBundleImpl::new());
-                match ConCalServiceBundleMw::new(
+                let _service = match ConCalServiceBundleMw::new(
                     Arc::new(SdvComms { context }),
                     (concal.clone(), concal.clone(), concal.clone(), concal.clone()),
                 )
