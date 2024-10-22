@@ -2,6 +2,7 @@
 //! Sample user preferences implementation
 #![allow(dead_code)]
 
+mod admin_service_impl;
 mod persistence;
 
 #[tokio::main]
