@@ -4,6 +4,7 @@
 
 mod admin_service_impl;
 mod persistence;
+mod registry_service_impl;
 mod settings_retrieval_utils;
 
 #[tokio::main]
