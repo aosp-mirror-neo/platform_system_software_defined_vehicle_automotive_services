@@ -3,19 +3,40 @@
 rust_binary {
     name: "sdv_user_preferences_service_stable",
     crate_name: "sdv_user_preferences_service_stable",
-    srcs: [
-        "src/main.rs",
-    ],
     defaults: ["sdv_user_preferences_stable@rust_defaults"],
     proc_macros: [
         "libasync_trait",
     ],
-    system_ext_specific: true, //TODO(b/370402920): Move to product partition instead
+    product_available: true,
     ld_flags: ["-Wl,--no-as-needed"],
+}
+
+rust_test {
+    name: "sdv_user_preferences_service_stable_tests",
+    defaults: ["sdv_user_preferences_stable@rust_defaults"],
+    test_options: {
+        unit_test: true,
+    },
+    test_suites: [
+        "general-tests",
+        "automotive-sdv-tests",
+    ],
+    rustlibs: [
+        "libgoogletest_rust",
+    ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    auto_gen_config: true,
+    ld_flags: ["-Wl,--no-as-needed"],
+    require_root: true,
 }
 
 rust_defaults {
     name: "sdv_user_preferences_stable@rust_defaults",
+    srcs: [
+        "src/main.rs",
+    ],
     defaults: [
         "sdv@rust_defaults",
     ],
@@ -25,9 +46,23 @@ rust_defaults {
         "libsdv_log_rust",
         "libtokio",
         "libfutures",
+        "libmockall",
+        "librusqlite",
         "librustutils",
+        "libitertools",
+        "libtempfile",
+        "libserde",
+        "libclap",
+        "libprotobuf",
+        "libbinder_tokio_rs",
+        "libbinder_rs",
+        "liblazy_static",
+        "libserde_json",
+        "libsdv_comms_rs",
+        "libsdv_status_rs",
         "libsdv_mw_rs_comms",
         "libsdv_mw_rs_sdv_comms",
+        "libuser_preferences_api_stable",
         "libsdv_mw_rs_sdv_user_preferences_user_preferences_service_bundle",
         "libsdv_user_preferences_user_preferences_admin_service_rpc_rs",
         "libsdv_user_preferences_user_preferences_management_service_rpc_rs",
@@ -35,5 +70,5 @@ rust_defaults {
         "libsdv_user_preferences_view_change_notifier_rpc_rs",
         "libsdv_user_preferences_user_controllable_user_controllable_service_rpc_rs",
     ],
-    system_ext_specific: true, //TODO(b/370402920): Move to product partition instead
+    product_available: true,
 }
