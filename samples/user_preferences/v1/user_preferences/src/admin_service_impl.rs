@@ -4,6 +4,7 @@ use sdv_user_preferences_user_preferences_admin_service_rpc::Interface as AdminS
 
 use crate::persistence::user_repository::User;
 use crate::persistence::Persistence;
+use crate::rpc_client_factory::RpcClientFactoryImpl;
 use crate::settings_change_propagator_impl::SettingsChangePropagatorImpl;
 use crate::settings_retrieval_utils::retrieve_user_settings_including_defaults_for_group;
 use async_trait::async_trait;
@@ -12,6 +13,7 @@ use log::{debug, error, info, warn};
 use protobuf::Enum;
 use sdv_comms::id::ServiceFqin;
 use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
+use std::collections::HashSet;
 use std::str::FromStr;
 use std::sync::Arc;
 use user_preferences_api::settings_group::{
@@ -19,19 +21,22 @@ use user_preferences_api::settings_group::{
 };
 use user_preferences_api::user::user::UserFlags;
 use user_preferences_api::user::User as UserProto;
+use user_preferences_api::user_controllable_service;
 use user_preferences_api::user_preferences_admin_service::*;
 
 pub struct AdminServiceImpl {
     persistence: Arc<Persistence>,
+    rpc_client_factory: Arc<RpcClientFactoryImpl>,
     settings_change_propagator: Arc<SettingsChangePropagatorImpl>,
 }
 
 impl AdminServiceImpl {
     pub fn new(
         persistence: Arc<Persistence>,
+        rpc_client_factory: Arc<RpcClientFactoryImpl>,
         settings_change_propagator: Arc<SettingsChangePropagatorImpl>,
     ) -> Self {
-        Self { persistence, settings_change_propagator }
+        Self { persistence, rpc_client_factory, settings_change_propagator }
     }
 
     fn are_valid_user_flags(user_flags: i32) -> bool {
@@ -204,7 +209,36 @@ impl AdminService for AdminServiceImpl {
         _caller_id: sdv_comms::id::ServiceFqin,
         _request: &FactoryResetRequest,
     ) -> SdvResult<FactoryResetResponse> {
-        Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
+        self.persistence.user_settings.clear()?;
+        self.persistence.users.clear()?;
+
+        let services_to_reset: HashSet<String> = (self.persistence.setting_groups.list()?)
+            .into_iter()
+            .map(|group| group.service_fqin)
+            .collect();
+
+        for service_fqin in services_to_reset.iter() {
+            let client = match self
+                .rpc_client_factory
+                .new_user_controllable_service_client(&ServiceFqin::from_str(service_fqin).unwrap())
+                .await
+            {
+                Ok(client) => client,
+                Err(err) => {
+                    error!("Unable to factory reset {}: {}", service_fqin, err);
+                    continue;
+                }
+            };
+            if let Err(err) =
+                client.FactoryReset(&user_controllable_service::FactoryResetRequest::new()).await
+            {
+                error!("Unable to factory reset {}: {}", service_fqin, err);
+                continue;
+            };
+        }
+
+        info!("Performed factory reset successfully");
+        Ok(FactoryResetResponse::new())
     }
 
     async fn ListUsers(
