@@ -34,7 +34,7 @@ pub struct SettingsChangePropagatorImpl {
 }
 
 impl SettingsChangePropagatorImpl {
-    fn new(
+    pub fn new(
         persistence: Arc<Persistence>,
         rpc_client_factory: Arc<RpcClientFactoryImpl>,
         subscriptions_manager_impl: Arc<SubscriptionsManagerImpl>,
@@ -268,10 +268,6 @@ struct ServiceSettingPendingChanges {
 }
 
 impl ServiceSettingPendingChanges {
-    pub fn new() -> Self {
-        Self { setting_changes: HashMap::new() }
-    }
-
     pub fn add_setting_change(&mut self, group_name: String, settings: Vec<Setting>) {
         let setting_changes = self.setting_changes.entry(group_name).or_default();
         for setting in settings.into_iter() {
@@ -283,10 +279,6 @@ impl ServiceSettingPendingChanges {
         let pending_settings = self.setting_changes.get(group_name).cloned().unwrap_or_default();
 
         pending_settings.into_values().collect()
-    }
-
-    pub fn groups(&self) -> Vec<String> {
-        self.setting_changes.keys().cloned().collect()
     }
 }
 

@@ -26,7 +26,7 @@ pub struct Persistence {
     pub vehicle_settings: VehicleSettingsRepository,
 }
 
-pub fn initialize_datastore(conn: Connection) -> Persistence {
+pub fn initialize_persistence(conn: Connection) -> Persistence {
     let conn = Arc::new(Mutex::new(conn));
 
     let users = UserRepository::new(Arc::clone(&conn))
