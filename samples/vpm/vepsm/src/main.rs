@@ -11,6 +11,7 @@ use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_mw_rs_sdv_vpm_client_vpm_system_client::VpmSystemClient;
 use sdv_vpm_api::vehicle::VpmVehicleState;
 use sdv_vpm_api::vpm::power_state_change_response::PowerStateChangeRequestError;
+use sdv_vpm_api::vpm::GetPowerStateRequest;
 use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateRequest;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
@@ -93,6 +94,12 @@ async fn handle_vehicle_state(
 async fn handle_power_state(power_cmd: PowerCommand, client: &Client) -> anyhow::Result<()> {
     let timeout_ms = 10000;
     let request = match power_cmd {
+        PowerCommand::Get => {
+            let result = client.GetPowerState(&GetPowerStateRequest { ..Default::default() }).await;
+            println!("{:?}", result.unwrap().power_state.unwrap());
+            return Ok(());
+        }
+
         PowerCommand::PowerOn => PowerStateChangeRequest {
             power_request: PowerStateRequest::TURN_ON.into(),
             timeout_ms,
@@ -197,7 +204,9 @@ enum VpmCommand {
 /// Set the power state for the VM.
 #[derive(Subcommand, Debug, Clone)]
 pub enum PowerCommand {
-    /// Set the power state to on
+    /// Gets the current power state.
+    Get,
+    /// Set the power state to on.
     PowerOn,
     /// Prepare the VM for suspension or shutdown.
     Prepare {
