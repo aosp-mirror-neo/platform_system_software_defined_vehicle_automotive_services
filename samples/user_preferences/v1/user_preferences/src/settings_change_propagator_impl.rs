@@ -1,0 +1,199 @@
+// Copyright 2024 Google LLC
+//! Sample user preferences implementation
+
+use crate::{
+    persistence::{setting::Setting, Persistence},
+    rpc_client_factory::RpcClientFactoryImpl,
+    user_controllable_service_listener::OnlineServicesListener,
+};
+use async_trait::async_trait;
+use itertools::Itertools;
+use log::{error, info};
+use sdv_comms::id::ServiceFqin;
+use sdv_user_preferences_user_controllable_user_controllable_service_rpc::Client as UserControllableServiceClient;
+use std::collections::HashSet;
+use std::{collections::HashMap, sync::Arc};
+use tokio::sync::Mutex;
+use user_preferences_api::user_controllable_service::{
+    RequestSettingsChangeRequest, RequestSettingsChangeResponse,
+};
+
+pub struct SettingsChangePropagatorImpl {
+    persistence: Arc<Persistence>,
+    rpc_client_factory: Arc<RpcClientFactoryImpl>,
+    pending_setting_changes: Mutex<HashMap<ServiceFqin, ServiceSettingPendingChanges>>,
+    online_services: Arc<Mutex<HashSet<ServiceFqin>>>,
+}
+
+impl SettingsChangePropagatorImpl {
+    fn new(persistence: Arc<Persistence>, rpc_client_factory: Arc<RpcClientFactoryImpl>) -> Self {
+        Self {
+            persistence,
+            rpc_client_factory,
+            pending_setting_changes: Mutex::new(HashMap::new()),
+            online_services: Arc::new(Mutex::new(HashSet::new())),
+        }
+    }
+
+    pub async fn queue_setting_change(
+        &self,
+        fqin: ServiceFqin,
+        group_name: String,
+        settings: Vec<Setting>,
+    ) {
+        let mut pending_setting_changes = self.pending_setting_changes.lock().await;
+        pending_setting_changes
+            .entry(fqin.clone())
+            .or_default()
+            .add_setting_change(group_name, settings);
+        drop(pending_setting_changes);
+
+        self.process_pending_setting_changes(&fqin).await;
+    }
+
+    pub async fn process_pending_setting_changes(&self, fqin: &ServiceFqin) {
+        if !self.is_service_available(fqin).await {
+            return;
+        }
+        let mut pending_setting_changes = self.pending_setting_changes.lock().await;
+        let service_pending_settings = match pending_setting_changes.remove(fqin) {
+            Some(x) => x,
+            None => return,
+        };
+        drop(pending_setting_changes);
+
+        let client: UserControllableServiceClient =
+            match self.rpc_client_factory.new_user_controllable_service_client(fqin).await {
+                Ok(client) => client,
+                Err(err) => {
+                    error!("Failed to create RPC client for {}: {}", fqin, err);
+                    //TODO: Once we fail to apply change, we should notify clients of the final
+                    //Settings
+                    return;
+                }
+            };
+
+        for (group_name, settings) in service_pending_settings.into_iter() {
+            let group_id = match self.persistence.setting_groups.get(&group_name, &fqin.to_string())
+            {
+                Ok(x) => x.id,
+                Err(err) => {
+                    error!("Failed to create RPC client for {}: {}", fqin, err);
+                    //TODO: Once we fail to apply change, we should notify clients of the final
+                    //Settings
+                    continue;
+                }
+            };
+
+            let response: RequestSettingsChangeResponse = match client
+                .RequestSettingsChange(&RequestSettingsChangeRequest {
+                    group_name: group_name.clone(),
+                    settings: settings.into_iter().map_into().collect(),
+                    ..Default::default()
+                })
+                .await
+            {
+                Ok(response) => response,
+                Err(err) => {
+                    error!(
+                        "RequestSettingsChange RPC to {} to update group {} failed: {}",
+                        fqin.to_string(),
+                        group_name.clone(),
+                        err
+                    );
+                    //TODO: Once we fail to apply change, we should notify clients of the final
+                    //Settings
+                    continue;
+                }
+            };
+
+            // Update vehicle settings if the RPC call was successful
+            if let Err(err) = self.persistence.vehicle_settings.store_all(
+                // Assuming you have a way to get group ID from group name
+                // Replace this with your actual logic
+                group_id,
+                response.settings.iter().cloned().map_into().collect(),
+            ) {
+                error!("Failed to store vehicle settings for {}/{}: {}", fqin, group_name, err);
+            } else {
+                info!("Successfully applied settings for {}/{}", fqin.to_string(), group_name);
+            }
+            //TODO: We should notify clients of the values of settings now
+        }
+    }
+
+    pub async fn get_pending_setting_changes(
+        &self,
+        fqin: &ServiceFqin,
+        group_name: &String,
+    ) -> Vec<Setting> {
+        let pending_setting_changes = self.pending_setting_changes.lock().await;
+        let service_pending_changes = match pending_setting_changes.get(fqin) {
+            Some(x) => x,
+            None => return Vec::new(),
+        };
+        service_pending_changes.get_setting_change(group_name)
+    }
+
+    pub async fn is_service_available(&self, fqin: &ServiceFqin) -> bool {
+        let online_services = self.online_services.lock().await;
+        online_services.contains(fqin)
+    }
+}
+
+#[async_trait]
+impl OnlineServicesListener for SettingsChangePropagatorImpl {
+    async fn on_service_start(&self, fqin: &ServiceFqin) {
+        let mut online_services = self.online_services.lock().await;
+        online_services.insert(fqin.clone());
+        drop(online_services);
+        //once service is online, Attempt to apply any pending changes
+        self.process_pending_setting_changes(fqin).await;
+    }
+
+    async fn on_service_stop(&self, fqin: &ServiceFqin) {
+        let mut online_services = self.online_services.lock().await;
+        online_services.remove(fqin);
+    }
+}
+
+#[derive(Default)]
+struct ServiceSettingPendingChanges {
+    setting_changes: HashMap<String, HashMap<String, Setting>>,
+}
+
+impl ServiceSettingPendingChanges {
+    pub fn new() -> Self {
+        Self { setting_changes: HashMap::new() }
+    }
+
+    pub fn add_setting_change(&mut self, group_name: String, settings: Vec<Setting>) {
+        let setting_changes = self.setting_changes.entry(group_name).or_default();
+        for setting in settings.into_iter() {
+            setting_changes.insert(setting.name.clone(), setting);
+        }
+    }
+    pub fn get_setting_change(&self, group_name: &String) -> Vec<Setting> {
+        // We need to deduplicate settings, taking the last setting found from the group
+        let pending_settings = self.setting_changes.get(group_name).cloned().unwrap_or_default();
+
+        pending_settings.into_values().collect()
+    }
+
+    pub fn groups(&self) -> Vec<String> {
+        self.setting_changes.keys().cloned().collect()
+    }
+}
+
+impl IntoIterator for ServiceSettingPendingChanges {
+    type Item = (String, Vec<Setting>);
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.setting_changes
+            .into_iter()
+            .map(|(group_name, settings)| (group_name, settings.into_values().collect()))
+            .collect::<Vec<_>>()
+            .into_iter()
+    }
+}
