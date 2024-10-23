@@ -5,6 +5,7 @@ use sdv_mw_rs_comms::{ClientOptions, Communicate, RpcClient};
 use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_status_rs::SdvResult;
 use sdv_user_preferences_user_controllable_user_controllable_service_rpc::Client as UserControllableServiceClient;
+use sdv_user_preferences_view_change_notifier_rpc::Client as ChangeNotifierClient;
 use std::sync::Arc;
 
 pub struct RpcClientFactoryImpl {
@@ -32,5 +33,22 @@ impl RpcClientFactoryImpl {
         Ok(UserControllableServiceClient::new(
             self.comms.create_client_transport(&attributes).await?,
         ))
+    }
+
+    async fn new_change_notifier_client(
+        &self,
+        package: &str,
+        bundle: &str,
+    ) -> SdvResult<ChangeNotifierClient> {
+        let attributes = sdv_mw_rs_comms::ClientAttributes {
+            server_name: sdv_mw_rs_comms::UnitName {
+                package: package.into(),
+                bundle: bundle.into(),
+                vm: "".to_string(),
+                name: ChangeNotifierClient::DEFAULT_UNIT_NAME.to_string(),
+            },
+            options: sdv_mw_rs_comms::ClientOptions::default(),
+        };
+        Ok(ChangeNotifierClient::new(self.comms.create_client_transport(&attributes).await?))
     }
 }

@@ -4,6 +4,11 @@
 use crate::persistence::setting::Setting;
 use crate::persistence::setting_definition::SettingDefinition;
 use crate::persistence::settings_group_repository::SettingsGroup;
+use crate::settings_retrieval_utils::{
+    retrieve_user_settings_including_defaults_for_group,
+    retrieve_vehicle_settings_including_defaults_for_group,
+};
+use crate::subscriptions_manager_impl::SubscriptionsManagerImpl;
 use crate::{
     persistence::Persistence, settings_change_propagator_impl::SettingsChangePropagatorImpl,
 };
@@ -24,14 +29,16 @@ use user_preferences_api::user_preferences_management_service::{
 pub struct ManagementServiceImpl {
     persistence: Arc<Persistence>,
     settings_change_propagator: Arc<SettingsChangePropagatorImpl>,
+    subscriptions_manager: Arc<SubscriptionsManagerImpl>,
 }
 
 impl ManagementServiceImpl {
     pub fn new(
         persistence: Arc<Persistence>,
         settings_change_propagator: Arc<SettingsChangePropagatorImpl>,
+        subscriptions_manager: Arc<SubscriptionsManagerImpl>,
     ) -> Self {
-        Self { persistence, settings_change_propagator }
+        Self { persistence, settings_change_propagator, subscriptions_manager }
     }
 
     fn are_valid_settings(
@@ -135,17 +142,82 @@ impl ManagementService for ManagementServiceImpl {
 
     async fn SubscribeToSettingsChangeAndGetSettings(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
-        _request: &SubscribeToSettingsChangeAndGetSettingsRequest,
+        caller_id: sdv_comms::id::ServiceFqin,
+        request: &SubscribeToSettingsChangeAndGetSettingsRequest,
     ) -> sdv_status_rs::SdvResult<SubscribeToSettingsChangeAndGetSettingsResponse> {
-        Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
+        let settings_group_id = request.settings_group_id.as_ref().unwrap();
+        let settings_group_primary_key = match self
+            .persistence
+            .setting_groups
+            .get(settings_group_id.name.as_str(), settings_group_id.service_fqin.as_str())
+        {
+            Ok(x) => x.id,
+            Err(err) => {
+                error!(
+                    "SubscribeToSettingsChangeAndGetSettings failed to retrieve settings group: {}",
+                    err
+                );
+                return Err(err);
+            }
+        };
+
+        let active_user = self.persistence.users.get_active_user()?;
+
+        let current_settings = retrieve_vehicle_settings_including_defaults_for_group(
+            &self.persistence.setting_definitions,
+            &self.persistence.vehicle_settings,
+            settings_group_primary_key,
+        )?;
+        let persisted_settings: Vec<SettingProto> = match active_user {
+            Some(user) => {
+                match retrieve_user_settings_including_defaults_for_group(
+                    &self.persistence.setting_definitions,
+                    &self.persistence.user_settings,
+                    user.id,
+                    settings_group_primary_key,
+                ) {
+                    Ok(x) => x.into_iter().map_into().collect_vec(),
+                    Err(err) => {
+                        error!("Failed to retrieve persisted settings: {}", err);
+                        return Err(err);
+                    }
+                }
+            }
+            None => Vec::new(),
+        };
+
+        let pending_settings: Vec<SettingProto> = self
+            .settings_change_propagator
+            .get_pending_setting_changes(
+                &ServiceFqin::from_str(&settings_group_id.service_fqin).unwrap(),
+                &settings_group_id.name,
+            )
+            .await
+            .into_iter()
+            .map_into()
+            .collect();
+
+        self.subscriptions_manager.register_subscriber(settings_group_id.clone(), caller_id).await;
+
+        Ok(SubscribeToSettingsChangeAndGetSettingsResponse {
+            current_settings,
+            pending_settings,
+            persisted_settings,
+            ..Default::default()
+        })
     }
 
     async fn UnsubscribeFromSettingsChange(
         &self,
-        _caller_id: sdv_comms::id::ServiceFqin,
-        _request: &UnsubscribeToSettingsChangeRequest,
+        caller_id: sdv_comms::id::ServiceFqin,
+        request: &UnsubscribeToSettingsChangeRequest,
     ) -> sdv_status_rs::SdvResult<UnsubscribeToSettingsChangeResponse> {
-        Err(sdv_status_rs::SdvStatus::new(sdv_status_rs::SdvStatusCode::Unimplemented))
+        let settings_group_id = request.settings_group_id.as_ref().unwrap();
+
+        self.subscriptions_manager
+            .unregister_subscriber(settings_group_id.clone(), caller_id)
+            .await;
+
+        Ok(UnsubscribeToSettingsChangeResponse::new())
     }
 }
