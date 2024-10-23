@@ -2,6 +2,8 @@
 
 //! ConCal Sample Client
 
+use com_sdv_concal_con_cal_registration_service_rpc::Client as RegistrationClient;
+use com_sdv_concal_con_cal_update_service_rpc::Client as UpdateClient;
 use concal_api_stable::concal_registration_service::*;
 use concal_api_stable::concal_update_service::*;
 use concal_api_stable::config_override::config_override_key_value::Value;
@@ -15,9 +17,7 @@ use sdv::comms::id::ServiceFqin as CommsFqin;
 use sdv::comms::ContextRef;
 use sdv::mw::ClientOptions;
 use sdv::mw::SdvComms;
-use sdv_concal_con_cal_registration_service_rpc::Client as RegistrationClient;
-use sdv_concal_con_cal_update_service_rpc::Client as UpdateClient;
-use sdv_mw_rs_sdv_concal_con_cal_client_service_bundle::ConCalClientServiceBundle;
+use sdv_mw_rs_com_sdv_concal_sample_oem_sample_oem_con_cal_client_service_bundle::SampleOemConCalClientServiceBundle;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -29,18 +29,21 @@ use sdvsampleconcal_proto_rust::concal_rear_view_camera::RearViewCamera;
 async fn main() {
     let sdv_comms = SdvComms {
         context: ContextRef::create(
-            CommsFqin::from_str("local-vm:sdv.concal.sample.ConCalClientServiceBundle/sample")
-                .unwrap(),
+            CommsFqin::from_str(
+                "local-vm:sdv.concal.sample.SampleOemConCalClientServiceBundle/sample",
+            )
+            .unwrap(),
         ),
     };
 
     println!("Context for Sample ConCal Client is created.");
 
-    let service_bundle = ConCalClientServiceBundle::new(Arc::new(sdv_comms)).await.unwrap();
+    let service_bundle =
+        SampleOemConCalClientServiceBundle::new(Arc::new(sdv_comms)).await.unwrap();
     let client = service_bundle
         .create_rpc_client::<RegistrationClient>(
-            "com.sdv.google.sample.concal".to_string(),
-            "SampleConCalServiceBundle".to_string(),
+            "com.sdv.oem.sample.concal".to_string(),
+            "SampleOemConCalServiceBundle".to_string(),
             ClientOptions::default(),
         )
         .await;
@@ -65,8 +68,8 @@ async fn main() {
     println!("\nApplying the following overrides:\n{:#?}", &overrides);
     let update_client = service_bundle
         .create_rpc_client::<UpdateClient>(
-            "com.sdv.google.sample.concal".to_string(),
-            "SampleConCalServiceBundle".to_string(),
+            "com.sdv.oem.sample.concal".to_string(),
+            "SampleOemConCalServiceBundle".to_string(),
             ClientOptions::default(),
         )
         .await

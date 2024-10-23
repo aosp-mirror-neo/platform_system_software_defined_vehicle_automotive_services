@@ -1,0 +1,35 @@
+# Copyright 2024 Google LLC
+# proto-file: //system/software_defined_vehicle/core_services/vsidl/protos/sdv/vsidl/v1/syntax.proto
+# proto-message: VsidlEntry
+
+package: "com.sdv.oem.sample.concal"
+
+sdv_service_bundle {
+  name: "SampleOemConCalServiceBundle"
+  server {
+    interface: "com.sdv.google.concal.ConCalRegistrationService"
+    acl: "concal-rule-public"
+  }
+  server {
+    interface: "com.sdv.google.concal.ConCalUpdateService"
+    acl: "concal-rule-privilleged-only"
+  }
+  server {
+    interface: "com.sdv.google.concal.calib.ConCalCalibrationService"
+    acl: "concal-rule-calib-only"
+  }
+  server {
+    interface: "com.sdv.google.concal.calib.ConCalCalibrationNotificationService"
+    acl: "concal-rule-notification-only"
+  }
+}
+
+sdv_service_bundle {
+  name: "SampleOemConCalClientServiceBundle"
+  client {
+    interface: "com.sdv.google.concal.ConCalRegistrationService"
+  }
+  client {
+    interface: "com.sdv.google.concal.ConCalUpdateService"
+  }
+}

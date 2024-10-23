@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 
-package sdv.sd_common;
+package com.sdv.google.sd_common;
 
 // Service Bundle Fully Qualified Instance Name.
 // It mimics behavior of the Service FQIN defined in Service Discovery.
