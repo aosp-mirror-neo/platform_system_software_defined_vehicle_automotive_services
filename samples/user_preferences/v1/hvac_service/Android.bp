@@ -1,0 +1,34 @@
+// Copyright 2024 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+    default_team: "trendy_team_automotive",
+}
+
+rust_binary {
+    name: "sdv_hvac_service_stable",
+    crate_name: "sdv_hvac_service",
+    srcs: [
+        "src/main.rs",
+    ],
+    rustlibs: [
+        "libtokio",
+        "libfutures",
+        "libprotobuf",
+        "libitertools",
+        "libsdv_comms_rs",
+        "libsdv_status_rs",
+        "libsdv_mw_rs_comms",
+        "libsdv_mw_rs_sdv_comms",
+        "libuser_preferences_api_stable",
+        "libuser_controllable_service_impl_stable",
+        "libsdv_mw_rs_sdv_user_preferences_hvac_service",
+        "libsdv_user_preferences_user_preferences_registry_service_rpc_rs",
+        "libsdv_user_preferences_user_controllable_user_controllable_service_rpc_rs",
+    ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    product_available: true,
+    ld_flags: ["-Wl,--no-as-needed"],
+}
