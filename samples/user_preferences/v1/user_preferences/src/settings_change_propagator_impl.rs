@@ -68,6 +68,14 @@ impl SettingsChangePropagatorImpl {
         if !self.is_service_available(fqin).await {
             return;
         }
+        let client: UserControllableServiceClient =
+            match self.rpc_client_factory.new_user_controllable_service_client(fqin).await {
+                Ok(client) => client,
+                Err(err) => {
+                    error!("Failed to create RPC client for {}: {}", fqin, err);
+                    return;
+                }
+            };
         let mut pending_setting_changes = self.pending_setting_changes.lock().await;
         let service_pending_settings = match pending_setting_changes.remove(fqin) {
             Some(x) => x,
@@ -75,25 +83,25 @@ impl SettingsChangePropagatorImpl {
         };
         drop(pending_setting_changes);
 
-        let client: UserControllableServiceClient =
-            match self.rpc_client_factory.new_user_controllable_service_client(fqin).await {
-                Ok(client) => client,
-                Err(err) => {
-                    error!("Failed to create RPC client for {}: {}", fqin, err);
-                    //TODO: Once we fail to apply change, we should notify clients of the final
-                    //Settings
-                    return;
-                }
-            };
-
         for (group_name, settings) in service_pending_settings.into_iter() {
             let group_id = match self.persistence.setting_groups.get(&group_name, &fqin.to_string())
             {
                 Ok(x) => x.id,
                 Err(err) => {
-                    error!("Failed to create RPC client for {}: {}", fqin, err);
-                    //TODO: Once we fail to apply change, we should notify clients of the final
-                    //Settings
+                    error!(
+                        "Failed to retrieve settings group primary key id for {}: {}",
+                        fqin, err
+                    );
+                    // notify subscribers of the latest state of these settings
+                    self.notify_subscribers_of_current_state(
+                        fqin,
+                        &group_name,
+                        &settings
+                            .iter()
+                            .map(|setting| setting.name.clone())
+                            .collect::<HashSet<String>>(),
+                    )
+                    .await;
                     continue;
                 }
             };
@@ -101,7 +109,7 @@ impl SettingsChangePropagatorImpl {
             let response: RequestSettingsChangeResponse = match client
                 .RequestSettingsChange(&RequestSettingsChangeRequest {
                     group_name: group_name.clone(),
-                    settings: settings.into_iter().map_into().collect(),
+                    settings: settings.iter().cloned().map_into().collect(),
                     ..Default::default()
                 })
                 .await
@@ -114,8 +122,15 @@ impl SettingsChangePropagatorImpl {
                         group_name.clone(),
                         err
                     );
-                    //TODO: Once we fail to apply change, we should notify clients of the final
-                    //Settings
+                    self.notify_subscribers_of_current_state(
+                        fqin,
+                        &group_name,
+                        &settings
+                            .iter()
+                            .map(|setting| setting.name.clone())
+                            .collect::<HashSet<String>>(),
+                    )
+                    .await;
                     continue;
                 }
             };
@@ -131,7 +146,12 @@ impl SettingsChangePropagatorImpl {
             } else {
                 info!("Successfully applied settings for {}/{}", fqin.to_string(), group_name);
             }
-            //TODO: We should notify clients of the values of settings now
+            self.notify_subscribers_of_current_state(
+                fqin,
+                &group_name,
+                &settings.into_iter().map(|setting| setting.name).collect::<HashSet<String>>(),
+            )
+            .await;
         }
     }
 
