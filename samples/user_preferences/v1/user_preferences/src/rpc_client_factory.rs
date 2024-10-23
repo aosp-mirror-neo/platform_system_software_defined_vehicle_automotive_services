@@ -35,7 +35,7 @@ impl RpcClientFactoryImpl {
         ))
     }
 
-    async fn new_change_notifier_client(
+    pub async fn new_change_notifier_client(
         &self,
         package: &str,
         bundle: &str,
