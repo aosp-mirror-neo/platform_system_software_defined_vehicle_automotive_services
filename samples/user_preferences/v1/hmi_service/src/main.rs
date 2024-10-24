@@ -82,8 +82,9 @@ async fn main() {
         .await
         .expect("Failed to select user");
 
-    //TODO: Check if we still need this
-    std::thread::sleep(std::time::Duration::from_secs(5));
+    // Switching user will result in a callback for settings change, sleep until we receive the callback
+    // to avoid mixing the order of the messages in the standard output
+    std::thread::sleep(std::time::Duration::from_secs(1));
 
     let response = management_service_client
         .SubscribeToSettingsChangeAndGetSettings(&SubscribeToSettingsChangeAndGetSettingsRequest {
@@ -177,7 +178,7 @@ async fn main() {
 
     // Switching user will result in a callback for settings change, sleep until we receive the callback
     // to avoid mixing the order of the messages in the standard output
-    std::thread::sleep(std::time::Duration::from_secs(5));
+    std::thread::sleep(std::time::Duration::from_secs(1));
 
     println!("Creating another user");
     let user_id_3 = 3_i32;
@@ -220,6 +221,65 @@ async fn main() {
         .await
         .expect("Failed to perform factory reset");
 
+    println!("---------------------------");
+    println!("Scenario 2: User Preference configuring HVAC temperature to persisted temperature");
+    // Switching user will result in a callback for settings change, sleep until we receive the callback
+    // to avoid mixing the order of the messages in the standard output
+    std::thread::sleep(std::time::Duration::from_secs(2));
+
+    let user_id_4 = 4_i32;
+    admin_service_client
+        .CreateUser(&CreateUserRequest {
+            user: Some(User {
+                id: user_id_4,
+                flags: UserFlags::DRIVER.value(),
+                ..Default::default()
+            })
+            .into(),
+            ..Default::default()
+        })
+        .await
+        .expect("Failed to create user");
+
+    admin_service_client
+        .SelectUser(&SelectUserRequest { user_id: user_id_4, ..Default::default() })
+        .await
+        .expect("Failed to select user");
+
+    let _response = management_service_client
+        .RequestSettingsChange(&RequestSettingsChangeRequest {
+            settings_group_id: Some(SettingsGroupId {
+                service_fqin: hvac_service_fqin.to_string(),
+                name: SETTINGS_GROUP_NAME.to_string(),
+                ..Default::default()
+            })
+            .into(),
+            settings: vec![Setting {
+                key: TEMPERATURE.to_string(),
+                value: Some(Value::Int64(32)),
+                ..Default::default()
+            }],
+            ..Default::default()
+        })
+        .await
+        .expect("Failed to request setting change");
+
+    println!("Subscribing from setting changes");
+    let _response = management_service_client
+        .SubscribeToSettingsChangeAndGetSettings(&SubscribeToSettingsChangeAndGetSettingsRequest {
+            settings_group_id: Some(SettingsGroupId {
+                service_fqin: hvac_service_fqin.to_string(),
+                name: SETTINGS_GROUP_NAME.to_string(),
+                ..Default::default()
+            })
+            .into(),
+            ..Default::default()
+        })
+        .await
+        .expect("Failed to subscribe to setting changes");
+
+    println!("Please restart the HVAC sample binary");
+    println!("User Preferences will automatically detect it starting and configure the temperature to the user's desired temperature 32");
     std::thread::park();
 }
 
