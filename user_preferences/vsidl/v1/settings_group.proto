@@ -6,7 +6,7 @@ option java_multiple_files = true;
 option java_package = "com.android.sdv.sdvgrpclibrary";
 option java_outer_classname = "SettingsGroupProto";
 
-package sdv.user_preferences;
+package com.sdv.google.user_preferences;
 
 import "setting.proto";
 

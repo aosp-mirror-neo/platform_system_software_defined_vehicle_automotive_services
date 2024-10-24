@@ -2,10 +2,11 @@
 #![allow(missing_docs)]
 
 use async_trait::async_trait;
+use com_sdv_google_user_preferences_user_controllable_user_controllable_service_rpc::Interface as UserControllableService;
+use com_sdv_google_user_preferences_user_preferences_registry_service_rpc::Client as RegistryServiceClient;
 use itertools::Itertools;
 use protobuf::MessageField;
 use sdv_status_rs::SdvStatus;
-use sdv_user_preferences_user_preferences_registry_service_rpc::Client as RegistryServiceClient;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -98,9 +99,7 @@ impl SimpleUserControllableServiceImpl {
 }
 
 #[async_trait]
-impl sdv_user_preferences_user_controllable_user_controllable_service_rpc::Interface
-    for SimpleUserControllableServiceImpl
-{
+impl UserControllableService for SimpleUserControllableServiceImpl {
     async fn RequestSettingsChange(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,

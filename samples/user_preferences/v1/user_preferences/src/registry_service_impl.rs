@@ -10,10 +10,10 @@ use crate::persistence::Persistence;
 use crate::settings_change_propagator_impl::SettingsChangePropagatorImpl;
 
 use async_trait::async_trait;
+use com_sdv_google_user_preferences_user_preferences_registry_service_rpc::Interface as RegistryService;
 use itertools::Itertools;
 use log::{error, info, warn};
 use sdv_status_rs::{SdvStatus, SdvStatusCode};
-use sdv_user_preferences_user_preferences_registry_service_rpc::Interface as RegistryService;
 use std::collections::HashSet;
 use user_preferences_api::setting::SettingDefinition as SettingDefinitionProto;
 use user_preferences_api::user_preferences_registry_service::*;

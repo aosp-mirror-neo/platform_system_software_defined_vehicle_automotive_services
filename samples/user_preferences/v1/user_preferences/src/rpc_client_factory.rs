@@ -1,11 +1,11 @@
 // Copyright 2024 Google LLC
 
+use com_sdv_google_user_preferences_user_controllable_user_controllable_service_rpc::Client as UserControllableServiceClient;
+use com_sdv_google_user_preferences_view_change_notifier_rpc::Client as ChangeNotifierClient;
 use sdv_comms::id::ServiceFqin;
 use sdv_mw_rs_comms::{ClientOptions, Communicate, RpcClient};
 use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_status_rs::SdvResult;
-use sdv_user_preferences_user_controllable_user_controllable_service_rpc::Client as UserControllableServiceClient;
-use sdv_user_preferences_view_change_notifier_rpc::Client as ChangeNotifierClient;
 use std::sync::Arc;
 
 pub struct RpcClientFactoryImpl {

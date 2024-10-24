@@ -1,6 +1,6 @@
 // Copyright 2024 Google LLC
 use async_trait::async_trait;
-use sdv_user_preferences_view_change_notifier_rpc::Interface as ViewChangeNotifier;
+use com_sdv_google_user_preferences_view_change_notifier_rpc::Interface as ViewChangeNotifier;
 use user_preferences_api::change_notifier::{OnSettingsChangeRequest, OnSettingsChangeResponse};
 use user_preferences_utils::print_settings;
 pub struct HmiServiceImpl {}

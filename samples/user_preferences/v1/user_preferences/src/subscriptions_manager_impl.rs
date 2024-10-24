@@ -2,9 +2,9 @@
 //! Sample user preferences implementation
 
 use crate::rpc_client_factory::RpcClientFactoryImpl;
+use com_sdv_google_user_preferences_view_change_notifier_rpc::Client as ChangeNotifierClient;
 use log::error;
 use sdv_comms::id::ServiceFqin;
-use sdv_user_preferences_view_change_notifier_rpc::Client as ChangeNotifierClient;
 use std::{
     collections::{HashMap, HashSet},
     sync::Arc,

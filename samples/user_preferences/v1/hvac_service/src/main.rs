@@ -1,13 +1,13 @@
 // Copyright 2024 Google LLC
 #![allow(missing_docs)]
 
+use com_sdv_google_user_preferences_user_preferences_registry_service_rpc::Client as RegistryClient;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
+use sdv_mw_rs_com_sdv_oem_user_preferences_hvac_service::HVACService;
 use sdv_mw_rs_comms::Communicate;
 use sdv_mw_rs_comms::RpcClient;
 use sdv_mw_rs_sdv_comms::SdvComms;
-use sdv_mw_rs_sdv_user_preferences_hvac_service::HVACService;
-use sdv_user_preferences_user_preferences_registry_service_rpc::Client as RegistryClient;
 use std::sync::Arc;
 use user_controllable_service_impl::{SettingGroupDefinition, SimpleUserControllableServiceImpl};
 
@@ -30,7 +30,7 @@ async fn main() {
 
     let attributes = sdv_mw_rs_comms::ClientAttributes {
         server_name: sdv_mw_rs_comms::UnitName {
-            package: "sdv.user_preferences".to_string(),
+            package: "com.sdv.oem.user_preferences".to_string(),
             bundle: "UserPreferencesServiceBundle".to_string(),
             vm: "".to_string(),
             name: RegistryClient::DEFAULT_UNIT_NAME.to_string(),
@@ -60,7 +60,7 @@ async fn main() {
 fn create_context() -> ContextRef {
     let fqin = ServiceFqin::builder()
         .sdv_vm_name("vm")
-        .sdv_package_name("sdv.user_preferences")
+        .sdv_package_name("com.sdv.oem.user_preferences")
         .service_bundle_name("HvacService")
         .service_instance_name("default")
         .build()

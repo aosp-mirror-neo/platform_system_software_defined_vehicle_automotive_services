@@ -12,10 +12,10 @@ use crate::{
     user_controllable_service_listener::OnlineServicesListener,
 };
 use async_trait::async_trait;
+use com_sdv_google_user_preferences_user_controllable_user_controllable_service_rpc::Client as UserControllableServiceClient;
 use itertools::Itertools;
 use log::{error, info};
 use sdv_comms::id::ServiceFqin;
-use sdv_user_preferences_user_controllable_user_controllable_service_rpc::Client as UserControllableServiceClient;
 use std::collections::HashSet;
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;

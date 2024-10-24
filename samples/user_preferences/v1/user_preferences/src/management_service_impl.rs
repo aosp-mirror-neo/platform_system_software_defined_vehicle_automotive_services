@@ -13,11 +13,11 @@ use crate::{
     persistence::Persistence, settings_change_propagator_impl::SettingsChangePropagatorImpl,
 };
 use async_trait::async_trait;
+use com_sdv_google_user_preferences_user_preferences_management_service_rpc::Interface as ManagementService;
 use itertools::Itertools;
 use log::{error, info, warn};
 use sdv_comms::id::ServiceFqin;
 use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
-use sdv_user_preferences_user_preferences_management_service_rpc::Interface as ManagementService;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;

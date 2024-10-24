@@ -22,9 +22,9 @@ rust_binary {
         "libsdv_mw_rs_sdv_comms",
         "libuser_preferences_api_stable",
         "libuser_controllable_service_impl_stable",
-        "libsdv_mw_rs_sdv_user_preferences_hvac_service",
-        "libsdv_user_preferences_user_preferences_registry_service_rpc_rs",
-        "libsdv_user_preferences_user_controllable_user_controllable_service_rpc_rs",
+        "libsdv_mw_rs_com_sdv_oem_user_preferences_hvac_service",
+        "libcom_sdv_google_user_preferences_user_preferences_registry_service_rpc_rs",
+        "libcom_sdv_google_user_preferences_user_controllable_user_controllable_service_rpc_rs",
     ],
     proc_macros: [
         "libasync_trait",
