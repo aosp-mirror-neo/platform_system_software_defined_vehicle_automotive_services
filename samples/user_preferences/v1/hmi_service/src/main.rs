@@ -100,7 +100,7 @@ async fn main() {
         .expect("Failed to subscribe to setting changes");
 
     println!("Current HVAC settings");
-    print_settings_and_constraints(&response.current_settings);
+    print_settings_and_constraints(&response.active_settings);
 
     println!("Adjusting HVAC temperature to 32");
     management_service_client
