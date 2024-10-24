@@ -1,6 +1,6 @@
 // Copyright 2024 Google LLC
 //! Sample user preferences implementation
-use sdv_user_preferences_user_preferences_admin_service_rpc::Interface as AdminService;
+use com_sdv_google_user_preferences_user_preferences_admin_service_rpc::Interface as AdminService;
 
 use crate::persistence::user_repository::User;
 use crate::persistence::Persistence;

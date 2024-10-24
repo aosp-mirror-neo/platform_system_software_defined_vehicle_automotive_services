@@ -4,7 +4,7 @@
 
 syntax = "proto3";
 
-package sdv.user_preferences.view;
+package com.sdv.google.user_preferences.view;
 import "settings_group.proto";
 import "setting.proto";
 

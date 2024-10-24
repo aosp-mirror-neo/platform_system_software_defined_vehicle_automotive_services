@@ -20,7 +20,7 @@ pub async fn monitor_online_services(
 ) {
     tokio::spawn(async move {
         let unit_type = UnitType::builder()
-            .set_sdv_package_name("sdv.user_preferences")
+            .set_sdv_package_name("com.sdv.google.user_preferences")
             .set_service_bundle_name("UserPreferencesServiceBundle")
             .set_unit_type_name("user_controllable.UserControllableService")
             .build()

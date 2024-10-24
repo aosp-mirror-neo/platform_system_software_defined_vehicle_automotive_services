@@ -1,17 +1,17 @@
 // Copyright 2024 Google LLC
 #![allow(missing_docs)]
 
+use com_sdv_google_user_preferences_user_preferences_admin_service_rpc::Client as AdminServiceClient;
+use com_sdv_google_user_preferences_user_preferences_management_service_rpc::Client as ManagementServiceClient;
 use futures::stream::StreamExt;
 use hmi_service::HmiServiceImpl;
 use protobuf::Enum;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::sd::{ServiceDiscoveryManager, UnitType};
 use sdv_comms::ContextRef;
+use sdv_mw_rs_com_sdv_oem_user_preferences_hmi_service::HMIService;
 use sdv_mw_rs_comms::ClientOptions;
 use sdv_mw_rs_sdv_comms::SdvComms;
-use sdv_mw_rs_sdv_user_preferences_hmi_service::HMIService;
-use sdv_user_preferences_user_preferences_admin_service_rpc::Client as AdminServiceClient;
-use sdv_user_preferences_user_preferences_management_service_rpc::Client as ManagementServiceClient;
 use std::sync::Arc;
 use user_preferences_api::setting::setting::Value;
 use user_preferences_api::user::{user::UserFlags, User};
@@ -47,7 +47,7 @@ async fn main() {
 
     let admin_service_client: AdminServiceClient = service
         .create_rpc_client::<AdminServiceClient>(
-            "sdv.user_preferences".to_string(),
+            "com.sdv.oem.user_preferences".to_string(),
             "UserPreferencesServiceBundle",
             ClientOptions::default(),
         )
@@ -55,7 +55,7 @@ async fn main() {
         .expect("Failed to create client to User Preferences");
     let management_service_client: ManagementServiceClient = service
         .create_rpc_client::<ManagementServiceClient>(
-            "sdv.user_preferences".to_string(),
+            "com.sdv.oem.user_preferences".to_string(),
             "UserPreferencesServiceBundle",
             ClientOptions::default(),
         )
@@ -286,7 +286,7 @@ async fn main() {
 fn create_context() -> ContextRef {
     let fqin = ServiceFqin::builder()
         .sdv_vm_name("vm")
-        .sdv_package_name("sdv.user_preferences")
+        .sdv_package_name("com.sdv.oem.user_preferences")
         .service_bundle_name("HmiService")
         .service_instance_name("default")
         .build()
@@ -299,7 +299,7 @@ async fn get_hvac_service_fqin(context: ContextRef) -> ServiceFqin {
     let sd = ServiceDiscoveryManager::new(context);
 
     let unit_type = UnitType::builder()
-        .set_sdv_package_name("sdv.user_preferences")
+        .set_sdv_package_name("com.sdv.google.user_preferences")
         .set_service_bundle_name("UserPreferencesServiceBundle")
         .set_unit_type_name("user_controllable.UserControllableService")
         .build()
@@ -310,7 +310,7 @@ async fn get_hvac_service_fqin(context: ContextRef) -> ServiceFqin {
     while let Some(service_unit) = service_units_stream.next().await {
         let service_identity = service_unit.get_service_bundle_identity();
         let fqin = service_identity.get_fqin();
-        if fqin.get_sdv_package_name() == "sdv.user_preferences"
+        if fqin.get_sdv_package_name() == "com.sdv.oem.user_preferences"
             && fqin.get_service_bundle_name() == "HvacService"
             && fqin.get_service_instance_name() == "default"
         {

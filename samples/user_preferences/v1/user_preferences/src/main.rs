@@ -12,8 +12,8 @@ use registry_service_impl::RegistryServiceImpl;
 use rpc_client_factory::RpcClientFactoryImpl;
 use rusqlite::Connection;
 use sdv_comms::{id::ServiceFqin, sd::ServiceDiscoveryManager, ContextRef};
+use sdv_mw_rs_com_sdv_oem_user_preferences_user_preferences_service_bundle::UserPreferencesServiceBundle;
 use sdv_mw_rs_sdv_comms::SdvComms;
-use sdv_mw_rs_sdv_user_preferences_user_preferences_service_bundle::UserPreferencesServiceBundle;
 use settings_change_propagator_impl::SettingsChangePropagatorImpl;
 use std::path::PathBuf;
 use subscriptions_manager_impl::SubscriptionsManagerImpl;
@@ -111,7 +111,7 @@ async fn main() {
 fn create_context() -> ContextRef {
     let fqin = ServiceFqin::builder()
         .sdv_vm_name("vm")
-        .sdv_package_name("sdv.user_preferences")
+        .sdv_package_name("com.sdv.oem.user_preferences")
         .service_bundle_name("UserPreferencesServiceBundle")
         .service_instance_name("default")
         .build()

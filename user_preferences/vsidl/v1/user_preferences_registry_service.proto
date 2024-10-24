@@ -5,7 +5,7 @@
 
 syntax = "proto3";
 
-package sdv.user_preferences;
+package com.sdv.google.user_preferences;
 
 import "setting.proto";
 
