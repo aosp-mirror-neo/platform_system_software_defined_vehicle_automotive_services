@@ -105,7 +105,7 @@ async fn main() {
 
     info!("User Preferences started");
 
-    std::thread::park();
+    binder::ProcessState::join_thread_pool();
 }
 
 fn create_context() -> ContextRef {

@@ -264,11 +264,67 @@ impl SettingsChangePropagatorImpl {
             )
             .await;
     }
+
+    // When a UserControllableService comes online:
+    // 1. Check if there's an active user.
+    // 2. If so, queue the user's preferences for this service,
+    //    ensuring we don't duplicate any settings already in the pending queue.
+    async fn init_service_with_user_preferences(&self, fqin: &ServiceFqin) {
+        let active_user = match self.persistence.users.get_active_user() {
+            Ok(x) => x,
+            Err(err) => {
+                error!("Unable to retrieve the active user: {}", err);
+                return;
+            }
+        };
+        let active_user = match active_user {
+            Some(x) => x,
+            None => return,
+        };
+
+        let setting_groups = match self.persistence.setting_groups.list() {
+            Ok(x) => x,
+            Err(err) => {
+                error!("Unable to retrieve list of setting groups: {}", err);
+                return;
+            }
+        };
+
+        for setting_group in setting_groups {
+            let pending_settings =
+                self.get_pending_setting_changes(fqin, &setting_group.name).await;
+            let pending_settings = pending_settings
+                .into_iter()
+                .map(|setting| setting.name)
+                .collect::<HashSet<String>>();
+
+            let settings = match retrieve_user_settings_including_defaults_for_group(
+                &self.persistence.setting_definitions,
+                &self.persistence.user_settings,
+                active_user.id,
+                setting_group.id,
+            ) {
+                Ok(x) => x,
+                Err(err) => {
+                    error!("Unable to retrieve the user preferences: {}", err);
+                    return;
+                }
+            };
+            let settings_to_queue = settings
+                .into_iter()
+                .filter(|setting| !pending_settings.contains(&setting.name))
+                .collect_vec();
+
+            self.queue_setting_change(fqin.clone(), setting_group.name, settings_to_queue).await;
+        }
+    }
 }
 
 #[async_trait]
 impl OnlineServicesListener for SettingsChangePropagatorImpl {
     async fn on_service_start(&self, fqin: &ServiceFqin) {
+        self.init_service_with_user_preferences(fqin).await;
+
         let mut online_services = self.online_services.lock().await;
         online_services.insert(fqin.clone());
         drop(online_services);
