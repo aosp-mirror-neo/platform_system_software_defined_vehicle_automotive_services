@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 
-package sdv.concal.calib;
+package com.sdv.google.concal.calib;
 
 import "configuration.proto";
 

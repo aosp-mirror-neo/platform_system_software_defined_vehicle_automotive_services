@@ -64,13 +64,13 @@ impl ConCalServiceData {
     }
 }
 
-pub(crate) struct ConCalServiceBundleImpl {
+pub(crate) struct SampleOemConCalServiceBundleImpl {
     data: Mutex<ConCalServiceData>,
 }
 
-impl ConCalServiceBundleImpl {
+impl SampleOemConCalServiceBundleImpl {
     pub fn new() -> Self {
-        ConCalServiceBundleImpl { data: Mutex::new(ConCalServiceData::new()) }
+        SampleOemConCalServiceBundleImpl { data: Mutex::new(ConCalServiceData::new()) }
     }
 
     fn group_overrides_by_config_id(
@@ -119,7 +119,9 @@ impl ConCalServiceBundleImpl {
 }
 
 #[async_trait::async_trait]
-impl sdv_concal_con_cal_registration_service_rpc::Interface for ConCalServiceBundleImpl {
+impl com_sdv_concal_con_cal_registration_service_rpc::Interface
+    for SampleOemConCalServiceBundleImpl
+{
     async fn GetConfig(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
@@ -262,7 +264,7 @@ impl sdv_concal_con_cal_registration_service_rpc::Interface for ConCalServiceBun
 }
 
 #[async_trait::async_trait]
-impl sdv_concal_con_cal_update_service_rpc::Interface for ConCalServiceBundleImpl {
+impl com_sdv_concal_con_cal_update_service_rpc::Interface for SampleOemConCalServiceBundleImpl {
     async fn StartConfigUpdate(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
@@ -460,7 +462,9 @@ impl sdv_concal_con_cal_update_service_rpc::Interface for ConCalServiceBundleImp
 }
 
 #[async_trait::async_trait]
-impl sdv_concal_calib_con_cal_calibration_service_rpc::Interface for ConCalServiceBundleImpl {
+impl com_sdv_concal_calib_con_cal_calibration_service_rpc::Interface
+    for SampleOemConCalServiceBundleImpl
+{
     async fn GetCalibrationConfigIds(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
@@ -498,8 +502,8 @@ impl sdv_concal_calib_con_cal_calibration_service_rpc::Interface for ConCalServi
 }
 
 #[async_trait::async_trait]
-impl sdv_concal_calib_con_cal_calibration_notification_service_rpc::Interface
-    for ConCalServiceBundleImpl
+impl com_sdv_concal_calib_con_cal_calibration_notification_service_rpc::Interface
+    for SampleOemConCalServiceBundleImpl
 {
     async fn RegisterForCalibrationUpdate(&self,
         _caller_id: sdv_comms::id::ServiceFqin,
@@ -519,13 +523,13 @@ impl sdv_concal_calib_con_cal_calibration_notification_service_rpc::Interface
 mod tests {
 
     use super::*;
+    use com_sdv_concal_con_cal_registration_service_rpc::Interface as OtherInterface;
+    use com_sdv_concal_con_cal_update_service_rpc::Interface;
     use concal_api_stable::config_override::config_override_key_value::Value;
     use concal_api_stable::config_override::ConfigOverrideKeyValue;
     use concal_api_stable::configuration::ConfigId;
     use protobuf::well_known_types::any::Any;
     use sdv_comms::id::ServiceFqin;
-    use sdv_concal_con_cal_registration_service_rpc::Interface as OtherInterface;
-    use sdv_concal_con_cal_update_service_rpc::Interface;
     use sdv_status_rs::SdvStatusCode;
     use sdvsampleconcal_proto_rust::test_configuration::TestConfiguration;
     use std::str::FromStr;
@@ -534,7 +538,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_config_returns_error_when_request_contains_none_config_id() {
-        let service = ConCalServiceBundleImpl::new();
+        let service = SampleOemConCalServiceBundleImpl::new();
 
         let result = service
             .GetConfig(
@@ -553,7 +557,7 @@ mod tests {
     async fn get_config_returns_error_when_config_doesnt_exist() {
         let config_id = test_config_id();
 
-        let service = ConCalServiceBundleImpl::new();
+        let service = SampleOemConCalServiceBundleImpl::new();
 
         let result = service
             .GetConfig(
@@ -575,7 +579,7 @@ mod tests {
         let config = test_config();
         let config_id = test_config_id();
 
-        let service = ConCalServiceBundleImpl::new();
+        let service = SampleOemConCalServiceBundleImpl::new();
 
         let resp = register_config_metadata(&service, &config_id, &config).await;
         assert!(resp.is_ok());
@@ -590,7 +594,7 @@ mod tests {
 
     #[tokio::test]
     async fn calculates_derived_config_correctly() {
-        let service = ConCalServiceBundleImpl::new();
+        let service = SampleOemConCalServiceBundleImpl::new();
         let config = test_config();
         let config_id = test_config_id();
 
@@ -630,7 +634,7 @@ mod tests {
 
     #[tokio::test]
     async fn can_rollback_to_previous_config() {
-        let service = ConCalServiceBundleImpl::new();
+        let service = SampleOemConCalServiceBundleImpl::new();
         let config = test_config();
         let config_id = test_config_id();
 
@@ -676,7 +680,7 @@ mod tests {
 
     #[tokio::test]
     async fn reset_fails_during_updates() {
-        let service = ConCalServiceBundleImpl::new();
+        let service = SampleOemConCalServiceBundleImpl::new();
         let config = test_config();
         let config_id = test_config_id();
 
@@ -700,7 +704,7 @@ mod tests {
 
     #[tokio::test]
     async fn reset_removes_all_configs_and_overrides_when_successful() {
-        let service = ConCalServiceBundleImpl::new();
+        let service = SampleOemConCalServiceBundleImpl::new();
         let config = test_config();
         let config_id = test_config_id();
 
@@ -759,7 +763,7 @@ mod tests {
     }
 
     async fn start_config_update(
-        service: &ConCalServiceBundleImpl,
+        service: &SampleOemConCalServiceBundleImpl,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::concal_update_service::StartConfigUpdateResponse>
     {
         service
@@ -774,7 +778,7 @@ mod tests {
     }
 
     async fn add_or_update_config_override(
-        service: &ConCalServiceBundleImpl,
+        service: &SampleOemConCalServiceBundleImpl,
         update_id: i64,
         overrides: &[ConfigOverride],
     ) -> sdv_status_rs::SdvResult<
@@ -796,7 +800,7 @@ mod tests {
     }
 
     async fn finish_config_update(
-        service: &ConCalServiceBundleImpl,
+        service: &SampleOemConCalServiceBundleImpl,
         update_id: i64,
     ) -> sdv_status_rs::SdvResult<
         concal_api_stable::concal_update_service::FinishConfigUpdateResponse,
@@ -813,7 +817,7 @@ mod tests {
     }
 
     async fn get_config(
-        service: &ConCalServiceBundleImpl,
+        service: &SampleOemConCalServiceBundleImpl,
         config_id: &ConfigId,
     ) -> sdv_status_rs::SdvResult<concal_api_stable::concal_registration_service::GetConfigResponse>
     {
@@ -857,7 +861,7 @@ mod tests {
     }
 
     async fn register_config_metadata(
-        service: &ConCalServiceBundleImpl,
+        service: &SampleOemConCalServiceBundleImpl,
         id: &ConfigId,
         config: &Configuration,
     ) -> sdv_status_rs::SdvResult<

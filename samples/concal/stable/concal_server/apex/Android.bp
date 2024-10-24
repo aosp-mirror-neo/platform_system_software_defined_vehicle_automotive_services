@@ -5,16 +5,16 @@ package {
 }
 
 apex {
-    name: "com.sdv.google.sample.concal",
+    name: "com.sdv.oem.sample.concal",
     // The ConCal service bundle to be included in the apex.
     native_shared_libs: [
         "libconcal_service_bundle_runner",
     ],
     prebuilts: [
         // SDV service bundles manifest file.
-        "com.sdv.google.sample.concal.service_bundles_manifest",
+        "com.sdv.oem.sample.concal.service_bundles_manifest",
         // Linker configuration to enable loading library from apex.
-        "com.sdv.google.sample.concal.linker_config",
+        "com.sdv.oem.sample.concal.linker_config",
     ],
     // Json manifest file describes metadata of the APEX package.
     // The 'name' filed from the json is used as mounting point.
@@ -31,7 +31,7 @@ apex {
 
 // SDV manifest file prebuilt.
 prebuilt_etc {
-    name: "com.sdv.google.sample.concal.service_bundles_manifest",
+    name: "com.sdv.oem.sample.concal.service_bundles_manifest",
     // The source filename of the manifest file.
     src: "sdv_service_bundles_manifest.textproto",
     // The name of the installed file needs be `sdv_service_bundles_manifest.textproto`.
@@ -43,7 +43,7 @@ prebuilt_etc {
 
 // The linker config to allow libraries for the apex to be linkable.
 linker_config {
-    name: "com.sdv.google.sample.concal.linker_config",
+    name: "com.sdv.oem.sample.concal.linker_config",
     src: "linker.config.json",
     // Disable direct installation of the prebuilt to one of the partitions.
     // The linker configuration is used only inside of an apex.

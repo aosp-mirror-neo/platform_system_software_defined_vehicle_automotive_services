@@ -5,7 +5,7 @@
 # SDV service bundle metadata definition with mondatory fields.
 sdv_service_bundle_metadata {
   # Service bundle name.
-  name: "SampleConCalServiceBundle"
+  name: "SampleOemConCalServiceBundle"
   # Service bundle integer version.
   version_number: 0
   # Service bundle version as a string.

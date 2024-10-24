@@ -2,7 +2,7 @@
 # proto-file: //system/software_defined_vehicle/core_services/vsidl/protos/sdv/vsidl/v1/syntax.proto
 # proto-message: VsidlEntry
 
-package: "sdv.concal"
+package: "com.sdv.google.concal"
 
 sdv_service_bundle {
   name: "ConCalServiceBundle"
@@ -25,31 +25,5 @@ sdv_service_bundle {
   unit_type {
     access_modifier: PUBLIC
     type: "calib.CalibratableService"
-  }
-  server {
-    interface: "ConCalRegistrationService"
-    acl: "concal-rule-public"
-  }
-  server {
-    interface: "ConCalUpdateService"
-    acl: "concal-rule-privilleged-only"
-  }
-  server {
-    interface: "sdv.concal.calib.ConCalCalibrationService"
-    acl: "concal-rule-calib-only"
-  }
-  server {
-    interface: "sdv.concal.calib.ConCalCalibrationNotificationService"
-    acl: "concal-rule-notification-only"
-  }
-}
-
-sdv_service_bundle {
-  name: "ConCalClientServiceBundle"
-  client {
-    interface: "ConCalRegistrationService"
-  }
-  client {
-    interface: "ConCalUpdateService"
   }
 }

@@ -12,17 +12,17 @@ mod message_editor;
 mod trie;
 mod versioned_object;
 
-use crate::concal_impl::ConCalServiceBundleImpl;
+use crate::concal_impl::SampleOemConCalServiceBundleImpl;
 
 use log::info;
+use sdv_mw_rs_com_sdv_concal_sample_oem_sample_oem_con_cal_service_bundle::SampleOemConCalServiceBundle as ConCalServiceBundleMw;
 use sdv_mw_rs_sdv_comms::SdvComms;
-use sdv_mw_rs_sdv_concal_con_cal_service_bundle::ConCalServiceBundle as ConCalServiceBundleMw;
 use std::time::Duration;
 use std::{sync::Arc, thread};
 use tokio_util::sync::CancellationToken;
 
 /// Service bundle struct definition.
-pub struct ConCalServiceBundle {
+pub struct SampleOemConCalServiceBundle {
     // Entry point for comm stack APIs
     context: sdv_comms::ContextRef,
     // Used to shutdown a runtime after on_stop request
@@ -30,7 +30,7 @@ pub struct ConCalServiceBundle {
     background_thread: Option<std::thread::JoinHandle<()>>,
 }
 
-impl ConCalServiceBundle {
+impl SampleOemConCalServiceBundle {
     async fn main_loop(cancellation_token: CancellationToken) {
         while !cancellation_token.is_cancelled() {
             thread::sleep(Duration::from_millis(1000));
@@ -39,16 +39,16 @@ impl ConCalServiceBundle {
 }
 
 // Register the new service bundle.
-sdv_lifecycle_client::register_service_bundle!(ConCalServiceBundle);
+sdv_lifecycle_client::register_service_bundle!(SampleOemConCalServiceBundle);
 
-impl ServiceBundle for ConCalServiceBundle {
-    /// Creates a new instance of the ConCalServiceBundle.
+impl ServiceBundle for SampleOemConCalServiceBundle {
+    /// Creates a new instance of the SampleOemConCalServiceBundle.
     /// Called when service bundle is created by the system.
     ///
     /// Context object is provided as a parameter that gives access to the
     /// communication stack APIs.
-    fn new(context: ContextRef) -> ConCalServiceBundle {
-        ConCalServiceBundle { context, cancellation_token: None, background_thread: None }
+    fn new(context: ContextRef) -> SampleOemConCalServiceBundle {
+        SampleOemConCalServiceBundle { context, cancellation_token: None, background_thread: None }
     }
 
     /// Called when the service bundle is started by the system.
@@ -61,7 +61,7 @@ impl ServiceBundle for ConCalServiceBundle {
         self.background_thread = Some(thread::spawn(move || {
             let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap();
             rt.block_on(async {
-                let concal = Arc::new(ConCalServiceBundleImpl::new());
+                let concal = Arc::new(SampleOemConCalServiceBundleImpl::new());
                 let _service = match ConCalServiceBundleMw::new(
                     Arc::new(SdvComms { context }),
                     (concal.clone(), concal.clone(), concal.clone(), concal.clone()),
@@ -92,7 +92,7 @@ impl ServiceBundle for ConCalServiceBundle {
 }
 
 /// Called when the service bundle is destroyed by the system.
-impl Drop for ConCalServiceBundle {
+impl Drop for SampleOemConCalServiceBundle {
     fn drop(&mut self) {
         self.on_stop();
     }
