@@ -20,20 +20,16 @@ message OnSettingsChangeRequest {
   SettingsGroupId settings_group_id = 1;
 
   // Required.
-  // Schema version of the provided settings
-  string version = 2;
-
-  // Required.
   // Settings currently applied
-  repeated Setting active_settings = 3;
+  repeated Setting active_settings = 2;
 
   // Required.
   // Setting changes that will be attempted when possible
-  repeated Setting pending_changes = 4;
+  repeated Setting pending_changes = 3;
 
   // Required.
   // Changes to the user's persisted settings
-  repeated Setting persisted_settings = 5;
+  repeated Setting persisted_settings = 4;
 }
 
 message OnSettingsChangeResponse {}

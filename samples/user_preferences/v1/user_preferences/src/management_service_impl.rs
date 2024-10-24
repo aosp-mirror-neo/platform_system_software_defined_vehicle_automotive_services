@@ -163,7 +163,7 @@ impl ManagementService for ManagementServiceImpl {
 
         let active_user = self.persistence.users.get_active_user()?;
 
-        let current_settings = retrieve_vehicle_settings_including_defaults_for_group(
+        let active_settings = retrieve_vehicle_settings_including_defaults_for_group(
             &self.persistence.setting_definitions,
             &self.persistence.vehicle_settings,
             settings_group_primary_key,
@@ -200,7 +200,7 @@ impl ManagementService for ManagementServiceImpl {
         self.subscriptions_manager.register_subscriber(settings_group_id.clone(), caller_id).await;
 
         Ok(SubscribeToSettingsChangeAndGetSettingsResponse {
-            current_settings,
+            active_settings,
             pending_settings,
             persisted_settings,
             ..Default::default()

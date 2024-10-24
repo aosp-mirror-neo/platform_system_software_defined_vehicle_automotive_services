@@ -35,15 +35,15 @@ pub async fn monitor_online_services(
             let event: ServiceUnitChangeEvent = event;
             match event {
                 ServiceUnitChangeEvent::Registered(sud) => {
-                    info!("Service Unit registered for {sud:?}");
-
                     let fqin = sud.get_service_bundle_identity().get_fqin().clone();
+                    info!("Service Unit registered by {fqin:?}");
+
                     listener.on_service_start(&fqin).await;
                 }
                 ServiceUnitChangeEvent::Unregistered(sud) => {
-                    info!("Service Unit unregistered for {sud:?}");
-
                     let fqin = sud.get_service_bundle_identity().get_fqin().clone();
+                    info!("Service Unit registered by {fqin:?}");
+
                     listener.on_service_stop(&fqin).await;
                 }
                 ServiceUnitChangeEvent::Changed(sud) => {

@@ -73,11 +73,11 @@ message SubscribeToSettingsChangeAndGetSettingsResponse {
 
   // Required.
   // The settings currently applied to User Controllable services, including any constraints.
-  repeated SettingWithConstraints current_settings = 2;
+  repeated SettingWithConstraints active_settings = 2;
 
   // Required.
   // Settings that have been requested but not yet applied by User Controllable services.
-  repeated Setting pending_settings = 4;
+  repeated Setting pending_settings = 3;
 
   // Required.
   // These settings reflect the user's persisted setting which my differ from the current setting
@@ -88,7 +88,7 @@ message SubscribeToSettingsChangeAndGetSettingsResponse {
   // Possible reasons include:
   //  - ChangePersistencePolicy (e.g., non persistent changes being made)
   //  - User Controllable service modifying non-PASSTHROUGH settings.
-  repeated Setting persisted_settings = 5;
+  repeated Setting persisted_settings = 4;
 }
 
 message UnsubscribeToSettingsChangeRequest {
