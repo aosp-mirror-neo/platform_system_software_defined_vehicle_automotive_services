@@ -11,10 +11,10 @@ mod tests {
     use sdv_vpm_api::vpm::ShutdownType;
     use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn interrupt_prepare_power_state_no_oem_response_sent() {
         // Given A VM in Power On state.
-        let mut test_context = TestContext::new().await;
+        let mut test_context = TestContext::new("power-interruption-test".to_string()).await;
 
         // We simulate that it takes too long to execute WaitForFinish
         // Add a sleep time in WaitForFinish in the client to simulate its taking too long.

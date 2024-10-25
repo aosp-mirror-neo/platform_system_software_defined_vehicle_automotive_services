@@ -10,10 +10,10 @@ mod tests {
     use sdv_vpm_api::vpm::PowerStateRequest;
     use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn set_power_state_when_callback_timeouts_switches_state_with_timeout_reason() {
         // Given a VM in a start state (Power Off Exit).
-        let mut test_context = TestContext::new().await;
+        let mut test_context = TestContext::new("power-timeout-test".to_string()).await;
         test_context
             .power_callback_preparer
             .with_sleep_on_state(PowerStateReportAidl::ON)

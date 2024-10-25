@@ -10,11 +10,13 @@ mod tests {
     use sdv_vpm_api::vpm::PowerStateRequest;
     use sdv_vpm_api::vpm::ShutdownType;
     use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
+    use tokio::time::{sleep, Duration};
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn cancel_power_state_prepare_request() {
         // Given A VM in Power On state.
-        let mut test_context = TestContext::new().await;
+        let mut test_context =
+            TestContext::new("power-prepare-interruption-test".to_string()).await;
         test_context
             .power_callback_preparer
             .with_sleep_on_state(PowerStateReportAidl::SUSPEND_TO_RAM_ENTER)
@@ -39,11 +41,16 @@ mod tests {
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
             shutdown_type: ShutdownType::SUSPEND_TO_RAM.into(),
-            timeout_ms: 10000,
+            timeout_ms: 20000,
             ..Default::default()
         };
 
         test_context.vepsm.send_power_state_request(request).await;
+
+        // Sleep 3 seconds to make sure the request was received.
+        // If it was sent directly after, the state transition to S2R might not be executed yet.
+        // The request anyways hang for 20 seconds.
+        sleep(Duration::from_secs(3)).await;
 
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::CANCEL_SHUTDOWN.into(),
@@ -54,7 +61,7 @@ mod tests {
         test_context.vepsm.send_power_state_request(request).await;
 
         // Then: the vm is in shutdown cancelled state.
-        // State WaitForFinish is never received by the OEM.
+        // State WaitForFinish/SuspendToRam is never received by the OEM.
         // The state might take more time than usual because it waits for the previous state to be cancelled.
         test_context
             .vepsm

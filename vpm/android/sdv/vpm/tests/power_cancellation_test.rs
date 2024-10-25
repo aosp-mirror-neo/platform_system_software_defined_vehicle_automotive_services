@@ -11,10 +11,10 @@ mod tests {
     use sdv_vpm_api::vpm::ShutdownType;
     use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn cancel_power_state_prepare_request() {
         // Given A VM in Power On state.
-        let mut test_context = TestContext::new().await;
+        let mut test_context = TestContext::new("power-cancellation-test".to_string()).await;
         test_context.power_callback_preparer.setup_binder_callbacks();
         assert!(test_context.is_good_start_state());
 
