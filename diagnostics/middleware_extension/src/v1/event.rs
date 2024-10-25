@@ -168,10 +168,9 @@ mod tests {
             .await
             .unwrap();
 
-        let event_subscriber =
-            Subscriber::<Event>::new(event_publication, &SubscribeOptions::default())
-                .await
-                .unwrap();
+        let event_subscriber = Subscriber::<Event>::new(
+            event_publication.subscribe(&SubscribeOptions::default()).await.unwrap(),
+        );
 
         // WHEN publisher publishes and subscriber reads
         event_publisher.publish(Status::PRE_FAIL).unwrap();
@@ -203,10 +202,9 @@ mod tests {
             .await
             .unwrap();
 
-        let event_subscriber =
-            Subscriber::<Event>::new(event_publication, &SubscribeOptions::default())
-                .await
-                .unwrap();
+        let event_subscriber = Subscriber::<Event>::new(
+            event_publication.subscribe(&SubscribeOptions::default()).await.unwrap(),
+        );
 
         // WHEN publisher publishes and subscriber reads
         event_publisher
