@@ -41,7 +41,7 @@ async fn main() {
     let hvac_service_fqin = get_hvac_service_fqin(context).await;
 
     let hmi_service_impl = Arc::new(HmiServiceImpl::new());
-    let service = HMIService::new(sdv_coms, (hmi_service_impl,))
+    let service = HMIService::new(sdv_coms, (hmi_service_impl.clone(),))
         .await
         .expect("Failed to start service bundle");
 
@@ -82,10 +82,7 @@ async fn main() {
         .await
         .expect("Failed to select user");
 
-    // Switching user will result in a callback for settings change, sleep until we receive the callback
-    // to avoid mixing the order of the messages in the standard output
-    std::thread::sleep(std::time::Duration::from_secs(1));
-
+    println!("Subscribing to setting changes");
     let response = management_service_client
         .SubscribeToSettingsChangeAndGetSettings(&SubscribeToSettingsChangeAndGetSettingsRequest {
             settings_group_id: Some(SettingsGroupId {
@@ -120,6 +117,8 @@ async fn main() {
         })
         .await
         .expect("Failed to request setting change");
+
+    hmi_service_impl.wait_for_settings_change().await;
 
     println!("Attempting to Adjust HVAC temperature to invalid value 100");
 
@@ -165,6 +164,7 @@ async fn main() {
         .await
         .expect("Failed to select user");
 
+    hmi_service_impl.wait_for_settings_change().await;
     println!("Switched to user {}", user_id_2);
 
     let response = admin_service_client
@@ -175,10 +175,6 @@ async fn main() {
         "List of available users: \"{}\"\n",
         response.users.into_iter().map(|user| format!("{}", user.id)).collect::<Vec<_>>().join(",")
     );
-
-    // Switching user will result in a callback for settings change, sleep until we receive the callback
-    // to avoid mixing the order of the messages in the standard output
-    std::thread::sleep(std::time::Duration::from_secs(1));
 
     println!("Creating another user");
     let user_id_3 = 3_i32;
@@ -223,10 +219,8 @@ async fn main() {
 
     println!("---------------------------");
     println!("Scenario 2: User Preference configuring HVAC temperature to persisted temperature");
-    // Switching user will result in a callback for settings change, sleep until we receive the callback
-    // to avoid mixing the order of the messages in the standard output
-    std::thread::sleep(std::time::Duration::from_secs(2));
 
+    println!("Creating user");
     let user_id_4 = 4_i32;
     admin_service_client
         .CreateUser(&CreateUserRequest {
@@ -246,6 +240,7 @@ async fn main() {
         .await
         .expect("Failed to select user");
 
+    println!("Set preferred temperature to 24");
     let _response = management_service_client
         .RequestSettingsChange(&RequestSettingsChangeRequest {
             settings_group_id: Some(SettingsGroupId {
@@ -256,7 +251,7 @@ async fn main() {
             .into(),
             settings: vec![Setting {
                 key: TEMPERATURE.to_string(),
-                value: Some(Value::Int64(32)),
+                value: Some(Value::Int64(24)),
                 ..Default::default()
             }],
             ..Default::default()
@@ -279,7 +274,7 @@ async fn main() {
         .expect("Failed to subscribe to setting changes");
 
     println!("Please restart the HVAC sample binary");
-    println!("User Preferences will automatically detect it starting and configure the temperature to the user's desired temperature 32");
+    println!("User Preferences will automatically detect it starting and set HVAC temperature to the user's desired temperature 24 ");
     std::thread::park();
 }
 
