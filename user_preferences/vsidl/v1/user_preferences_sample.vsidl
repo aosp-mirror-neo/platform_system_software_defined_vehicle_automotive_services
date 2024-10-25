@@ -50,3 +50,14 @@ sdv_service_bundle {
         interface: "com.sdv.google.user_preferences.UserPreferencesRegistryService"
     }
 }
+
+sdv_service_bundle {
+    name: "CarSeatsService"
+    server {
+        interface: "com.sdv.google.user_preferences.user_controllable.UserControllableService"
+        acl: "hvac-user-controllable-service-clients"
+    }
+    client {
+        interface: "com.sdv.google.user_preferences.UserPreferencesRegistryService"
+    }
+}
