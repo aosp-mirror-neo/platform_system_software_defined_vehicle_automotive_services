@@ -43,6 +43,7 @@ impl RegistryService for RegistryServiceImpl {
             id: 0,
             name: request.group_name.clone(),
             service_fqin: caller_id.to_string(),
+            version: request.version.clone(),
         }) {
             Ok(x) => x,
             Err(err) => {

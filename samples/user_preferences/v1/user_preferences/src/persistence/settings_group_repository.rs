@@ -15,6 +15,7 @@ pub struct SettingsGroup {
     pub id: i64,
     pub name: String,
     pub service_fqin: String,
+    pub version: String,
 }
 
 impl fmt::Display for SettingsGroup {
@@ -49,6 +50,7 @@ impl SettingsGroupRepository {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
                 service_fqin TEXT,
+                version TEXT,
                 UNIQUE(name, service_fqin)
             )",
                 [],
@@ -59,16 +61,17 @@ impl SettingsGroupRepository {
 
     pub fn get(&self, name: &str, service_fqin: &str) -> SdvResult<SettingsGroup> {
         let connection = self.connection.lock().unwrap();
-        let mut stmt = connection.prepare(
-            "SELECT id, name, service_fqin FROM settings_groups WHERE name = ? AND service_fqin = ?",
-        ).map_err(convert_rusqlite_error)?;
+        let mut stmt = connection
+            .prepare("SELECT id, name, service_fqin, version FROM settings_groups WHERE name = ? AND service_fqin = ?")
+            .map_err(convert_rusqlite_error)?;
         let mut rows = stmt.query((&name, &service_fqin)).map_err(convert_rusqlite_error)?;
 
         if let Some(row) = rows.next().map_err(convert_rusqlite_error)? {
             let id = row.get(0).map_err(convert_rusqlite_error)?;
             let name = row.get(1).map_err(convert_rusqlite_error)?;
             let service_fqin = row.get(2).map_err(convert_rusqlite_error)?;
-            Ok(SettingsGroup { id, name, service_fqin })
+            let version = row.get(3).map_err(convert_rusqlite_error)?;
+            Ok(SettingsGroup { id, name, service_fqin, version })
         } else {
             Err(SdvStatus::new(SdvStatusCode::NotFound))
         }
@@ -82,8 +85,8 @@ impl SettingsGroupRepository {
 
         // Insert the new settings group, only if it doesn't already exist
         connection.execute(
-            "INSERT INTO settings_groups (name, service_fqin) VALUES (?, ?) ON CONFLICT(name, service_fqin) DO NOTHING",
-            (&settings_group.name, &settings_group.service_fqin),
+            "INSERT INTO settings_groups (name, service_fqin, version) VALUES (?, ?, ?) ON CONFLICT(name, service_fqin) DO NOTHING",
+            (&settings_group.name, &settings_group.service_fqin, &settings_group.version),
         ).map_err(convert_rusqlite_error)?;
 
         // Retrieve the ID of the inserted settings group
@@ -93,7 +96,7 @@ impl SettingsGroupRepository {
     pub fn list(&self) -> SdvResult<Vec<SettingsGroup>> {
         let connection = self.connection.lock().unwrap();
         let mut stmt = connection
-            .prepare("SELECT id, name, service_fqin FROM settings_groups")
+            .prepare("SELECT id, name, service_fqin, version FROM settings_groups")
             .map_err(convert_rusqlite_error)?;
         let mut rows = stmt.query([]).map_err(convert_rusqlite_error)?;
 
@@ -102,7 +105,8 @@ impl SettingsGroupRepository {
             let id = row.get(0).map_err(convert_rusqlite_error)?;
             let name = row.get(1).map_err(convert_rusqlite_error)?;
             let service_fqin = row.get(2).map_err(convert_rusqlite_error)?;
-            settings_groups.push(SettingsGroup { id, name, service_fqin });
+            let version = row.get(3).map_err(convert_rusqlite_error)?;
+            settings_groups.push(SettingsGroup { id, name, service_fqin, version });
         }
         Ok(settings_groups)
     }
@@ -122,6 +126,7 @@ mod tests {
             id: 0, // ID is ignored here
             name: "test_group".to_string(),
             service_fqin: "com.example.test_service".to_string(),
+            version: "1".to_string(),
         };
 
         let id = settings_group_repository.store(&settings_group).unwrap();
@@ -137,6 +142,7 @@ mod tests {
             id: 0, // ID is ignored here
             name: "test_group".to_string(),
             service_fqin: "com.example.test_service".to_string(),
+            version: "1".to_string(),
         };
 
         // Store the settings group once
@@ -155,6 +161,7 @@ mod tests {
         let settings_group = SettingsGroup {
             name: "test_group".to_string(),
             service_fqin: "com.example.test_service".to_string(),
+            version: "1".to_string(),
             id: 0,
         };
         // Store the settings group
@@ -193,11 +200,13 @@ mod tests {
                 id: 1,
                 name: "group1".to_string(),
                 service_fqin: "com.example.group1".to_string(),
+                version: "1".to_string(),
             },
             SettingsGroup {
                 id: 2,
                 name: "group2".to_string(),
                 service_fqin: "com.example.group2".to_string(),
+                version: "1".to_string(),
             },
         ];
 
@@ -216,6 +225,7 @@ mod tests {
                 id: 1,
                 name: "group1".to_string(),
                 service_fqin: "com.example.group1".to_string(),
+                version: "1".to_string(),
             }
         );
 
@@ -226,6 +236,7 @@ mod tests {
                 id: 2,
                 name: "group2".to_string(),
                 service_fqin: "com.example.group2".to_string(),
+                version: "1".to_string(),
             }
         );
     }
