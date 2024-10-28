@@ -96,7 +96,7 @@ impl PowerStateNotifierImpl {
             server_name: UnitName {
                 package: "sdv.vpm.client".to_string(),
                 bundle: "VpmSystemClient".to_string(),
-                vm: String::new(),
+                vm: self.comms.context.get_self_fqin().get_sdv_vm_name().to_string(),
                 name: Client::DEFAULT_UNIT_NAME.to_string(),
             },
             options: ClientOptions::default(),

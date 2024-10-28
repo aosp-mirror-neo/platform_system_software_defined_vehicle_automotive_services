@@ -50,9 +50,9 @@ pub struct TestContext {
 }
 
 impl TestContext {
-    pub async fn new() -> Self {
+    pub async fn new(instance_name: String) -> Self {
         Self {
-            vepsm: TestVePSM::new().await,
+            vepsm: TestVePSM::new(instance_name).await,
             power_callback_preparer: PowerCallbackPreparer::new(),
         }
     }
@@ -106,7 +106,7 @@ impl TestContext {
 }
 
 pub struct PowerCallbackPreparer {
-    // The callback receiver will wait 10 seconds.
+    // The callback receiver will wait 20 seconds.
     // if power state report is set.
     sleep_callback_if_power_state: Option<PowerStateReportAidl>,
     fail_callback: bool,
@@ -184,7 +184,8 @@ impl IPowerStateReportListener for TestSdvAgent {
         if self.sleep_callback_if_power_state.is_some()
             && self.sleep_callback_if_power_state.unwrap() == power_state
         {
-            thread::sleep(Duration::from_secs(10));
+            // The time is to simulate the caller took to long to handle the power state change.
+            thread::sleep(Duration::from_secs(20));
             if self.fail_callback {
                 return Err(binder::StatusCode::UNKNOWN_ERROR.into());
             }
@@ -203,7 +204,7 @@ pub struct TestVePSM {
 }
 
 impl TestVePSM {
-    pub async fn new() -> TestVePSM {
+    pub async fn new(instance_name: String) -> TestVePSM {
         let (vehicle_request_sender, vehicle_callback_receiver): (
             Sender<VpmVehicleState>,
             Receiver<VpmVehicleState>,
@@ -216,7 +217,7 @@ impl TestVePSM {
         let power_notification_receiver =
             PowerNotificationReceiver { sender: power_request_sender };
 
-        let context = create_context();
+        let context = create_context(instance_name);
         let comms = SdvComms { context };
         let mut bundle =
             VpmSystemClient::new(Arc::new(comms), (Arc::new(power_notification_receiver),))
@@ -313,12 +314,12 @@ impl NotificationInterface for PowerNotificationReceiver {
     }
 }
 
-fn create_context() -> ContextRef {
+fn create_context(instance_name: String) -> ContextRef {
     let fqin = ServiceFqin::builder()
         .sdv_vm_name("vm")
         .sdv_package_name("sdv.vpm.client")
         .service_bundle_name("VpmSystemClient")
-        .service_instance_name("default")
+        .service_instance_name(instance_name)
         .build()
         .unwrap();
 

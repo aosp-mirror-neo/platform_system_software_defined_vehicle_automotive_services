@@ -12,10 +12,11 @@ mod tests {
     use sdv_vpm_api::vpm::SetVehicleStateRequest;
     use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
 
-    #[tokio::test]
+    // TODO remove multithread and use async channels for vehicle modes.
+    #[tokio::test(flavor = "multi_thread")]
     async fn set_vehicle_states_and_power_states_notifies_system_clients() {
         // Given: a subscriber for vehicle state.
-        let mut test_context = TestContext::new().await;
+        let mut test_context = TestContext::new("integration-test".to_string()).await;
 
         // When: a new vehicle state is sent via RPC.
         let request = SetVehicleStateRequest {

@@ -1,12 +1,17 @@
 // Copyright 2023 Google LLC
 //! Vehicle and Power Mode Service.
+use anyhow::anyhow;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
 use log::{error, info};
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
+use sdv_mw_rs_comms::ClientAttributes;
 use sdv_mw_rs_comms::ClientOptions;
+use sdv_mw_rs_comms::Communicate;
+use sdv_mw_rs_comms::RpcClient;
+use sdv_mw_rs_comms::UnitName;
 use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_mw_rs_sdv_vpm_client_vpm_system_client::VpmSystemClient;
 use sdv_vpm_api::vehicle::VpmVehicleState;
@@ -28,14 +33,8 @@ async fn main() -> anyhow::Result<()> {
     sdv_log::init_logger(LOG_TAG)?;
     let context = create_context();
     let comms = SdvComms { context };
-    let bundle = VpmSystemClient::new(Arc::new(comms), (Arc::new(VePSM {}),)).await?;
-    let client = bundle
-        .create_rpc_client(
-            "sdv.vpm".to_string(),
-            "VpmSystemServiceBundle".to_string(),
-            ClientOptions::default(),
-        )
-        .await?;
+    let _bundle = VpmSystemClient::new(Arc::new(comms.clone()), (Arc::new(VePSM {}),)).await?;
+    let client = create_client(comms).await?;
     let mut parse_from_cli = true;
     loop {
         let input_args = if parse_from_cli { Cli::try_parse().ok() } else { parse_input() };
@@ -164,6 +163,25 @@ async fn handle_power_state(power_cmd: PowerCommand, client: &Client) -> anyhow:
         error!("Failed to send power state change request, reason={:?}", result.err())
     }
     Ok(())
+}
+
+async fn create_client(comms: SdvComms) -> anyhow::Result<Client> {
+    let attributes = ClientAttributes {
+        server_name: UnitName {
+            package: "sdv.vpm".to_string(),
+            bundle: "VpmSystemServiceBundle".to_string(),
+            vm: comms.context.get_self_fqin().get_sdv_vm_name().to_string(),
+            name: Client::DEFAULT_UNIT_NAME.to_string(),
+        },
+        options: ClientOptions::default(),
+    };
+    let result = comms.create_client_transport(&attributes).await;
+    if result.is_err() {
+        error!("Could not get a client for vpm notifications");
+        return Err(anyhow!("Could not get a client for vpm notifications"));
+    }
+    let client = Client::new(result.unwrap());
+    Ok(client)
 }
 
 struct VePSM {}
