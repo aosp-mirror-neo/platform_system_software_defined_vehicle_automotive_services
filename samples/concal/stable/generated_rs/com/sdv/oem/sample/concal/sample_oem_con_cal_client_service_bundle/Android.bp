@@ -8,8 +8,8 @@ package {
 }
 
 rust_library {
-    name: "libsdv_mw_rs_com_sdv_concal_sample_oem_sample_oem_con_cal_service_bundle",
-    crate_name: "sdv_mw_rs_com_sdv_concal_sample_oem_sample_oem_con_cal_service_bundle",
+    name: "libsdv_mw_rs_com_sdv_oem_sample_concal_sample_oem_con_cal_client_service_bundle",
+    crate_name: "sdv_mw_rs_com_sdv_oem_sample_concal_sample_oem_con_cal_client_service_bundle",
     srcs: [
         "service_bundle.rs",
     ],
@@ -18,10 +18,8 @@ rust_library {
         "liblog_rust",
         "libsdv_rs",
         "libfutures",
-        "libcom_sdv_concal_con_cal_registration_service_rpc_rs",
-        "libcom_sdv_concal_con_cal_update_service_rpc_rs",
-        "libcom_sdv_concal_calib_con_cal_calibration_service_rpc_rs",
-        "libcom_sdv_concal_calib_con_cal_calibration_notification_service_rpc_rs",
+        "libcom_sdv_google_concal_con_cal_registration_service_rpc_rs",
+        "libcom_sdv_google_concal_con_cal_update_service_rpc_rs",
     ],
     apex_available: [
         "//apex_available:platform",
