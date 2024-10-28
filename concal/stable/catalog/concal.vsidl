@@ -7,23 +7,18 @@ package: "com.sdv.google.concal"
 sdv_service_bundle {
   name: "ConCalServiceBundle"
   unit_type {
-    access_modifier: PRIVATE
     type: "ConCalRegistrationService"
   }
   unit_type {
-    access_modifier: PRIVATE
     type: "ConCalUpdateService"
   }
   unit_type {
-    access_modifier: PRIVATE
     type: "calib.ConCalCalibrationService"
   }
   unit_type {
-    access_modifier: PRIVATE
     type: "calib.ConCalCalibrationNotificationService"
   }
   unit_type {
-    access_modifier: PUBLIC
     type: "calib.CalibratableService"
   }
 }

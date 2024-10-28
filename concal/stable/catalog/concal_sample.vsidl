@@ -8,19 +8,15 @@ sdv_service_bundle {
   name: "SampleOemConCalServiceBundle"
   server {
     interface: "com.sdv.google.concal.ConCalRegistrationService"
-    acl: "concal-rule-public"
   }
   server {
     interface: "com.sdv.google.concal.ConCalUpdateService"
-    acl: "concal-rule-privilleged-only"
   }
   server {
     interface: "com.sdv.google.concal.calib.ConCalCalibrationService"
-    acl: "concal-rule-calib-only"
   }
   server {
     interface: "com.sdv.google.concal.calib.ConCalCalibrationNotificationService"
-    acl: "concal-rule-notification-only"
   }
 }
 

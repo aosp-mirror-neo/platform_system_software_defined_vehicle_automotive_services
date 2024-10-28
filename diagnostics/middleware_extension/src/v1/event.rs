@@ -34,7 +34,6 @@ impl<M: Message> EventPublisher<M> {
                     message_size: compute_event_message_size(data_size),
                     message_count: 16,
                     multipub: true,
-                    ..Default::default()
                 },
             })
             .await?;

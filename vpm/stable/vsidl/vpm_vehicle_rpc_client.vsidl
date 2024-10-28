@@ -9,7 +9,6 @@ sdv_service_bundle {
 
     # Unit type for power notification service.
     unit_type {
-        access_modifier: PROTECTED
         type: "PowerNotificationService"
     }
 

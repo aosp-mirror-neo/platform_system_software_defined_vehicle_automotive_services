@@ -8,15 +8,12 @@ sdv_service_bundle {
     name: "UserPreferencesServiceBundle"
     server {
         interface: "com.sdv.google.user_preferences.UserPreferencesAdminService"
-        acl: "user-preferences-admin-service-clients"
     }
     server {
         interface: "com.sdv.google.user_preferences.UserPreferencesManagementService"
-        acl: "user-preferences-setting-management-service-clients"
     }
     server {
         interface: "com.sdv.google.user_preferences.UserPreferencesRegistryService"
-        acl: "user-preferences-registry-service-clients"
     }
     client {
         interface: "com.sdv.google.user_preferences.view.ChangeNotifier"
@@ -30,7 +27,6 @@ sdv_service_bundle {
     name: "HMIService"
     server {
         interface: "com.sdv.google.user_preferences.view.ChangeNotifier"
-        acl: "hmi-change-notifier-service-clients"
     }
     client {
         interface: "com.sdv.google.user_preferences.UserPreferencesManagementService"
@@ -44,7 +40,6 @@ sdv_service_bundle {
     name: "HVACService"
     server {
         interface: "com.sdv.google.user_preferences.user_controllable.UserControllableService"
-        acl: "hvac-user-controllable-service-clients"
     }
     client {
         interface: "com.sdv.google.user_preferences.UserPreferencesRegistryService"
@@ -55,7 +50,6 @@ sdv_service_bundle {
     name: "CarSeatsService"
     server {
         interface: "com.sdv.google.user_preferences.user_controllable.UserControllableService"
-        acl: "hvac-user-controllable-service-clients"
     }
     client {
         interface: "com.sdv.google.user_preferences.UserPreferencesRegistryService"

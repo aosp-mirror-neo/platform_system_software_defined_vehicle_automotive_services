@@ -44,7 +44,6 @@ pub mod publisher {
         /// Unique id of a variant
         pub id: i32,
         pub(super) service_unit: &'static str,
-        pub(super) acls: &'static [&'static str],
     }
 
     pub(super) trait Metadata {
@@ -65,7 +64,6 @@ pub mod publisher {
             _proto: std::marker::PhantomData,
             id: vsidl_v1::annotations::UniqueInstance::UNIQUE as i32,
             service_unit: "sdv-vpm-vehicle-vehicle-state-change-unique",
-            acls: &[],
         };
         /// List of all publication variants of 'sdv.vpm.vehicle.VehicleStateChange' available to the service bundle
         pub const ALL_VARIANTS: &'static [&'static Self] = &[Self::UNIQUE];
@@ -175,7 +173,6 @@ impl VpmSystemServiceBundle {
                         package: M::PACKAGE.to_string(),
                     },
                     metadata: sdv::mw::PublisherMetadata {
-                        acls: variant.acls.iter().map(|v| v.to_string()).collect(),
                         message_size: M::MESSAGE_SIZE,
                         message_count: M::MESSAGE_COUNT,
                         multipub: M::IS_MULTIPUB,

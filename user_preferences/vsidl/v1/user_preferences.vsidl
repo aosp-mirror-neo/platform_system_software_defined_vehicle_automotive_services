@@ -8,23 +8,18 @@ sdv_service_bundle {
     name: "UserPreferencesServiceBundle"
 
     unit_type {
-        access_modifier: PUBLIC
         type: "UserPreferencesAdminService"
     }
     unit_type {
-        access_modifier: PUBLIC
         type: "UserPreferencesManagementService"
     }
     unit_type {
-        access_modifier: PUBLIC
         type: "UserPreferencesRegistryService"
     }
     unit_type {
-        access_modifier: PUBLIC
         type: "view.ChangeNotifier"
     }
     unit_type {
-        access_modifier: PUBLIC
         type: "user_controllable.UserControllableService"
     }
 }

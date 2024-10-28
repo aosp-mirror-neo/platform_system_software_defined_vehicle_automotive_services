@@ -11,13 +11,11 @@ sdv_service_bundle {
 
     # Unit type for the vehicle state change.
     unit_type {
-        access_modifier: PUBLIC
         type: "vehicle.VehicleStateChange"
     }
 
     # Unit type for the VPM system service.
     unit_type {
-        access_modifier: PUBLIC
         type: "VpmSystemService"
     }
 
