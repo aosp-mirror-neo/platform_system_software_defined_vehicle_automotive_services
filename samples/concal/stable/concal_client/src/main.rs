@@ -2,8 +2,8 @@
 
 //! ConCal Sample Client
 
-use com_sdv_concal_con_cal_registration_service_rpc::Client as RegistrationClient;
-use com_sdv_concal_con_cal_update_service_rpc::Client as UpdateClient;
+use com_sdv_google_concal_con_cal_registration_service_rpc::Client as RegistrationClient;
+use com_sdv_google_concal_con_cal_update_service_rpc::Client as UpdateClient;
 use concal_api_stable::concal_registration_service::*;
 use concal_api_stable::concal_update_service::*;
 use concal_api_stable::config_override::config_override_key_value::Value;
@@ -17,7 +17,7 @@ use sdv::comms::id::ServiceFqin as CommsFqin;
 use sdv::comms::ContextRef;
 use sdv::mw::ClientOptions;
 use sdv::mw::SdvComms;
-use sdv_mw_rs_com_sdv_concal_sample_oem_sample_oem_con_cal_client_service_bundle::SampleOemConCalClientServiceBundle;
+use sdv_mw_rs_com_sdv_oem_sample_concal_sample_oem_con_cal_client_service_bundle::SampleOemConCalClientServiceBundle;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -30,7 +30,7 @@ async fn main() {
     let sdv_comms = SdvComms {
         context: ContextRef::create(
             CommsFqin::from_str(
-                "local-vm:sdv.concal.sample.SampleOemConCalClientServiceBundle/sample",
+                "local-vm:com.sdv.oem.sample.concal.SampleOemConCalClientServiceBundle/sample",
             )
             .unwrap(),
         ),
@@ -106,7 +106,7 @@ fn test_config() -> RearViewCamera {
 fn test_service_fqin() -> ProtoFqin {
     ProtoFqin {
         vm_name: String::from("local-vm"),
-        package_name: String::from("sdv.concal.sample"),
+        package_name: String::from("com.sdv.oem.sample.concal"),
         service_name: String::from("ConCalClientServiceBundle"),
         instance_name: String::from("sample"),
         ..Default::default()

@@ -8,8 +8,8 @@ package {
 }
 
 rust_library {
-    name: "libsdv_mw_rs_com_sdv_concal_con_cal_service_bundle",
-    crate_name: "sdv_mw_rs_com_sdv_concal_con_cal_service_bundle",
+    name: "libsdv_mw_rs_com_sdv_google_concal_con_cal_service_bundle",
+    crate_name: "sdv_mw_rs_com_sdv_google_concal_con_cal_service_bundle",
     srcs: [
         "service_bundle.rs",
     ],
@@ -28,8 +28,8 @@ rust_library {
 }
 
 rust_library {
-    name: "libcom_sdv_concal_con_cal_registration_service_rpc_rs",
-    crate_name: "com_sdv_concal_con_cal_registration_service_rpc",
+    name: "libcom_sdv_google_concal_con_cal_registration_service_rpc_rs",
+    crate_name: "com_sdv_google_concal_con_cal_registration_service_rpc",
     srcs: [
         "con_cal_registration_service/lib.rs",
     ],
@@ -49,8 +49,8 @@ rust_library {
 }
 
 rust_library {
-    name: "libcom_sdv_concal_con_cal_update_service_rpc_rs",
-    crate_name: "com_sdv_concal_con_cal_update_service_rpc",
+    name: "libcom_sdv_google_concal_con_cal_update_service_rpc_rs",
+    crate_name: "com_sdv_google_concal_con_cal_update_service_rpc",
     srcs: [
         "con_cal_update_service/lib.rs",
     ],
@@ -70,8 +70,8 @@ rust_library {
 }
 
 rust_library {
-    name: "libcom_sdv_concal_calib_con_cal_calibration_service_rpc_rs",
-    crate_name: "com_sdv_concal_calib_con_cal_calibration_service_rpc",
+    name: "libcom_sdv_google_concal_calib_con_cal_calibration_service_rpc_rs",
+    crate_name: "com_sdv_google_concal_calib_con_cal_calibration_service_rpc",
     srcs: [
         "calib_con_cal_calibration_service/lib.rs",
     ],
@@ -91,8 +91,8 @@ rust_library {
 }
 
 rust_library {
-    name: "libcom_sdv_concal_calib_con_cal_calibration_notification_service_rpc_rs",
-    crate_name: "com_sdv_concal_calib_con_cal_calibration_notification_service_rpc",
+    name: "libcom_sdv_google_concal_calib_con_cal_calibration_notification_service_rpc_rs",
+    crate_name: "com_sdv_google_concal_calib_con_cal_calibration_notification_service_rpc",
     srcs: [
         "calib_con_cal_calibration_notification_service/lib.rs",
     ],
@@ -112,8 +112,8 @@ rust_library {
 }
 
 rust_library {
-    name: "libcom_sdv_concal_calib_calibratable_service_rpc_rs",
-    crate_name: "com_sdv_concal_calib_calibratable_service_rpc",
+    name: "libcom_sdv_google_concal_calib_calibratable_service_rpc_rs",
+    crate_name: "com_sdv_google_concal_calib_calibratable_service_rpc",
     srcs: [
         "calib_calibratable_service/lib.rs",
     ],

@@ -15,7 +15,7 @@ mod versioned_object;
 use crate::concal_impl::SampleOemConCalServiceBundleImpl;
 
 use log::info;
-use sdv_mw_rs_com_sdv_concal_sample_oem_sample_oem_con_cal_service_bundle::SampleOemConCalServiceBundle as ConCalServiceBundleMw;
+use sdv_mw_rs_com_sdv_oem_sample_concal_sample_oem_con_cal_service_bundle::SampleOemConCalServiceBundle as ConCalServiceBundleMw;
 use sdv_mw_rs_sdv_comms::SdvComms;
 use std::time::Duration;
 use std::{sync::Arc, thread};

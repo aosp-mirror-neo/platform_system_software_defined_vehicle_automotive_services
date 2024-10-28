@@ -119,7 +119,7 @@ impl SampleOemConCalServiceBundleImpl {
 }
 
 #[async_trait::async_trait]
-impl com_sdv_concal_con_cal_registration_service_rpc::Interface
+impl com_sdv_google_concal_con_cal_registration_service_rpc::Interface
     for SampleOemConCalServiceBundleImpl
 {
     async fn GetConfig(
@@ -264,7 +264,9 @@ impl com_sdv_concal_con_cal_registration_service_rpc::Interface
 }
 
 #[async_trait::async_trait]
-impl com_sdv_concal_con_cal_update_service_rpc::Interface for SampleOemConCalServiceBundleImpl {
+impl com_sdv_google_concal_con_cal_update_service_rpc::Interface
+    for SampleOemConCalServiceBundleImpl
+{
     async fn StartConfigUpdate(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
@@ -462,7 +464,7 @@ impl com_sdv_concal_con_cal_update_service_rpc::Interface for SampleOemConCalSer
 }
 
 #[async_trait::async_trait]
-impl com_sdv_concal_calib_con_cal_calibration_service_rpc::Interface
+impl com_sdv_google_concal_calib_con_cal_calibration_service_rpc::Interface
     for SampleOemConCalServiceBundleImpl
 {
     async fn GetCalibrationConfigIds(
@@ -502,7 +504,7 @@ impl com_sdv_concal_calib_con_cal_calibration_service_rpc::Interface
 }
 
 #[async_trait::async_trait]
-impl com_sdv_concal_calib_con_cal_calibration_notification_service_rpc::Interface
+impl com_sdv_google_concal_calib_con_cal_calibration_notification_service_rpc::Interface
     for SampleOemConCalServiceBundleImpl
 {
     async fn RegisterForCalibrationUpdate(&self,
@@ -523,8 +525,8 @@ impl com_sdv_concal_calib_con_cal_calibration_notification_service_rpc::Interfac
 mod tests {
 
     use super::*;
-    use com_sdv_concal_con_cal_registration_service_rpc::Interface as OtherInterface;
-    use com_sdv_concal_con_cal_update_service_rpc::Interface;
+    use com_sdv_google_concal_con_cal_registration_service_rpc::Interface as OtherInterface;
+    use com_sdv_google_concal_con_cal_update_service_rpc::Interface;
     use concal_api_stable::config_override::config_override_key_value::Value;
     use concal_api_stable::config_override::ConfigOverrideKeyValue;
     use concal_api_stable::configuration::ConfigId;

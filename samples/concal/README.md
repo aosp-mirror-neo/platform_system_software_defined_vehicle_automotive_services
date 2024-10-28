@@ -40,7 +40,7 @@ To generate code from the VSIDL definitions, run the following command from
 `system/software_defined_vehicle/automotive_services/concal/stable`:
 
 ```bash
-vsidlc   --catalog-path catalog/     --output-path ../../samples/concal/
+vsidlc   --catalog-path catalog/     --output-path ../../samples/concal/stable
 ```
 
 If you get an error that *vsidlc* is not found, build it first:

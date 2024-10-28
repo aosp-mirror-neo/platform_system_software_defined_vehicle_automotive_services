@@ -9,7 +9,7 @@ pub mod internal {
 
     /// Default unit name for of a service unit implementing calib.ConCalCalibrationNotificationService interface
     pub const DEFAULT_UNIT_NAME: &str =
-        "com-sdv-concal-calib-con-cal-calibration-notification-service";
+        "com-sdv-google-concal-calib-con-cal-calibration-notification-service";
 
     /// Creates a method map for an object which implements the RPC interface trait
     pub fn get_method_map(
