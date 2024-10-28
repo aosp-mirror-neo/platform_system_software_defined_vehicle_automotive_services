@@ -42,7 +42,7 @@ pub async fn monitor_online_services(
                 }
                 ServiceUnitChangeEvent::Unregistered(sud) => {
                     let fqin = sud.get_service_bundle_identity().get_fqin().clone();
-                    info!("Service Unit registered by {fqin:?}");
+                    info!("Service Unit deregistered by {fqin:?}");
 
                     listener.on_service_stop(&fqin).await;
                 }

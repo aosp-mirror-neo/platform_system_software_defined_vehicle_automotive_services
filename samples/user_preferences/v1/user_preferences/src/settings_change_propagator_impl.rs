@@ -58,16 +58,25 @@ impl SettingsChangePropagatorImpl {
         pending_setting_changes
             .entry(fqin.clone())
             .or_default()
-            .add_setting_change(group_name, settings);
+            .add_setting_change(group_name.clone(), settings.clone());
         drop(pending_setting_changes);
 
-        self.process_pending_setting_changes(&fqin).await;
+        if self.is_service_available(&fqin).await {
+            self.process_pending_setting_changes(&fqin).await;
+        } else {
+            // If the service is not online, then notify all settings change subscribers
+            // that the settings are in a pending state
+            // notify subscribers of the latest state of these settings
+            self.notify_subscribers_of_current_state(
+                &fqin,
+                &group_name,
+                &settings.iter().map(|setting| setting.name.clone()).collect::<HashSet<String>>(),
+            )
+            .await;
+        }
     }
 
     pub async fn process_pending_setting_changes(&self, fqin: &ServiceFqin) {
-        if !self.is_service_available(fqin).await {
-            return;
-        }
         let client: UserControllableServiceClient =
             match self.rpc_client_factory.new_user_controllable_service_client(fqin).await {
                 Ok(client) => client,
