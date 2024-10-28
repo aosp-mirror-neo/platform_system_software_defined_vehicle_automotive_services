@@ -1,6 +1,5 @@
 // Copyright 2024 Google LLC
 //! Sample user preferences implementation
-
 use std::sync::Arc;
 
 use admin_service_impl::AdminServiceImpl;
@@ -25,9 +24,12 @@ mod management_service_impl;
 mod persistence;
 mod registry_service_impl;
 mod rpc_client_factory;
+mod rpc_client_traits;
 mod settings_change_propagator_impl;
 mod settings_retrieval_utils;
 mod subscriptions_manager_impl;
+#[cfg(test)]
+mod test_utils;
 mod user_controllable_service_listener;
 
 static LOG_TAG: &str = "sdv_user_preferences";

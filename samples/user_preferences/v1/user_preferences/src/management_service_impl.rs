@@ -4,10 +4,12 @@
 use crate::persistence::setting::Setting;
 use crate::persistence::setting_definition::SettingDefinition;
 use crate::persistence::settings_group_repository::SettingsGroup;
+use crate::settings_change_propagator_impl::SettingsChangePropagator;
 use crate::settings_retrieval_utils::{
     retrieve_user_settings_including_defaults_for_group,
     retrieve_vehicle_settings_including_defaults_for_group,
 };
+use crate::subscriptions_manager_impl::SubscriptionsManager;
 use crate::subscriptions_manager_impl::SubscriptionsManagerImpl;
 use crate::{
     persistence::Persistence, settings_change_propagator_impl::SettingsChangePropagatorImpl,

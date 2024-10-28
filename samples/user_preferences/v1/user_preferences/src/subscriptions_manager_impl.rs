@@ -1,9 +1,10 @@
 // Copyright 2024 Google LLC
 //! Sample user preferences implementation
 
-use crate::rpc_client_factory::RpcClientFactoryImpl;
-use com_sdv_google_user_preferences_view_change_notifier_rpc::Client as ChangeNotifierClient;
+use crate::rpc_client_factory::RpcClientFactory;
+use async_trait::async_trait;
 use log::error;
+use mockall::automock;
 use sdv_comms::id::ServiceFqin;
 use std::{
     collections::{HashMap, HashSet},
@@ -13,6 +14,20 @@ use tokio::sync::Mutex;
 use user_preferences_api::change_notifier::OnSettingsChangeRequest;
 use user_preferences_api::setting::Setting as SettingProto;
 use user_preferences_api::settings_group::SettingsGroupId;
+
+#[automock]
+#[async_trait]
+pub trait SubscriptionsManager: Send + Sync {
+    async fn register_subscriber(&self, group: SettingsGroupId, subscriber_fqin: ServiceFqin);
+    async fn unregister_subscriber(&self, group: SettingsGroupId, subscriber_fqin: ServiceFqin);
+    async fn notify_subscribers(
+        &self,
+        group: &SettingsGroupId,
+        active_settings: &[SettingProto],
+        pending_changes: &[SettingProto],
+        persisted_settings: &[SettingProto],
+    );
+}
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 struct SubscriptionKey {
@@ -27,32 +42,25 @@ impl From<SettingsGroupId> for SubscriptionKey {
 }
 
 pub struct SubscriptionsManagerImpl {
-    rpc_client_factory: Arc<RpcClientFactoryImpl>,
+    rpc_client_factory: Arc<dyn RpcClientFactory>,
     subscribers: Mutex<HashMap<SubscriptionKey, HashSet<ServiceFqin>>>,
 }
 
-impl SubscriptionsManagerImpl {
-    pub fn new(rpc_client_factory: Arc<RpcClientFactoryImpl>) -> Self {
-        Self { rpc_client_factory, subscribers: tokio::sync::Mutex::new(HashMap::new()) }
-    }
-
-    pub async fn register_subscriber(&self, group: SettingsGroupId, subscriber_fqin: ServiceFqin) {
+#[async_trait]
+impl SubscriptionsManager for SubscriptionsManagerImpl {
+    async fn register_subscriber(&self, group: SettingsGroupId, subscriber_fqin: ServiceFqin) {
         let mut subscribers = self.subscribers.lock().await;
         subscribers.entry(group.into()).or_default().insert(subscriber_fqin);
     }
 
-    pub async fn unregister_subscriber(
-        &self,
-        group: SettingsGroupId,
-        subscriber_fqin: ServiceFqin,
-    ) {
+    async fn unregister_subscriber(&self, group: SettingsGroupId, subscriber_fqin: ServiceFqin) {
         let mut subscribers = self.subscribers.lock().await;
         subscribers.entry(group.into()).and_modify(|f| {
             f.remove(&subscriber_fqin);
         });
     }
 
-    pub async fn notify_subscribers(
+    async fn notify_subscribers(
         &self,
         group: &SettingsGroupId,
         active_settings: &[SettingProto],
@@ -66,7 +74,7 @@ impl SubscriptionsManagerImpl {
         };
 
         for subscriber in subscribers {
-            let client: ChangeNotifierClient = match self
+            let client = match self
                 .rpc_client_factory
                 .new_change_notifier_client(
                     subscriber.get_sdv_package_name(),
@@ -101,5 +109,11 @@ impl SubscriptionsManagerImpl {
                 );
             }
         }
+    }
+}
+
+impl SubscriptionsManagerImpl {
+    pub fn new(rpc_client_factory: Arc<dyn RpcClientFactory>) -> Self {
+        Self { rpc_client_factory, subscribers: tokio::sync::Mutex::new(HashMap::new()) }
     }
 }
