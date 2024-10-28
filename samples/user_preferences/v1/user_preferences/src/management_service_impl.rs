@@ -146,12 +146,12 @@ impl ManagementService for ManagementServiceImpl {
         request: &SubscribeToSettingsChangeAndGetSettingsRequest,
     ) -> sdv_status_rs::SdvResult<SubscribeToSettingsChangeAndGetSettingsResponse> {
         let settings_group_id = request.settings_group_id.as_ref().unwrap();
-        let settings_group_primary_key = match self
+        let settings_group = match self
             .persistence
             .setting_groups
             .get(settings_group_id.name.as_str(), settings_group_id.service_fqin.as_str())
         {
-            Ok(x) => x.id,
+            Ok(x) => x,
             Err(err) => {
                 error!(
                     "SubscribeToSettingsChangeAndGetSettings failed to retrieve settings group: {}",
@@ -166,7 +166,7 @@ impl ManagementService for ManagementServiceImpl {
         let active_settings = retrieve_vehicle_settings_including_defaults_for_group(
             &self.persistence.setting_definitions,
             &self.persistence.vehicle_settings,
-            settings_group_primary_key,
+            settings_group.id,
         )?;
         let persisted_settings: Vec<SettingProto> = match active_user {
             Some(user) => {
@@ -174,7 +174,7 @@ impl ManagementService for ManagementServiceImpl {
                     &self.persistence.setting_definitions,
                     &self.persistence.user_settings,
                     user.id,
-                    settings_group_primary_key,
+                    settings_group.id,
                 ) {
                     Ok(x) => x.into_iter().map_into().collect_vec(),
                     Err(err) => {
@@ -203,6 +203,7 @@ impl ManagementService for ManagementServiceImpl {
             active_settings,
             pending_settings,
             persisted_settings,
+            version: settings_group.version,
             ..Default::default()
         })
     }
