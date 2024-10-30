@@ -464,7 +464,7 @@ impl com_sdv_google_concal_con_cal_update_service_rpc::Interface
 }
 
 #[async_trait::async_trait]
-impl com_sdv_google_concal_calib_con_cal_calibration_service_rpc::Interface
+impl com_sdv_google_concal_calib_server_con_cal_calibration_service_rpc::Interface
     for SampleOemConCalServiceBundleImpl
 {
     async fn GetCalibrationConfigIds(
@@ -479,9 +479,10 @@ impl com_sdv_google_concal_calib_con_cal_calibration_service_rpc::Interface
     async fn StartCalibration(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
-        _request: &concal_api_stable::calibratable_service::StartCalibrationRequest,
-    ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::StartCalibrationResponse>
-    {
+        _request: &concal_api_stable::concal_calibration_service::StartCalibrationRequest,
+    ) -> sdv_status_rs::SdvResult<
+        concal_api_stable::concal_calibration_service::StartCalibrationResponse,
+    > {
         todo!();
     }
     async fn UpdateConfigForCalibration(
@@ -496,9 +497,10 @@ impl com_sdv_google_concal_calib_con_cal_calibration_service_rpc::Interface
     async fn FinishCalibration(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
-        _request: &concal_api_stable::calibratable_service::FinishCalibrationRequest,
-    ) -> sdv_status_rs::SdvResult<concal_api_stable::calibratable_service::FinishCalibrationResponse>
-    {
+        _request: &concal_api_stable::concal_calibration_service::FinishCalibrationRequest,
+    ) -> sdv_status_rs::SdvResult<
+        concal_api_stable::concal_calibration_service::FinishCalibrationResponse,
+    > {
         todo!();
     }
 }

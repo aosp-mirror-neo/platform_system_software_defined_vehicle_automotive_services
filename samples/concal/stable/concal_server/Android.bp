@@ -19,7 +19,7 @@ rust_ffi_shared {
         "libsdv_comms_rs",
         "libcom_sdv_google_concal_con_cal_registration_service_rpc_rs",
         "libcom_sdv_google_concal_con_cal_update_service_rpc_rs",
-        "libcom_sdv_google_concal_calib_con_cal_calibration_service_rpc_rs",
+        "libcom_sdv_google_concal_calib_server_con_cal_calibration_service_rpc_rs",
         "libcom_sdv_google_concal_calib_con_cal_calibration_notification_service_rpc_rs",
         // Contains service bundle interface definitions and helper macros.
         "libsdv_lifecycle_client_rust",
@@ -57,7 +57,7 @@ rust_test {
         "libsdv_comms_rs",
         "libcom_sdv_google_concal_con_cal_registration_service_rpc_rs",
         "libcom_sdv_google_concal_con_cal_update_service_rpc_rs",
-        "libcom_sdv_google_concal_calib_con_cal_calibration_service_rpc_rs",
+        "libcom_sdv_google_concal_calib_server_con_cal_calibration_service_rpc_rs",
         "libcom_sdv_google_concal_calib_con_cal_calibration_notification_service_rpc_rs",
         "libsdv_lifecycle_client_rust",
         "libsdv_mw_rs_sdv_comms",

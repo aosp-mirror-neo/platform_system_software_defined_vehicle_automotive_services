@@ -13,12 +13,12 @@ sdv_service_bundle {
     type: "ConCalUpdateService"
   }
   unit_type {
-    type: "calib.ConCalCalibrationService"
+    type: "calib.server.ConCalCalibrationService"
   }
   unit_type {
     type: "calib.ConCalCalibrationNotificationService"
   }
   unit_type {
-    type: "calib.CalibratableService"
+    type: "calib.client.CalibratableService"
   }
 }

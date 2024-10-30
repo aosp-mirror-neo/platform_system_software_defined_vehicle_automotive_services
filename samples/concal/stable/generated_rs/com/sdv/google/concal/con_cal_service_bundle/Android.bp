@@ -70,10 +70,10 @@ rust_library {
 }
 
 rust_library {
-    name: "libcom_sdv_google_concal_calib_con_cal_calibration_service_rpc_rs",
-    crate_name: "com_sdv_google_concal_calib_con_cal_calibration_service_rpc",
+    name: "libcom_sdv_google_concal_calib_server_con_cal_calibration_service_rpc_rs",
+    crate_name: "com_sdv_google_concal_calib_server_con_cal_calibration_service_rpc",
     srcs: [
-        "calib_con_cal_calibration_service/lib.rs",
+        "calib_server_con_cal_calibration_service/lib.rs",
     ],
     rustlibs: [
         "libsdv_rs",
@@ -112,10 +112,10 @@ rust_library {
 }
 
 rust_library {
-    name: "libcom_sdv_google_concal_calib_calibratable_service_rpc_rs",
-    crate_name: "com_sdv_google_concal_calib_calibratable_service_rpc",
+    name: "libcom_sdv_google_concal_calib_client_calibratable_service_rpc_rs",
+    crate_name: "com_sdv_google_concal_calib_client_calibratable_service_rpc",
     srcs: [
-        "calib_calibratable_service/lib.rs",
+        "calib_client_calibratable_service/lib.rs",
     ],
     rustlibs: [
         "libsdv_rs",

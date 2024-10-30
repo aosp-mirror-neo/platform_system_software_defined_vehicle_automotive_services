@@ -35,10 +35,12 @@ impl UnitType for dyn com_sdv_google_concal_con_cal_update_service_rpc::Interfac
     const TYPENAME: &'static str = "ConCalUpdateService";
 }
 
-impl UnitType for dyn com_sdv_google_concal_calib_con_cal_calibration_service_rpc::Interface {
+impl UnitType
+    for dyn com_sdv_google_concal_calib_server_con_cal_calibration_service_rpc::Interface
+{
     const PACKAGE: &'static str = "com.sdv.google.concal";
     const SERVICE_BUNDLE: &'static str = "ConCalServiceBundle";
-    const TYPENAME: &'static str = "calib.ConCalCalibrationService";
+    const TYPENAME: &'static str = "calib.server.ConCalCalibrationService";
 }
 
 impl UnitType
@@ -62,7 +64,7 @@ impl SampleOemConCalServiceBundle {
         servers: (
             std::sync::Arc<dyn com_sdv_google_concal_con_cal_registration_service_rpc::Interface>,
             std::sync::Arc<dyn com_sdv_google_concal_con_cal_update_service_rpc::Interface>,
-            std::sync::Arc<dyn com_sdv_google_concal_calib_con_cal_calibration_service_rpc::Interface>,
+            std::sync::Arc<dyn com_sdv_google_concal_calib_server_con_cal_calibration_service_rpc::Interface>,
             std::sync::Arc<dyn com_sdv_google_concal_calib_con_cal_calibration_notification_service_rpc::Interface>,
         ),
     ) -> sdv::status::SdvResult<Self> {
@@ -85,9 +87,9 @@ impl SampleOemConCalServiceBundle {
                 ),
             )
             .await?;
-        service.add_server::<dyn com_sdv_google_concal_calib_con_cal_calibration_service_rpc::Interface>(
-                com_sdv_google_concal_calib_con_cal_calibration_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
-                com_sdv_google_concal_calib_con_cal_calibration_service_rpc::internal::get_method_map(servers.2.clone()),
+        service.add_server::<dyn com_sdv_google_concal_calib_server_con_cal_calibration_service_rpc::Interface>(
+                com_sdv_google_concal_calib_server_con_cal_calibration_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
+                com_sdv_google_concal_calib_server_con_cal_calibration_service_rpc::internal::get_method_map(servers.2.clone()),
             )
             .await?;
         service.add_server::<dyn com_sdv_google_concal_calib_con_cal_calibration_notification_service_rpc::Interface>(

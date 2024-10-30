@@ -7,25 +7,14 @@
 pub mod internal {
     //! Those are internal symbols utilized by the middleware. Please refrain from using them.
 
-    /// Default unit name for of a service unit implementing calib.ConCalCalibrationService interface
-    pub const DEFAULT_UNIT_NAME: &str = "com-sdv-google-concal-calib-con-cal-calibration-service";
+    /// Default unit name for of a service unit implementing calib.client.CalibratableService interface
+    pub const DEFAULT_UNIT_NAME: &str = "com-sdv-google-concal-calib-client-calibratable-service";
 
     /// Creates a method map for an object which implements the RPC interface trait
     pub fn get_method_map(
         server: std::sync::Arc<dyn super::Interface>,
     ) -> std::collections::HashMap<String, sdv::comms::rpc::UnaryRpcMethod> {
         sdv::mw::MethodMapBuilder::new()
-        .add_method::<concal_api_stable::concal_calibration_service::GetCalibrationConfigIdsRequest, concal_api_stable::concal_calibration_service::GetCalibrationConfigIdsResponse>(
-            "GetCalibrationConfigIds",
-            {
-                let srv = server.clone();
-            std::sync::Arc::new(move |id, req| {
-                Box::pin({
-                    let srv = srv.clone();
-                    async move { srv.GetCalibrationConfigIds(id, &req).await }
-                })
-            })},
-        )
         .add_method::<concal_api_stable::calibratable_service::StartCalibrationRequest, concal_api_stable::calibratable_service::StartCalibrationResponse>(
             "StartCalibration",
             {
@@ -37,14 +26,14 @@ pub mod internal {
                 })
             })},
         )
-        .add_method::<concal_api_stable::concal_calibration_service::UpdateConfigForCalibrationRequest, concal_api_stable::concal_calibration_service::UpdateConfigForCalibrationResponse>(
-            "UpdateConfigForCalibration",
+        .add_method::<concal_api_stable::calibratable_service::UpdateConfigRequest, concal_api_stable::calibratable_service::UpdateConfigResponse>(
+            "UpdateConfig",
             {
                 let srv = server.clone();
             std::sync::Arc::new(move |id, req| {
                 Box::pin({
                     let srv = srv.clone();
-                    async move { srv.UpdateConfigForCalibration(id, &req).await }
+                    async move { srv.UpdateConfig(id, &req).await }
                 })
             })},
         )
@@ -64,17 +53,8 @@ pub mod internal {
 
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
-/// calib.ConCalCalibrationService RPC server interface trait
+/// calib.client.CalibratableService RPC server interface trait
 pub trait Interface: Send + Sync {
-    async fn GetCalibrationConfigIds(
-        &self,
-        _caller_id: sdv::comms::id::ServiceFqin,
-        _request: &concal_api_stable::concal_calibration_service::GetCalibrationConfigIdsRequest,
-    ) -> sdv::status::SdvResult<
-        concal_api_stable::concal_calibration_service::GetCalibrationConfigIdsResponse,
-    > {
-        Err(sdv::status::SdvStatus::new(sdv::status::SdvStatusCode::Unimplemented))
-    }
     async fn StartCalibration(
         &self,
         _caller_id: sdv::comms::id::ServiceFqin,
@@ -83,13 +63,11 @@ pub trait Interface: Send + Sync {
     {
         Err(sdv::status::SdvStatus::new(sdv::status::SdvStatusCode::Unimplemented))
     }
-    async fn UpdateConfigForCalibration(
+    async fn UpdateConfig(
         &self,
         _caller_id: sdv::comms::id::ServiceFqin,
-        _request: &concal_api_stable::concal_calibration_service::UpdateConfigForCalibrationRequest,
-    ) -> sdv::status::SdvResult<
-        concal_api_stable::concal_calibration_service::UpdateConfigForCalibrationResponse,
-    > {
+        _request: &concal_api_stable::calibratable_service::UpdateConfigRequest,
+    ) -> sdv::status::SdvResult<concal_api_stable::calibratable_service::UpdateConfigResponse> {
         Err(sdv::status::SdvStatus::new(sdv::status::SdvStatusCode::Unimplemented))
     }
     async fn FinishCalibration(
@@ -102,19 +80,11 @@ pub trait Interface: Send + Sync {
     }
 }
 
-/// Client for calib.ConCalCalibrationService RPC interface
+/// Client for calib.client.CalibratableService RPC interface
 pub struct Client(Box<dyn sdv::mw::ClientTransport>);
 
 #[allow(non_snake_case, missing_docs)]
 impl Client {
-    pub async fn GetCalibrationConfigIds(
-        &self,
-        request: &concal_api_stable::concal_calibration_service::GetCalibrationConfigIdsRequest,
-    ) -> sdv::status::SdvResult<
-        concal_api_stable::concal_calibration_service::GetCalibrationConfigIdsResponse,
-    > {
-        sdv::mw::call_method(self.0.as_ref(), "GetCalibrationConfigIds", request).await
-    }
     pub async fn StartCalibration(
         &self,
         request: &concal_api_stable::calibratable_service::StartCalibrationRequest,
@@ -122,13 +92,11 @@ impl Client {
     {
         sdv::mw::call_method(self.0.as_ref(), "StartCalibration", request).await
     }
-    pub async fn UpdateConfigForCalibration(
+    pub async fn UpdateConfig(
         &self,
-        request: &concal_api_stable::concal_calibration_service::UpdateConfigForCalibrationRequest,
-    ) -> sdv::status::SdvResult<
-        concal_api_stable::concal_calibration_service::UpdateConfigForCalibrationResponse,
-    > {
-        sdv::mw::call_method(self.0.as_ref(), "UpdateConfigForCalibration", request).await
+        request: &concal_api_stable::calibratable_service::UpdateConfigRequest,
+    ) -> sdv::status::SdvResult<concal_api_stable::calibratable_service::UpdateConfigResponse> {
+        sdv::mw::call_method(self.0.as_ref(), "UpdateConfig", request).await
     }
     pub async fn FinishCalibration(
         &self,
