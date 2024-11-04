@@ -5,11 +5,6 @@
 // NOTE: The response codes will be removed when the Public Error API is integrated.
 
 syntax = "proto3";
-
-option java_multiple_files = true;
-option java_package = "com.android.sdv.sdvgrpclibrary";
-option java_outer_classname = "ErrorProto";
-
 package sdv.user_preferences;
 
 enum ResponseCode {

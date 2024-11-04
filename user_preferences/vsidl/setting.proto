@@ -4,11 +4,6 @@
 // ACLs are defined and CommStack API is finalized.
 
 syntax = "proto3";
-
-option java_multiple_files = true;
-option java_package = "com.android.sdv.sdvgrpclibrary";
-option java_outer_classname = "SettingProto";
-
 package sdv.user_preferences;
 
 // A key value pair representing a setting within a UserControllableService SettingsGroup.

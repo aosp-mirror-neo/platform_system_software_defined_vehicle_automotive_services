@@ -6,10 +6,6 @@
 
 syntax = "proto3";
 
-option java_multiple_files = true;
-option java_package = "com.android.sdv.sdvgrpclibrary";
-option java_outer_classname = "UserProto";
-
 package sdv.user_preferences;
 
 message User {
