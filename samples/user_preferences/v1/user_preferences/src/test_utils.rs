@@ -10,15 +10,18 @@ use user_preferences_api::user::User as UserProto;
 use user_preferences_api::user_preferences_admin_service::*;
 
 use crate::admin_service_impl::AdminServiceImpl;
+use crate::persistence::constraint::Int32Constraint;
 use crate::persistence::setting_definition::SettingDefinition;
 use crate::persistence::settings_group_repository::SettingsGroup;
 use crate::persistence::{initialize_persistence, Persistence};
 use crate::rpc_client_factory::MockRpcClientFactory;
 use crate::settings_change_propagator_impl::MockSettingsChangePropagator;
+use crate::subscriptions_manager_impl::MockSubscriptionsManager;
 
 pub struct TestSetup {
     pub rpc_client_factory: Arc<MockRpcClientFactory>,
     pub settings_change_propagator: Arc<MockSettingsChangePropagator>,
+    pub subscriptions_manager: Arc<MockSubscriptionsManager>,
     pub persistence: Arc<Persistence>,
 }
 
@@ -26,10 +29,11 @@ impl TestSetup {
     pub fn new() -> Self {
         let rpc_client_factory = Arc::new(MockRpcClientFactory::new());
         let settings_change_propagator = Arc::new(MockSettingsChangePropagator::new());
+        let subscriptions_manager = Arc::new(MockSubscriptionsManager::new());
         let persistence =
             Arc::new(initialize_persistence(rusqlite::Connection::open_in_memory().unwrap()));
 
-        Self { rpc_client_factory, settings_change_propagator, persistence }
+        Self { rpc_client_factory, settings_change_propagator, subscriptions_manager, persistence }
     }
 
     pub fn mut_rpc_client_factory(&mut self) -> &mut MockRpcClientFactory {
@@ -42,10 +46,15 @@ impl TestSetup {
             .expect("Unable to get mutable ref to MockSettingsChangePropagator")
     }
 
+    pub fn mut_subscriptions_manager(&mut self) -> &mut MockSubscriptionsManager {
+        Arc::get_mut(&mut self.subscriptions_manager)
+            .expect("Unable to get mutable ref to MockSubscriptionsManager")
+    }
+
     pub fn populate_persistence_with_settings_definitions(
         &self,
     ) -> (SettingsGroup, Vec<SettingDefinition>) {
-        let group = SettingsGroup {
+        let mut group = SettingsGroup {
             name: "display".to_string(),
             service_fqin: get_user_controllable_service_fqin().to_string(),
             version: "1.0".to_string(),
@@ -57,7 +66,9 @@ impl TestSetup {
                 kind: SettingKind::PER_USER as i32,
                 name: "brightness".to_string(),
                 default_value: crate::persistence::setting::Value::Int32(50),
-                constraint: None,
+                constraint: Some(crate::persistence::constraint::Constraint::Int32(
+                    Int32Constraint { min_value: Some(0), max_value: Some(100), step: None },
+                )),
             },
             SettingDefinition {
                 kind: SettingKind::PER_USER as i32,
@@ -67,11 +78,11 @@ impl TestSetup {
             },
         ];
 
-        let group_id =
+        group.id =
             self.persistence.setting_groups.store(&group).expect("Failed to store settings group");
         self.persistence
             .setting_definitions
-            .store(group_id, &definitions)
+            .store(group.id, &definitions)
             .expect("Failed to store setting definition");
 
         (group, definitions)
@@ -91,14 +102,6 @@ pub async fn select_user_and_assert_success(service: &AdminServiceImpl, user_id:
     let request = SelectUserRequest { user_id, ..Default::default() };
     let response = service.SelectUser(get_client_fqin(), &request).await;
     assert_that!(response, ok(anything()));
-}
-
-pub fn create_service_impl(test_setup: &TestSetup) -> AdminServiceImpl {
-    AdminServiceImpl::new(
-        test_setup.persistence.clone(),
-        test_setup.rpc_client_factory.clone(),
-        test_setup.settings_change_propagator.clone(),
-    )
 }
 
 pub fn get_user_controllable_service_fqin() -> ServiceFqin {
