@@ -1,12 +1,31 @@
 // Copyright 2024 Google LLC
 
+use async_trait::async_trait;
 use com_sdv_google_user_preferences_user_controllable_user_controllable_service_rpc::Client as UserControllableServiceClient;
 use com_sdv_google_user_preferences_view_change_notifier_rpc::Client as ChangeNotifierClient;
+use mockall::automock;
 use sdv_comms::id::ServiceFqin;
 use sdv_mw_rs_comms::{ClientOptions, Communicate, RpcClient};
 use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_status_rs::SdvResult;
 use std::sync::Arc;
+
+use crate::rpc_client_traits::{ChangeNotifierClientTrait, UserControllableServiceClientTrait};
+
+#[automock]
+#[async_trait]
+pub trait RpcClientFactory: Send + Sync {
+    async fn new_user_controllable_service_client(
+        &self,
+        fqin: &ServiceFqin,
+    ) -> SdvResult<Box<dyn UserControllableServiceClientTrait>>;
+
+    async fn new_change_notifier_client(
+        &self,
+        package: &str,
+        bundle: &str,
+    ) -> SdvResult<Box<dyn ChangeNotifierClientTrait>>;
+}
 
 pub struct RpcClientFactoryImpl {
     comms: Arc<SdvComms>,
@@ -16,10 +35,14 @@ impl RpcClientFactoryImpl {
     pub fn new(comms: Arc<SdvComms>) -> Self {
         Self { comms }
     }
-    pub async fn new_user_controllable_service_client(
+}
+
+#[async_trait]
+impl RpcClientFactory for RpcClientFactoryImpl {
+    async fn new_user_controllable_service_client(
         &self,
         fqin: &ServiceFqin,
-    ) -> SdvResult<UserControllableServiceClient> {
+    ) -> SdvResult<Box<dyn UserControllableServiceClientTrait>> {
         let attributes = sdv_mw_rs_comms::ClientAttributes {
             server_name: sdv_mw_rs_comms::UnitName {
                 package: fqin.get_sdv_package_name().to_string(),
@@ -30,16 +53,16 @@ impl RpcClientFactoryImpl {
             options: ClientOptions::default(),
         };
 
-        Ok(UserControllableServiceClient::new(
+        Ok(Box::new(UserControllableServiceClient::new(
             self.comms.create_client_transport(&attributes).await?,
-        ))
+        )))
     }
 
-    pub async fn new_change_notifier_client(
+    async fn new_change_notifier_client(
         &self,
         package: &str,
         bundle: &str,
-    ) -> SdvResult<ChangeNotifierClient> {
+    ) -> SdvResult<Box<dyn ChangeNotifierClientTrait>> {
         let attributes = sdv_mw_rs_comms::ClientAttributes {
             server_name: sdv_mw_rs_comms::UnitName {
                 package: package.into(),
@@ -49,6 +72,8 @@ impl RpcClientFactoryImpl {
             },
             options: sdv_mw_rs_comms::ClientOptions::default(),
         };
-        Ok(ChangeNotifierClient::new(self.comms.create_client_transport(&attributes).await?))
+        Ok(Box::new(ChangeNotifierClient::new(
+            self.comms.create_client_transport(&attributes).await?,
+        )))
     }
 }

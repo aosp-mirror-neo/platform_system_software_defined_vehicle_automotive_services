@@ -7,6 +7,7 @@ use crate::persistence::setting::Setting;
 use crate::persistence::setting_definition::SettingDefinition;
 use crate::persistence::settings_group_repository::SettingsGroup;
 use crate::persistence::Persistence;
+use crate::settings_change_propagator_impl::SettingsChangePropagator;
 use crate::settings_change_propagator_impl::SettingsChangePropagatorImpl;
 
 use async_trait::async_trait;
