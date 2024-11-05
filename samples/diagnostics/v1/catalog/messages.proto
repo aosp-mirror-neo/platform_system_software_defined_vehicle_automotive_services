@@ -3,7 +3,7 @@
 // Definitions of data items structures used in the sample.
 syntax = "proto3";
 
-package sdv.sample.diagnostics;
+package com.sdv.oem.sample.diagnostics;
 
 import "sdv/vsidl/v1/annotations.proto";
 import "sdv/diagnostics/v1/diagnostics.proto";
@@ -17,5 +17,5 @@ message Pressure {
 }
 
 message OverheatingData {
-  string status = 1 [(sdv.vsidl.v1.variable_type_max_size) = 10];
+  string status = 1 [(.sdv.vsidl.v1.variable_type_max_size) = 10];
 }

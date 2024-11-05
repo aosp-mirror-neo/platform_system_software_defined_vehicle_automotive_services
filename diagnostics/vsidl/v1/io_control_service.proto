@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 
-package sdv.diagnostics.io_control;
+package com.sdv.google.diagnostics.io_control;
 
 import "response_code.proto";
 

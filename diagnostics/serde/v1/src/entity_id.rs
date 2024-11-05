@@ -23,11 +23,11 @@ pub enum EntityId {
 /// Routine control method.
 #[derive(Debug)]
 pub enum RoutineMethod {
-    /// See sdv.diagnostics.routine_control.RoutineControl::Start.
+    /// See com.sdv.google.diagnostics.routine_control.RoutineControl::Start.
     Start,
-    /// See sdv.diagnostics.routine_control.RoutineControl::Stop.
+    /// See com.sdv.google.diagnostics.routine_control.RoutineControl::Stop.
     Stop,
-    /// See sdv.diagnostics.routine_control.RoutineControl::RequestResult.
+    /// See com.sdv.google.diagnostics.routine_control.RoutineControl::RequestResult.
     RequestResult,
 }
 

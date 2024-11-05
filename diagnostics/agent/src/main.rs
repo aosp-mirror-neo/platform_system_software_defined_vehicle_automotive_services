@@ -76,7 +76,7 @@ async fn listen_to_events(context: ContextRef) {
     loop {
         let mut service_units = sd.list_units_by_type(
             &UnitType::builder()
-                .set_sdv_package_name("sdv.diagnostics")
+                .set_sdv_package_name("com.sdv.google.diagnostics")
                 .set_service_bundle_name("DiagnosticsManager")
                 .set_unit_type_name("event.Event")
                 .build()
@@ -145,9 +145,9 @@ async fn data_item_interaction(context: ContextRef) {
     let service_unit = wait_for_service_unit(
         context,
         UnitNameDiscoveryArgs::new_builder()
-            .set_sdv_package_name("sdv.diagnostics.sample")
+            .set_sdv_package_name("com.sdv.oem.sample.diagnostics")
             .set_service_bundle_name("DiagnosticsProvider1")
-            .set_service_unit_name("sdv-diagnostics-data-item-data-item-service")
+            .set_service_unit_name("com-sdv-google-diagnostics-data-item-data-item-service")
             .build()
             .unwrap(),
     )
@@ -167,9 +167,9 @@ async fn io_control_interaction(context: ContextRef) {
     let service_unit = wait_for_service_unit(
         context,
         UnitNameDiscoveryArgs::new_builder()
-            .set_sdv_package_name("sdv.diagnostics.sample")
+            .set_sdv_package_name("com.sdv.oem.sample.diagnostics")
             .set_service_bundle_name("DiagnosticsProvider1")
-            .set_service_unit_name("sdv-diagnostics-io-control-io-control-service")
+            .set_service_unit_name("com-sdv-google-diagnostics-io-control-io-control-service")
             .build()
             .unwrap(),
     )
@@ -189,9 +189,11 @@ async fn routine_control_interaction(context: ContextRef) {
     let service_unit = wait_for_service_unit(
         context,
         UnitNameDiscoveryArgs::new_builder()
-            .set_sdv_package_name("sdv.diagnostics.sample")
+            .set_sdv_package_name("com.sdv.oem.sample.diagnostics")
             .set_service_bundle_name("DiagnosticsProvider1")
-            .set_service_unit_name("sdv-diagnostics-routine-control-routine-control-service")
+            .set_service_unit_name(
+                "com-sdv-google-diagnostics-routine-control-routine-control-service",
+            )
             .build()
             .unwrap(),
     )
@@ -211,9 +213,9 @@ async fn fault_listener_interaction(context: ContextRef) {
     let service_unit = wait_for_service_unit(
         context,
         UnitNameDiscoveryArgs::new_builder()
-            .set_sdv_package_name("sdv.diagnostics.sample")
+            .set_sdv_package_name("com.sdv.oem.sample.diagnostics")
             .set_service_bundle_name("DiagnosticsProvider1")
-            .set_service_unit_name("sdv-diagnostics-fault-fault-listener-service")
+            .set_service_unit_name("com-sdv-google-diagnostics-fault-fault-listener-service")
             .build()
             .unwrap(),
     )

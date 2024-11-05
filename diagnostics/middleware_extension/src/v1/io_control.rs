@@ -8,10 +8,10 @@ use protobuf::MessageFull;
 
 /// Typed trait that corresponds to IoControl server
 ///
-/// See sdv.diagnostics.io_control.IoControl service.
+/// See com.sdv.google.diagnostics.io_control.IoControl service.
 #[async_trait::async_trait]
 pub trait IoControlHandler<T: MessageFull>: Send + Sync {
-    /// See sdv.diagnostics.io_control.IoControl::ReturnControlToEcu.
+    /// See com.sdv.google.diagnostics.io_control.IoControl::ReturnControlToEcu.
     async fn return_control_to_ecu(&self, mask: &[u8]) -> DiagnosticsResult<T>;
 
     /// Untyped version of `return_control_to_ecu`.
@@ -19,7 +19,7 @@ pub trait IoControlHandler<T: MessageFull>: Send + Sync {
         to_io_control_response(self.return_control_to_ecu(mask).await)
     }
 
-    /// See sdv.diagnostics.io_control.IoControl::ResetToDefault.
+    /// See com.sdv.google.diagnostics.io_control.IoControl::ResetToDefault.
     async fn reset_to_default(&self, mask: &[u8]) -> DiagnosticsResult<T>;
 
     /// Untyped version of `stop`.
@@ -27,7 +27,7 @@ pub trait IoControlHandler<T: MessageFull>: Send + Sync {
         to_io_control_response(self.reset_to_default(mask).await)
     }
 
-    /// See sdv.diagnostics.io_control.IoControl::FreezeCurrentState.
+    /// See com.sdv.google.diagnostics.io_control.IoControl::FreezeCurrentState.
     async fn freeze_current_state(&self, mask: &[u8]) -> DiagnosticsResult<T>;
 
     /// Untyped version of `request_result`.
@@ -35,7 +35,7 @@ pub trait IoControlHandler<T: MessageFull>: Send + Sync {
         to_io_control_response(self.freeze_current_state(mask).await)
     }
 
-    /// See sdv.diagnostics.io_control.IoControl::ShortTermAdjustment.
+    /// See com.sdv.google.diagnostics.io_control.IoControl::ShortTermAdjustment.
     async fn short_term_adjustment(&self, adjusted_value: T, mask: &[u8]) -> DiagnosticsResult<T>;
 
     /// Untyped version of `short_term_adjustment`.

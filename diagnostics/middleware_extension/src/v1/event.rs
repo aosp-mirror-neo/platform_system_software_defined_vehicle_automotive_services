@@ -26,7 +26,7 @@ impl<M: Message> EventPublisher<M> {
             .create_publish(&PublisherAttributes {
                 publication_name: format!("sdv-diagnostics-event-{}", event_name.replace('.', "-")),
                 type_name: TypeName {
-                    package: "sdv.diagnostics".to_string(),
+                    package: "com.sdv.google.diagnostics".to_string(),
                     bundle: "DiagnosticsManager".to_string(),
                     name: "event.Event".to_string(),
                 },
@@ -66,7 +66,7 @@ impl<M: Message> EventPublisher<M> {
     }
 }
 
-// Compute size of sdv.diagnostics.event.Event size, based on exteded data max size.
+// Compute size of com.sdv.google.diagnostics.event.Event size, based on exteded data max size.
 fn compute_event_message_size(extended_data_max_size: u32) -> u32 {
     let mut result = 0;
 
@@ -160,7 +160,7 @@ mod tests {
         let event_publication = comms
             .find_publication(&UnitQuery::Name(UnitName {
                 vm: "".to_string(),
-                package: "sdv.diagnostics.sample".to_string(),
+                package: "com.sdv.oem.sample.diagnostics".to_string(),
                 bundle: "DiagnosticsProvider1".to_string(),
                 name: "sdv-diagnostics-event-event1".to_string(),
             }))
@@ -194,7 +194,7 @@ mod tests {
         let event_publication = comms
             .find_publication(&UnitQuery::Name(UnitName {
                 vm: "".to_string(),
-                package: "sdv.diagnostics.sample".to_string(),
+                package: "com.sdv.oem.sample.diagnostics".to_string(),
                 bundle: "DiagnosticsProvider1".to_string(),
                 name: "sdv-diagnostics-event-event1".to_string(),
             }))

@@ -2,7 +2,7 @@
 # proto-file: //system/software_defined_vehicle/core_services/vsidl/protos/sdv/vsidl/v1/syntax.proto
 # proto-message: VsidlEntry
 
-package: "sdv.diagnostics"
+package: "com.sdv.google.diagnostics"
 
 sdv_service_bundle {
     name: "DiagnosticsManager"
@@ -18,7 +18,7 @@ sdv_service_bundle {
     unit_type {
         # This unit type is handled by Diagnostics MW generation.
         #
-        # See sdv.diagnostics.v1.DiagnosticsDeclaration.Event.
+        # See com.sdv.google.diagnostics.v1.DiagnosticsDeclaration.Event.
         type: "event.Event"
     }
 
@@ -59,48 +59,48 @@ sdv_service_bundle {
     }
 
     client {
-        interface: "sdv.diagnostics.data_item.DataItemService"
+        interface: "com.sdv.google.diagnostics.data_item.DataItemService"
     }
 
     client {
-        interface: "sdv.diagnostics.routine_control.RoutineControlService"
+        interface: "com.sdv.google.diagnostics.routine_control.RoutineControlService"
     }
 
     client {
-        interface: "sdv.diagnostics.io_control.IoControlService"
+        interface: "com.sdv.google.diagnostics.io_control.IoControlService"
     }
 
     client {
-        interface: "sdv.diagnostics.fault.FaultListenerService"
+        interface: "com.sdv.google.diagnostics.fault.FaultListenerService"
     }
 
     client {
-        interface: "sdv.diagnostics.ecu_reset.EcuResetService"
+        interface: "com.sdv.google.diagnostics.ecu_reset.EcuResetService"
     }
 
     client {
-        interface: "sdv.diagnostics.security_access.SecurityAccessService"
+        interface: "com.sdv.google.diagnostics.security_access.SecurityAccessService"
     }
 
     client {
-        interface: "sdv.diagnostics.authentication.AuthenticationService"
+        interface: "com.sdv.google.diagnostics.authentication.AuthenticationService"
     }
 
     client {
-        interface: "sdv.diagnostics.file_transfer.FileTransferService"
+        interface: "com.sdv.google.diagnostics.file_transfer.FileTransferService"
     }
 
     server {
-        interface: "sdv.diagnostics.DiagnosticsManagerService"
+        interface: "com.sdv.google.diagnostics.DiagnosticsManagerService"
     }
 
     # TODO(b/366419229): remove once MW generator allows declaring unit types without service units
-    server { interface: "sdv.diagnostics.data_item.DataItemService" }
-    server { interface: "sdv.diagnostics.routine_control.RoutineControlService" }
-    server { interface: "sdv.diagnostics.io_control.IoControlService" }
-    server { interface: "sdv.diagnostics.fault.FaultListenerService" }
-    server { interface: "sdv.diagnostics.ecu_reset.EcuResetService" }
-    server { interface: "sdv.diagnostics.security_access.SecurityAccessService" }
-    server { interface: "sdv.diagnostics.authentication.AuthenticationService" }
-    server { interface: "sdv.diagnostics.file_transfer.FileTransferService" }
+    server { interface: "com.sdv.google.diagnostics.data_item.DataItemService" }
+    server { interface: "com.sdv.google.diagnostics.routine_control.RoutineControlService" }
+    server { interface: "com.sdv.google.diagnostics.io_control.IoControlService" }
+    server { interface: "com.sdv.google.diagnostics.fault.FaultListenerService" }
+    server { interface: "com.sdv.google.diagnostics.ecu_reset.EcuResetService" }
+    server { interface: "com.sdv.google.diagnostics.security_access.SecurityAccessService" }
+    server { interface: "com.sdv.google.diagnostics.authentication.AuthenticationService" }
+    server { interface: "com.sdv.google.diagnostics.file_transfer.FileTransferService" }
 }

@@ -2,22 +2,22 @@
 # proto-file: //system/software_defined_vehicle/core_services/vsidl/protos/sdv/vsidl/v1/syntax.proto
 # proto-message: VsidlEntry
 
-package: "sdv.sample.diagnostics"
+package: "com.sdv.oem.sample.diagnostics"
 
 sdv_service_bundle {
     name: "DiagnosticsProvider1"
 
     server {
-        interface: "sdv.diagnostics.data_item.DataItemService"
+        interface: "com.sdv.google.diagnostics.data_item.DataItemService"
     }
     server {
-        interface: "sdv.diagnostics.routine_control.RoutineControlService"
+        interface: "com.sdv.google.diagnostics.routine_control.RoutineControlService"
     }
     server {
-        interface: "sdv.diagnostics.io_control.IoControlService"
+        interface: "com.sdv.google.diagnostics.io_control.IoControlService"
     }
     server {
-        interface: "sdv.diagnostics.fault.FaultListenerService"
+        interface: "com.sdv.google.diagnostics.fault.FaultListenerService"
     }
 
     diagnostics_declaration {

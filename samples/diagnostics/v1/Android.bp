@@ -29,7 +29,7 @@ rust_binary {
     srcs: ["src/service1.rs"],
     ld_flags: ["-Wl,--no-as-needed"],
     rustlibs: [
-        "libsdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider1",
+        "libsdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_provider1",
     ],
 }
 
@@ -39,6 +39,6 @@ rust_binary {
     srcs: ["src/service2.rs"],
     ld_flags: ["-Wl,--no-as-needed"],
     rustlibs: [
-        "libsdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider2",
+        "libsdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_provider2",
     ],
 }

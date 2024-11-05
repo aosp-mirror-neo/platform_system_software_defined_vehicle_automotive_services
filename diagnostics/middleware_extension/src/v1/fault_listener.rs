@@ -5,10 +5,10 @@ use protobuf::MessageFull;
 
 /// Typed trait that corresponds to FaultListener server
 ///
-/// See sdv.diagnostics.fault.FaultListener service.
+/// See com.sdv.google.diagnostics.fault.FaultListener service.
 #[async_trait::async_trait]
 pub trait FaultListenerHandler<T: MessageFull>: Send + Sync {
-    /// See sdv.diagnostics.fault.FaultListener::OnFaultStatusChange.
+    /// See com.sdv.google.diagnostics.fault.FaultListener::OnFaultStatusChange.
     async fn on_fault_status_change(&self, status: u8, extended_data: Option<T>);
 
     /// Untyped version of `on_fault_status_change`.
