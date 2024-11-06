@@ -10,7 +10,7 @@ use sdv::diagnostics::{
     data_item::*, fault_listener::*, io_control::*, routine::*, DiagnosticsResult,
 };
 use sdv::mw::SdvComms;
-use sdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider1::{
+use sdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_provider1::{
     diagnostics::Diagnostics, DiagnosticsProvider1,
 };
 use std::str::FromStr;
@@ -90,7 +90,8 @@ impl FaultListenerHandler<LowPressureData> for LowPressureFault {
 async fn main() {
     let sdv_comms = SdvComms {
         context: ContextRef::create(
-            ServiceFqin::from_str("vm:sdv.diagnostics.sample.DiagnosticsProvider1/sample").unwrap(),
+            ServiceFqin::from_str("vm:com.sdv.oem.sample.diagnostics.DiagnosticsProvider1/sample")
+                .unwrap(),
         ),
     };
 

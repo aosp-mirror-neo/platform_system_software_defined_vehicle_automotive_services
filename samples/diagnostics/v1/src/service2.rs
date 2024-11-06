@@ -5,7 +5,7 @@
 use sdv::comms::id::ServiceFqin;
 use sdv::comms::ContextRef;
 use sdv::mw::SdvComms;
-use sdv_mw_rs_sdv_sample_diagnostics_diagnostics_provider2::DiagnosticsProvider2;
+use sdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_provider2::DiagnosticsProvider2;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -16,7 +16,8 @@ use sdv::diagnostics::api::event::Status;
 async fn main() {
     let sdv_comms = SdvComms {
         context: ContextRef::create(
-            ServiceFqin::from_str("vm:sdv.diagnostics.sample.DiagnosticsProvider2/sample").unwrap(),
+            ServiceFqin::from_str("vm:com.sdv.oem.sample.diagnostics.DiagnosticsProvider2/sample")
+                .unwrap(),
         ),
     };
     let service = DiagnosticsProvider2::new(Arc::new(sdv_comms)).await.unwrap();

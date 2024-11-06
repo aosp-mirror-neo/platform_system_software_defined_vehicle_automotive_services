@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 
-package sdv.diagnostics.ecu_reset;
+package com.sdv.google.diagnostics.ecu_reset;
 
 import "connection.proto";
 import "response_code.proto";
