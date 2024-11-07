@@ -8,15 +8,15 @@ sdv_service_bundle {
     name: "VpmSystemClient"
 
     subscriber {
-        type:  "sdv.vpm.vehicle.VehicleStateChange"
+        type:  "com.sdv.google.vpm.vehicle.VehicleStateChange"
     }
 
     server {
-        interface: "sdv.vpm.client.PowerNotificationService"
+        interface: "com.sdv.google.vpm.client.PowerNotificationService"
     }
 
     client {
-        interface: "sdv.vpm.VpmSystemService"
+        interface: "com.sdv.google.vpm.VpmSystemService"
     }
 
 }

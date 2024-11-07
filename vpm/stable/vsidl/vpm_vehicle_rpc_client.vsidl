@@ -2,7 +2,7 @@
 # proto-file: //system/software_defined_vehicle/core_services/vsidl/syntax/vsidl.proto
 # proto-message: VsidlEntry
 
-package: "sdv.vpm.client"
+package: "com.sdv.google.vpm.client"
 
 sdv_service_bundle {
     name: "VpmSystemClient"
@@ -14,11 +14,11 @@ sdv_service_bundle {
 
     # Client for VPM system interface.
     client {
-        interface: "sdv.vpm.VpmSystemService"
+        interface: "com.sdv.google.vpm.VpmSystemService"
     }
 
     # Server to VPM notification interface.
     server {
-        interface: "sdv.vpm.client.PowerNotificationService"
+        interface: "com.sdv.google.vpm.client.PowerNotificationService"
     }
 }

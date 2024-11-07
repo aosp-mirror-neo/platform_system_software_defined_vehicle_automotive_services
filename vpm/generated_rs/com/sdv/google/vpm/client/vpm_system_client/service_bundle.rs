@@ -23,8 +23,8 @@ pub trait UnitType {
     }
 }
 
-impl UnitType for dyn sdv_vpm_client_power_notification_service_rpc::Interface {
-    const PACKAGE: &'static str = "sdv.vpm.client";
+impl UnitType for dyn com_sdv_google_vpm_client_power_notification_service_rpc::Interface {
+    const PACKAGE: &'static str = "com.sdv.google.vpm.client";
     const SERVICE_BUNDLE: &'static str = "VpmSystemClient";
     const TYPENAME: &'static str = "PowerNotificationService";
 }
@@ -39,16 +39,14 @@ impl VpmSystemClient {
     /// Creates a new instance of the service bundle
     pub async fn new(
         comms: std::sync::Arc<dyn sdv::mw::Communicate>,
-        servers: (std::sync::Arc<dyn sdv_vpm_client_power_notification_service_rpc::Interface>,),
+        servers: (
+            std::sync::Arc<dyn com_sdv_google_vpm_client_power_notification_service_rpc::Interface>,
+        ),
     ) -> sdv::status::SdvResult<Self> {
         let mut service = Self { comms: comms.clone(), servers: std::vec::Vec::new() };
-        service
-            .add_server::<dyn sdv_vpm_client_power_notification_service_rpc::Interface>(
-                sdv_vpm_client_power_notification_service_rpc::internal::DEFAULT_UNIT_NAME
-                    .to_string(),
-                sdv_vpm_client_power_notification_service_rpc::internal::get_method_map(
-                    servers.0.clone(),
-                ),
+        service.add_server::<dyn com_sdv_google_vpm_client_power_notification_service_rpc::Interface>(
+                com_sdv_google_vpm_client_power_notification_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
+                com_sdv_google_vpm_client_power_notification_service_rpc::internal::get_method_map(servers.0.clone()),
             )
             .await?;
         Ok(service)

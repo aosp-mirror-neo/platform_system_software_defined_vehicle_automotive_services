@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 import "power.proto";
-package sdv.vpm.client;
+package com.sdv.google.vpm.client;
 
 /* OEM message that denotes that a power state transition has been done. */
 message PowerStateNotificationRequest {

@@ -24,13 +24,13 @@ pub trait UnitType {
 }
 
 impl UnitType for sdv_vpm_api::vehicle::VehicleStateChange {
-    const PACKAGE: &'static str = "sdv.vpm";
+    const PACKAGE: &'static str = "com.sdv.google.vpm";
     const SERVICE_BUNDLE: &'static str = "VpmSystemServiceBundle";
     const TYPENAME: &'static str = "vehicle.VehicleStateChange";
 }
 
-impl UnitType for dyn sdv_vpm_vpm_system_service_rpc::Interface {
-    const PACKAGE: &'static str = "sdv.vpm";
+impl UnitType for dyn com_sdv_google_vpm_vpm_system_service_rpc::Interface {
+    const PACKAGE: &'static str = "com.sdv.google.vpm";
     const SERVICE_BUNDLE: &'static str = "VpmSystemServiceBundle";
     const TYPENAME: &'static str = "VpmSystemService";
 }
@@ -59,13 +59,13 @@ pub mod publisher {
     }
 
     impl Variant<sdv_vpm_api::vehicle::VehicleStateChange> {
-        /// Publication variant 'UNIQUE' of 'sdv.vpm.vehicle.VehicleStateChange'
+        /// Publication variant 'UNIQUE' of 'com.sdv.google.vpm.vehicle.VehicleStateChange'
         pub const UNIQUE: &Self = &Self {
             _proto: std::marker::PhantomData,
             id: vsidl_v1::annotations::UniqueInstance::UNIQUE as i32,
-            service_unit: "sdv-vpm-vehicle-vehicle-state-change-unique",
+            service_unit: "com-sdv-google-vpm-vehicle-vehicle-state-change-unique",
         };
-        /// List of all publication variants of 'sdv.vpm.vehicle.VehicleStateChange' available to the service bundle
+        /// List of all publication variants of 'com.sdv.google.vpm.vehicle.VehicleStateChange' available to the service bundle
         pub const ALL_VARIANTS: &'static [&'static Self] = &[Self::UNIQUE];
     }
 }
@@ -81,7 +81,7 @@ impl VpmSystemServiceBundle {
     /// Creates a new instance of the service bundle
     pub async fn new(
         comms: std::sync::Arc<dyn sdv::mw::Communicate>,
-        servers: (std::sync::Arc<dyn sdv_vpm_vpm_system_service_rpc::Interface>,),
+        servers: (std::sync::Arc<dyn com_sdv_google_vpm_vpm_system_service_rpc::Interface>,),
     ) -> sdv::status::SdvResult<Self> {
         let mut service = Self {
             comms: comms.clone(),
@@ -94,9 +94,11 @@ impl VpmSystemServiceBundle {
             )
             .await?;
         service
-            .add_server::<dyn sdv_vpm_vpm_system_service_rpc::Interface>(
-                sdv_vpm_vpm_system_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
-                sdv_vpm_vpm_system_service_rpc::internal::get_method_map(servers.0.clone()),
+            .add_server::<dyn com_sdv_google_vpm_vpm_system_service_rpc::Interface>(
+                com_sdv_google_vpm_vpm_system_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
+                com_sdv_google_vpm_vpm_system_service_rpc::internal::get_method_map(
+                    servers.0.clone(),
+                ),
             )
             .await?;
         Ok(service)

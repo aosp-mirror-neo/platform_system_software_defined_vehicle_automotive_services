@@ -4,6 +4,8 @@
 use crate::setup::binder::BinderFeatures;
 use crate::setup::binder::Strong;
 use binder::{binder_impl::Binder, Interface};
+use com_sdv_google_vpm_client_power_notification_service_rpc::Interface as NotificationInterface;
+use com_sdv_google_vpm_vpm_system_service_rpc::Client;
 use futures_util::StreamExt;
 use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateClientApi::{
     BpPowerStateClientApi, IPowerStateClientApi,
@@ -30,8 +32,6 @@ use sdv_vpm_api::vpm::ShutdownType;
 use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
 use sdv_vpm_api::vpm_notifications::PowerStateNotificationRequest;
 use sdv_vpm_api::vpm_notifications::PowerStateNotificationResponse;
-use sdv_vpm_client_power_notification_service_rpc::Interface as NotificationInterface;
-use sdv_vpm_vpm_system_service_rpc::Client;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 use std::thread;
@@ -225,7 +225,7 @@ impl TestVePSM {
                 .unwrap();
         let client = bundle
             .create_rpc_client(
-                "sdv.vpm".to_string(),
+                "com.sdv.google.vpm".to_string(),
                 "VpmSystemServiceBundle".to_string(),
                 ClientOptions::default(),
             )
@@ -317,7 +317,7 @@ impl NotificationInterface for PowerNotificationReceiver {
 fn create_context(instance_name: String) -> ContextRef {
     let fqin = ServiceFqin::builder()
         .sdv_vm_name("vm")
-        .sdv_package_name("sdv.vpm.client")
+        .sdv_package_name("com.sdv.google.vpm.client")
         .service_bundle_name("VpmSystemClient")
         .service_instance_name(instance_name)
         .build()

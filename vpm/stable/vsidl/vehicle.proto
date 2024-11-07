@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 import "sdv/vsidl/v1/annotations.proto";
-package sdv.vpm.vehicle;
+package com.sdv.google.vpm.vehicle;
 
 /* The set of allowed vehicle states in the vehicle and in the SDV VM. */
 enum VpmVehicleState {
@@ -25,7 +25,7 @@ enum VpmVehicleState {
 
 /* Client facing reprensentation of the vehicle state exposed via PUB/SUB API using Data Tunnel. */
 message VehicleStateChange {
-  option (sdv.vsidl.v1.publication) = {
+  option (.sdv.vsidl.v1.publication) = {
     model: SINGLE_PUB
     message_count: 1
   };

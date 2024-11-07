@@ -6,6 +6,7 @@ use crate::power_service::PowerStateRequestHandler;
 use crate::PowerState;
 use crate::PowerStateRequestHandlerImpl;
 use async_trait::async_trait;
+use com_sdv_google_vpm_vpm_system_service_rpc::Interface;
 use log::{error, info};
 use mockall::automock;
 use sdv_mw_rs_comms::Publisher;
@@ -21,7 +22,6 @@ use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateChangeResponse;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
 use sdv_vpm_api::vpm::SetVehicleStateResponse;
-use sdv_vpm_vpm_system_service_rpc::Interface;
 use std::sync::Arc;
 use tokio::sync::mpsc::channel;
 use tokio::sync::mpsc::Receiver;
@@ -160,6 +160,7 @@ mod tests {
     use crate::system_service::RpcServer;
     use crate::system_service::VEHICLE_STATE_CHANNEL_QUEUE_SIZE;
     use anyhow::anyhow;
+    use com_sdv_google_vpm_vpm_system_service_rpc::Interface;
     use sdv_comms::id::ServiceFqin;
     use sdv_status_rs::SdvStatusCode;
     use sdv_vpm_api::power::PowerStateReport;
@@ -170,7 +171,6 @@ mod tests {
     use sdv_vpm_api::vpm::PowerStateRequest;
     use sdv_vpm_api::vpm::SetVehicleStateRequest;
     use sdv_vpm_api::vpm::ShutdownType;
-    use sdv_vpm_vpm_system_service_rpc::Interface;
     use std::str::FromStr;
     use tokio::sync::mpsc::channel;
 
@@ -189,7 +189,7 @@ mod tests {
             vehicle_state: VpmVehicleState::VEHICLE_ON.into(),
             ..Default::default()
         };
-        let fqin = ServiceFqin::from_str("vm:sdv.vpm.VpmSystemServiceBundle/default")
+        let fqin = ServiceFqin::from_str("vm:com.sdv.google.vpm.VpmSystemServiceBundle/default")
             .expect("Could not create context for tests!");
         let result = rpc_server.SetVehicleState(fqin, &request).await;
 
@@ -214,7 +214,7 @@ mod tests {
         let request = SetVehicleStateRequest { ..Default::default() };
 
         // Then: result should be error.
-        let fqin = ServiceFqin::from_str("vm:sdv.vpm.VpmSystemServiceBundle/default")
+        let fqin = ServiceFqin::from_str("vm:com.sdv.google.vpm.VpmSystemServiceBundle/default")
             .expect("Could not create context for tests!");
         let err = rpc_server.SetVehicleState(fqin, &request).await.err().unwrap();
         assert_eq!(err.status_code(), SdvStatusCode::Internal);
@@ -237,7 +237,7 @@ mod tests {
         drop(vehicle_state_receiver);
 
         // Then: result should be error.
-        let fqin = ServiceFqin::from_str("vm:sdv.vpm.VpmSystemServiceBundle/default")
+        let fqin = ServiceFqin::from_str("vm:com.sdv.google.vpm.VpmSystemServiceBundle/default")
             .expect("Could not create context for tests!");
         let err = rpc_server.SetVehicleState(fqin, &request).await.err().unwrap();
         assert_eq!(err.status_code(), SdvStatusCode::Internal);
@@ -261,7 +261,7 @@ mod tests {
             shutdown_type: ShutdownType::POWER_OFF.into(),
             ..Default::default()
         };
-        let fqin = ServiceFqin::from_str("vm:sdv.vpm.VpmSystemServiceBundle/default")
+        let fqin = ServiceFqin::from_str("vm:com.sdv.google.vpm.VpmSystemServiceBundle/default")
             .expect("Could not create context for tests!");
         let response = rpc_server.SetPowerState(fqin, &request).await;
 
@@ -284,7 +284,7 @@ mod tests {
 
         // When: a power state request is sent
         let request = GetPowerStateRequest { ..Default::default() };
-        let fqin = ServiceFqin::from_str("vm:sdv.vpm.VpmSystemServiceBundle/default")
+        let fqin = ServiceFqin::from_str("vm:com.sdv.google.vpm.VpmSystemServiceBundle/default")
             .expect("Could not create context for tests!");
         let response = rpc_server.GetPowerState(fqin, &request).await;
 
@@ -310,7 +310,7 @@ mod tests {
             shutdown_type: ShutdownType::POWER_OFF.into(),
             ..Default::default()
         };
-        let fqin = ServiceFqin::from_str("vm:sdv.vpm.VpmSystemServiceBundle/default")
+        let fqin = ServiceFqin::from_str("vm:com.sdv.google.vpm.VpmSystemServiceBundle/default")
             .expect("Could not create context for tests!");
         let response = rpc_server.SetPowerState(fqin, &request).await;
 

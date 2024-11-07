@@ -8,8 +8,8 @@ package {
 }
 
 rust_library {
-    name: "libsdv_mw_rs_sdv_vpm_vehicle_client_subscriber_vehicle_state_subscriber",
-    crate_name: "sdv_mw_rs_sdv_vpm_vehicle_client_subscriber_vehicle_state_subscriber",
+    name: "libsdv_mw_rs_com_sdv_google_vpm_vehicle_client_subscriber_vehicle_state_subscriber",
+    crate_name: "sdv_mw_rs_com_sdv_google_vpm_vehicle_client_subscriber_vehicle_state_subscriber",
     srcs: [
         "service_bundle.rs",
     ],
