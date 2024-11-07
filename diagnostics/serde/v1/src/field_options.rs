@@ -60,6 +60,7 @@ impl FieldOptions for FieldDescriptor {
         match get_varint_option(self, PRIMITIVE_BYTE_SIZE) {
             Some(1) => Some(ByteSize::ONE),
             Some(2) => Some(ByteSize::TWO),
+            Some(3) => Some(ByteSize::THREE),
             _ => None,
         }
     }
