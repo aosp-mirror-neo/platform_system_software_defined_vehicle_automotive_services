@@ -62,3 +62,18 @@ sdv_service_bundle {
         }
     }
 }
+
+sdv_service_bundle {
+    name: "DiagnosticsSampleWithDataItem"
+
+    server {
+        interface: "com.sdv.google.diagnostics.data_item.DataItemService"
+    }
+
+    diagnostics_declaration {
+        data_item {
+            id: "pressure"
+            message_name: "Pressure"
+        }
+    }
+}

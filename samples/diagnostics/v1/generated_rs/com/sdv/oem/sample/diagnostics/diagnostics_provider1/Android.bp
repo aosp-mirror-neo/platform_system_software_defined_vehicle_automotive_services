@@ -23,6 +23,7 @@ rust_library {
         "libcom_sdv_google_diagnostics_io_control_io_control_service_rpc_rs",
         "libcom_sdv_google_diagnostics_fault_fault_listener_service_rpc_rs",
         "libdiagnostics_v1_sample_catalog",
+        "libprotobuf",
     ],
     proc_macros: [
         "libasync_trait",

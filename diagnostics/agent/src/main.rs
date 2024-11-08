@@ -25,6 +25,8 @@ use std::thread;
 use std::time::Duration;
 use google_sdv_rpc_aidl::aidl::google::sdv::rpc::IRpcAgent::{BpRpcAgent, IRpcAgent};
 use google_sdv_service_discovery_discovery_aidl::aidl::google::sdv::service_discovery::discovery::IServiceDiscoveryAgent::{BpServiceDiscoveryAgent, IServiceDiscoveryAgent};
+use sdv_comms::sd::ServiceUnitChangeEvent;
+use futures::future;
 
 #[tokio::main]
 async fn main() {
@@ -146,7 +148,7 @@ async fn data_item_interaction(context: ContextRef) {
         context,
         UnitNameDiscoveryArgs::new_builder()
             .set_sdv_package_name("com.sdv.oem.sample.diagnostics")
-            .set_service_bundle_name("DiagnosticsProvider1")
+            .set_service_bundle_name("DiagnosticsSampleWithDataItem")
             .set_service_unit_name("com-sdv-google-diagnostics-data-item-data-item-service")
             .build()
             .unwrap(),
@@ -242,15 +244,32 @@ async fn wait_for_service_unit(
     info!("Waiting for service unit: {:?}", args.get_unit_name());
     let sd = ServiceDiscoveryManager::new(context);
 
-    loop {
-        let units = sd.list_units_by_name(&args).next().await;
-        if let Some(unit) = units {
-            info!("Found service unit: {:?}", unit);
-            return unit;
-        }
+    let unit_event_stream = sd.subscribe_service_unit_change_by_name(&args).await.unwrap();
 
-        thread::sleep(Duration::from_secs(1));
-    }
+    unit_event_stream
+        .filter_map(move |event| {
+            info!("Event received: {event:#?}");
+
+            let result = if let ServiceUnitChangeEvent::Registered(unit) = event {
+                Some(unit)
+            } else {
+                None
+            };
+
+            thread::sleep(Duration::from_secs(3));
+
+            future::ready(result)
+        })
+        .next()
+        .await
+        .inspect(|unit| {
+            info!(
+                "Discovered unit: {} : {}",
+                unit.get_service_bundle_identity().get_fqin(),
+                unit.get_unit_identifier().get_unit_name()
+            )
+        })
+        .unwrap()
 }
 
 async fn perform_and_log_rpc_call<Req: MessageFull, Resp: MessageFull>(
@@ -259,10 +278,15 @@ async fn perform_and_log_rpc_call<Req: MessageFull, Resp: MessageFull>(
     method: &'static str,
     request: Req,
 ) -> Resp {
-    let client =
-        Client::create(context, service_unit.get_unit_identifier(), &ClientOptions::default())
-            .await
-            .unwrap();
+    let client = Client::create(
+        context,
+        service_unit.get_unit_identifier(),
+        &ClientOptions::default(),
+    )
+    .await
+    .unwrap_or_else(|cause| {
+        panic!("Failed to create client for RPC call on: {service_unit:#?} with error {cause:#?}")
+    });
     let response = client.unary_call(method, &encode::<Req>(&request).unwrap()).await.unwrap();
     let response_decoded = decode::<Resp>(&response);
     info!("Response for RPC call [{}]: {:?}", method, response_decoded);

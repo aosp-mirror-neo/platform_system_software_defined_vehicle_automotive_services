@@ -1,0 +1,30 @@
+// Copyright 2024 Google LLC
+
+rust_ffi_shared {
+    name: "liboem_diagnostics_sample_with_data_item",
+    crate_name: "oem_diagnostics_sample_with_data_item",
+    srcs: ["lib.rs"],
+    ld_flags: ["-Wl,--no-as-needed"],
+    defaults: ["sdv@rust_defaults"],
+    rustlibs: [
+        "libprotobuf",
+        "libanyhow",
+        "liblog_rust",
+        "libsdvmiddleware_rpc",
+        "libdiagnostics_v1_sample_catalog",
+        "libsdv_lifecycle_client_rust",
+        "libtokio",
+        "libsdv_rs",
+        "libsdv_comms_rs",
+        "libtokio_util",
+        "libsdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_sample_with_data_item",
+    ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    product_specific: true,
+    // Allows the library to be available inside the APEX.
+    apex_available: [
+        "com.sdv.oem.sample.diagnostics",
+    ],
+}
