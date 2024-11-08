@@ -2,12 +2,12 @@
 # proto-file: //system/software_defined_vehicle/core_services/vsidl/syntax/vsidl.proto
 # proto-message: VsidlEntry
 
-package: "sdv.vpm.vehicle.client.subscriber"
+package: "com.sdv.google.vpm.vehicle.client.subscriber"
 
 sdv_service_bundle {
     name: "VehicleStateSubscriber"
     # Subscriber to the vehicle state updates.
     subscriber {
-        type: "sdv.vpm.vehicle.VehicleStateChange"
+        type: "com.sdv.google.vpm.vehicle.VehicleStateChange"
     }
 }

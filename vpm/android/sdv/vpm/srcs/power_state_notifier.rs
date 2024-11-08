@@ -9,6 +9,7 @@ use async_trait::async_trait;
 use binder::{DeathRecipient, IBinder, SpIBinder};
 use binder_tokio::Tokio;
 use binder_tokio::TokioRuntime;
+use com_sdv_google_vpm_client_power_notification_service_rpc::Client;
 use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateClientApi::IPowerStateClientApiAsyncServer;
 use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateClientApi::{
     BnPowerStateClientApi, BpPowerStateClientApi, IPowerStateClientApi,
@@ -26,7 +27,6 @@ use sdv_status_rs::SdvStatusCode;
 use sdv_vpm_api::power::PowerStateReport;
 use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
 use sdv_vpm_api::vpm_notifications::PowerStateNotificationRequest;
-use sdv_vpm_client_power_notification_service_rpc::Client;
 use std::collections::HashMap;
 use std::sync::atomic::AtomicU32;
 use std::sync::atomic::Ordering;
@@ -94,7 +94,7 @@ impl PowerStateNotifierImpl {
         let mut client = self.notification_rpc_client.lock().await;
         let attributes = ClientAttributes {
             server_name: UnitName {
-                package: "sdv.vpm.client".to_string(),
+                package: "com.sdv.google.vpm.client".to_string(),
                 bundle: "VpmSystemClient".to_string(),
                 vm: self.comms.context.get_self_fqin().get_sdv_vm_name().to_string(),
                 name: Client::DEFAULT_UNIT_NAME.to_string(),

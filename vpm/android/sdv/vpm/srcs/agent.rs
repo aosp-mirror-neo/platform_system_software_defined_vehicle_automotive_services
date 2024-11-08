@@ -17,17 +17,17 @@ use log::info;
 use mockall::automock;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
+use sdv_mw_rs_com_sdv_google_vpm_vpm_system_service_bundle::publisher::Variant;
+use sdv_mw_rs_com_sdv_google_vpm_vpm_system_service_bundle::VpmSystemServiceBundle;
 use sdv_mw_rs_comms::Publisher;
 use sdv_mw_rs_sdv_comms::SdvComms;
-use sdv_mw_rs_sdv_vpm_vpm_system_service_bundle::publisher::Variant;
-use sdv_mw_rs_sdv_vpm_vpm_system_service_bundle::VpmSystemServiceBundle;
 use sdv_vpm_api::vehicle::VehicleStateChange;
 use std::str::FromStr;
 use std::sync::Arc;
 
 const POWER_STATE_CHANNEL_QUEUE_SIZE: usize = 1;
 
-const FQIN: &str = "vm:sdv.vpm.VpmSystemServiceBundle/default";
+const FQIN: &str = "vm:com.sdv.google.vpm.VpmSystemServiceBundle/default";
 
 /// VPM agent.
 /// The agent contains service implementation for vehicle and power mode management.

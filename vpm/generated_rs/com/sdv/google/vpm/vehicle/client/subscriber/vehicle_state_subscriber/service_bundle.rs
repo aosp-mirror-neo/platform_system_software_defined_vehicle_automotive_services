@@ -24,7 +24,7 @@ pub trait UnitType {
 }
 
 impl UnitType for sdv_vpm_api::vehicle::VehicleStateChange {
-    const PACKAGE: &'static str = "sdv.vpm";
+    const PACKAGE: &'static str = "com.sdv.google.vpm";
     const SERVICE_BUNDLE: &'static str = "VpmSystemServiceBundle";
     const TYPENAME: &'static str = "vehicle.VehicleStateChange";
 }
@@ -53,15 +53,15 @@ pub mod subscriber {
     }
 
     impl Variant<sdv_vpm_api::vehicle::VehicleStateChange> {
-        /// Enables access to subscription variant 'UNIQUE' of 'sdv.vpm.vehicle.VehicleStateChange'
+        /// Enables access to subscription variant 'UNIQUE' of 'com.sdv.google.vpm.vehicle.VehicleStateChange'
         pub const UNIQUE: &Self = &Self {
             _proto: std::marker::PhantomData,
             id: vsidl_v1::annotations::UniqueInstance::UNIQUE as i32,
-            service_bundle_package: "sdv.vpm",
+            service_bundle_package: "com.sdv.google.vpm",
             service_bundle_name: "VpmSystemServiceBundle",
-            service_unit: "sdv-vpm-vehicle-vehicle-state-change-unique",
+            service_unit: "com-sdv-google-vpm-vehicle-vehicle-state-change-unique",
         };
-        /// List of all subscription variants of 'sdv.vpm.vehicle.VehicleStateChange' available to the service bundle
+        /// List of all subscription variants of 'com.sdv.google.vpm.vehicle.VehicleStateChange' available to the service bundle
         pub const ALL_VARIANTS: &'static [&'static Self] = &[Self::UNIQUE];
     }
 }
@@ -141,12 +141,45 @@ impl VehicleStateSubscriber {
         }
     }
 
+    /// Creates a new instant reader
+    pub async fn create_instant_reader<M: ::protobuf::Message + subscriber::Metadata + 'static>(
+        &mut self,
+        variant: &subscriber::Variant<M>,
+    ) -> sdv::status::SdvResult<sdv::mw::InstantReader<M>> {
+        if M::IS_MULTIPUB {
+            Err(sdv::status::SdvStatus::with_message(
+                sdv::status::SdvStatusCode::Unimplemented,
+                "Instant Read is not supported for Multipub variants.",
+            ))
+        } else {
+            let publication = self.find_publication(variant).await?;
+            Ok(sdv::mw::InstantReader::<M>::new(publication.create_instant_read()))
+        }
+    }
+
     async fn find_publication<M: ::protobuf::Message + 'static>(
         &mut self,
         variant: &subscriber::Variant<M>,
     ) -> sdv::status::SdvResult<std::sync::Arc<dyn sdv::mw::Publication>> {
         self.comms
             .find_publication(&sdv::mw::UnitQuery::Name(sdv::mw::UnitName {
+                package: variant.service_bundle_package.to_string(),
+                bundle: variant.service_bundle_name.to_string(),
+                name: variant.service_unit.to_string(),
+                vm: String::new(),
+            }))
+            .await
+    }
+
+    /// Creates a new event stream
+    pub async fn create_registration_event_stream<M: ::protobuf::Message + 'static>(
+        &mut self,
+        variant: &subscriber::Variant<M>,
+    ) -> sdv::status::SdvResult<
+        std::pin::Pin<Box<dyn futures::Stream<Item = sdv::mw::Availability> + Send>>,
+    > {
+        self.comms
+            .create_registration_event_stream(&sdv::mw::UnitQuery::Name(sdv::mw::UnitName {
                 package: variant.service_bundle_package.to_string(),
                 bundle: variant.service_bundle_name.to_string(),
                 name: variant.service_unit.to_string(),

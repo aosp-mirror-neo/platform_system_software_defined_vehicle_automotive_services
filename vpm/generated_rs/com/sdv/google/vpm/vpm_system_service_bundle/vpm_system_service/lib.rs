@@ -8,7 +8,7 @@ pub mod internal {
     //! Those are internal symbols utilized by the middleware. Please refrain from using them.
 
     /// Default unit name for of a service unit implementing VpmSystemService interface
-    pub const DEFAULT_UNIT_NAME: &str = "sdv-vpm-vpm-system-service";
+    pub const DEFAULT_UNIT_NAME: &str = "com-sdv-google-vpm-vpm-system-service";
 
     /// Creates a method map for an object which implements the RPC interface trait
     pub fn get_method_map(

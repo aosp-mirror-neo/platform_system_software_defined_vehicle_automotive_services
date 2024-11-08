@@ -1,7 +1,7 @@
 // Copyright 2024 Google LLC
 
 syntax = "proto3";
-package sdv.vpm.power;
+package com.sdv.google.vpm.power;
 
 enum PowerStateReport {
   /* The default value if there was no report specified. */

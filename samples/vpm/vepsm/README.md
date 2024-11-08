@@ -9,21 +9,35 @@ The binary implements the RPC client VSIDL interface defined by SDV VPM (Vehicle
 Mode and Power Management) agent to set the vehicle state.
 
 ```text
-package: "sdv.vpm.vehicle.client.rpc"
+package: "com.sdv.google.vpm.client"
 
 sdv_service_bundle {
     name: "VpmSystemClient"
-    client:  "sdv.vpm.vehicle.VpmSystemService"
-    server:  "sdv.vpm.PowerNotificationService"
+
+    # Unit type for power notification service.
+    unit_type {
+        type: "PowerNotificationService"
+    }
+
+    # Client for VPM system interface.
+    client {
+        interface: "com.sdv.google.vpm.VpmSystemService"
+    }
+
+    # Server to VPM notification interface.
+    server {
+        interface: "com.sdv.google.vpm.client.PowerNotificationService"
+    }
 }
+
 ```
 
 Middleware generated code is used for implementing the VSIDL interface and can
-be found in the `./generated` folder. The code was generated using the
-`vsidl_code_generator` as follows:
+be found in the `./generated_rs` folder. The code was generated using the
+`vsidlc` as follows:
 
 ```bash
-vsidl_code_generator --vsidl-path core_services/vsidl/protos/  --catalog-path automotive_services/vpm/vsidl/  --output-path automotive_services/vpm/
+  vsidlc --catalog-path vpm/stable/vsidl/  --output-path vpm/
 ```
 
 ***Warning:*** The current APIs are not final and pending API council approval.
@@ -34,13 +48,13 @@ To set the vehicle/power states in the SDV VM, first run the binary with the
 following command, this will create the server for power state callbacks.
 
 ```bash
-vepsm
+  vepsm
 ```
 
 Then there will be a prompt:
 
 ```bash
-Enter VePSM command, press enter for help or cntl + c to exit!
+  Enter VePSM command, press enter for help or cntl + c to exit!
 ```
 
 ```bash

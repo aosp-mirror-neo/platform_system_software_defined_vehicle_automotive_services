@@ -4,16 +4,18 @@ use anyhow::anyhow;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
+use com_sdv_google_vpm_client_power_notification_service_rpc::Interface as NotificationInterface;
+use com_sdv_google_vpm_vpm_system_service_rpc::Client;
 use log::{error, info};
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
+use sdv_mw_rs_com_sdv_google_vpm_client_vpm_system_client::VpmSystemClient;
 use sdv_mw_rs_comms::ClientAttributes;
 use sdv_mw_rs_comms::ClientOptions;
 use sdv_mw_rs_comms::Communicate;
 use sdv_mw_rs_comms::RpcClient;
 use sdv_mw_rs_comms::UnitName;
 use sdv_mw_rs_sdv_comms::SdvComms;
-use sdv_mw_rs_sdv_vpm_client_vpm_system_client::VpmSystemClient;
 use sdv_vpm_api::vehicle::VpmVehicleState;
 use sdv_vpm_api::vpm::power_state_change_response::PowerStateChangeRequestError;
 use sdv_vpm_api::vpm::GetPowerStateRequest;
@@ -22,8 +24,6 @@ use sdv_vpm_api::vpm::PowerStateRequest;
 use sdv_vpm_api::vpm::SetVehicleStateRequest;
 use sdv_vpm_api::vpm::ShutdownType;
 use sdv_vpm_api::vpm_notifications::PowerStateNotificationResponse;
-use sdv_vpm_client_power_notification_service_rpc::Interface as NotificationInterface;
-use sdv_vpm_vpm_system_service_rpc::Client;
 use std::sync::Arc;
 
 static LOG_TAG: &str = "vepsm";
@@ -55,7 +55,7 @@ async fn main() -> anyhow::Result<()> {
 fn create_context() -> ContextRef {
     let fqin = ServiceFqin::builder()
         .sdv_vm_name("vm")
-        .sdv_package_name("sdv.vpm.client")
+        .sdv_package_name("com.sdv.google.vpm.client")
         .service_bundle_name("VpmSystemClient")
         .service_instance_name("default")
         .build()
@@ -168,7 +168,7 @@ async fn handle_power_state(power_cmd: PowerCommand, client: &Client) -> anyhow:
 async fn create_client(comms: SdvComms) -> anyhow::Result<Client> {
     let attributes = ClientAttributes {
         server_name: UnitName {
-            package: "sdv.vpm".to_string(),
+            package: "com.sdv.google.vpm".to_string(),
             bundle: "VpmSystemServiceBundle".to_string(),
             vm: comms.context.get_self_fqin().get_sdv_vm_name().to_string(),
             name: Client::DEFAULT_UNIT_NAME.to_string(),

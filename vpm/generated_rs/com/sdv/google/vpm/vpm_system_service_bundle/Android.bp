@@ -8,8 +8,8 @@ package {
 }
 
 rust_library {
-    name: "libsdv_mw_rs_sdv_vpm_vpm_system_service_bundle",
-    crate_name: "sdv_mw_rs_sdv_vpm_vpm_system_service_bundle",
+    name: "libsdv_mw_rs_com_sdv_google_vpm_vpm_system_service_bundle",
+    crate_name: "sdv_mw_rs_com_sdv_google_vpm_vpm_system_service_bundle",
     srcs: [
         "service_bundle.rs",
     ],
@@ -20,8 +20,8 @@ rust_library {
         "libfutures",
         "libsdv_vpm_api",
         "libvsidl_v1_proto_rs",
-        "libsdv_vpm_vpm_system_service_rpc_rs",
-        "libsdv_vpm_client_power_notification_service_rpc_rs",
+        "libcom_sdv_google_vpm_vpm_system_service_rpc_rs",
+        "libcom_sdv_google_vpm_client_power_notification_service_rpc_rs",
     ],
     apex_available: [
         "//apex_available:platform",
@@ -32,8 +32,8 @@ rust_library {
 }
 
 rust_library {
-    name: "libsdv_vpm_vpm_system_service_rpc_rs",
-    crate_name: "sdv_vpm_vpm_system_service_rpc",
+    name: "libcom_sdv_google_vpm_vpm_system_service_rpc_rs",
+    crate_name: "com_sdv_google_vpm_vpm_system_service_rpc",
     srcs: [
         "vpm_system_service/lib.rs",
     ],

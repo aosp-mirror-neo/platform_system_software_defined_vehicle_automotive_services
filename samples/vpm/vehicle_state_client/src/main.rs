@@ -5,10 +5,10 @@ use futures_util::StreamExt;
 use log::info;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
+use sdv_mw_rs_com_sdv_google_vpm_vehicle_client_subscriber_vehicle_state_subscriber::subscriber;
+use sdv_mw_rs_com_sdv_google_vpm_vehicle_client_subscriber_vehicle_state_subscriber::VehicleStateSubscriber;
 use sdv_mw_rs_comms::SubscribeOptions;
 use sdv_mw_rs_sdv_comms::SdvComms;
-use sdv_mw_rs_sdv_vpm_vehicle_client_subscriber_vehicle_state_subscriber::subscriber;
-use sdv_mw_rs_sdv_vpm_vehicle_client_subscriber_vehicle_state_subscriber::VehicleStateSubscriber;
 use std::sync::Arc;
 
 static LOG_TAG: &str = "vehicle-state-subs";
@@ -37,7 +37,7 @@ async fn main() {
 fn create_context() -> ContextRef {
     let fqin = ServiceFqin::builder()
         .sdv_vm_name("vm")
-        .sdv_package_name("sdv.vpm.vehicle.client.subscriber")
+        .sdv_package_name("com.sdv.google.vpm.vehicle.client.subscriber")
         .service_bundle_name("VehicleStateSubscriber")
         .service_instance_name("default")
         .build()

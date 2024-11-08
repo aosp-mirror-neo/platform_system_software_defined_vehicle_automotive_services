@@ -10,20 +10,24 @@ communication to exchange vehicle state information defined by SDV VPM (Vehicle
 Mode and Power Management).
 
 ```text
-package: "sdv.vpm.vehicle.client.subscriber"
+package: "com.sdv.google.vpm.vehicle.client.subscriber"
 
 sdv_service_bundle {
     name: "VehicleStateSubscriber"
-    subscriber:  "sdv.vpm.vehicle.VehicleStateChange::VehicleStateChange"
+    # Subscriber to the vehicle state updates.
+    subscriber {
+        type: "com.sdv.google.vpm.vehicle.VehicleStateChange"
+    }
 }
+
 ```
 
 Middleware generated code is used for implementing the VSIDL interface and can
-be found in the `./generated` folder. The code was generated using the
-`vsidl_code_generator` as follows:
+be found in the `./generated_rs` folder. The code was generated using the
+`vsidlc` as follows:
 
 ```bash
-vsidl_code_generator --vsidl-path core_services/vsidl/protos/  --catalog-path automotive_services/vpm/vsidl/  --output-path automotive_services/vpm/
+vsidlc --catalog-path vpm/stable/vsidl/  --output-path vpm/
 ```
 
 Only the generated code for the vehicle state subscription is used in this
