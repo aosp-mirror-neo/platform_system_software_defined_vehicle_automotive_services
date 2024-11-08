@@ -16,7 +16,6 @@ rust_binary {
         "google.sdv.vpm-aidl-rust",
         "liblog_rust",
         "libanyhow",
-        "librpcbinder_rs",
         "libsdv_log_rust",
         "libtokio",
         "libbinder_tokio_rs",
