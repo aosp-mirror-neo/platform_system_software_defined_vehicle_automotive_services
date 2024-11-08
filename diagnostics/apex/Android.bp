@@ -1,0 +1,59 @@
+// Copyright 2024 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+apex {
+    name: "com.sdv.google.diagnostics",
+    manifest: "apex_manifest.json",
+    key: "com.sdv.google.diagnostics.key",
+    certificate: ":com.sdv.google.diagnostics.certificate",
+    file_contexts: "file_contexts",
+    updatable: false,
+    prebuilts: [
+        // SDV Manifest - used by SBR
+        "com.sdv.google.diagnostics.manifest",
+        // ACL Policy
+        "com.sdv.google.diagnostics.acl_policy",
+    ],
+    product_specific: true,
+}
+
+apex_key {
+    name: "com.sdv.google.diagnostics.key",
+    public_key: "com.sdv.google.diagnostics.avbpubkey",
+    private_key: "com.sdv.google.diagnostics.pem",
+}
+
+android_app_certificate {
+    name: "com.sdv.google.diagnostics.certificate",
+    certificate: "com.sdv.google.diagnostics",
+}
+
+// SDV manifest file.
+prebuilt_etc {
+    name: "com.sdv.google.diagnostics.manifest",
+    // The source name of the manifest file.
+    src: "sdv_service_bundles_manifest.textproto",
+    // The name of the installed file shall be `sdv_service_bundles_manifest.textproto`.
+    filename: "sdv_service_bundles_manifest.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// File with the ACL policy of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.sdv.google.diagnostics.acl_policy",
+    // The source name of the manifest file.
+    src: "acl.textproto",
+    filename: "acl.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
