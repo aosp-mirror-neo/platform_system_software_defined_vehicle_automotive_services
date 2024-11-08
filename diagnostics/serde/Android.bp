@@ -55,6 +55,5 @@ rust_test {
     },
     test_suites: [
         "automotive-sdv-tests",
-        "general-tests",
     ],
 }

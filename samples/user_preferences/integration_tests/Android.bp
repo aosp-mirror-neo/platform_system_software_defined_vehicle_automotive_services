@@ -8,7 +8,6 @@ rust_test {
     name: "sdv_user_preferences_integration_test",
     test_suites: [
         "automotive-sdv-tests",
-        "general-tests",
     ],
     srcs: ["src/main.rs"],
     rustlibs: [
