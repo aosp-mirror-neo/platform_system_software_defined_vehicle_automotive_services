@@ -1,6 +1,7 @@
 // Copyright 2024 Google LLC
 use crate::enum_options::EnumOptions;
 use crate::field_options::FieldOptions;
+use crate::integer_utils;
 use protobuf::reflect::{
     FieldDescriptor, MessageDescriptor, MessageRef,
     ReflectFieldRef::{self, *},
@@ -232,6 +233,7 @@ impl<'lt> ValueSerialize<'lt> {
                 .serialize_i8(value.try_into().map_err(|_| S::Error::custom("i8 overflow"))?),
             Some(ByteSize::TWO) => serializer
                 .serialize_i16(value.try_into().map_err(|_| S::Error::custom("i16 overflow"))?),
+            Some(ByteSize::THREE) => integer_utils::serialize_i24(value, serializer),
             _ => serializer.serialize_i32(value),
         }
     }
@@ -250,6 +252,7 @@ impl<'lt> Serialize for ValueSerialize<'lt> {
                 Some(ByteSize::TWO) => serializer.serialize_u16(
                     (*value).try_into().map_err(|_| S::Error::custom("u16 overflow"))?,
                 ),
+                Some(ByteSize::THREE) => integer_utils::serialize_u24(*value, serializer),
                 _ => serializer.serialize_u32(*value),
             },
             U64(value) => serializer.serialize_u64(*value),
@@ -298,6 +301,7 @@ impl<'lt> Serialize for ValueSerialize<'lt> {
                 Some(ByteSize::TWO) => serializer.serialize_i16(
                     (*value).try_into().map_err(|_| S::Error::custom("enum i16 overflow"))?,
                 ),
+                Some(ByteSize::THREE) => integer_utils::serialize_i24(*value, serializer),
                 _ => serializer.serialize_i32(*value),
             },
             Message(value) => {
@@ -1013,8 +1017,10 @@ mod tests {
             message TestProto {
                 uint32 one_byte_u32 = 1 [(sdv.diagnostics.v1.primitive_byte_size) = ONE];
                 uint32 two_bytes_u32 = 2 [(sdv.diagnostics.v1.primitive_byte_size) = TWO];
-                int32 one_byte_i32 = 3 [(sdv.diagnostics.v1.primitive_byte_size) = ONE];
-                int32 two_bytes_i32 = 4 [(sdv.diagnostics.v1.primitive_byte_size) = TWO];
+                uint32 three_bytes_u32 = 3 [(sdv.diagnostics.v1.primitive_byte_size) = THREE];
+                int32 one_byte_i32 = 4 [(sdv.diagnostics.v1.primitive_byte_size) = ONE];
+                int32 two_bytes_i32 = 5 [(sdv.diagnostics.v1.primitive_byte_size) = TWO];
+                int32 three_bytes_i32 = 6 [(sdv.diagnostics.v1.primitive_byte_size) = THREE];
             }
             "#,
             ".TestProto",
@@ -1025,8 +1031,10 @@ mod tests {
             let value = match index {
                 0 => U32(128),
                 1 => U32(1024),
-                2 => I32(-120),
-                3 => I32(-510),
+                2 => U32(16_000_000),
+                3 => I32(-120),
+                4 => I32(-510),
+                5 => I32(-8_388_608),
                 _ => unreachable!(),
             };
 
@@ -1039,15 +1047,27 @@ mod tests {
         assert_ser_tokens(
             &message_serialize,
             &[
-                Token::Tuple { len: 4 },
+                Token::Tuple { len: 6 },
                 Token::Some,
                 Token::U8(128),
                 Token::Some,
                 Token::U16(1024),
                 Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(0xF4),
+                Token::U8(0x24),
+                Token::U8(0x00),
+                Token::TupleEnd,
+                Token::Some,
                 Token::I8(-120),
                 Token::Some,
                 Token::I16(-510),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(0x80),
+                Token::U8(0x00),
+                Token::U8(0x00),
+                Token::TupleEnd,
                 Token::TupleEnd,
             ],
         )

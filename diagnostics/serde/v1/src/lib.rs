@@ -29,3 +29,6 @@ mod field_options;
 /// Utilities for retrieving proto enum's options that affect
 /// serialization/deserialization.
 mod enum_options;
+
+/// Utilities for serialization/deserialization of three-byte integers.
+mod integer_utils;

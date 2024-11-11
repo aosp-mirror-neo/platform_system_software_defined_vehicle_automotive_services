@@ -1,6 +1,7 @@
 // Copyright 2024 Google LLC
 use crate::enum_options::EnumOptions;
 use crate::field_options::FieldOptions;
+use crate::integer_utils;
 use protobuf::reflect::{
     EnumDescriptor, FieldDescriptor, MessageDescriptor,
     ReflectValueBox::{self, *},
@@ -321,6 +322,7 @@ impl<'lt> ValueDeserializeSeed<'lt> {
         match primitive_byte_size {
             Some(ByteSize::ONE) => deserializer.deserialize_i8(visitor),
             Some(ByteSize::TWO) => deserializer.deserialize_i16(visitor),
+            Some(ByteSize::THREE) => integer_utils::deserialize_i24(deserializer, visitor),
             _ => deserializer.deserialize_i32(visitor),
         }
     }
@@ -445,6 +447,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                 match self.options.primitive_byte_size() {
                     Some(ByteSize::ONE) => deserializer.deserialize_u8(visitor),
                     Some(ByteSize::TWO) => deserializer.deserialize_u16(visitor),
+                    Some(ByteSize::THREE) => integer_utils::deserialize_u24(deserializer, visitor),
                     _ => deserializer.deserialize_u32(visitor),
                 }
             }
@@ -751,6 +754,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
                 match enum_descriptor.enum_byte_size() {
                     Some(ByteSize::ONE) => deserializer.deserialize_i8(visitor),
                     Some(ByteSize::TWO) => deserializer.deserialize_i16(visitor),
+                    Some(ByteSize::THREE) => integer_utils::deserialize_i24(deserializer, visitor),
                     _ => deserializer.deserialize_i32(visitor),
                 }
             }
@@ -1930,8 +1934,11 @@ mod tests {
             message TestProto {
                 uint32 one_byte_u32 = 1 [(sdv.diagnostics.v1.primitive_byte_size) = ONE];
                 uint32 two_bytes_u32 = 2 [(sdv.diagnostics.v1.primitive_byte_size) = TWO];
-                int32 one_byte_i32 = 3 [(sdv.diagnostics.v1.primitive_byte_size) = ONE];
-                int32 two_bytes_i32 = 4 [(sdv.diagnostics.v1.primitive_byte_size) = TWO];
+                uint32 three_bytes_u32 = 3 [(sdv.diagnostics.v1.primitive_byte_size) = THREE];
+                int32 one_byte_i32 = 4 [(sdv.diagnostics.v1.primitive_byte_size) = ONE];
+                int32 two_bytes_i32 = 5 [(sdv.diagnostics.v1.primitive_byte_size) = TWO];
+                int32 three_bytes_i32_negative = 6 [(sdv.diagnostics.v1.primitive_byte_size) = THREE];
+                int32 three_bytes_i32 = 7 [(sdv.diagnostics.v1.primitive_byte_size) = THREE];
             }
             "#,
             ".TestProto",
@@ -1944,8 +1951,11 @@ mod tests {
             let value = match index {
                 0 => U32(128),
                 1 => U32(1024),
-                2 => I32(-120),
-                3 => I32(-510),
+                2 => U32(16_000_000),
+                3 => I32(-120),
+                4 => I32(-510),
+                5 => I32(-8_388_608),
+                6 => I32(8_388_607),
                 _ => unreachable!(),
             };
 
@@ -1957,15 +1967,33 @@ mod tests {
         assert_de_tokens(
             &message_deserialize,
             &[
-                Token::Tuple { len: 4 },
+                Token::Tuple { len: 7 },
                 Token::Some,
                 Token::U8(128),
                 Token::Some,
                 Token::U16(1024),
                 Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(0xF4),
+                Token::U8(0x24),
+                Token::U8(0x00),
+                Token::TupleEnd,
+                Token::Some,
                 Token::I8(-120),
                 Token::Some,
                 Token::I16(-510),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(0x80),
+                Token::U8(0x00),
+                Token::U8(0x00),
+                Token::TupleEnd,
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(0x7F),
+                Token::U8(0xFF),
+                Token::U8(0xFF),
+                Token::TupleEnd,
                 Token::TupleEnd,
             ],
         )
