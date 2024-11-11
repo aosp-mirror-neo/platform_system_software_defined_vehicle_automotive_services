@@ -36,9 +36,6 @@ rust_defaults {
     proc_macros: [
         "libasync_trait",
     ],
-    shared_libs: [
-        "libbinder_rpc_unstable",
-    ],
     system_ext_specific: true,
     lints: "android",
     clippy_lints: "android",
