@@ -1,27 +1,66 @@
 // Copyright 2024 Google LLC
 use crate::power_service::PowerRequest;
 use async_trait::async_trait;
+use log::debug;
 use mockall::automock;
+use rustutils::system_properties::read;
 use sdv_pm::PlatformPowerController;
 use sdv_pm::SuspendMode;
 use sdv_vpm_api::power::PowerStateReport;
 use tokio::sync::mpsc::Sender;
 
+const PLATFORM_SUSPEND_TIMEOUT_MS_PROP: &str = "sdv.vpm.platform.timeout_ms";
+const PLATFORM_SUSPEND_RETRY_INTERVAL_MS_PROP: &str = "sdv.vpm.platform.retry_interval_ms";
+const DEFAULT_PLATFORM_TIMEOUT_MS: u64 = 2000;
+const DEFAULT_PLATFORM_RETRY_INTERVAL_MS: u64 = 200;
+
+fn get_platform_timeout_ms() -> u64 {
+    let platform_timeout_ms =
+        read_property_or_default(PLATFORM_SUSPEND_TIMEOUT_MS_PROP, DEFAULT_PLATFORM_TIMEOUT_MS);
+    debug!("VPM platform timeout was set to {:?}", platform_timeout_ms);
+    platform_timeout_ms
+}
+
+fn get_platform_retry_interval_ms() -> u64 {
+    let platform_interval_ms = read_property_or_default(
+        PLATFORM_SUSPEND_RETRY_INTERVAL_MS_PROP,
+        DEFAULT_PLATFORM_RETRY_INTERVAL_MS,
+    );
+    debug!("VPM platform retry interval was set to {:?}", platform_interval_ms);
+    platform_interval_ms
+}
+
+fn read_property_or_default(property: &str, default: u64) -> u64 {
+    read(property)
+        .ok()
+        .flatten()
+        .and_then(|timeout_string| timeout_string.parse().ok())
+        .unwrap_or(default)
+}
+
 fn suspend_to_ram() -> anyhow::Result<()> {
     let platform = PlatformPowerController::default();
-    platform.suspend(&SuspendMode::RAM, 100, 10)?;
+    platform.suspend(
+        &SuspendMode::RAM,
+        get_platform_timeout_ms(),
+        get_platform_retry_interval_ms(),
+    )?;
     Ok(())
 }
 
 fn suspend_to_disk() -> anyhow::Result<()> {
     let platform = PlatformPowerController::default();
-    platform.suspend(&SuspendMode::DISK, 100, 10)?;
+    platform.suspend(
+        &SuspendMode::DISK,
+        get_platform_timeout_ms(),
+        get_platform_retry_interval_ms(),
+    )?;
     Ok(())
 }
 
 fn power_off() -> anyhow::Result<()> {
     let platform = PlatformPowerController::default();
-    platform.power_off(100)?;
+    platform.power_off(get_platform_timeout_ms())?;
     Ok(())
 }
 
