@@ -72,6 +72,7 @@ rust_test {
         unit_test: true,
     },
     test_suites: [
+        "general-tests",
         "automotive-sdv-tests",
     ],
     auto_gen_config: true,

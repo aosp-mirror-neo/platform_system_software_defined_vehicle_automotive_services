@@ -79,6 +79,7 @@ rust_test {
     },
     test_suites: [
         "automotive-sdv-tests",
+        "general-tests",
     ],
     prefer_rlib: true,
 }
@@ -100,6 +101,7 @@ rust_test {
     ld_flags: ["-Wl,--no-as-needed"],
     test_suites: [
         "automotive-sdv-tests",
+        "general-tests",
     ],
     test_options: {
         unit_test: false,
@@ -127,6 +129,7 @@ rust_test {
     },
     test_suites: [
         "automotive-sdv-tests",
+        "general-tests",
     ],
     require_root: true,
 }
@@ -148,6 +151,7 @@ rust_test {
     ld_flags: ["-Wl,--no-as-needed"],
     test_suites: [
         "automotive-sdv-tests",
+        "general-tests",
     ],
     require_root: true,
 }
@@ -172,6 +176,7 @@ rust_test {
     },
     test_suites: [
         "automotive-sdv-tests",
+        "general-tests",
     ],
     require_root: true,
 }
@@ -196,6 +201,7 @@ rust_test {
     },
     test_suites: [
         "automotive-sdv-tests",
+        "general-tests",
     ],
     require_root: true,
 }
