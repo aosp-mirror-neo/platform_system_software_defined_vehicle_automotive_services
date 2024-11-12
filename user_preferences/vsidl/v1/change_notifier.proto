@@ -8,6 +8,10 @@ package com.sdv.google.user_preferences.view;
 import "settings_group.proto";
 import "setting.proto";
 
+option java_multiple_files = true;
+option java_package = "com.android.sdv.sdvgrpclibrary";
+option java_outer_classname = "ChangeNotifierProto";
+
 // Interface for receiving notifications about changes to user settings.
 // Services that want to react to these changes must implement this interface.
 service ChangeNotifier {
