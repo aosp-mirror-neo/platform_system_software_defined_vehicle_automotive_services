@@ -1235,6 +1235,7 @@ mod tests {
             message TestProto {
                 TestEnumOne my_1_byte_enum = 1;
                 TestEnumTwo my_2_byte_enum = 2;
+                TestEnumThree my_3_byte_enum = 3;
             }
 
             enum TestEnumOne {
@@ -1248,17 +1249,25 @@ mod tests {
 
                 A = 0;
             }
+
+            enum TestEnumThree {
+                option (sdv.diagnostics.v1.enum_byte_size) = THREE;
+
+                A = 0;
+            }
             "#,
         );
 
         let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
         let enum_descriptor1 = file_descriptor.enum_by_full_name(".TestEnumOne").unwrap();
         let enum_descriptor2 = file_descriptor.enum_by_full_name(".TestEnumTwo").unwrap();
+        let enum_descriptor3 = file_descriptor.enum_by_full_name(".TestEnumThree").unwrap();
         let mut message = message_descriptor.new_instance();
         for (index, field) in message_descriptor.fields().enumerate() {
             let value = match index {
                 0 => Enum(enum_descriptor1.clone(), 0),
                 1 => Enum(enum_descriptor2.clone(), 0),
+                2 => Enum(enum_descriptor3.clone(), 0),
                 _ => unreachable!(),
             };
 
@@ -1271,11 +1280,17 @@ mod tests {
         assert_ser_tokens(
             &message_serialize,
             &[
-                Token::Tuple { len: 2 },
+                Token::Tuple { len: 3 },
                 Token::Some,
                 Token::I8(0),
                 Token::Some,
                 Token::I16(0),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(0),
+                Token::U8(0),
+                Token::U8(0),
+                Token::TupleEnd,
                 Token::TupleEnd,
             ],
         )
@@ -1318,6 +1333,10 @@ mod tests {
                     scale: 0.1
                     offset: -16
                 }, (sdv.diagnostics.v1.primitive_byte_size) = TWO];
+                float my_three_byte_fixed_float = 17 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.1
+                    offset: -1600
+                }, (sdv.diagnostics.v1.primitive_byte_size) = THREE];
             }
 
             message InnerProto {
@@ -1350,7 +1369,7 @@ mod tests {
         assert_ser_tokens(
             &message_serialize,
             &[
-                Token::Tuple { len: 15 },
+                Token::Tuple { len: 16 },
                 Token::Some,
                 Token::I64(0),
                 Token::Some,
@@ -1389,6 +1408,12 @@ mod tests {
                 Token::I8(-15),
                 Token::Some,
                 Token::I16(160),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(0),
+                Token::U8(0x3E),
+                Token::U8(0x80),
+                Token::TupleEnd,
                 Token::TupleEnd,
             ],
         )

@@ -34,6 +34,7 @@ impl EnumOptions for EnumDescriptor {
         match get_varint_option(self, ENUM_BYTE_SIZE) {
             Some(1) => Some(ByteSize::ONE),
             Some(2) => Some(ByteSize::TWO),
+            Some(3) => Some(ByteSize::THREE),
             _ => None,
         }
     }
