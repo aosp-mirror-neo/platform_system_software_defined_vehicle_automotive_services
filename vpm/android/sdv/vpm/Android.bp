@@ -17,6 +17,7 @@ rust_defaults {
         "libprotobuf",
         "liblog_rust",
         "libtokio",
+        "librustutils",
         "libbinder_tokio_rs",
         "libsdv_vpm_api",
         "libsdv_pm",
