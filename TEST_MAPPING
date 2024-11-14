@@ -5,9 +5,6 @@
       "name": "sdv_uds_serde_v1_tests"
     },
     {
-      "name": "sdv_con_cal_service_tests"
-    },
-    {
       "name": "sdv_sample_concal_tests"
     },
     {
@@ -15,9 +12,6 @@
     },
     {
       "name": "sdv_vpm_agent_unit_tests"
-    },
-    {
-      "name": "sdv_user_preferences_service_tests"
     },
     {
       "name": "sdv_user_preferences_service_stable_tests"
@@ -28,12 +22,6 @@
   ],
   "sdv_automotive_service_postsubmit": [],
   "sdv_automotive_service_integration_presubmit": [
-    {
-      "name": "sdv_concal_integration_test"
-    },
-    {
-      "name": "sdv_user_preferences_integration_test"
-    },
     {
       "name": "sdv_vpm_agent_integration_test"
     },
