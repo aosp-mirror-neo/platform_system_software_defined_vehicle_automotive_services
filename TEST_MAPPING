@@ -2,9 +2,6 @@
 {
   "sdv_automotive_services_presubmit": [
     {
-      "name": "libsdv_uds_serde_tests"
-    },
-    {
       "name": "sdv_uds_serde_v1_tests"
     },
     {
@@ -26,9 +23,6 @@
       "name": "sdv_user_preferences_service_stable_tests"
     },
     {
-      "name": "sdv_middleware_extension_diagnostics_tests"
-    },
-    {
       "name": "sdv_mw_rs_diag_tests"
     }
   ],
@@ -36,9 +30,6 @@
   "sdv_automotive_service_integration_presubmit": [
     {
       "name": "sdv_concal_integration_test"
-    },
-    {
-      "name": "sdv_diag_integration_test"
     },
     {
       "name": "sdv_user_preferences_integration_test"

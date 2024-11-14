@@ -29,7 +29,7 @@ filegroup {
 filegroup {
     name: "libdiagnostics_v1_catalog_files",
     srcs: [
-        ":libdiagnostics_protos",
+        ":libdiagnostics_v1_protos",
         "*.vsidl",
         "Android.bp",
     ],
