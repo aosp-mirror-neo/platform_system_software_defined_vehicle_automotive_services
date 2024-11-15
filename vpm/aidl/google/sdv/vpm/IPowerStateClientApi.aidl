@@ -11,9 +11,7 @@ interface IPowerStateClientApi {
     /**
      * Subscribe to the power state updates.
      * @param[in] IPowerStateListener the callback interface for the power state listener.
-     * @param[in] IBinder link to death for callback agent.
      * @return PowerStateReport the current power state report.
      */
-    PowerStateReport subscribeToPowerStateReport(
-            IPowerStateReportListener listener, IBinder linkToDeath);
+    PowerStateReport subscribeToPowerStateReport(IPowerStateReportListener listener);
 }

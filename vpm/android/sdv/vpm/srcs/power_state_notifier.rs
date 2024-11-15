@@ -6,7 +6,7 @@ use crate::power_state_notifier::binder::Status;
 use crate::PowerState;
 use anyhow::anyhow;
 use async_trait::async_trait;
-use binder::{DeathRecipient, IBinder, SpIBinder};
+use binder::{DeathRecipient, IBinder};
 use binder_tokio::Tokio;
 use binder_tokio::TokioRuntime;
 use com_sdv_google_vpm_client_power_notification_service_rpc::Client;
@@ -236,7 +236,6 @@ struct ClientCallback {
     async_callback: Strong<dyn IPowerStateReportListenerAsync<Tokio>>,
     // death_recipient has to be kept alive as long as the callback event if not used.
     death_recipient: DeathRecipient,
-    death_binder: SpIBinder,
 }
 
 #[async_trait]
@@ -244,7 +243,6 @@ impl IPowerStateClientApiAsyncServer for BinderServer {
     async fn subscribeToPowerStateReport(
         &self,
         callback: &Strong<dyn IPowerStateReportListener>,
-        death_binder: &SpIBinder,
     ) -> BinderResult<PowerStateReportAidl> {
         info!("VPM Agent received client request to subscribe to power updates!");
         let id = self.id.fetch_add(1, Ordering::Relaxed);
@@ -253,18 +251,15 @@ impl IPowerStateClientApiAsyncServer for BinderServer {
             info!("Handling death notification for id {:?}", id);
             callbacks.lock().unwrap().remove(&id);
         });
-        let result = death_binder.clone().link_to_death(&mut death_recipient);
+        let result = callback.as_binder().clone().link_to_death(&mut death_recipient);
         if result.is_err() {
             error!("Failed to link death binder {:?}", result);
             return Err(Status::new_exception(ExceptionCode::SERVICE_SPECIFIC, None));
         }
 
         debug!("Death binder linked successfully");
-        let client_callback = ClientCallback {
-            async_callback: callback.clone().into_async(),
-            death_recipient,
-            death_binder: death_binder.clone(),
-        };
+        let client_callback =
+            ClientCallback { async_callback: callback.clone().into_async(), death_recipient };
 
         self.callbacks.lock().unwrap().insert(id, client_callback);
         let power_state = self.power_state_watch_receiver.borrow();
