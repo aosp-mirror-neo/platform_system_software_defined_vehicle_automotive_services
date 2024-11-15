@@ -3,7 +3,6 @@
 
 use crate::setup::binder::BinderFeatures;
 use crate::setup::binder::Strong;
-use binder::{binder_impl::Binder, Interface};
 use com_sdv_google_vpm_client_power_notification_service_rpc::Interface as NotificationInterface;
 use com_sdv_google_vpm_vpm_system_service_rpc::Client;
 use futures_util::StreamExt;
@@ -158,10 +157,7 @@ impl PowerCallbackPreparer {
             get_power_state_client_interface().expect("Cannot find VPM client binder service");
         let power_report_listener =
             BnPowerStateReportListener::new_binder(test_sdv_agent, BinderFeatures::default());
-        let link_to_death = Binder::new(()).as_binder();
-        power_state_client_interface
-            .subscribeToPowerStateReport(&power_report_listener, &link_to_death)
-            .unwrap();
+        power_state_client_interface.subscribeToPowerStateReport(&power_report_listener).unwrap();
     }
 }
 
