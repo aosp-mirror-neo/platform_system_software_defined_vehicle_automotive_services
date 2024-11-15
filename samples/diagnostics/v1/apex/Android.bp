@@ -1,0 +1,110 @@
+// Copyright 2024 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+apex {
+    name: "com.sdv.oem.sample.diagnostics",
+    manifest: "apex_manifest.json",
+    key: "com.sdv.oem.sample.diagnostics.key",
+    certificate: ":com.sdv.oem.sample.diagnostics.certificate",
+    file_contexts: "file_contexts",
+    updatable: false,
+    native_shared_libs: ["liboem_diagnostics_sample_with_data_item"],
+    prebuilts: [
+        // SDV Manifest - used by SBR
+        "com.sdv.oem.sample.diagnostics.manifest",
+        // ACL Policy
+        "com.sdv.oem.sample.diagnostics.acl_policy",
+        // Orchestration config
+        "com.sdv.oem.sample.diagnostics.orchestration",
+        // Diagnostics declaration
+        "com.sdv.oem.sample.diagnostics.diag",
+        // VSIDL schemas
+        "com.sdv.oem.sample.diagnostics.vsidl",
+        // Linker configuration to enable loading library from apex.
+        "com.sdv.oem.sample.concal.linker_config",
+    ],
+    product_specific: true,
+}
+
+apex_key {
+    name: "com.sdv.oem.sample.diagnostics.key",
+    public_key: "com.sdv.oem.sample.diagnostics.avbpubkey",
+    private_key: "com.sdv.oem.sample.diagnostics.pem",
+}
+
+android_app_certificate {
+    name: "com.sdv.oem.sample.diagnostics.certificate",
+    certificate: "com.sdv.oem.sample.diagnostics",
+}
+
+// SDV manifest file.
+prebuilt_etc {
+    name: "com.sdv.oem.sample.diagnostics.manifest",
+    // The source name of the manifest file.
+    src: "sdv_service_bundles_manifest.textproto",
+    // The name of the installed file shall be `sdv_service_bundles_manifest.textproto`.
+    filename: "sdv_service_bundles_manifest.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// File with the ACL policy of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.sdv.oem.sample.diagnostics.acl_policy",
+    src: "configuration/acl.textproto",
+    filename: "acl.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// File with the Orchestration configuration of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.sdv.oem.sample.diagnostics.orchestration",
+    src: "configuration/orchestration.textproto",
+    filename: "orchestration.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+prebuilt_etc {
+    name: "com.sdv.oem.sample.diagnostics.diag",
+    src: ":generate_from_vsidl_for_diagnostics_sample_with_data_item{diagnostics-config.binpb}",
+    filename: "diag.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+prebuilt_etc {
+    name: "com.sdv.oem.sample.diagnostics.vsidl",
+    src: ":generate_from_vsidl_for_diagnostics_sample_with_data_item{vsidl-config.binpb}",
+    filename: "vsidl.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// The linker config to allow libraries for the apex to be linkable.
+linker_config {
+    name: "com.sdv.oem.sample.diagnostics.linker_config",
+    src: "linker.config.json",
+    // Disable direct installation of the prebuilt to one of the partitions.
+    // The linker configuration is used only inside of an apex.
+    installable: false,
+}

@@ -90,8 +90,10 @@ impl FaultListenerHandler<LowPressureData> for LowPressureFault {
 async fn main() {
     let sdv_comms = SdvComms {
         context: ContextRef::create(
-            ServiceFqin::from_str("vm:com.sdv.oem.sample.diagnostics.DiagnosticsProvider1/sample")
-                .unwrap(),
+            ServiceFqin::from_str(
+                "vm:com.sdv.oem.sample.diagnostics.DiagnosticsProvider1/instance",
+            )
+            .unwrap(),
         ),
     };
 

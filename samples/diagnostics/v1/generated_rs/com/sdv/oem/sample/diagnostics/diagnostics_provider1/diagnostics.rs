@@ -115,6 +115,7 @@ impl DataItemService for DataItemServer {
         }
     }
 
+    #[allow(clippy::match_single_binding)]
     async fn WriteDataItem(
         &self,
         _caller_id: sdv::comms::id::ServiceFqin,

@@ -20,3 +20,17 @@ rust_protobuf {
     vendor_available: true,
     product_available: true,
 }
+
+filegroup {
+    name: "libdiagnostics_v1_protos",
+    srcs: ["*.proto"],
+}
+
+filegroup {
+    name: "libdiagnostics_v1_catalog_files",
+    srcs: [
+        ":libdiagnostics_protos",
+        "*.vsidl",
+        "Android.bp",
+    ],
+}
