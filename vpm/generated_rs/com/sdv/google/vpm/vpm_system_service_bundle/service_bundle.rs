@@ -14,12 +14,12 @@ pub trait UnitType {
     const TYPENAME: &'static str;
 
     /// Convert the trait into a TypeName struct
-    fn to_type_name() -> sdv::mw::TypeName {
-        sdv::mw::TypeName {
-            package: Self::PACKAGE.to_string(),
-            bundle: Self::SERVICE_BUNDLE.to_string(),
-            name: Self::TYPENAME.to_string(),
-        }
+    fn to_type_name() -> sdv::status::SdvResult<sdv::mw::TypeName> {
+        sdv::mw::TypeName::builder()
+            .package_name(Self::PACKAGE)
+            .bundle_name(Self::SERVICE_BUNDLE)
+            .type_name(Self::TYPENAME)
+            .build()
     }
 }
 
@@ -39,6 +39,7 @@ impl UnitType for dyn com_sdv_google_vpm_vpm_system_service_rpc::Interface {
 pub mod publisher {
 
     /// Lists variants per protobuf message of every publication available to the service bundle
+    #[derive(Debug)]
     pub struct Variant<Proto> {
         _proto: std::marker::PhantomData<Proto>,
         /// Unique id of a variant
@@ -111,15 +112,17 @@ impl VpmSystemServiceBundle {
         bundle: impl Into<String>,
         options: sdv::mw::ClientOptions,
     ) -> sdv::status::SdvResult<T> {
-        let attributes = sdv::mw::ClientAttributes {
-            server_name: sdv::mw::UnitName {
-                package: package.into(),
-                bundle: bundle.into(),
-                vm: "".to_string(),
-                name: T::DEFAULT_UNIT_NAME.to_string(),
-            },
-            options,
-        };
+        let attributes = sdv::mw::ClientAttributes::builder()
+            .server_name(
+                sdv::mw::UnitName::builder()
+                    .package_name(package)
+                    .bundle_name(bundle)
+                    .vm_name("")
+                    .service_unit_name(T::DEFAULT_UNIT_NAME)
+                    .build()?,
+            )
+            .client_options(options)
+            .build()?;
         Ok(T::new(self.comms.create_client_transport(&attributes).await?))
     }
 
@@ -128,15 +131,17 @@ impl VpmSystemServiceBundle {
         unit_name: String,
         methods: std::collections::HashMap<String, sdv::comms::rpc::UnaryRpcMethod>,
     ) -> sdv::status::SdvResult<()> {
-        let attributes = sdv::mw::ServerAttributes {
-            server_name: unit_name,
-            type_name: sdv::mw::TypeName {
-                package: T::PACKAGE.to_string(),
-                bundle: T::SERVICE_BUNDLE.to_string(),
-                name: T::TYPENAME.to_string(),
-            },
-            options: sdv::mw::ServerOptions { timeout_in_sec: 30 },
-        };
+        let attributes = sdv::mw::ServerAttributes::builder()
+            .server_name(unit_name)
+            .type_name(
+                sdv::mw::TypeName::builder()
+                    .package_name(T::PACKAGE)
+                    .bundle_name(T::SERVICE_BUNDLE)
+                    .type_name(T::TYPENAME)
+                    .build()?,
+            )
+            .server_options(sdv::mw::ServerOptions::builder().timeout_in_sec(30).build()?)
+            .build()?;
 
         let transport = self.comms.create_server_transport(&attributes, methods).await?;
         self.servers.push(transport.into());
@@ -167,19 +172,25 @@ impl VpmSystemServiceBundle {
         for variant in variants {
             let publish_handle = self
                 .comms
-                .create_publish(&sdv::mw::PublisherAttributes {
-                    publication_name: variant.service_unit.to_owned(),
-                    type_name: sdv::mw::TypeName {
-                        bundle: M::SERVICE_BUNDLE.to_string(),
-                        name: M::TYPENAME.to_string(),
-                        package: M::PACKAGE.to_string(),
-                    },
-                    metadata: sdv::mw::PublisherMetadata {
-                        message_size: M::MESSAGE_SIZE,
-                        message_count: M::MESSAGE_COUNT,
-                        multipub: M::IS_MULTIPUB,
-                    },
-                })
+                .create_publish(
+                    &sdv::mw::PublisherAttributes::builder()
+                        .publication_name(variant.service_unit)
+                        .type_name(
+                            sdv::mw::TypeName::builder()
+                                .package_name(M::PACKAGE)
+                                .bundle_name(M::SERVICE_BUNDLE)
+                                .type_name(M::TYPENAME)
+                                .build()?,
+                        )
+                        .metadata(
+                            sdv::mw::PublisherMetadata::builder()
+                                .message_size(M::MESSAGE_SIZE)
+                                .message_count(M::MESSAGE_COUNT)
+                                .is_multipub(M::IS_MULTIPUB)
+                                .build()?,
+                        )
+                        .build()?,
+                )
                 .await?;
             self.publishers.insert(
                 (std::any::TypeId::of::<M>(), variant.id),

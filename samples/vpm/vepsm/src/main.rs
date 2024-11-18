@@ -166,14 +166,23 @@ async fn handle_power_state(power_cmd: PowerCommand, client: &Client) -> anyhow:
 }
 
 async fn create_client(comms: SdvComms) -> anyhow::Result<Client> {
-    let attributes = ClientAttributes {
-        server_name: UnitName {
-            package: "com.sdv.google.vpm".to_string(),
-            bundle: "VpmSystemServiceBundle".to_string(),
-            vm: comms.context.get_self_fqin().get_sdv_vm_name().to_string(),
-            name: Client::DEFAULT_UNIT_NAME.to_string(),
-        },
-        options: ClientOptions::default(),
+    let server_name = match UnitName::builder()
+        .vm_name(comms.context.get_self_fqin().get_sdv_vm_name())
+        .package_name("com.sdv.google.vpm")
+        .bundle_name("VpmSystemServiceBundle")
+        .service_unit_name(Client::DEFAULT_UNIT_NAME)
+        .build()
+    {
+        Err(_) => return Err(anyhow!("invalid server UnitName")),
+        Ok(server_name) => server_name,
+    };
+    let attributes = match ClientAttributes::builder()
+        .server_name(server_name)
+        .client_options(ClientOptions::default())
+        .build()
+    {
+        Err(_) => return Err(anyhow!("invalid ClientAttributes")),
+        Ok(attributes) => attributes,
     };
     let result = comms.create_client_transport(&attributes).await;
     if result.is_err() {

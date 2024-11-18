@@ -28,15 +28,19 @@ async fn main() {
         ],
     };
 
-    let attributes = sdv_mw_rs_comms::ClientAttributes {
-        server_name: sdv_mw_rs_comms::UnitName {
-            package: "com.sdv.oem.user_preferences".to_string(),
-            bundle: "UserPreferencesServiceBundle".to_string(),
-            vm: "".to_string(),
-            name: RegistryClient::DEFAULT_UNIT_NAME.to_string(),
-        },
-        options: sdv_mw_rs_comms::ClientOptions::default(),
-    };
+    let attributes = sdv_mw_rs_comms::ClientAttributes::builder()
+        .server_name(
+            sdv_mw_rs_comms::UnitName::builder()
+                .vm_name("")
+                .package_name("com.sdv.oem.user_preferences")
+                .bundle_name("UserPreferencesServiceBundle")
+                .service_unit_name(RegistryClient::DEFAULT_UNIT_NAME)
+                .build()
+                .expect("invalid server UnitName"),
+        )
+        .client_options(sdv_mw_rs_comms::ClientOptions::default())
+        .build()
+        .expect("invalid ClientAttributes");
 
     let client = Arc::new(RegistryClient::new(
         comms

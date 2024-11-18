@@ -43,16 +43,17 @@ impl RpcClientFactory for RpcClientFactoryImpl {
         &self,
         fqin: &ServiceFqin,
     ) -> SdvResult<Box<dyn UserControllableServiceClientTrait>> {
-        let attributes = sdv_mw_rs_comms::ClientAttributes {
-            server_name: sdv_mw_rs_comms::UnitName {
-                package: fqin.get_sdv_package_name().to_string(),
-                bundle: fqin.get_service_bundle_name().to_string(),
-                vm: "".to_string(),
-                name: UserControllableServiceClient::DEFAULT_UNIT_NAME.to_string(),
-            },
-            options: ClientOptions::default(),
-        };
-
+        let attributes = sdv_mw_rs_comms::ClientAttributes::builder()
+            .server_name(
+                sdv_mw_rs_comms::UnitName::builder()
+                    .vm_name("")
+                    .package_name(fqin.get_sdv_package_name())
+                    .bundle_name(fqin.get_service_bundle_name())
+                    .service_unit_name(UserControllableServiceClient::DEFAULT_UNIT_NAME)
+                    .build()?,
+            )
+            .client_options(ClientOptions::default())
+            .build()?;
         Ok(Box::new(UserControllableServiceClient::new(
             self.comms.create_client_transport(&attributes).await?,
         )))
@@ -63,15 +64,17 @@ impl RpcClientFactory for RpcClientFactoryImpl {
         package: &str,
         bundle: &str,
     ) -> SdvResult<Box<dyn ChangeNotifierClientTrait>> {
-        let attributes = sdv_mw_rs_comms::ClientAttributes {
-            server_name: sdv_mw_rs_comms::UnitName {
-                package: package.into(),
-                bundle: bundle.into(),
-                vm: "".to_string(),
-                name: ChangeNotifierClient::DEFAULT_UNIT_NAME.to_string(),
-            },
-            options: sdv_mw_rs_comms::ClientOptions::default(),
-        };
+        let attributes = sdv_mw_rs_comms::ClientAttributes::builder()
+            .server_name(
+                sdv_mw_rs_comms::UnitName::builder()
+                    .vm_name("")
+                    .package_name(package)
+                    .bundle_name(bundle)
+                    .service_unit_name(ChangeNotifierClient::DEFAULT_UNIT_NAME)
+                    .build()?,
+            )
+            .client_options(ClientOptions::default())
+            .build()?;
         Ok(Box::new(ChangeNotifierClient::new(
             self.comms.create_client_transport(&attributes).await?,
         )))

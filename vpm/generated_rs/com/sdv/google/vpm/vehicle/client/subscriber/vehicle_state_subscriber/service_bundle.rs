@@ -14,12 +14,12 @@ pub trait UnitType {
     const TYPENAME: &'static str;
 
     /// Convert the trait into a TypeName struct
-    fn to_type_name() -> sdv::mw::TypeName {
-        sdv::mw::TypeName {
-            package: Self::PACKAGE.to_string(),
-            bundle: Self::SERVICE_BUNDLE.to_string(),
-            name: Self::TYPENAME.to_string(),
-        }
+    fn to_type_name() -> sdv::status::SdvResult<sdv::mw::TypeName> {
+        sdv::mw::TypeName::builder()
+            .package_name(Self::PACKAGE)
+            .bundle_name(Self::SERVICE_BUNDLE)
+            .type_name(Self::TYPENAME)
+            .build()
     }
 }
 
@@ -33,6 +33,7 @@ impl UnitType for sdv_vpm_api::vehicle::VehicleStateChange {
 pub mod subscriber {
 
     /// Lists variants per protobuf message of every subscription available to the service bundle
+    #[derive(Debug)]
     pub struct Variant<Proto> {
         _proto: std::marker::PhantomData<Proto>,
         /// Unique id of a variant
@@ -95,7 +96,7 @@ impl VehicleStateSubscriber {
                 publication.subscribe(options).await?
             }
             // For multi-pub, subscribe to a message type.
-            true => self.comms.subscribe_by_type(&M::to_type_name(), options).await?,
+            true => self.comms.subscribe_by_type(&M::to_type_name()?, options).await?,
         };
         Ok(sdv::mw::Subscriber::<M>::new(subscribe_handle))
     }
@@ -119,7 +120,7 @@ impl VehicleStateSubscriber {
                 publication.observe(options).await?
             }
             // For multi-pub, observe a message type.
-            true => self.comms.observe_by_type(&M::to_type_name(), options).await?,
+            true => self.comms.observe_by_type(&M::to_type_name()?, options).await?,
         };
         Ok(sdv::mw::observe::<M>(byte_buffer_stream))
     }
@@ -162,12 +163,14 @@ impl VehicleStateSubscriber {
         variant: &subscriber::Variant<M>,
     ) -> sdv::status::SdvResult<std::sync::Arc<dyn sdv::mw::Publication>> {
         self.comms
-            .find_publication(&sdv::mw::UnitQuery::Name(sdv::mw::UnitName {
-                package: variant.service_bundle_package.to_string(),
-                bundle: variant.service_bundle_name.to_string(),
-                name: variant.service_unit.to_string(),
-                vm: String::new(),
-            }))
+            .find_publication(&sdv::mw::UnitQuery::Name(
+                sdv::mw::UnitName::builder()
+                    .vm_name(String::new())
+                    .package_name(variant.service_bundle_package)
+                    .bundle_name(variant.service_bundle_name)
+                    .service_unit_name(variant.service_unit)
+                    .build()?,
+            ))
             .await
     }
 
@@ -179,12 +182,14 @@ impl VehicleStateSubscriber {
         std::pin::Pin<Box<dyn futures::Stream<Item = sdv::mw::Availability> + Send>>,
     > {
         self.comms
-            .create_registration_event_stream(&sdv::mw::UnitQuery::Name(sdv::mw::UnitName {
-                package: variant.service_bundle_package.to_string(),
-                bundle: variant.service_bundle_name.to_string(),
-                name: variant.service_unit.to_string(),
-                vm: String::new(),
-            }))
+            .create_registration_event_stream(&sdv::mw::UnitQuery::Name(
+                sdv::mw::UnitName::builder()
+                    .vm_name(String::new())
+                    .package_name(variant.service_bundle_package)
+                    .bundle_name(variant.service_bundle_name)
+                    .service_unit_name(variant.service_unit)
+                    .build()?,
+            ))
             .await
     }
 }

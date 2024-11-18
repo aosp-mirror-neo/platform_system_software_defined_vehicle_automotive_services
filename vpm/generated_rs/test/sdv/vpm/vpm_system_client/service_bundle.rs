@@ -14,12 +14,12 @@ pub trait UnitType {
     const TYPENAME: &'static str;
 
     /// Convert the trait into a TypeName struct
-    fn to_type_name() -> sdv::mw::TypeName {
-        sdv::mw::TypeName {
-            package: Self::PACKAGE.to_string(),
-            bundle: Self::SERVICE_BUNDLE.to_string(),
-            name: Self::TYPENAME.to_string(),
-        }
+    fn to_type_name() -> sdv::status::SdvResult<sdv::mw::TypeName> {
+        sdv::mw::TypeName::builder()
+            .package_name(Self::PACKAGE)
+            .bundle_name(Self::SERVICE_BUNDLE)
+            .type_name(Self::TYPENAME)
+            .build()
     }
 }
 
@@ -39,6 +39,7 @@ impl UnitType for dyn com_sdv_google_vpm_client_power_notification_service_rpc::
 pub mod subscriber {
 
     /// Lists variants per protobuf message of every subscription available to the service bundle
+    #[derive(Debug)]
     pub struct Variant<Proto> {
         _proto: std::marker::PhantomData<Proto>,
         /// Unique id of a variant
@@ -102,15 +103,17 @@ impl VpmSystemClient {
         bundle: impl Into<String>,
         options: sdv::mw::ClientOptions,
     ) -> sdv::status::SdvResult<T> {
-        let attributes = sdv::mw::ClientAttributes {
-            server_name: sdv::mw::UnitName {
-                package: package.into(),
-                bundle: bundle.into(),
-                vm: "".to_string(),
-                name: T::DEFAULT_UNIT_NAME.to_string(),
-            },
-            options,
-        };
+        let attributes = sdv::mw::ClientAttributes::builder()
+            .server_name(
+                sdv::mw::UnitName::builder()
+                    .package_name(package)
+                    .bundle_name(bundle)
+                    .vm_name("")
+                    .service_unit_name(T::DEFAULT_UNIT_NAME)
+                    .build()?,
+            )
+            .client_options(options)
+            .build()?;
         Ok(T::new(self.comms.create_client_transport(&attributes).await?))
     }
 
@@ -119,15 +122,17 @@ impl VpmSystemClient {
         unit_name: String,
         methods: std::collections::HashMap<String, sdv::comms::rpc::UnaryRpcMethod>,
     ) -> sdv::status::SdvResult<()> {
-        let attributes = sdv::mw::ServerAttributes {
-            server_name: unit_name,
-            type_name: sdv::mw::TypeName {
-                package: T::PACKAGE.to_string(),
-                bundle: T::SERVICE_BUNDLE.to_string(),
-                name: T::TYPENAME.to_string(),
-            },
-            options: sdv::mw::ServerOptions { timeout_in_sec: 30 },
-        };
+        let attributes = sdv::mw::ServerAttributes::builder()
+            .server_name(unit_name)
+            .type_name(
+                sdv::mw::TypeName::builder()
+                    .package_name(T::PACKAGE)
+                    .bundle_name(T::SERVICE_BUNDLE)
+                    .type_name(T::TYPENAME)
+                    .build()?,
+            )
+            .server_options(sdv::mw::ServerOptions::builder().timeout_in_sec(30).build()?)
+            .build()?;
 
         let transport = self.comms.create_server_transport(&attributes, methods).await?;
         self.servers.push(transport.into());
@@ -149,7 +154,7 @@ impl VpmSystemClient {
                 publication.subscribe(options).await?
             }
             // For multi-pub, subscribe to a message type.
-            true => self.comms.subscribe_by_type(&M::to_type_name(), options).await?,
+            true => self.comms.subscribe_by_type(&M::to_type_name()?, options).await?,
         };
         Ok(sdv::mw::Subscriber::<M>::new(subscribe_handle))
     }
@@ -173,7 +178,7 @@ impl VpmSystemClient {
                 publication.observe(options).await?
             }
             // For multi-pub, observe a message type.
-            true => self.comms.observe_by_type(&M::to_type_name(), options).await?,
+            true => self.comms.observe_by_type(&M::to_type_name()?, options).await?,
         };
         Ok(sdv::mw::observe::<M>(byte_buffer_stream))
     }
@@ -216,12 +221,14 @@ impl VpmSystemClient {
         variant: &subscriber::Variant<M>,
     ) -> sdv::status::SdvResult<std::sync::Arc<dyn sdv::mw::Publication>> {
         self.comms
-            .find_publication(&sdv::mw::UnitQuery::Name(sdv::mw::UnitName {
-                package: variant.service_bundle_package.to_string(),
-                bundle: variant.service_bundle_name.to_string(),
-                name: variant.service_unit.to_string(),
-                vm: String::new(),
-            }))
+            .find_publication(&sdv::mw::UnitQuery::Name(
+                sdv::mw::UnitName::builder()
+                    .vm_name(String::new())
+                    .package_name(variant.service_bundle_package)
+                    .bundle_name(variant.service_bundle_name)
+                    .service_unit_name(variant.service_unit)
+                    .build()?,
+            ))
             .await
     }
 
@@ -233,12 +240,14 @@ impl VpmSystemClient {
         std::pin::Pin<Box<dyn futures::Stream<Item = sdv::mw::Availability> + Send>>,
     > {
         self.comms
-            .create_registration_event_stream(&sdv::mw::UnitQuery::Name(sdv::mw::UnitName {
-                package: variant.service_bundle_package.to_string(),
-                bundle: variant.service_bundle_name.to_string(),
-                name: variant.service_unit.to_string(),
-                vm: String::new(),
-            }))
+            .create_registration_event_stream(&sdv::mw::UnitQuery::Name(
+                sdv::mw::UnitName::builder()
+                    .vm_name(String::new())
+                    .package_name(variant.service_bundle_package)
+                    .bundle_name(variant.service_bundle_name)
+                    .service_unit_name(variant.service_unit)
+                    .build()?,
+            ))
             .await
     }
 }

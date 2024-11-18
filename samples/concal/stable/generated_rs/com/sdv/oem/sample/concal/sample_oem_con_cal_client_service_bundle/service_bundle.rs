@@ -25,15 +25,17 @@ impl SampleOemConCalClientServiceBundle {
         bundle: impl Into<String>,
         options: sdv::mw::ClientOptions,
     ) -> sdv::status::SdvResult<T> {
-        let attributes = sdv::mw::ClientAttributes {
-            server_name: sdv::mw::UnitName {
-                package: package.into(),
-                bundle: bundle.into(),
-                vm: "".to_string(),
-                name: T::DEFAULT_UNIT_NAME.to_string(),
-            },
-            options,
-        };
+        let attributes = sdv::mw::ClientAttributes::builder()
+            .server_name(
+                sdv::mw::UnitName::builder()
+                    .package_name(package)
+                    .bundle_name(bundle)
+                    .vm_name("")
+                    .service_unit_name(T::DEFAULT_UNIT_NAME)
+                    .build()?,
+            )
+            .client_options(options)
+            .build()?;
         Ok(T::new(self.comms.create_client_transport(&attributes).await?))
     }
 }

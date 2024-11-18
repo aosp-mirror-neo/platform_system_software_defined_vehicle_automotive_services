@@ -14,12 +14,12 @@ pub trait UnitType {
     const TYPENAME: &'static str;
 
     /// Convert the trait into a TypeName struct
-    fn to_type_name() -> sdv::mw::TypeName {
-        sdv::mw::TypeName {
-            package: Self::PACKAGE.to_string(),
-            bundle: Self::SERVICE_BUNDLE.to_string(),
-            name: Self::TYPENAME.to_string(),
-        }
+    fn to_type_name() -> sdv::status::SdvResult<sdv::mw::TypeName> {
+        sdv::mw::TypeName::builder()
+            .package_name(Self::PACKAGE)
+            .bundle_name(Self::SERVICE_BUNDLE)
+            .type_name(Self::TYPENAME)
+            .build()
     }
 }
 
@@ -105,15 +105,17 @@ impl SampleOemConCalServiceBundle {
         unit_name: String,
         methods: std::collections::HashMap<String, sdv::comms::rpc::UnaryRpcMethod>,
     ) -> sdv::status::SdvResult<()> {
-        let attributes = sdv::mw::ServerAttributes {
-            server_name: unit_name,
-            type_name: sdv::mw::TypeName {
-                package: T::PACKAGE.to_string(),
-                bundle: T::SERVICE_BUNDLE.to_string(),
-                name: T::TYPENAME.to_string(),
-            },
-            options: sdv::mw::ServerOptions { timeout_in_sec: 30 },
-        };
+        let attributes = sdv::mw::ServerAttributes::builder()
+            .server_name(unit_name)
+            .type_name(
+                sdv::mw::TypeName::builder()
+                    .package_name(T::PACKAGE)
+                    .bundle_name(T::SERVICE_BUNDLE)
+                    .type_name(T::TYPENAME)
+                    .build()?,
+            )
+            .server_options(sdv::mw::ServerOptions::builder().timeout_in_sec(30).build()?)
+            .build()?;
 
         let transport = self.comms.create_server_transport(&attributes, methods).await?;
         self.servers.push(transport.into());

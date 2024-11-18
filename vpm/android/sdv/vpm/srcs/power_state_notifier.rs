@@ -92,14 +92,24 @@ impl PowerStateNotifierImpl {
 
     async fn update_client(&self) -> anyhow::Result<()> {
         let mut client = self.notification_rpc_client.lock().await;
-        let attributes = ClientAttributes {
-            server_name: UnitName {
-                package: "com.sdv.google.vpm.client".to_string(),
-                bundle: "VpmSystemClient".to_string(),
-                vm: self.comms.context.get_self_fqin().get_sdv_vm_name().to_string(),
-                name: Client::DEFAULT_UNIT_NAME.to_string(),
-            },
-            options: ClientOptions::default(),
+
+        let server_name = match UnitName::builder()
+            .vm_name(self.comms.context.get_self_fqin().get_sdv_vm_name())
+            .package_name("com.sdv.google.vpm.client")
+            .bundle_name("VpmSystemClient")
+            .service_unit_name(Client::DEFAULT_UNIT_NAME)
+            .build()
+        {
+            Err(_) => return Err(anyhow!("invalid server UnitName")),
+            Ok(server_name) => server_name,
+        };
+        let attributes = match ClientAttributes::builder()
+            .server_name(server_name)
+            .client_options(ClientOptions::default())
+            .build()
+        {
+            Err(_) => return Err(anyhow!("invalid ClientAttributes")),
+            Ok(attributes) => attributes,
         };
         let result = self.comms.create_client_transport(&attributes).await;
         if result.is_err() {

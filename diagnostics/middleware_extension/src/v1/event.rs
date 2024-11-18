@@ -23,21 +23,29 @@ impl<M: Message> EventPublisher<M> {
         comms: Arc<dyn Communicate>,
     ) -> SdvResult<Self> {
         let publish = comms
-            .create_publish(&PublisherAttributes {
-                publication_name: format!("sdv-diagnostics-event-{}", event_name.replace('.', "-")),
-                type_name: TypeName {
-                    package: "com.sdv.google.diagnostics".to_string(),
-                    bundle: "DiagnosticsManager".to_string(),
-                    name: "event.Event".to_string(),
-                },
-                metadata: PublisherMetadata {
-                    message_size: compute_event_message_size(data_size),
-                    message_count: 16,
-                    multipub: true,
-                },
-            })
+            .create_publish(
+                &PublisherAttributes::builder()
+                    .publication_name(format!(
+                        "sdv-diagnostics-event-{}",
+                        event_name.replace('.', "-")
+                    ))
+                    .type_name(
+                        TypeName::builder()
+                            .package_name("com.sdv.google.diagnostics")
+                            .bundle_name("DiagnosticsManager")
+                            .type_name("event.Event")
+                            .build()?,
+                    )
+                    .metadata(
+                        PublisherMetadata::builder()
+                            .message_size(compute_event_message_size(data_size))
+                            .message_count(16)
+                            .is_multipub(true)
+                            .build()?,
+                    )
+                    .build()?,
+            )
             .await?;
-
         Ok(Self { publish, phantom: PhantomData })
     }
 
@@ -158,12 +166,15 @@ mod tests {
             EventPublisher::<TestProto>::new("event1", 10, comms.clone()).await.unwrap();
 
         let event_publication = comms
-            .find_publication(&UnitQuery::Name(UnitName {
-                vm: "".to_string(),
-                package: "com.sdv.oem.sample.diagnostics".to_string(),
-                bundle: "DiagnosticsProvider1".to_string(),
-                name: "sdv-diagnostics-event-event1".to_string(),
-            }))
+            .find_publication(&UnitQuery::Name(
+                UnitName::builder()
+                    .vm_name("")
+                    .package_name("com.sdv.oem.sample.diagnostics")
+                    .bundle_name("DiagnosticsProvider1")
+                    .service_unit_name("sdv-diagnostics-event-event1")
+                    .build()
+                    .unwrap(),
+            ))
             .await
             .unwrap();
 
@@ -192,12 +203,15 @@ mod tests {
             EventPublisher::<TestProto>::new("event1", 10, comms.clone()).await.unwrap();
 
         let event_publication = comms
-            .find_publication(&UnitQuery::Name(UnitName {
-                vm: "".to_string(),
-                package: "com.sdv.oem.sample.diagnostics".to_string(),
-                bundle: "DiagnosticsProvider1".to_string(),
-                name: "sdv-diagnostics-event-event1".to_string(),
-            }))
+            .find_publication(&UnitQuery::Name(
+                UnitName::builder()
+                    .vm_name("")
+                    .package_name("com.sdv.oem.sample.diagnostics")
+                    .bundle_name("DiagnosticsProvider1")
+                    .service_unit_name("sdv-diagnostics-event-event1")
+                    .build()
+                    .unwrap(),
+            ))
             .await
             .unwrap();
 
