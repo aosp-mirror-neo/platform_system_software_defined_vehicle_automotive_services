@@ -166,24 +166,20 @@ async fn handle_power_state(power_cmd: PowerCommand, client: &Client) -> anyhow:
 }
 
 async fn create_client(comms: SdvComms) -> anyhow::Result<Client> {
-    let server_name = match UnitName::builder()
+    let server_name = UnitName::builder()
         .vm_name(comms.context.get_self_fqin().get_sdv_vm_name())
         .package_name("com.sdv.google.vpm")
         .bundle_name("VpmSystemServiceBundle")
         .service_unit_name(Client::DEFAULT_UNIT_NAME)
         .build()
-    {
-        Err(_) => return Err(anyhow!("invalid server UnitName")),
-        Ok(server_name) => server_name,
-    };
-    let attributes = match ClientAttributes::builder()
+        .map_err(|_| anyhow!("invalid server UnitName"))?;
+
+    let attributes = ClientAttributes::builder()
         .server_name(server_name)
         .client_options(ClientOptions::default())
         .build()
-    {
-        Err(_) => return Err(anyhow!("invalid ClientAttributes")),
-        Ok(attributes) => attributes,
-    };
+        .map_err(|_| anyhow!("invalid ClientAttributes"))?;
+
     let result = comms.create_client_transport(&attributes).await;
     if result.is_err() {
         error!("Could not get a client for vpm notifications");
