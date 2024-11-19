@@ -10,7 +10,7 @@ use sdv_comms::id::ServiceFqin;
 use sdv_comms::sd::{ServiceDiscoveryManager, UnitType};
 use sdv_comms::ContextRef;
 use sdv_mw_rs_com_sdv_oem_user_preferences_hmi_service::HMIService;
-use sdv_mw_rs_comms::ClientOptions;
+use sdv_mw_rs_comms::{ClientOptions, RpcClient, UnitName};
 use sdv_mw_rs_sdv_comms::SdvComms;
 use std::sync::Arc;
 use user_preferences_api::setting::setting::Value;
@@ -47,16 +47,24 @@ async fn main() {
 
     let admin_service_client: AdminServiceClient = service
         .create_rpc_client::<AdminServiceClient>(
-            "com.sdv.oem.user_preferences".to_string(),
-            "UserPreferencesServiceBundle",
+            UnitName::builder()
+                .package_name("com.sdv.oem.user_preferences")
+                .bundle_name("UserPreferencesServiceBundle")
+                .service_unit_name(AdminServiceClient::DEFAULT_UNIT_NAME)
+                .build()
+                .unwrap(),
             ClientOptions::default(),
         )
         .await
         .expect("Failed to create client to User Preferences");
     let management_service_client: ManagementServiceClient = service
         .create_rpc_client::<ManagementServiceClient>(
-            "com.sdv.oem.user_preferences".to_string(),
-            "UserPreferencesServiceBundle",
+            UnitName::builder()
+                .package_name("com.sdv.oem.user_preferences")
+                .bundle_name("UserPreferencesServiceBundle")
+                .service_unit_name(ManagementServiceClient::DEFAULT_UNIT_NAME)
+                .build()
+                .unwrap(),
             ClientOptions::default(),
         )
         .await
