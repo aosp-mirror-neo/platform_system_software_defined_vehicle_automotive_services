@@ -15,7 +15,7 @@ sdv_service_bundle_metadata {
 
     access_control_list_policy_path: "etc/acl.textproto"
 
-    vsidl_schemas_path: "etc/vsidl.textproto"
+    vsidl_schemas_path: "etc/vsidl.binpb"
 
-    diagnostics_config_path: "etc/diag.textproto"
+    diagnostics_config_path: "etc/diag.binpb"
 }
