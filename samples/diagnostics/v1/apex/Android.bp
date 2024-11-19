@@ -81,7 +81,7 @@ prebuilt_etc {
 prebuilt_etc {
     name: "com.sdv.oem.sample.diagnostics.diag",
     src: ":generate_from_vsidl_for_diagnostics_sample_with_data_item{diagnostics-config.binpb}",
-    filename: "diag.textproto",
+    filename: "diag.binpb",
     // Disable direct installation of the manifest to one of the partitions.
     // The manifest will be used only inside of service bundles registry apexes.
     installable: false,
@@ -92,7 +92,7 @@ prebuilt_etc {
 prebuilt_etc {
     name: "com.sdv.oem.sample.diagnostics.vsidl",
     src: ":generate_from_vsidl_for_diagnostics_sample_with_data_item{vsidl-config.binpb}",
-    filename: "vsidl.textproto",
+    filename: "vsidl.binpb",
     // Disable direct installation of the manifest to one of the partitions.
     // The manifest will be used only inside of service bundles registry apexes.
     installable: false,

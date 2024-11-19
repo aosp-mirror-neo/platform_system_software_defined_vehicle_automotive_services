@@ -27,6 +27,10 @@ use google_sdv_rpc_aidl::aidl::google::sdv::rpc::IRpcAgent::{BpRpcAgent, IRpcAge
 use google_sdv_service_discovery_discovery_aidl::aidl::google::sdv::service_discovery::discovery::IServiceDiscoveryAgent::{BpServiceDiscoveryAgent, IServiceDiscoveryAgent};
 use sdv_comms::sd::ServiceUnitChangeEvent;
 use futures::future;
+use sdv_config_provider::{
+    vsidl_provider::VsidlProviderV1,
+    vsidl_provider_api::VsidlConfigProviderV1,
+};
 
 #[tokio::main]
 async fn main() {
@@ -36,8 +40,10 @@ async fn main() {
     wait_for_comms_stack();
 
     let self_fqin =
-        ServiceFqin::from_str("vm:sdv.google.diagnostics.DiagnosticsAgent/default").unwrap();
+        ServiceFqin::from_str("vm:com.sdv.google.diagnostics.DiagnosticsAgent/default").unwrap();
     let context = ContextRef::create(self_fqin.clone());
+
+    use_vsidl_provider();
 
     info!("Starting Diagnostics Agent");
 
@@ -327,4 +333,19 @@ fn decode_with_len<T: MessageFull>(message_bytes: &[u8]) -> Result<T, protobuf::
     let _ = input_stream.push_limit(size);
 
     T::parse_from(&mut input_stream)
+}
+
+fn use_vsidl_provider() {
+    let vsidl_provider = VsidlProviderV1::new_sync_provider().unwrap();
+
+    // Declaration from APEX.
+    log::debug!(
+        "Diagnostics declaration: {:#?}",
+        vsidl_provider.get_diagnostics_declaration(
+            &ServiceFqin::from_str(
+                "vm:com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithDataItem/default"
+            )
+            .unwrap()
+        )
+    );
 }
