@@ -27,6 +27,12 @@ sdv_service_bundle {
             fault_listener_mask: 0x3
         }
 
+        event {
+            id: "pressure-change"
+            extended_data_message_name: "Pressure"
+            service_unit_name: "pressure-change-publisher"
+        }
+
         data_item {
             id: "pressure"
             message_name: "Pressure"

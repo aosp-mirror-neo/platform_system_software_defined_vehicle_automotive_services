@@ -51,12 +51,23 @@ pub mod publisher {
         const MESSAGE_SIZE: u32;
         const MESSAGE_COUNT: u32;
         const IS_MULTIPUB: bool;
+        fn get_message_metadata() -> sdv_proto_reflection_rs::message_metadata::MessageMetadata;
     }
 
     impl Metadata for sdv_vpm_api::vehicle::VehicleStateChange {
         const MESSAGE_SIZE: u32 = 11;
         const MESSAGE_COUNT: u32 = 1;
         const IS_MULTIPUB: bool = false;
+        fn get_message_metadata() -> sdv_proto_reflection_rs::message_metadata::MessageMetadata {
+            sdv_proto_reflection_rs::message_metadata::MessageMetadata {
+                file_descriptors: vec![
+                    sdv_vpm_api::vehicle::file_descriptor().proto().clone(),
+                    vsidl_v1::annotations::file_descriptor().proto().clone(),
+                ],
+                message_full_name: String::from(".com.sdv.google.vpm.vehicle.VehicleStateChange"),
+                ..Default::default()
+            }
+        }
     }
 
     impl Variant<sdv_vpm_api::vehicle::VehicleStateChange> {
@@ -179,6 +190,7 @@ impl VpmSystemServiceBundle {
                                 .message_size(M::MESSAGE_SIZE)
                                 .message_count(M::MESSAGE_COUNT)
                                 .is_multipub(M::IS_MULTIPUB)
+                                .message_metadata(M::get_message_metadata())
                                 .build()?,
                         )
                         .build()?,

@@ -20,17 +20,14 @@ pub struct EventPublisher<M> {
 impl<M: Message> EventPublisher<M> {
     /// Create new publisher for diagnostics event.
     pub async fn new(
-        event_name: &'static str,
         data_size: u32,
         comms: Arc<dyn Communicate>,
+        publication_name: String,
     ) -> SdvResult<Self> {
         let publish = comms
             .create_publish(
                 &PublisherAttributes::builder()
-                    .publication_name(format!(
-                        "sdv-diagnostics-event-{}",
-                        event_name.replace('.', "-")
-                    ))
+                    .publication_name(publication_name)
                     .type_name(
                         TypeName::builder()
                             .package_name("com.sdv.google.diagnostics")
@@ -172,7 +169,8 @@ mod tests {
     #[tokio::test]
     async fn test_new() {
         let comms = LocalComms::default();
-        let event_publisher = EventPublisher::<TestProto>::new("event1", 1, Arc::new(comms)).await;
+        let event_publisher =
+            EventPublisher::<TestProto>::new(1, Arc::new(comms), "event1".to_string()).await;
 
         assert!(event_publisher.is_ok());
     }
@@ -182,7 +180,9 @@ mod tests {
         // GIVEN event publication and subscription
         let comms = Arc::new(LocalComms::default());
         let event_publisher =
-            EventPublisher::<TestProto>::new("event1", 10, comms.clone()).await.unwrap();
+            EventPublisher::<TestProto>::new(10, comms.clone(), "event1".to_string())
+                .await
+                .unwrap();
 
         let event_publication = comms
             .find_publication(&UnitQuery::Name(
@@ -190,7 +190,7 @@ mod tests {
                     .vm_name("")
                     .package_name("com.sdv.oem.sample.diagnostics")
                     .bundle_name("DiagnosticsProvider1")
-                    .service_unit_name("sdv-diagnostics-event-event1")
+                    .service_unit_name("event1")
                     .build()
                     .unwrap(),
             ))
@@ -218,8 +218,13 @@ mod tests {
     async fn test_publish_with_data() {
         // GIVEN event publication and subscription
         let comms = Arc::new(LocalComms::default());
-        let event_publisher =
-            EventPublisher::<TestProto>::new("event1", 10, comms.clone()).await.unwrap();
+        let event_publisher = EventPublisher::<TestProto>::new(
+            10,
+            comms.clone(),
+            "sdv-diagnostics-event-event1".to_string(),
+        )
+        .await
+        .unwrap();
 
         let event_publication = comms
             .find_publication(&UnitQuery::Name(

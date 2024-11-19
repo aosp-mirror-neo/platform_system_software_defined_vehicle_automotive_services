@@ -29,6 +29,9 @@ pub struct Diagnostics {
     /// Publisher for event "lowpressure".
     pub lowpressure_event_publisher:
         EventPublisher<diagnostics_v1_sample_catalog::messages::LowPressureData>,
+    /// Publisher for event "pressure-change".
+    pub pressure_change_event_publisher:
+        EventPublisher<diagnostics_v1_sample_catalog::messages::Pressure>,
 }
 
 impl Diagnostics {
@@ -37,7 +40,19 @@ impl Diagnostics {
         Ok(Self {
             lowpressure_event_publisher: EventPublisher::<
                 diagnostics_v1_sample_catalog::messages::LowPressureData,
-            >::new("lowpressure", 11, comms.clone())
+            >::new(
+                11,
+                comms.clone(),
+                "com-sdv-google-diagnostics-event-event-lowpressure".to_string(),
+            )
+            .await?,
+            pressure_change_event_publisher: EventPublisher::<
+                diagnostics_v1_sample_catalog::messages::Pressure,
+            >::new(
+                5,
+                comms.clone(),
+                "pressure-change-publisher".to_string(),
+            )
             .await?,
         })
     }
