@@ -1,6 +1,6 @@
 // Copyright 2024 Google LLC
 
-use diagnostics_v1_api::event::{Event, Status};
+use diagnostics_v1_api::event::{self, Event, Status};
 use protobuf::Message;
 use sdv_mw_rs_comms::{
     codec, Communicate, Publish, PublisherAttributes, PublisherMetadata, TypeName,
@@ -8,6 +8,8 @@ use sdv_mw_rs_comms::{
 use sdv_status_rs::SdvResult;
 use std::marker::PhantomData;
 use std::sync::Arc;
+use vsidl_reflection::message_metadata::MessageMetadata;
+use vsidl_v1::annotations;
 
 /// Publisher of diagnostics events.
 pub struct EventPublisher<M> {
@@ -41,6 +43,7 @@ impl<M: Message> EventPublisher<M> {
                             .message_size(compute_event_message_size(data_size))
                             .message_count(16)
                             .is_multipub(true)
+                            //.message_metadata(event_message_metadata())
                             .build()?,
                     )
                     .build()?,
@@ -71,6 +74,18 @@ impl<M: Message> EventPublisher<M> {
         })?;
 
         self.publish.publish_messages(&[event_data])
+    }
+}
+
+#[allow(dead_code)]
+fn event_message_metadata() -> MessageMetadata {
+    MessageMetadata {
+        message_full_name: ".com.sdv.google.diagnostics.event.Event".to_string(),
+        file_descriptors: vec![
+            event::file_descriptor().proto().clone(),
+            annotations::file_descriptor().proto().clone(),
+        ],
+        ..Default::default()
     }
 }
 
@@ -125,6 +140,9 @@ mod tests {
     use diagnostics_v1_api::event::{OperationCycle as TestProto, Status};
     use googletest::assert_that;
     use googletest::prelude::eq;
+    use protobuf::reflect::{FileDescriptor, MessageDescriptor};
+    use protobuf::well_known_types;
+    use protobuf::MessageDyn;
     use sdv_mw_local_comms::LocalComms;
     use sdv_mw_rs_comms::{codec::decode, *};
 
@@ -240,5 +258,49 @@ mod tests {
                 eq(TestProto { id: "test".to_string(), ..Default::default() })
             );
         });
+    }
+
+    #[test]
+    fn test_event_message_metadata() {
+        let parsed_event_descriptor = parse_message_descriptor(event_message_metadata());
+
+        let event_descriptor = Event { ..Default::default() }.descriptor_dyn();
+
+        assert_that!(parsed_event_descriptor.proto(), eq(event_descriptor.proto()));
+    }
+
+    fn parse_message_descriptor(message_metadata: MessageMetadata) -> MessageDescriptor {
+        // file descriptors for proto well_known_types are not passed over the wire.
+        let wellknown_descriptors: Vec<FileDescriptor> = vec![
+            well_known_types::any::file_descriptor().clone(),
+            well_known_types::api::file_descriptor().clone(),
+            well_known_types::duration::file_descriptor().clone(),
+            well_known_types::empty::file_descriptor().clone(),
+            well_known_types::field_mask::file_descriptor().clone(),
+            well_known_types::source_context::file_descriptor().clone(),
+            well_known_types::struct_::file_descriptor().clone(),
+            well_known_types::timestamp::file_descriptor().clone(),
+            well_known_types::type_::file_descriptor().clone(),
+            well_known_types::wrappers::file_descriptor().clone(),
+            protobuf::descriptor::file_descriptor().clone(),
+        ];
+
+        // message-specific file descriptor.
+        let file_descriptors = match FileDescriptor::new_dynamic_fds(
+            message_metadata.file_descriptors,
+            &wellknown_descriptors,
+        ) {
+            Err(e) => {
+                // this reveals exactly which dependency is missing.
+                eprintln!("{}", e);
+                panic!("Creating file descriptors failed!")
+            }
+            Ok(fd) => fd,
+        };
+        let message_descriptor = file_descriptors
+            .iter()
+            .find_map(|fd| fd.message_by_full_name(&message_metadata.message_full_name))
+            .expect("message descriptor was not found");
+        message_descriptor
     }
 }
