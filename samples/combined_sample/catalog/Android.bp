@@ -1,0 +1,36 @@
+// Copyright 2024 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_protobuf {
+    name: "libcombined_sample_v1_catalog",
+    crate_name: "combined_sample_v1_catalog",
+    protos: [
+        ":combined_sample_v1_protos",
+    ],
+    source_stem: "combined_sample_v1_catalog",
+    proto_flags: [
+        "-I external/protobuf/src",
+    ],
+    rustlibs: [
+        "libvsidl_v1_proto_rs",
+    ],
+    vendor_available: true,
+    product_available: true,
+}
+
+filegroup {
+    name: "combined_sample_v1_protos",
+    srcs: ["*.proto"],
+}
+
+filegroup {
+    name: "combined_sample_v1_catalog_files",
+    srcs: [
+        ":combined_sample_v1_protos",
+        "*.vsidl",
+        "Android.bp",
+    ],
+}

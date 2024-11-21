@@ -27,6 +27,15 @@ filegroup {
     ],
 }
 
+filegroup {
+    name: "user_preferences_v1_catalog_files",
+    srcs: [
+        ":libuser_preferences_protos_stable",
+        "*.vsidl",
+        "Android.bp",
+    ],
+}
+
 JAVA_LITE_PROTO_CMD = "mkdir -p $(genDir)/gen && " +
     "$(location aprotoc) --java_opt=annotate_code=false " +
     "-Iexternal/protobuf/src " +

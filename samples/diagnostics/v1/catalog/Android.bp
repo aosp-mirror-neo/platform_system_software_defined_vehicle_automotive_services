@@ -27,7 +27,7 @@ genrule {
     tools: ["vsidl_rc_generator"],
     srcs: [
         ":sdv_vsidl_v1_protos",
-        ":libdiagnostics_v1_catalog_files",
+        ":diagnostics_v1_catalog_files",
         "*.*",
     ],
     cmd: "$(location vsidl_rc_generator) " +

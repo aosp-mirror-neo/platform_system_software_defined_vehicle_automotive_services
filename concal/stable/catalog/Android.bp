@@ -25,3 +25,12 @@ filegroup {
     name: "libconcal_protos_stable",
     srcs: ["*.proto"],
 }
+
+filegroup {
+    name: "concal_v1_catalog_files",
+    srcs: [
+        ":libconcal_protos_stable",
+        "*.vsidl",
+        "Android.bp",
+    ],
+}

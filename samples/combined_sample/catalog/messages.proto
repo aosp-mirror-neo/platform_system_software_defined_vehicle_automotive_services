@@ -1,0 +1,20 @@
+// Copyright 2024 Google LLC
+
+syntax = "proto3";
+
+package com.sdv.google.sample.combined;
+
+import "sdv/vsidl/v1/annotations.proto";
+import "sdv/diagnostics/v1/diagnostics.proto";
+
+message LowPressureData {
+  int32 status = 1;
+}
+
+message Pressure {
+  float value = 1 [(.sdv.diagnostics.v1.skip_for_diag) = true];
+}
+
+message OverheatingData {
+  string status = 1 [(.sdv.vsidl.v1.variable_type_max_size) = 10];
+}

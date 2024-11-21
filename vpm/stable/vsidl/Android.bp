@@ -25,3 +25,12 @@ filegroup {
     name: "libsdv_vpm_protos",
     srcs: ["*.proto"],
 }
+
+filegroup {
+    name: "vpm_v1_catalog_files",
+    srcs: [
+        ":libsdv_vpm_protos",
+        "*.vsidl",
+        "Android.bp",
+    ],
+}
