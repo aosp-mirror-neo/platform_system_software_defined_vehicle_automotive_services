@@ -141,8 +141,9 @@ mod tests {
     use googletest::assert_that;
     use googletest::prelude::eq;
     use protobuf::reflect::{FileDescriptor, MessageDescriptor};
-    use protobuf::well_known_types;
+    use protobuf::EnumOrUnknown;
     use protobuf::MessageDyn;
+    use protobuf::{well_known_types, MessageFull};
     use sdv_mw_local_comms::LocalComms;
     use sdv_mw_rs_comms::{codec::decode, *};
 
@@ -258,6 +259,29 @@ mod tests {
                 eq(TestProto { id: "test".to_string(), ..Default::default() })
             );
         });
+    }
+
+    #[test]
+    fn test_compute_event_message_size() {
+        // Assert the number of fields hasn't changed since this test was written.
+        // Adding new fields will require adjusting this test.
+        let descriptor = Event::descriptor();
+        assert_that!(descriptor.fields().count(), eq(2));
+
+        // Verify compute function for different values of max_size
+        for max_size in (0..29).map(|i| 2u32.pow(i)).collect::<Vec<_>>() {
+            // Create the largest possible message with max_size of extended data and get its size.
+            let message = Event {
+                status: EnumOrUnknown::<Status>::from_i32(i32::MIN + 1),
+                extended_data: vec![0; max_size.try_into().unwrap()].into(),
+                ..Default::default()
+            };
+            let expected_computed_message_size = message.compute_size();
+
+            let actual_computed_message_size = compute_event_message_size(max_size) as u64;
+
+            assert_that!(actual_computed_message_size, eq(expected_computed_message_size));
+        }
     }
 
     #[test]
