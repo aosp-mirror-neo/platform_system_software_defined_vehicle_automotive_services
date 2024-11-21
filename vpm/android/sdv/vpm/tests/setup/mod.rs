@@ -17,7 +17,9 @@ use google_sdv_vpm_aidl::binder;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
 use sdv_mw_rs_comms::ClientOptions;
+use sdv_mw_rs_comms::RpcClient;
 use sdv_mw_rs_comms::SubscribeOptions;
+use sdv_mw_rs_comms::UnitName;
 use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_mw_rs_test_sdv_vpm_vpm_system_client::subscriber;
 use sdv_mw_rs_test_sdv_vpm_vpm_system_client::VpmSystemClient;
@@ -221,8 +223,14 @@ impl TestVePSM {
                 .unwrap();
         let client = bundle
             .create_rpc_client(
-                "com.sdv.google.vpm".to_string(),
-                "VpmSystemServiceBundle".to_string(),
+                UnitName::builder()
+                    .package_name("com.sdv.google.vpm")
+                    .bundle_name("VpmSystemServiceBundle")
+                    .service_unit_name(
+                        com_sdv_google_vpm_vpm_system_service_rpc::Client::DEFAULT_UNIT_NAME,
+                    )
+                    .build()
+                    .unwrap(),
                 ClientOptions::default(),
             )
             .await

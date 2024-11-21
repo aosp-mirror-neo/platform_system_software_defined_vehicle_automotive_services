@@ -16,7 +16,9 @@ use protobuf::{Message, MessageField};
 use sdv::comms::id::ServiceFqin as CommsFqin;
 use sdv::comms::ContextRef;
 use sdv::mw::ClientOptions;
+use sdv::mw::RpcClient;
 use sdv::mw::SdvComms;
+use sdv::mw::UnitName;
 use sdv_mw_rs_com_sdv_oem_sample_concal_sample_oem_con_cal_client_service_bundle::SampleOemConCalClientServiceBundle;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -42,8 +44,12 @@ async fn main() {
         SampleOemConCalClientServiceBundle::new(Arc::new(sdv_comms)).await.unwrap();
     let client = service_bundle
         .create_rpc_client::<RegistrationClient>(
-            "com.sdv.oem.sample.concal".to_string(),
-            "SampleOemConCalServiceBundle".to_string(),
+            UnitName::builder()
+                .package_name("com.sdv.oem.sample.concal")
+                .bundle_name("SampleOemConCalServiceBundle")
+                .service_unit_name(RegistrationClient::DEFAULT_UNIT_NAME)
+                .build()
+                .unwrap(),
             ClientOptions::default(),
         )
         .await;
@@ -68,8 +74,12 @@ async fn main() {
     println!("\nApplying the following overrides:\n{:#?}", &overrides);
     let update_client = service_bundle
         .create_rpc_client::<UpdateClient>(
-            "com.sdv.oem.sample.concal".to_string(),
-            "SampleOemConCalServiceBundle".to_string(),
+            UnitName::builder()
+                .package_name("com.sdv.oem.sample.concal")
+                .bundle_name("SampleOemConCalServiceBundle")
+                .service_unit_name(UpdateClient::DEFAULT_UNIT_NAME)
+                .build()
+                .unwrap(),
             ClientOptions::default(),
         )
         .await

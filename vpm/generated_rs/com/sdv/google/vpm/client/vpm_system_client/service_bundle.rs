@@ -55,19 +55,11 @@ impl VpmSystemClient {
     /// Attempts to connect to an RPC server, returns a client stub if succeed.
     pub async fn create_rpc_client<T: sdv::mw::RpcClient>(
         &self,
-        package: impl Into<String>,
-        bundle: impl Into<String>,
+        server: sdv::mw::UnitName,
         options: sdv::mw::ClientOptions,
     ) -> sdv::status::SdvResult<T> {
         let attributes = sdv::mw::ClientAttributes::builder()
-            .server_name(
-                sdv::mw::UnitName::builder()
-                    .package_name(package)
-                    .bundle_name(bundle)
-                    .vm_name("")
-                    .service_unit_name(T::DEFAULT_UNIT_NAME)
-                    .build()?,
-            )
+            .server_name(server)
             .client_options(options)
             .build()?;
         Ok(T::new(self.comms.create_client_transport(&attributes).await?))

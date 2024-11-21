@@ -99,19 +99,11 @@ impl VpmSystemClient {
     /// Attempts to connect to an RPC server, returns a client stub if succeed.
     pub async fn create_rpc_client<T: sdv::mw::RpcClient>(
         &self,
-        package: impl Into<String>,
-        bundle: impl Into<String>,
+        server: sdv::mw::UnitName,
         options: sdv::mw::ClientOptions,
     ) -> sdv::status::SdvResult<T> {
         let attributes = sdv::mw::ClientAttributes::builder()
-            .server_name(
-                sdv::mw::UnitName::builder()
-                    .package_name(package)
-                    .bundle_name(bundle)
-                    .vm_name("")
-                    .service_unit_name(T::DEFAULT_UNIT_NAME)
-                    .build()?,
-            )
+            .server_name(server)
             .client_options(options)
             .build()?;
         Ok(T::new(self.comms.create_client_transport(&attributes).await?))
@@ -150,7 +142,7 @@ impl VpmSystemClient {
         let subscribe_handle = match M::IS_MULTIPUB {
             // For single-pub, subscribe to a specific publication.
             false => {
-                let publication = self.find_publication(variant).await?;
+                let publication = self.find_publication(variant, options).await?;
                 publication.subscribe(options).await?
             }
             // For multi-pub, subscribe to a message type.
@@ -174,7 +166,7 @@ impl VpmSystemClient {
         let byte_buffer_stream = match M::IS_MULTIPUB {
             // For single-pub, observe a specific publication.
             false => {
-                let publication = self.find_publication(variant).await?;
+                let publication = self.find_publication(variant, options).await?;
                 publication.observe(options).await?
             }
             // For multi-pub, observe a message type.
@@ -195,7 +187,7 @@ impl VpmSystemClient {
                 "History is not supported for Multipub variants.",
             ))
         } else {
-            let publication = self.find_publication(variant).await?;
+            let publication = self.find_publication(variant, options).await?;
             Ok(sdv::mw::History::<M>::new(publication.create_history(options).await?))
         }
     }
@@ -204,6 +196,7 @@ impl VpmSystemClient {
     pub async fn create_instant_reader<M: ::protobuf::Message + subscriber::Metadata + 'static>(
         &mut self,
         variant: &subscriber::Variant<M>,
+        options: &sdv::mw::SubscribeOptions,
     ) -> sdv::status::SdvResult<sdv::mw::InstantReader<M>> {
         if M::IS_MULTIPUB {
             Err(sdv::status::SdvStatus::with_message(
@@ -211,7 +204,7 @@ impl VpmSystemClient {
                 "Instant Read is not supported for Multipub variants.",
             ))
         } else {
-            let publication = self.find_publication(variant).await?;
+            let publication = self.find_publication(variant, options).await?;
             Ok(sdv::mw::InstantReader::<M>::new(publication.create_instant_read()))
         }
     }
@@ -219,11 +212,12 @@ impl VpmSystemClient {
     async fn find_publication<M: ::protobuf::Message + 'static>(
         &mut self,
         variant: &subscriber::Variant<M>,
+        options: &sdv::mw::SubscribeOptions,
     ) -> sdv::status::SdvResult<std::sync::Arc<dyn sdv::mw::Publication>> {
         self.comms
             .find_publication(&sdv::mw::UnitQuery::Name(
                 sdv::mw::UnitName::builder()
-                    .vm_name(String::new())
+                    .vm_name(options.get_vm_name())
                     .package_name(variant.service_bundle_package)
                     .bundle_name(variant.service_bundle_name)
                     .service_unit_name(variant.service_unit)
