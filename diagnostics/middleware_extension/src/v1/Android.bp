@@ -15,7 +15,7 @@ rust_defaults {
         "libdiagnostics_v1_api",
         "libsdv_mw_rs_comms",
         "libsdv_status_rs",
-        "libvsidl_reflection",
+        "libsdv_proto_reflection_rs",
         "libvsidl_v1_proto_rs",
     ],
     proc_macros: [
@@ -49,9 +49,14 @@ rust_test {
         "libsdv_mw_local_comms",
         "libgoogletest_rust",
         "libtokio",
+        "libsdv_comms_rs",
+        "libsdv_mw_rs_sdv_comms",
+        "libfutures_util",
     ],
+    ld_flags: ["-Wl,--no-as-needed"],
     test_suites: [
         "automotive-sdv-tests",
         "general-tests",
     ],
+    require_root: true,
 }

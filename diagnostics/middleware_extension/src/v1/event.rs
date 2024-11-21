@@ -5,10 +5,10 @@ use protobuf::Message;
 use sdv_mw_rs_comms::{
     codec, Communicate, Publish, PublisherAttributes, PublisherMetadata, TypeName,
 };
+use sdv_proto_reflection_rs::message_metadata::MessageMetadata;
 use sdv_status_rs::SdvResult;
 use std::marker::PhantomData;
 use std::sync::Arc;
-use vsidl_reflection::message_metadata::MessageMetadata;
 use vsidl_v1::annotations;
 
 /// Publisher of diagnostics events.
@@ -40,7 +40,7 @@ impl<M: Message> EventPublisher<M> {
                             .message_size(compute_event_message_size(data_size))
                             .message_count(16)
                             .is_multipub(true)
-                            //.message_metadata(event_message_metadata())
+                            .message_metadata(event_message_metadata())
                             .build()?,
                     )
                     .build()?,
@@ -74,7 +74,6 @@ impl<M: Message> EventPublisher<M> {
     }
 }
 
-#[allow(dead_code)]
 fn event_message_metadata() -> MessageMetadata {
     MessageMetadata {
         message_full_name: ".com.sdv.google.diagnostics.event.Event".to_string(),
@@ -135,14 +134,22 @@ mod tests {
     use super::*;
     use diagnostics_v1_api::event::Event;
     use diagnostics_v1_api::event::{OperationCycle as TestProto, Status};
+    use futures_util::StreamExt;
     use googletest::assert_that;
     use googletest::prelude::eq;
     use protobuf::reflect::{FileDescriptor, MessageDescriptor};
     use protobuf::EnumOrUnknown;
     use protobuf::MessageDyn;
     use protobuf::{well_known_types, MessageFull};
+    use sdv_comms::{
+        id::ServiceFqin,
+        sd::{ServiceDiscoveryManager, UnitNameDiscoveryArgs},
+        ContextRef,
+    };
     use sdv_mw_local_comms::LocalComms;
     use sdv_mw_rs_comms::{codec::decode, *};
+    use sdv_mw_rs_sdv_comms::SdvComms;
+    use std::str::FromStr;
 
     #[tokio::test]
     async fn test_compute_length_size() {
@@ -293,6 +300,38 @@ mod tests {
     fn test_event_message_metadata() {
         let parsed_event_descriptor = parse_message_descriptor(event_message_metadata());
 
+        let event_descriptor = Event { ..Default::default() }.descriptor_dyn();
+
+        assert_that!(parsed_event_descriptor.proto(), eq(event_descriptor.proto()));
+    }
+
+    #[tokio::test]
+    async fn test_event_message_metadata_is_set() {
+        // GIVEN event publication
+        let context = ContextRef::create(
+            ServiceFqin::from_str("vm:com.sdv.google.sample.diagnostics.SampleBundle/instance")
+                .unwrap(),
+        );
+        let comms = Arc::new(SdvComms { context });
+        let _event_publisher =
+            EventPublisher::<TestProto>::new(10, comms.clone(), "event".to_string()).await.unwrap();
+
+        let sd = ServiceDiscoveryManager::new(context);
+        let discovery_args = UnitNameDiscoveryArgs::new_builder()
+            .set_sdv_package_name("com.sdv.google.sample.diagnostics")
+            .set_service_bundle_name("SampleBundle")
+            .set_service_unit_name("event")
+            .build()
+            .expect("Discovery args builder failed.");
+        let service_unit = sd.list_units_by_name(&discovery_args).next().await.unwrap();
+
+        // GIVEN parsing event message descriptor from publication metadata
+        let parsed_event_descriptor = parse_message_descriptor(
+            MessageMetadata::parse_from_bytes(&service_unit.get_application_metadata())
+                .expect("parsing message descriptors failed"),
+        );
+
+        // THEN parsed descriptor is the same as Event message descriptor
         let event_descriptor = Event { ..Default::default() }.descriptor_dyn();
 
         assert_that!(parsed_event_descriptor.proto(), eq(event_descriptor.proto()));
