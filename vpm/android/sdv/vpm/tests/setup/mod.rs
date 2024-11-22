@@ -218,7 +218,7 @@ impl TestVePSM {
         let context = create_context(instance_name);
         let comms = SdvComms { context };
         let mut bundle =
-            VpmSystemClient::new(Arc::new(comms), (Arc::new(power_notification_receiver),))
+            VpmSystemClient::new(Arc::new(comms.clone()), (Arc::new(power_notification_receiver),))
                 .await
                 .unwrap();
         let client = bundle
@@ -226,6 +226,7 @@ impl TestVePSM {
                 UnitName::builder()
                     .package_name("com.sdv.google.vpm")
                     .bundle_name("VpmSystemServiceBundle")
+                    .vm_name(comms.context.get_self_fqin().get_sdv_vm_name())
                     .service_unit_name(
                         com_sdv_google_vpm_vpm_system_service_rpc::Client::DEFAULT_UNIT_NAME,
                     )
@@ -236,10 +237,14 @@ impl TestVePSM {
             .await
             .unwrap();
 
+        let subscriber_options = SubscribeOptions::builder()
+            .vm_name(comms.context.get_self_fqin().get_sdv_vm_name().to_string())
+            .build()
+            .unwrap();
         let mut subscriber = bundle
             .create_observer(
                 subscriber::Variant::<sdv_vpm_api::vehicle::VehicleStateChange>::UNIQUE,
-                &SubscribeOptions::default(),
+                &subscriber_options,
             )
             .await
             .unwrap();

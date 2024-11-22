@@ -19,11 +19,15 @@ async fn main() {
     info!("Vehicle State subscriber is starting client starting");
     let context = create_context();
     let comms = SdvComms { context };
-    let mut bundle = VehicleStateSubscriber::new(Arc::new(comms)).await.unwrap();
+    let mut bundle = VehicleStateSubscriber::new(Arc::new(comms.clone())).await.unwrap();
+    let subscriber_options = SubscribeOptions::builder()
+        .vm_name(comms.context.get_self_fqin().get_sdv_vm_name().to_string())
+        .build()
+        .unwrap();
     let mut subscriber = bundle
         .create_observer(
             subscriber::Variant::<sdv_vpm_api::vehicle::VehicleStateChange>::UNIQUE,
-            &SubscribeOptions::default(),
+            &subscriber_options,
         )
         .await
         .unwrap();

@@ -23,7 +23,6 @@ rust_binary {
         "libsdv_comms_rs",
         "libtokio",
         "libfutures_util",
-        "libsdv_middleware_pubsub",
         "libsdv_mw_rs_com_sdv_google_vpm_vehicle_client_subscriber_vehicle_state_subscriber",
         "libsdv_mw_rs_com_sdv_google_vpm_vpm_system_service_bundle",
     ],
