@@ -1,0 +1,39 @@
+# Copyright 2024 Google LLC
+# proto-file: //system/software_defined_vehicle/core_services/vsidl/protos/sdv/vsidl/v1/syntax.proto
+# proto-message: VsidlEntry
+
+package: "com.sdv.google.sample.combined"
+
+sdv_service_bundle {
+    name: "SampleServiceWithAllDependencies"
+
+    # Dependency on Diagnostics
+    server {
+        interface: "com.sdv.google.diagnostics.data_item.DataItemService"
+    }
+
+    # Dependency on ConCal
+    server {
+        interface: "com.sdv.google.concal.calib.client.CalibratableService"
+    }
+
+    # Dependency on User Preferences.
+    server {
+        interface: "com.sdv.google.user_preferences.view.ChangeNotifier"
+    }
+
+    # Dependency on VPM.
+    server {
+        interface: "com.sdv.google.vpm.VpmSystemService"
+    }
+
+    # Dependency on Health.
+    server {
+        interface: "com.sdv.google.health.HealthMonitorRegistrationService"
+    }
+
+    # Dependency on Orchestration.
+    server {
+        interface: "com.sdv.google.orchestrator.CustomStateService"
+    }
+}
