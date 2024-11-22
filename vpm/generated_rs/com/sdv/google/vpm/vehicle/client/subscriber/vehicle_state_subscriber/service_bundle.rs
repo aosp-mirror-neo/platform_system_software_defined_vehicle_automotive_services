@@ -180,13 +180,14 @@ impl VehicleStateSubscriber {
     pub async fn create_registration_event_stream<M: ::protobuf::Message + 'static>(
         &mut self,
         variant: &subscriber::Variant<M>,
+        options: &sdv::mw::SubscribeOptions,
     ) -> sdv::status::SdvResult<
         std::pin::Pin<Box<dyn futures::Stream<Item = sdv::mw::Availability> + Send>>,
     > {
         self.comms
             .create_registration_event_stream(&sdv::mw::UnitQuery::Name(
                 sdv::mw::UnitName::builder()
-                    .vm_name(String::new())
+                    .vm_name(options.get_vm_name())
                     .package_name(variant.service_bundle_package)
                     .bundle_name(variant.service_bundle_name)
                     .service_unit_name(variant.service_unit)
