@@ -72,14 +72,38 @@ sdv_service_bundle {
 sdv_service_bundle {
     name: "DiagnosticsSampleWithDataItem"
 
+    # Declare server of a DataItemService
     server {
         interface: "com.sdv.google.diagnostics.data_item.DataItemService"
     }
 
     diagnostics_declaration {
+        # describe provided data items
         data_item {
             id: "pressure"
             message_name: "Pressure"
+        }
+    }
+}
+
+sdv_service_bundle {
+    name: "DiagnosticsSampleWithEvent"
+
+    publisher {
+        type: "com.sdv.google.diagnostics.event.EnableCondition"
+        service_unit_name: "traction-on"
+    }
+
+    publisher {
+        type: "com.sdv.google.diagnostics.event.OperationCycle"
+        service_unit_name: "ignition"
+    }
+
+    diagnostics_declaration {
+        event {
+            id: "overheating"
+            extended_data_message_name: "OverheatingData"
+            service_unit_name: "overheating-event"
         }
     }
 }

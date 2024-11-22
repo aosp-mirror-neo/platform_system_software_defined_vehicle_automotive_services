@@ -11,11 +11,28 @@ sdv_service_bundle_metadata {
     # Reference the manifest itself to mark this as a config-only declaration.
     native_library_path: "lib64/liboem_diagnostics_sample_with_data_item.so"
 
-    orchestration_config_path: "etc/orchestration.textproto"
+    orchestration_config_path: "etc/data_item/orchestration.textproto"
 
-    access_control_list_policy_path: "etc/acl.textproto"
+    access_control_list_policy_path: "etc/data_item/acl.textproto"
 
-    vsidl_schemas_path: "etc/vsidl.binpb"
+    vsidl_schemas_path: "etc/data_item/vsidl.binpb"
 
-    diagnostics_config_path: "etc/diag.binpb"
+    diagnostics_config_path: "etc/data_item/diag.binpb"
+}
+sdv_service_bundle_metadata {
+    # This name must match the VSIDL's Bundle Name
+    name: "DiagnosticsSampleWithEvent"
+    version_number: 1
+    version_name: "1"
+
+    # Reference the manifest itself to mark this as a config-only declaration.
+    native_library_path: "lib64/liboem_diagnostics_sample_with_data_item.so"
+
+    orchestration_config_path: "etc/event/orchestration.textproto"
+
+    access_control_list_policy_path: "etc/event/acl.textproto"
+
+    vsidl_schemas_path: "etc/event/vsidl.binpb"
+
+    diagnostics_config_path: "etc/event/diag.binpb"
 }
