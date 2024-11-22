@@ -10,9 +10,7 @@ use log::{error, info};
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
 use sdv_mw_rs_com_sdv_google_vpm_client_vpm_system_client::VpmSystemClient;
-use sdv_mw_rs_comms::ClientAttributes;
 use sdv_mw_rs_comms::ClientOptions;
-use sdv_mw_rs_comms::Communicate;
 use sdv_mw_rs_comms::RpcClient;
 use sdv_mw_rs_comms::UnitName;
 use sdv_mw_rs_sdv_comms::SdvComms;
@@ -33,8 +31,8 @@ async fn main() -> anyhow::Result<()> {
     sdv_log::init_logger(LOG_TAG)?;
     let context = create_context();
     let comms = SdvComms { context };
-    let _bundle = VpmSystemClient::new(Arc::new(comms.clone()), (Arc::new(VePSM {}),)).await?;
-    let client = create_client(comms).await?;
+    let bundle = VpmSystemClient::new(Arc::new(comms.clone()), (Arc::new(VePSM {}),)).await?;
+    let client = create_client(&bundle, comms).await?;
     let mut parse_from_cli = true;
     loop {
         let input_args = if parse_from_cli { Cli::try_parse().ok() } else { parse_input() };
@@ -165,7 +163,7 @@ async fn handle_power_state(power_cmd: PowerCommand, client: &Client) -> anyhow:
     Ok(())
 }
 
-async fn create_client(comms: SdvComms) -> anyhow::Result<Client> {
+async fn create_client(bundle: &VpmSystemClient, comms: SdvComms) -> anyhow::Result<Client> {
     let server_name = UnitName::builder()
         .vm_name(comms.context.get_self_fqin().get_sdv_vm_name())
         .package_name("com.sdv.google.vpm")
@@ -173,19 +171,12 @@ async fn create_client(comms: SdvComms) -> anyhow::Result<Client> {
         .service_unit_name(Client::DEFAULT_UNIT_NAME)
         .build()
         .map_err(|_| anyhow!("invalid server UnitName"))?;
-
-    let attributes = ClientAttributes::builder()
-        .server_name(server_name)
-        .client_options(ClientOptions::default())
-        .build()
-        .map_err(|_| anyhow!("invalid ClientAttributes"))?;
-
-    let result = comms.create_client_transport(&attributes).await;
+    let result = bundle.create_rpc_client(server_name, ClientOptions::default()).await;
     if result.is_err() {
         error!("Could not get a client for vpm notifications");
         return Err(anyhow!("Could not get a client for vpm notifications"));
     }
-    let client = Client::new(result.unwrap());
+    let client = result.unwrap();
     Ok(client)
 }
 
