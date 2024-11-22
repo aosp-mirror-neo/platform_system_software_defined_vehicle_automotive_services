@@ -18,6 +18,12 @@
     },
     {
       "name": "sdv_mw_rs_diag_tests"
+    },
+    {
+      "name": "sdv_combined_sample_generation_test"
+    },
+    {
+      "name": "sdv_combined_sample_per_bundle_generation_test"
     }
   ],
   "sdv_automotive_service_postsubmit": [],

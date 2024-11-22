@@ -27,18 +27,6 @@ genrule {
     ],
 }
 
-prebuilt_etc {
-    name: "generate_sample_rc_file_for_vsidl",
-    sub_dir: "sample",
-    src: ":generate_sample_rc_files{vsidl-config.binpb}",
-}
-
-prebuilt_etc {
-    name: "generate_sample_rc_file_for_someip",
-    sub_dir: "sample",
-    src: ":generate_sample_rc_files{someip-config.binpb}",
-}
-
 genrule {
     name: "generate_sample_per_bundle_rc_files",
     tools: ["vsidl_rc_generator"],
@@ -61,16 +49,4 @@ genrule {
         "vsidl-config.binpb",
         "diagnostics-config.binpb",
     ],
-}
-
-prebuilt_etc {
-    name: "generate_sample_rc_file_for_vsidl_per_bundle",
-    sub_dir: "sample",
-    src: ":generate_sample_per_bundle_rc_files{vsidl-config.binpb}",
-}
-
-prebuilt_etc {
-    name: "generate_sample_rc_file_for_diag_per_bundle",
-    sub_dir: "sample",
-    src: ":generate_sample_per_bundle_rc_files{diagnostics-config.binpb}",
 }
