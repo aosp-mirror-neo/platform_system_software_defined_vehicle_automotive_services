@@ -41,7 +41,7 @@ enum Status {
 // Id of the event being reported is defined by the data tunnel topic being used.
 message Event {
   option (.sdv.vsidl.v1.publication) = {
-    message_count: 1
+    message_count: 32
   };
 
   // Required. Status of the event.
