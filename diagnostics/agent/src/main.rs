@@ -1,49 +1,52 @@
 // Copyright 2024 Google LLC
 
 //! Diagnostics agent implementation.
-
 use diagnostics_v1_api::{
+    data_item_service::{ReadDataItemRequest, ReadDataItemResponse},
+    diagnostics::DiagnosticsDeclaration,
     event::Event,
     fault_listener_service::{OnFaultStatusChangeRequest, OnFaultStatusChangeResponse},
     io_control_service::{IoControlRequest, IoControlResponse},
-    data_item_service::{ReadDataItemRequest, ReadDataItemResponse},
     routine_control_service::{RoutineControlRequest, RoutineControlResponse},
 };
+use futures::future;
 use futures::stream::StreamExt;
-use log::info;
+use log::{debug, info, warn};
 use protobuf::MessageFull;
 use sdv_comms::dt::{Subscriber, SubscriberOptions};
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::rpc::{Client, ClientOptions};
+use sdv_comms::sd::ServiceUnitChangeEvent;
 use sdv_comms::sd::{
     ServiceDiscoveryManager, ServiceUnitDefinition, UnitNameDiscoveryArgs, UnitType,
 };
 use sdv_comms::ContextRef;
-use std::collections::HashSet;
+use sdv_config_provider::{
+    vsidl_provider::VsidlProviderV1, vsidl_provider_api::VsidlConfigProviderV1,
+};
+use sdv_uds_serde::{diagnostics_translator::DiagnosticsTranslator, entity_id::EntityId};
+use std::future::Future;
 use std::str::FromStr;
 use std::thread;
 use std::time::Duration;
-use google_sdv_rpc_aidl::aidl::google::sdv::rpc::IRpcAgent::{BpRpcAgent, IRpcAgent};
-use google_sdv_service_discovery_discovery_aidl::aidl::google::sdv::service_discovery::discovery::IServiceDiscoveryAgent::{BpServiceDiscoveryAgent, IServiceDiscoveryAgent};
-use sdv_comms::sd::ServiceUnitChangeEvent;
-use futures::future;
-use sdv_config_provider::{
-    vsidl_provider::VsidlProviderV1,
-    vsidl_provider_api::VsidlConfigProviderV1,
-};
+use std::{collections::HashSet, sync::Arc};
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread", worker_threads = 8)]
 async fn main() {
     sdv_log::init_logger("sdv_diagnostics_agent").unwrap();
     sdv_tracing::init_tracing();
 
-    wait_for_comms_stack();
+    sdv_comms::wait_for_agents()
+        .unwrap_or_else(|err| panic!("Error waiting for Comms Stack agents: {err}"));
+
+    let vsidl_provider = Arc::new(
+        VsidlProviderV1::new_sync_provider()
+            .unwrap_or_else(|| panic!("Error creating VSIDL provider")),
+    );
 
     let self_fqin =
-        ServiceFqin::from_str("vm:com.sdv.google.diagnostics.DiagnosticsAgent/default").unwrap();
+        ServiceFqin::from_str("vm:com.sdv.oem.diagnostics.DiagnosticsAgent/default").unwrap();
     let context = ContextRef::create(self_fqin.clone());
-
-    use_vsidl_provider();
 
     info!("Starting Diagnostics Agent");
 
@@ -52,9 +55,39 @@ async fn main() {
         listen_to_events(context).await;
     });
 
+    let cloned_vsidl_provider = vsidl_provider.clone();
     tokio::spawn(async move {
         info!("Starting interaction with DataItems");
-        data_item_interaction(context).await;
+        let vsidl_provider = cloned_vsidl_provider.clone();
+
+        set_service_unit_registration_callback(
+            context,
+            UnitType::builder()
+                .set_sdv_package_name("com.sdv.google.diagnostics")
+                .set_service_bundle_name("DiagnosticsManager")
+                .set_unit_type_name("data_item.DataItemService")
+                .build()
+                .unwrap(),
+            move |service_unit| {
+                let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
+                let declaration = vsidl_provider.get_diagnostics_declaration(&service_fqin);
+
+                debug!(
+                    "Diagnostics declaration of a {} : {:#?}",
+                    service_fqin,
+                    vsidl_provider.get_diagnostics_declaration(&service_fqin)
+                );
+
+                tokio::spawn(read_data_items(
+                    context,
+                    service_unit,
+                    declaration.unwrap_or_default(),
+                ));
+
+                future::ready(())
+            },
+        )
+        .await;
     });
 
     tokio::spawn(async move {
@@ -97,7 +130,11 @@ async fn listen_to_events(context: ContextRef) {
                 continue;
             }
 
-            info!("Subscribing to new event: {service_unit:#?}");
+            info!(
+                "Subscribing to new event: {}#{}",
+                service_unit.get_service_bundle_identity().get_fqin(),
+                service_unit.get_unit_identifier().get_unit_name()
+            );
 
             let uid = service_unit.get_unit_identifier();
             let subscriber =
@@ -113,6 +150,44 @@ async fn listen_to_events(context: ContextRef) {
         }
 
         thread::sleep(Duration::from_millis(200));
+    }
+}
+
+async fn read_data_items(
+    context: ContextRef,
+    service_unit: ServiceUnitDefinition,
+    diagnostics_declaration: DiagnosticsDeclaration,
+) {
+    let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
+    let translator = DiagnosticsTranslator::new();
+
+    for data_item in diagnostics_declaration.data_item {
+        debug!("Trying to read data item: {:#?}", data_item);
+        let result = perform_and_log_rpc_call::<ReadDataItemRequest, ReadDataItemResponse>(
+            context,
+            service_unit.clone(),
+            "ReadDataItem",
+            ReadDataItemRequest { id: data_item.id.clone(), ..Default::default() },
+        )
+        .await;
+
+        let translation_result = translator.translate_from_protobuf_to_uds(
+            &service_fqin,
+            EntityId::DataItem(data_item.id.clone()),
+            &result.value,
+        );
+
+        match translation_result {
+            Ok(uds_data_item_value) => {
+                debug!(
+                    "Read data item: {}#{}, proto_value: {:?}, uds_value {:?}",
+                    &service_fqin, data_item.id, result.value, uds_data_item_value
+                );
+            }
+            Err(e) => {
+                warn!("Error reading data item: {e}");
+            }
+        };
     }
 }
 
@@ -147,28 +222,6 @@ async fn subscribe_to_event(subscriber: Subscriber) {
 
         thread::sleep(Duration::from_secs(1));
     }
-}
-
-async fn data_item_interaction(context: ContextRef) {
-    let service_unit = wait_for_service_unit(
-        context,
-        UnitNameDiscoveryArgs::new_builder()
-            .set_sdv_package_name("com.sdv.oem.sample.diagnostics")
-            .set_service_bundle_name("DiagnosticsSampleWithDataItem")
-            .set_service_unit_name("com-sdv-google-diagnostics-data-item-data-item-service")
-            .build()
-            .unwrap(),
-    )
-    .await;
-
-    // TODO(372607401): use VsidlProvider to parse the response message.
-    let _ = perform_and_log_rpc_call::<ReadDataItemRequest, ReadDataItemResponse>(
-        context,
-        service_unit,
-        "ReadDataItem",
-        ReadDataItemRequest { id: "pressure".to_string(), ..Default::default() },
-    )
-    .await;
 }
 
 async fn io_control_interaction(context: ContextRef) {
@@ -243,6 +296,52 @@ async fn fault_listener_interaction(context: ContextRef) {
     .await;
 }
 
+async fn set_service_unit_registration_callback<F, Fut>(context: ContextRef, args: UnitType, f: F)
+where
+    F: Fn(ServiceUnitDefinition) -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = ()> + Send + 'static,
+{
+    info!("Listening for service units registration by type : {}", args.to_string());
+
+    let sd = ServiceDiscoveryManager::new(context);
+
+    let unit_stream = sd.subscribe_service_unit_change_by_type(&args).await.unwrap();
+
+    let f = Arc::new(f);
+
+    unit_stream
+        .filter_map(move |event| {
+            debug!("Service unit change received: {event:#?}");
+
+            let result = if let ServiceUnitChangeEvent::Registered(unit) = event {
+                debug!(
+                    "Service unit registered: {} / {}",
+                    unit.get_service_bundle_identity().get_fqin(),
+                    unit.get_unit_identifier().get_unit_name()
+                );
+                Some(unit)
+            } else {
+                debug!("Ignoring unit Unregister/Change events");
+                None
+            };
+
+            future::ready(result)
+        })
+        .inspect(|unit| {
+            info!(
+                "Discovered unit: {} : {}",
+                unit.get_service_bundle_identity().get_fqin(),
+                unit.get_unit_identifier().get_unit_name()
+            );
+
+            let unit = unit.clone();
+            let f = f.clone();
+            tokio::spawn(async move { f(unit).await });
+        })
+        .collect::<Vec<_>>()
+        .await;
+}
+
 async fn wait_for_service_unit(
     context: ContextRef,
     args: UnitNameDiscoveryArgs,
@@ -261,8 +360,6 @@ async fn wait_for_service_unit(
             } else {
                 None
             };
-
-            thread::sleep(Duration::from_secs(3));
 
             future::ready(result)
         })
@@ -284,6 +381,8 @@ async fn perform_and_log_rpc_call<Req: MessageFull, Resp: MessageFull>(
     method: &'static str,
     request: Req,
 ) -> Resp {
+    debug!("Performing RPC call: {}:{method}", service_unit.get_unit_type());
+
     let client = Client::create(
         context,
         service_unit.get_unit_identifier(),
@@ -293,29 +392,11 @@ async fn perform_and_log_rpc_call<Req: MessageFull, Resp: MessageFull>(
     .unwrap_or_else(|cause| {
         panic!("Failed to create client for RPC call on: {service_unit:#?} with error {cause:#?}")
     });
+
     let response = client.unary_call(method, &encode::<Req>(&request).unwrap()).await.unwrap();
     let response_decoded = decode::<Resp>(&response);
     info!("Response for RPC call [{}]: {:?}", method, response_decoded);
     response_decoded.unwrap()
-}
-
-fn wait_for_comms_stack() {
-    let descriptor = <BpServiceDiscoveryAgent as IServiceDiscoveryAgent>::get_descriptor()
-        .to_owned()
-        + "/default";
-    with_retry(|| binder::wait_for_interface::<dyn IServiceDiscoveryAgent>(&descriptor));
-
-    let descriptor = <BpRpcAgent as IRpcAgent>::get_descriptor().to_owned() + "/default";
-    with_retry(|| binder::wait_for_interface::<dyn IRpcAgent>(&descriptor));
-    thread::sleep(Duration::from_secs(10));
-}
-
-fn with_retry<T, E, F>(function: F) -> T
-where
-    F: Fn() -> Result<T, E>,
-{
-    info!("Retrying wait for comms stack");
-    function().unwrap_or_else(|_| with_retry(function))
 }
 
 fn encode<M: MessageFull>(message: &M) -> Result<Vec<u8>, protobuf::Error> {
@@ -333,19 +414,4 @@ fn decode_with_len<T: MessageFull>(message_bytes: &[u8]) -> Result<T, protobuf::
     let _ = input_stream.push_limit(size);
 
     T::parse_from(&mut input_stream)
-}
-
-fn use_vsidl_provider() {
-    let vsidl_provider = VsidlProviderV1::new_sync_provider().unwrap();
-
-    // Declaration from APEX.
-    log::debug!(
-        "Diagnostics declaration: {:#?}",
-        vsidl_provider.get_diagnostics_declaration(
-            &ServiceFqin::from_str(
-                "vm:com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithDataItem/default"
-            )
-            .unwrap()
-        )
-    );
 }

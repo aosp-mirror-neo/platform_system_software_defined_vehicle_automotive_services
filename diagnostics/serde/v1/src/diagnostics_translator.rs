@@ -17,19 +17,22 @@ use vsidl_v1::diagnostics::DiagnosticsDeclaration;
 /// Provides methods to translate protobuf bytes to UDS-compatible bytes to and back,
 /// taking diagnostics entity id as a description of message format.
 pub struct DiagnosticsTranslator {
-    vsidl_provider: Box<dyn VsidlConfigProviderV1>,
-    translator: Box<dyn Translator>,
+    vsidl_provider: Box<dyn VsidlConfigProviderV1 + Send + Sync>,
+    translator: Box<dyn Translator + Send + Sync>,
 }
 
 impl DiagnosticsTranslator {
     /// Creates new instance.
     pub fn new() -> Self {
-        Self::init(Box::new(VsidlProviderV1::new().unwrap()), Box::new(TranslatorImpl))
+        Self::init(
+            Box::new(VsidlProviderV1::new_sync_provider().unwrap()),
+            Box::new(TranslatorImpl),
+        )
     }
 
     fn init(
-        vsidl_provider: Box<dyn VsidlConfigProviderV1>,
-        translator: Box<dyn Translator>,
+        vsidl_provider: Box<dyn VsidlConfigProviderV1 + Send + Sync>,
+        translator: Box<dyn Translator + Send + Sync>,
     ) -> Self {
         Self { vsidl_provider, translator }
     }

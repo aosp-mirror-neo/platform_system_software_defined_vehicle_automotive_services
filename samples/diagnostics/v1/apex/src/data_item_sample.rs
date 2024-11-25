@@ -1,7 +1,7 @@
 // Copyright 2024 Google LLC
 //! Sample service exposing diagnostics data item.
 
-use log::info;
+use log::{debug, info};
 use std::{sync::Arc, thread};
 use tokio_util::sync::CancellationToken;
 
@@ -53,6 +53,8 @@ impl ServiceBundle for DiagnosticsSampleWithDataItemRunner {
                 )
                 .await
                 .unwrap();
+
+                debug!("data_item_sample: After Service Bundle creation");
 
                 Self::main_loop(context, service_bundle, cancellation_token.clone()).await;
             });

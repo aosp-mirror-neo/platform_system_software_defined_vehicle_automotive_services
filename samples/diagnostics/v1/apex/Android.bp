@@ -11,7 +11,10 @@ apex {
     certificate: ":com.sdv.oem.sample.diagnostics.certificate",
     file_contexts: "file_contexts",
     updatable: false,
-    native_shared_libs: ["liboem_diagnostics_sample_with_data_item"],
+    native_shared_libs: [
+        "liboem_diagnostics_sample_with_data_item",
+        "liboem_diagnostics_sample_with_event",
+    ],
     prebuilts: [
         // SDV Manifest - used by SBR
         "com.sdv.oem.sample.diagnostics.manifest",

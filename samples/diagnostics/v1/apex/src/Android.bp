@@ -1,10 +1,7 @@
 // Copyright 2024 Google LLC
 
-rust_ffi_shared {
-    name: "liboem_diagnostics_sample_with_data_item",
-    crate_name: "oem_diagnostics_sample_with_data_item",
-    srcs: ["lib.rs"],
-    ld_flags: ["-Wl,--no-as-needed"],
+rust_defaults {
+    name: "diag_sample@defaults",
     defaults: ["sdv@rust_defaults"],
     rustlibs: [
         "libprotobuf",
@@ -12,12 +9,12 @@ rust_ffi_shared {
         "liblog_rust",
         "libsdvmiddleware_rpc",
         "libdiagnostics_v1_sample_catalog",
+        "libdiagnostics_v1_api",
         "libsdv_lifecycle_client_rust",
         "libtokio",
         "libsdv_rs",
         "libsdv_comms_rs",
         "libtokio_util",
-        "libsdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_sample_with_data_item",
     ],
     proc_macros: [
         "libasync_trait",
@@ -26,5 +23,27 @@ rust_ffi_shared {
     // Allows the library to be available inside the APEX.
     apex_available: [
         "com.sdv.oem.sample.diagnostics",
+    ],
+}
+
+rust_ffi_shared {
+    name: "liboem_diagnostics_sample_with_data_item",
+    crate_name: "oem_diagnostics_sample_with_data_item",
+    srcs: ["data_item_sample.rs"],
+    ld_flags: ["-Wl,--no-as-needed"],
+    rustlibs: [
+        "libsdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_sample_with_data_item",
+    ],
+    defaults: ["diag_sample@defaults"],
+}
+
+rust_ffi_shared {
+    name: "liboem_diagnostics_sample_with_event",
+    crate_name: "oem_diagnostics_sample_with_event",
+    srcs: ["event_sample.rs"],
+    ld_flags: ["-Wl,--no-as-needed"],
+    defaults: ["diag_sample@defaults"],
+    rustlibs: [
+        "libsdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_sample_with_event",
     ],
 }
