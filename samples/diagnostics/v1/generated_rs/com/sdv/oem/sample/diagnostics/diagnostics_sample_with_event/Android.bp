@@ -20,6 +20,7 @@ rust_library {
         "libfutures",
         "libdiagnostics_v1_api",
         "libvsidl_v1_proto_rs",
+        "libcom_sdv_google_diagnostics_fault_fault_listener_service_rpc_rs",
         "libdiagnostics_v1_sample_catalog",
         "libsdv_proto_reflection_rs",
     ],

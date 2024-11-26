@@ -10,14 +10,24 @@ use sdv_lifecycle_client::register_service_bundle;
 
 use diagnostics_v1_api::event::{operation_cycle::*, *};
 use diagnostics_v1_sample_catalog::messages::*;
-use sdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_sample_with_event::publisher::Variant;
-use sdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_sample_with_event::DiagnosticsSampleWithEvent;
+use sdv::diagnostics::fault_listener::FaultListenerHandler;
+use sdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_sample_with_event::{
+    diagnostics::Diagnostics, publisher::Variant, DiagnosticsSampleWithEvent,
+};
 
 register_service_bundle!(DiagnosticsSampleWithEventRunner);
 struct DiagnosticsSampleWithEventRunner {
     context: ContextRef,
     cancellation_token: Option<CancellationToken>,
     background_thread: Option<std::thread::JoinHandle<()>>,
+}
+
+struct OverheatingFaultListener;
+#[async_trait::async_trait]
+impl FaultListenerHandler<OverheatingData> for OverheatingFaultListener {
+    async fn on_fault_status_change(&self, status: u8, data: Option<OverheatingData>) {
+        info!("Overheating fault status changed: [status: {status}] {data:?}");
+    }
 }
 
 impl ServiceBundle for DiagnosticsSampleWithEventRunner {
@@ -37,8 +47,14 @@ impl ServiceBundle for DiagnosticsSampleWithEventRunner {
             let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap();
             rt.block_on(async {
                 let comms = Arc::new(SdvComms { context });
-                let mut service_bundle =
-                    DiagnosticsSampleWithEvent::new(comms.clone()).await.unwrap();
+                let mut service_bundle = DiagnosticsSampleWithEvent::new(
+                    comms.clone(),
+                    (Diagnostics::create_fault_listener_server(Arc::new(
+                        OverheatingFaultListener {},
+                    )),),
+                )
+                .await
+                .unwrap();
 
                 service_bundle
                     .take_publisher::<OperationCycle>(Variant::<OperationCycle>::UNIQUE)

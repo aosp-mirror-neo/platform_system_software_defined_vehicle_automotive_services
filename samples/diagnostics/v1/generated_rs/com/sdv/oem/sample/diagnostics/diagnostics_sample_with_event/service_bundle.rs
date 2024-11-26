@@ -37,6 +37,12 @@ impl UnitType for diagnostics_v1_api::event::OperationCycle {
     const TYPENAME: &'static str = "event.OperationCycle";
 }
 
+impl UnitType for dyn com_sdv_google_diagnostics_fault_fault_listener_service_rpc::Interface {
+    const PACKAGE: &'static str = "com.sdv.google.diagnostics";
+    const SERVICE_BUNDLE: &'static str = "DiagnosticsManager";
+    const TYPENAME: &'static str = "fault.FaultListenerService";
+}
+
 /// Provides access to publications available to the service bundle
 pub mod publisher {
 
@@ -117,6 +123,7 @@ pub mod publisher {
 pub struct DiagnosticsSampleWithEvent {
     comms: std::sync::Arc<dyn sdv::mw::Communicate>,
     publishers: std::collections::HashMap<(std::any::TypeId, i32), Box<dyn std::any::Any + Send>>,
+    servers: std::vec::Vec<std::sync::Arc<dyn sdv::mw::ServerTransport>>,
     /// Diagnostic capabilities of the service bundle.
     pub diagnostics: Diagnostics,
 }
@@ -125,10 +132,16 @@ impl DiagnosticsSampleWithEvent {
     /// Creates a new instance of the service bundle
     pub async fn new(
         comms: std::sync::Arc<dyn sdv::mw::Communicate>,
+        servers: (
+            std::sync::Arc<
+                dyn com_sdv_google_diagnostics_fault_fault_listener_service_rpc::Interface,
+            >,
+        ),
     ) -> sdv::status::SdvResult<Self> {
         let mut service = Self {
             comms: comms.clone(),
             publishers: std::collections::HashMap::new(),
+            servers: std::vec::Vec::new(),
             diagnostics: Diagnostics::new(comms).await?,
         };
         service
@@ -141,7 +154,34 @@ impl DiagnosticsSampleWithEvent {
                 publisher::Variant::<diagnostics_v1_api::event::OperationCycle>::ALL_VARIANTS,
             )
             .await?;
+        service.add_server::<dyn com_sdv_google_diagnostics_fault_fault_listener_service_rpc::Interface>(
+                "overheating-fault".to_string(),
+                com_sdv_google_diagnostics_fault_fault_listener_service_rpc::internal::get_method_map(servers.0.clone()),
+            )
+            .await?;
         Ok(service)
+    }
+
+    async fn add_server<T: UnitType + ?Sized + 'static + Send + Sync>(
+        &mut self,
+        unit_name: String,
+        methods: std::collections::HashMap<String, sdv::comms::rpc::UnaryRpcMethod>,
+    ) -> sdv::status::SdvResult<()> {
+        let attributes = sdv::mw::ServerAttributes::builder()
+            .server_name(unit_name)
+            .type_name(
+                sdv::mw::TypeName::builder()
+                    .package_name(T::PACKAGE)
+                    .bundle_name(T::SERVICE_BUNDLE)
+                    .type_name(T::TYPENAME)
+                    .build()?,
+            )
+            .server_options(sdv::mw::ServerOptions::builder().timeout_in_sec(30).build()?)
+            .build()?;
+
+        let transport = self.comms.create_server_transport(&attributes, methods).await?;
+        self.servers.push(transport.into());
+        Ok(())
     }
 
     /// Take the ownership of the publisher object

@@ -99,11 +99,65 @@ sdv_service_bundle {
         service_unit_name: "ignition"
     }
 
+    server {
+        interface: "com.sdv.google.diagnostics.fault.FaultListenerService"
+        service_unit_name: "overheating-fault"
+    }
+
     diagnostics_declaration {
         event {
             id: "overheating"
             extended_data_message_name: "OverheatingData"
             service_unit_name: "overheating-event"
+            fault_listener_mask: 0x1
         }
+    }
+}
+
+sdv_service_bundle {
+    name: "DiagnosticsSampleWithEcuReset"
+
+    server {
+        interface: "com.sdv.google.diagnostics.ecu_reset.EcuResetService"
+    }
+
+    client {
+        interface: "com.sdv.google.diagnostics.DiagnosticsManagerService"
+    }
+}
+
+sdv_service_bundle {
+    name: "DiagnosticsSampleWithAuthentication"
+
+    server {
+        interface: "com.sdv.google.diagnostics.authentication.AuthenticationService"
+    }
+
+    client {
+        interface: "com.sdv.google.diagnostics.DiagnosticsManagerService"
+    }
+}
+
+sdv_service_bundle {
+    name: "DiagnosticsSampleWithSecurityAccess"
+
+    server {
+        interface: "com.sdv.google.diagnostics.security_access.SecurityAccessService"
+    }
+
+    client {
+        interface: "com.sdv.google.diagnostics.DiagnosticsManagerService"
+    }
+}
+
+sdv_service_bundle {
+    name: "DiagnosticsSampleWithFileTransfer"
+
+    server {
+        interface: "com.sdv.google.diagnostics.file_transfer.FileTransferService"
+    }
+
+    client {
+        interface: "com.sdv.google.diagnostics.DiagnosticsManagerService"
     }
 }

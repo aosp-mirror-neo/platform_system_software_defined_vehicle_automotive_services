@@ -1,0 +1,46 @@
+# Copyright 2024 Google LLC
+# proto-file: //system/software_defined_vehicle/core_services/vsidl/protos/sdv/vsidl/v1/syntax.proto
+# proto-message: VsidlEntry
+
+package: "com.sdv.oem.diagnostics"
+
+# "Fake" diagnostics agent VSIDL declaration, to allow Diagnostics-aware service bundle's MW to compile.
+sdv_service_bundle {
+    name: "DiagnosticsAgent"
+
+    server {
+        interface: "com.sdv.google.diagnostics.DiagnosticsManagerService"
+    }
+
+    client {
+        interface: "com.sdv.google.diagnostics.data_item.DataItemService"
+    }
+
+    client {
+        interface: "com.sdv.google.diagnostics.routine_control.RoutineControlService"
+    }
+
+    client {
+        interface: "com.sdv.google.diagnostics.io_control.IoControlService"
+    }
+
+    client {
+        interface: "com.sdv.google.diagnostics.fault.FaultListenerService"
+    }
+
+    client {
+        interface: "com.sdv.google.diagnostics.ecu_reset.EcuResetService"
+    }
+
+    client {
+        interface: "com.sdv.google.diagnostics.security_access.SecurityAccessService"
+    }
+
+    client {
+        interface: "com.sdv.google.diagnostics.authentication.AuthenticationService"
+    }
+
+    client {
+        interface: "com.sdv.google.diagnostics.file_transfer.FileTransferService"
+    }
+}
