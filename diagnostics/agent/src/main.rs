@@ -39,14 +39,14 @@ async fn main() {
     sdv_comms::wait_for_agents()
         .unwrap_or_else(|err| panic!("Error waiting for Comms Stack agents: {err}"));
 
-    let vsidl_provider = Arc::new(
-        VsidlProviderV1::new_sync_provider()
-            .unwrap_or_else(|| panic!("Error creating VSIDL provider")),
-    );
-
     let self_fqin =
         ServiceFqin::from_str("vm:com.sdv.oem.diagnostics.DiagnosticsAgent/default").unwrap();
-    let context = ContextRef::create(self_fqin.clone());
+    let context: ContextRef = ContextRef::create(self_fqin.clone());
+
+    let vsidl_provider = Arc::new(
+        VsidlProviderV1::new_sync_provider(Some(context))
+            .unwrap_or_else(|| panic!("Error creating VSIDL provider")),
+    );
 
     info!("Starting Diagnostics Agent");
 
@@ -159,7 +159,7 @@ async fn read_data_items(
     diagnostics_declaration: DiagnosticsDeclaration,
 ) {
     let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
-    let translator = DiagnosticsTranslator::new();
+    let translator = DiagnosticsTranslator::new(Some(context));
 
     for data_item in diagnostics_declaration.data_item {
         debug!("Trying to read data item: {:#?}", data_item);

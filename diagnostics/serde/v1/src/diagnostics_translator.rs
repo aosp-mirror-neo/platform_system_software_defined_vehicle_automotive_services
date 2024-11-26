@@ -8,6 +8,7 @@ use crate::entity_id::RoutineMethod::*;
 use crate::translator::{Translator, TranslatorError, TranslatorImpl};
 use protobuf::reflect::MessageDescriptor;
 use sdv_comms::id::ServiceFqin;
+use sdv_comms::ContextRef;
 use sdv_config_provider::{
     vsidl_provider::VsidlProviderV1, vsidl_provider_api::VsidlConfigProviderV1,
 };
@@ -23,9 +24,9 @@ pub struct DiagnosticsTranslator {
 
 impl DiagnosticsTranslator {
     /// Creates new instance.
-    pub fn new() -> Self {
+    pub fn new(context: Option<ContextRef>) -> Self {
         Self::init(
-            Box::new(VsidlProviderV1::new_sync_provider().unwrap()),
+            Box::new(VsidlProviderV1::new_sync_provider(context).unwrap()),
             Box::new(TranslatorImpl),
         )
     }
@@ -128,7 +129,7 @@ impl DiagnosticsTranslator {
 
 impl Default for DiagnosticsTranslator {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }
 
