@@ -1,19 +1,22 @@
 // Copyright 2024 Google LLC
 
-rust_binary {
-    name: "sdv_user_preferences_service_stable",
-    crate_name: "sdv_user_preferences_service_stable",
-    defaults: ["sdv_user_preferences_stable@rust_defaults"],
+rust_ffi_shared {
+    name: "libuser_preferences_service_stable",
+    crate_name: "user_preferences_service_stable",
+    defaults: ["libuser_preferences_stable@rust_defaults"],
     proc_macros: [
         "libasync_trait",
     ],
-    product_available: true,
+    apex_available: [
+        "com.sdv.oem.user_preferences",
+    ],
+    product_specific: true,
     ld_flags: ["-Wl,--no-as-needed"],
 }
 
 rust_test {
     name: "sdv_user_preferences_service_stable_tests",
-    defaults: ["sdv_user_preferences_stable@rust_defaults"],
+    defaults: ["libuser_preferences_stable@rust_defaults"],
     test_options: {
         unit_test: true,
     },
@@ -33,7 +36,7 @@ rust_test {
 }
 
 rust_defaults {
-    name: "sdv_user_preferences_stable@rust_defaults",
+    name: "libuser_preferences_stable@rust_defaults",
     srcs: [
         "src/main.rs",
     ],
@@ -45,6 +48,7 @@ rust_defaults {
         "liblog_rust",
         "libsdv_log_rust",
         "libtokio",
+        "libtokio_util",
         "libfutures",
         "libmockall",
         "librusqlite",
@@ -52,7 +56,6 @@ rust_defaults {
         "libitertools",
         "libtempfile",
         "libserde",
-        "libclap",
         "libprotobuf",
         "libbinder_tokio_rs",
         "libbinder_rs",
@@ -69,6 +72,8 @@ rust_defaults {
         "libcom_sdv_google_user_preferences_user_preferences_registry_service_rpc_rs",
         "libcom_sdv_google_user_preferences_view_change_notifier_rpc_rs",
         "libcom_sdv_google_user_preferences_user_controllable_user_controllable_service_rpc_rs",
+        // Contains service bundle interface definitions and helper macros.
+        "libsdv_lifecycle_client_rust",
     ],
-    product_available: true,
+    product_specific: true,
 }

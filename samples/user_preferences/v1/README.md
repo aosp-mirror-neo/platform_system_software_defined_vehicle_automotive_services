@@ -43,20 +43,7 @@ vsidlc --catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/autom
     cvd create
     ```
 
-2.  Run the User Preferences Service
-
-    ```bash
-
-    adb root
-
-    # To start user preferences with a temporary database
-    adb shell sdv_user_preferences_service_stable --use-temp-db
-
-    # Alternatively user preferences can be started with a persistent database via
-    adb shell sdv_user_preferences_service_stable PATH_TO_DATABASE # PATH should be under /data directory such as /data/user_pref_db
-    ```
-
-3.  Launch the HVAC Service
+2.  Launch the HVAC Service
 
     ```bash
 
@@ -64,7 +51,7 @@ vsidlc --catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/autom
 
     ```
 
-4.  Launch the HMI Service
+3.  Launch the HMI Service
 
     ```bash
 
