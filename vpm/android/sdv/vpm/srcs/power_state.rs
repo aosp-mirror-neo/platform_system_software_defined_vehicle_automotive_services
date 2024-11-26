@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use log::debug;
 use mockall::automock;
 use rustutils::system_properties::read;
+use sdv_pm::PlatformPower;
 use sdv_pm::PlatformPowerController;
 use sdv_pm::SuspendMode;
 use sdv_vpm_api::power::PowerStateReport;
