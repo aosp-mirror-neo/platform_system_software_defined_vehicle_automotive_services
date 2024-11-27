@@ -254,8 +254,8 @@ impl PowerService for PowerServiceImpl {
 }
 
 pub struct PowerRequest {
-    power_state: Box<dyn PowerState>,
-    timeout_ms: u64,
+    pub power_state: Box<dyn PowerState>,
+    pub timeout_ms: u64,
 }
 impl PowerRequest {
     pub fn new(power_state: Box<dyn PowerState>, timeout_ms: u64) -> Self {

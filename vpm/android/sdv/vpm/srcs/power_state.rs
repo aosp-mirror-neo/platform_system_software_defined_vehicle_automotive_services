@@ -5,7 +5,6 @@ use log::debug;
 use mockall::automock;
 use rustutils::system_properties::read;
 use sdv_pm::PlatformPower;
-use sdv_pm::PlatformPowerController;
 use sdv_pm::SuspendMode;
 use sdv_vpm_api::power::PowerStateReport;
 use tokio::sync::mpsc::Sender;
@@ -14,6 +13,12 @@ const PLATFORM_SUSPEND_TIMEOUT_MS_PROP: &str = "sdv.vpm.platform.timeout_ms";
 const PLATFORM_SUSPEND_RETRY_INTERVAL_MS_PROP: &str = "sdv.vpm.platform.retry_interval_ms";
 const DEFAULT_PLATFORM_TIMEOUT_MS: u64 = 2000;
 const DEFAULT_PLATFORM_RETRY_INTERVAL_MS: u64 = 200;
+#[cfg(not(test))]
+use sdv_pm::PlatformPowerController;
+#[cfg(not(test))]
+fn get_platform_controller() -> PlatformPowerController {
+    PlatformPowerController::default()
+}
 
 fn get_platform_timeout_ms() -> u64 {
     let platform_timeout_ms =
@@ -40,8 +45,7 @@ fn read_property_or_default(property: &str, default: u64) -> u64 {
 }
 
 fn suspend_to_ram() -> anyhow::Result<()> {
-    let platform = PlatformPowerController::default();
-    platform.suspend(
+    get_platform_controller().suspend(
         &SuspendMode::RAM,
         get_platform_timeout_ms(),
         get_platform_retry_interval_ms(),
@@ -50,8 +54,7 @@ fn suspend_to_ram() -> anyhow::Result<()> {
 }
 
 fn suspend_to_disk() -> anyhow::Result<()> {
-    let platform = PlatformPowerController::default();
-    platform.suspend(
+    get_platform_controller().suspend(
         &SuspendMode::DISK,
         get_platform_timeout_ms(),
         get_platform_retry_interval_ms(),
@@ -60,8 +63,7 @@ fn suspend_to_disk() -> anyhow::Result<()> {
 }
 
 fn power_off() -> anyhow::Result<()> {
-    let platform = PlatformPowerController::default();
-    platform.power_off(get_platform_timeout_ms())?;
+    get_platform_controller().power_off(get_platform_timeout_ms())?;
     Ok(())
 }
 
@@ -351,6 +353,18 @@ impl PowerState for PowerOffPostFinish {
 }
 
 #[cfg(test)]
+use once_cell::sync::OnceCell;
+#[cfg(test)]
+use sdv_pm::MockPlatformPower;
+#[cfg(test)]
+static PLATFORM_MOCK_INSTANCE: OnceCell<MockPlatformPower> = OnceCell::new();
+
+#[cfg(test)]
+fn get_platform_controller() -> &'static MockPlatformPower {
+    PLATFORM_MOCK_INSTANCE.get().expect("Couldn't get mock")
+}
+
+#[cfg(test)]
 mod tests {
     use crate::power_state::*;
 
@@ -555,6 +569,117 @@ mod tests {
         for state in filter_from_all_states(&allowed_states) {
             assert!(!state.is_valid_next_state(suspend_to_disk_post_finish));
         }
+    }
+
+    #[tokio::test]
+    async fn states_without_execute_return_ok() {
+        let (sender, _) = tokio::sync::mpsc::channel(1);
+        // Allowed states and remove states with suspend/shutdown
+        let states_with_execute: Vec<Box<dyn PowerState>> = vec![
+            Box::new(SuspendToRamPostFinish {}),
+            Box::new(SuspendToDiskPostFinish {}),
+            Box::new(PowerOffPostFinish {}),
+            Box::new(SuspendToRamEnter {}),
+            Box::new(SuspendToDiskEnter {}),
+            Box::new(PowerOffEnter {}),
+        ];
+        let states_without_platform = filter_from_all_states(&states_with_execute);
+
+        // Executing returns ok
+        for state in &states_without_platform {
+            assert!(state.execute(sender.clone(), /*timeout=*/ 100).await.is_ok());
+        }
+    }
+
+    #[tokio::test]
+    async fn states_with_execute_no_platform_request_next_state() {
+        let (sender, mut receiver) = tokio::sync::mpsc::channel::<PowerRequest>(1);
+        // List of pairs (state, next state after execute).
+        // Given states that request the next state.
+        let states_with_execute_no_platform: Vec<(Box<dyn PowerState>, PowerStateReport)> = vec![
+            (Box::new(SuspendToRamEnter {}), PowerStateReport::SUSPEND_TO_RAM_POST_FINISH),
+            (Box::new(SuspendToDiskEnter {}), PowerStateReport::SUSPEND_TO_DISK_POST_FINISH),
+            (Box::new(PowerOffEnter {}), PowerStateReport::POWER_OFF_POST_FINISH),
+        ];
+
+        for (state, expected_next_state) in &states_with_execute_no_platform {
+            // When state is executed.
+            assert!(state.execute(sender.clone(), /*timeout=*/ 100).await.is_ok());
+            let power_request = receiver.recv().await.unwrap();
+
+            // Then next state is requested.
+            assert_eq!(power_request.power_state.get_report(), PowerStateReport::WAIT_FOR_FINISH);
+            assert!(power_request.power_state.is_valid_next_state(*expected_next_state));
+        }
+    }
+
+    #[tokio::test]
+    async fn suspend_to_ram_calls_suspend_and_requests_next_state() {
+        let (sender, mut receiver) = tokio::sync::mpsc::channel::<PowerRequest>(1);
+        // Given state suspend to ram.
+        let suspend_to_ram = Box::new(SuspendToRamPostFinish {});
+        let mut mock = MockPlatformPower::default();
+        // Expect to call platform with S2R.
+        mock.expect_suspend()
+            .times(1)
+            // Test does not have access to read system properties, thus timeout is set to default.
+            .withf(move |mode, platform_timeout, retry_interval_ms| {
+                mode == &SuspendMode::RAM
+                    && *platform_timeout == DEFAULT_PLATFORM_TIMEOUT_MS
+                    && *retry_interval_ms == DEFAULT_PLATFORM_RETRY_INTERVAL_MS
+            })
+            .returning(|_, _, _| Ok(()));
+
+        PLATFORM_MOCK_INSTANCE.set(mock).unwrap();
+
+        // When state is executed.
+        assert!(suspend_to_ram.execute(sender.clone(), /*timeout=*/ 100).await.is_ok());
+
+        // Then next state is requested
+        let power_request = receiver.recv().await.unwrap();
+        assert_eq!(power_request.power_state.get_report(), PowerStateReport::SUSPEND_TO_RAM_EXIT);
+    }
+
+    #[tokio::test]
+    async fn suspend_to_disk_calls_suspend_and_requests_next_state() {
+        let (sender, mut receiver) = tokio::sync::mpsc::channel::<PowerRequest>(1);
+        // Given state suspend to disk.
+        let suspend_to_disk = Box::new(SuspendToDiskPostFinish {});
+        let mut mock = MockPlatformPower::default();
+        // Expect to call platform with S2D.
+        mock.expect_suspend()
+            .times(1)
+            .withf(move |mode, platform_timeout, retry_interval_ms| {
+                mode == &SuspendMode::DISK
+                    && *platform_timeout == DEFAULT_PLATFORM_TIMEOUT_MS
+                    && *retry_interval_ms == DEFAULT_PLATFORM_RETRY_INTERVAL_MS
+            })
+            .returning(|_, _, _| Ok(()));
+        PLATFORM_MOCK_INSTANCE.set(mock).unwrap();
+
+        // When state is executed.
+        assert!(suspend_to_disk.execute(sender.clone(), /*timeout=*/ 100).await.is_ok());
+
+        // Then next state is requested
+        let power_request = receiver.recv().await.unwrap();
+        assert_eq!(power_request.power_state.get_report(), PowerStateReport::SUSPEND_TO_DISK_EXIT);
+    }
+
+    #[tokio::test]
+    async fn power_off_calls_platform_power_off() {
+        let (sender, _) = tokio::sync::mpsc::channel::<PowerRequest>(1);
+        // Given state suspend to ram
+        let power_off = Box::new(PowerOffPostFinish {});
+        let mut mock = MockPlatformPower::default();
+        // Expect to call platform with power off.
+        mock.expect_power_off()
+            .times(1)
+            .withf(move |platform_timeout| *platform_timeout == DEFAULT_PLATFORM_TIMEOUT_MS)
+            .returning(|_| Ok(()));
+        PLATFORM_MOCK_INSTANCE.set(mock).unwrap();
+
+        // When state is executed, then power off is run.
+        assert!(power_off.execute(sender.clone(), /*timeout=*/ 100).await.is_ok());
     }
 
     fn get_all_states() -> Vec<Box<dyn PowerState>> {

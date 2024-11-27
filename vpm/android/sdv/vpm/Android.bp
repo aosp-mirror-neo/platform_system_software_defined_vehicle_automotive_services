@@ -73,6 +73,7 @@ rust_test {
     ],
     rustlibs: [
         "libgoogletest_rust",
+        "libonce_cell",
     ],
     ld_flags: ["-Wl,--no-as-needed"],
     test_options: {
