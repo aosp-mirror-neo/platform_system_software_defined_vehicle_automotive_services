@@ -2,12 +2,9 @@
 
 //! Diagnostics agent implementation.
 use diagnostics_v1_api::{
-    data_item_service::{ReadDataItemRequest, ReadDataItemResponse},
-    diagnostics::DiagnosticsDeclaration,
-    event::Event,
-    fault_listener_service::{OnFaultStatusChangeRequest, OnFaultStatusChangeResponse},
-    io_control_service::{IoControlRequest, IoControlResponse},
-    routine_control_service::{RoutineControlRequest, RoutineControlResponse},
+    data_item_service::ReadDataItemRequest, diagnostics::DiagnosticsDeclaration, event::Event,
+    fault_listener_service::OnFaultStatusChangeRequest, io_control_service::IoControlRequest,
+    routine_control_service::RoutineControlRequest,
 };
 use futures::future;
 use futures::stream::StreamExt;
@@ -30,6 +27,9 @@ use std::str::FromStr;
 use std::thread;
 use std::time::Duration;
 use std::{collections::HashSet, sync::Arc};
+
+mod unit_types;
+use crate::unit_types::*;
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 8)]
 async fn main() {
@@ -62,12 +62,7 @@ async fn main() {
 
         set_service_unit_registration_callback(
             context,
-            UnitType::builder()
-                .set_sdv_package_name("com.sdv.google.diagnostics")
-                .set_service_bundle_name("DiagnosticsManager")
-                .set_unit_type_name("data_item.DataItemService")
-                .build()
-                .unwrap(),
+            DataItem::unit_type(),
             move |service_unit| {
                 let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
                 let declaration = vsidl_provider.get_diagnostics_declaration(&service_fqin);
@@ -115,14 +110,7 @@ async fn listen_to_events(context: ContextRef) {
     let sd = ServiceDiscoveryManager::new(context);
 
     loop {
-        let mut service_units = sd.list_units_by_type(
-            &UnitType::builder()
-                .set_sdv_package_name("com.sdv.google.diagnostics")
-                .set_service_bundle_name("DiagnosticsManager")
-                .set_unit_type_name("event.Event")
-                .build()
-                .unwrap(),
-        );
+        let mut service_units = sd.list_units_by_type(&EventPublication::unit_type());
 
         while let Some(service_unit) = service_units.next().await {
             let sid = service_unit.get_unit_identifier().get_sid();
@@ -163,10 +151,9 @@ async fn read_data_items(
 
     for data_item in diagnostics_declaration.data_item {
         debug!("Trying to read data item: {:#?}", data_item);
-        let result = perform_and_log_rpc_call::<ReadDataItemRequest, ReadDataItemResponse>(
+        let result = perform_and_log_rpc_call::<ReadDataItem>(
             context,
             service_unit.clone(),
-            "ReadDataItem",
             ReadDataItemRequest { id: data_item.id.clone(), ..Default::default() },
         )
         .await;
@@ -237,10 +224,9 @@ async fn io_control_interaction(context: ContextRef) {
     .await;
 
     // TODO(372607401): use VsidlProvider to parse the response message.
-    let _ = perform_and_log_rpc_call::<IoControlRequest, IoControlResponse>(
+    let _ = perform_and_log_rpc_call::<FreezeCurrentState>(
         context,
         service_unit,
-        "FreezeCurrentState",
         IoControlRequest { id: "pressure".to_string(), ..Default::default() },
     )
     .await;
@@ -261,10 +247,9 @@ async fn routine_control_interaction(context: ContextRef) {
     .await;
 
     // TODO(372607401): use VsidlProvider to parse the response message.
-    let _ = perform_and_log_rpc_call::<RoutineControlRequest, RoutineControlResponse>(
+    let _ = perform_and_log_rpc_call::<StartRoutine>(
         context,
         service_unit,
-        "StartRoutine",
         RoutineControlRequest { id: "pressurization".to_string(), ..Default::default() },
     )
     .await;
@@ -283,10 +268,9 @@ async fn fault_listener_interaction(context: ContextRef) {
     .await;
 
     // TODO(372607401): use VsidlProvider to parse the response message.
-    let _ = perform_and_log_rpc_call::<OnFaultStatusChangeRequest, OnFaultStatusChangeResponse>(
+    let _ = perform_and_log_rpc_call::<OnFaultStatusChange>(
         context,
         service_unit,
-        "OnFaultStatusChange",
         OnFaultStatusChangeRequest {
             id: "lowpressure".to_string(),
             status: 1,
@@ -375,13 +359,12 @@ async fn wait_for_service_unit(
         .unwrap()
 }
 
-async fn perform_and_log_rpc_call<Req: MessageFull, Resp: MessageFull>(
+async fn perform_and_log_rpc_call<T: Method>(
     context: ContextRef,
     service_unit: ServiceUnitDefinition,
-    method: &'static str,
-    request: Req,
-) -> Resp {
-    debug!("Performing RPC call: {}:{method}", service_unit.get_unit_type());
+    request: T::Request,
+) -> T::Response {
+    debug!("Performing RPC call: {}:{}", T::UnitType::unit_type(), T::METHOD_NAME);
 
     let client = Client::create(
         context,
@@ -393,9 +376,10 @@ async fn perform_and_log_rpc_call<Req: MessageFull, Resp: MessageFull>(
         panic!("Failed to create client for RPC call on: {service_unit:#?} with error {cause:#?}")
     });
 
-    let response = client.unary_call(method, &encode::<Req>(&request).unwrap()).await.unwrap();
-    let response_decoded = decode::<Resp>(&response);
-    info!("Response for RPC call [{}]: {:?}", method, response_decoded);
+    let response =
+        client.unary_call(T::METHOD_NAME, &encode::<T::Request>(&request).unwrap()).await.unwrap();
+    let response_decoded = decode::<T::Response>(&response);
+    info!("Response for RPC call [{}]: {:?}", T::METHOD_NAME, response_decoded);
     response_decoded.unwrap()
 }
 
