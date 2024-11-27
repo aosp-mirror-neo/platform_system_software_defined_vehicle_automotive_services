@@ -1,0 +1,87 @@
+// Copyright 2024 Google LLC
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+apex {
+    name: "com.sdv.oem.user_preferences",
+    manifest: "apex_manifest.json",
+    key: "com.sdv.oem.user_preferences.key",
+    certificate: ":com.sdv.oem.user_preferences.certificate",
+    file_contexts: "file_contexts",
+    updatable: false,
+    prebuilts: [
+        // SDV Manifest - used by SBR
+        "com.sdv.oem.user_preferences.manifest",
+        // ACL Policy
+        "com.sdv.oem.user_preferences.acl_policy",
+        // Orchestration config
+        "com.sdv.oem.user_preferences.orchestration",
+        // Linker configuration to enable loading library from apex.
+        "com.sdv.oem.user_preferences.linker_config",
+    ],
+    native_shared_libs: [
+        // User Preferences Implementation
+        "libuser_preferences_service_stable",
+    ],
+    product_specific: true,
+}
+
+apex_key {
+    name: "com.sdv.oem.user_preferences.key",
+    public_key: "com.sdv.oem.user_preferences.avbpubkey",
+    private_key: "com.sdv.oem.user_preferences.pem",
+}
+
+android_app_certificate {
+    name: "com.sdv.oem.user_preferences.certificate",
+    certificate: "com.sdv.oem.user_preferences",
+}
+
+// SDV manifest file.
+prebuilt_etc {
+    name: "com.sdv.oem.user_preferences.manifest",
+    // The source name of the manifest file.
+    src: "sdv_service_bundles_manifest.textproto",
+    // The name of the installed file shall be `sdv_service_bundles_manifest.textproto`.
+    filename: "sdv_service_bundles_manifest.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// File with the ACL policy of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.sdv.oem.user_preferences.acl_policy",
+    // The source name of the manifest file.
+    src: "acl.textproto",
+    filename: "acl.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// File with the Orchestration configuration of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.sdv.oem.user_preferences.orchestration",
+    src: "orchestration.textproto",
+    filename: "orchestration.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// The linker config to allow libraries for the apex to be linkable.
+linker_config {
+    name: "com.sdv.oem.user_preferences.linker_config",
+    src: "linker.config.json",
+    // Disable direct installation of the prebuilt to one of the partitions.
+    // The linker configuration is used only inside of an apex.
+    installable: false,
+}
