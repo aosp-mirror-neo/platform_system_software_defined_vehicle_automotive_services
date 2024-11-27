@@ -13,7 +13,7 @@ use serde::Serialize;
 /// Provides methods to translate protobuf bytes to UDS-compatible bytes to and back,
 /// taking protobuf as a description of message format.
 #[automock]
-pub trait Translator {
+pub trait Translator: Send + Sync {
     /// Translates serialized protobuf message `proto_bytes` to UDS message.
     /// Method uses `message_descriptor` to perform reflection-based translation.
     /// Returns serialized UDS message or `TranslatorError`.

@@ -9,31 +9,30 @@ use crate::translator::{Translator, TranslatorError, TranslatorImpl};
 use protobuf::reflect::MessageDescriptor;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
-use sdv_config_provider::{
-    vsidl_provider::VsidlProviderV1, vsidl_provider_api::VsidlConfigProviderV1,
-};
+use sdv_config_provider::{vsidl_provider, vsidl_provider_api::VsidlConfigProviderV1};
+use std::sync::Arc;
 use vsidl_v1::diagnostics::DiagnosticsDeclaration;
 
 /// UDS to SDV translator for diagnostic entities.
 /// Provides methods to translate protobuf bytes to UDS-compatible bytes to and back,
 /// taking diagnostics entity id as a description of message format.
 pub struct DiagnosticsTranslator {
-    vsidl_provider: Box<dyn VsidlConfigProviderV1 + Send + Sync>,
-    translator: Box<dyn Translator + Send + Sync>,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    translator: Arc<dyn Translator>,
 }
 
 impl DiagnosticsTranslator {
     /// Creates new instance.
-    pub fn new(context: Option<ContextRef>) -> Self {
+    pub fn new(context: ContextRef) -> Self {
         Self::init(
-            Box::new(VsidlProviderV1::new_sync_provider(context).unwrap()),
-            Box::new(TranslatorImpl),
+            Arc::new(vsidl_provider::new(context).expect("Failed to obtain VSIDL provider")),
+            Arc::new(TranslatorImpl),
         )
     }
 
     fn init(
-        vsidl_provider: Box<dyn VsidlConfigProviderV1 + Send + Sync>,
-        translator: Box<dyn Translator + Send + Sync>,
+        vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+        translator: Arc<dyn Translator>,
     ) -> Self {
         Self { vsidl_provider, translator }
     }
@@ -44,13 +43,13 @@ impl DiagnosticsTranslator {
     ///
     /// `proto_bytes` are expected to be in format produced by
     /// `MessageDyn::write_to_bytes()`.
-    pub fn translate_from_protobuf_to_uds(
+    pub async fn translate_from_protobuf_to_uds(
         &self,
         service_fqbn: &ServiceFqin,
         entity_id: EntityId,
         proto_bytes: &[u8],
     ) -> Result<Vec<u8>, DiagnosticsTranslatorError> {
-        let message_descriptor = self.find_descriptor(service_fqbn, entity_id)?;
+        let message_descriptor = self.find_descriptor(service_fqbn, entity_id).await?;
 
         Ok(self.translator.translate_from_protobuf_to_uds(proto_bytes, &message_descriptor)?)
     }
@@ -60,18 +59,18 @@ impl DiagnosticsTranslator {
     /// Returns serialized protobuf message or `TranslatorError`.
     ///
     /// Returned proto bytes are in format produced by `MessageDyn::write_to_bytes()`.
-    pub fn translate_from_uds_to_protobuf(
+    pub async fn translate_from_uds_to_protobuf(
         &self,
         service_fqbn: &ServiceFqin,
         entity_id: EntityId,
         uds_bytes: &[u8],
     ) -> Result<Vec<u8>, DiagnosticsTranslatorError> {
-        let message_descriptor = self.find_descriptor(service_fqbn, entity_id)?;
+        let message_descriptor = self.find_descriptor(service_fqbn, entity_id).await?;
 
         Ok(self.translator.translate_from_uds_to_protobuf(uds_bytes, &message_descriptor)?)
     }
 
-    fn find_descriptor(
+    async fn find_descriptor(
         &self,
         service_fqbn: &ServiceFqin,
         entity_id: EntityId,
@@ -79,6 +78,7 @@ impl DiagnosticsTranslator {
         let diagnostics_declaration = self
             .vsidl_provider
             .get_diagnostics_declaration(service_fqbn)
+            .await
             .ok_or_else(|| MissingServiceBundleDeclarationError(service_fqbn.to_string()))?;
 
         let message_name = Self::extract_message_name(&diagnostics_declaration, &entity_id)
@@ -86,6 +86,7 @@ impl DiagnosticsTranslator {
 
         self.vsidl_provider
             .get_message_descriptor(service_fqbn, message_name)
+            .await
             .ok_or_else(|| VsidlProviderError(service_fqbn.to_string(), message_name.to_string()))
     }
 
@@ -127,12 +128,6 @@ impl DiagnosticsTranslator {
     }
 }
 
-impl Default for DiagnosticsTranslator {
-    fn default() -> Self {
-        Self::new(None)
-    }
-}
-
 /// Error type for translation between protobuf and UDS formats
 #[derive(Debug, thiserror::Error)]
 pub enum DiagnosticsTranslatorError {
@@ -166,6 +161,7 @@ mod tests {
     use sdv_comms::id::ServiceFqin;
     use sdv_config_provider::vsidl_provider_api::MockVsidlConfigProviderV1;
     use std::str::FromStr;
+    use std::sync::Arc;
     use vsidl_v1::diagnostics::{
         diagnostics_declaration::{routine::Method, *},
         DiagnosticsDeclaration,
@@ -223,7 +219,7 @@ mod tests {
             .with(mock_eq(MESSAGE_BYTES), always())
             .returning(|_, descriptor| Ok(proto_bytes_for_message(descriptor.name())));
 
-        DiagnosticsTranslator::init(Box::new(mock_vsidl_provider), Box::new(mock_translator))
+        DiagnosticsTranslator::init(Arc::new(mock_vsidl_provider), Arc::new(mock_translator))
     }
 
     fn proto_bytes_for_message(message_name: &str) -> Vec<u8> {
@@ -245,36 +241,40 @@ mod tests {
         }
     }
 
-    #[googletest::test]
-    fn translate_data_item_to_uds() {
+    #[tokio::test]
+    async fn translate_data_item_to_uds() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             data_item_declaration("data_item_id"),
         );
 
         assert_that!(
-            translator.translate_from_protobuf_to_uds(
-                &service_fqin("ServiceBundleName"),
-                EntityId::DataItem("data_item_id".to_string()),
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_protobuf_to_uds(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::DataItem("data_item_id".to_string()),
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(uds_bytes_for_message(DATA_ITEM_MESSAGE))))
         );
     }
 
-    #[googletest::test]
-    fn translate_data_item_to_protobuf() {
+    #[tokio::test]
+    async fn translate_data_item_to_protobuf() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             data_item_declaration("data_item_id"),
         );
 
         assert_that!(
-            translator.translate_from_uds_to_protobuf(
-                &service_fqin("ServiceBundleName"),
-                EntityId::DataItem("data_item_id".to_string()),
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_uds_to_protobuf(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::DataItem("data_item_id".to_string()),
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(proto_bytes_for_message(DATA_ITEM_MESSAGE))))
         );
     }
@@ -290,36 +290,40 @@ mod tests {
         }
     }
 
-    #[googletest::test]
-    fn translate_io_control_data_to_uds() {
+    #[tokio::test]
+    async fn translate_io_control_data_to_uds() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             io_control_declaration("io_data"),
         );
 
         assert_that!(
-            translator.translate_from_protobuf_to_uds(
-                &service_fqin("ServiceBundleName"),
-                EntityId::InputOutputData("io_data".to_string()),
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_protobuf_to_uds(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::InputOutputData("io_data".to_string()),
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(uds_bytes_for_message(IO_CONTROL_MESSAGE))))
         );
     }
 
-    #[googletest::test]
-    fn translate_io_control_data_to_protobuf() {
+    #[tokio::test]
+    async fn translate_io_control_data_to_protobuf() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             io_control_declaration("io_data"),
         );
 
         assert_that!(
-            translator.translate_from_uds_to_protobuf(
-                &service_fqin("ServiceBundleName"),
-                EntityId::InputOutputData("io_data".to_string()),
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_uds_to_protobuf(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::InputOutputData("io_data".to_string()),
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(proto_bytes_for_message(IO_CONTROL_MESSAGE))))
         );
     }
@@ -349,254 +353,278 @@ mod tests {
         }
     }
 
-    #[googletest::test]
-    fn translate_routine_start_request_to_uds() {
+    #[tokio::test]
+    async fn translate_routine_start_request_to_uds() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             routine_declaration("routine_id"),
         );
 
         assert_that!(
-            translator.translate_from_protobuf_to_uds(
-                &service_fqin("ServiceBundleName"),
-                EntityId::Routine {
-                    id: "routine_id".to_string(),
-                    method: RoutineMethod::Start,
-                    message: MethodMessage::Request,
-                },
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_protobuf_to_uds(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::Routine {
+                        id: "routine_id".to_string(),
+                        method: RoutineMethod::Start,
+                        message: MethodMessage::Request,
+                    },
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_START_REQUEST))))
         );
     }
 
-    #[googletest::test]
-    fn translate_routine_start_request_to_protobuf() {
+    #[tokio::test]
+    async fn translate_routine_start_request_to_protobuf() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             routine_declaration("routine_id"),
         );
 
         assert_that!(
-            translator.translate_from_uds_to_protobuf(
-                &service_fqin("ServiceBundleName"),
-                EntityId::Routine {
-                    id: "routine_id".to_string(),
-                    method: RoutineMethod::Start,
-                    message: MethodMessage::Request,
-                },
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_uds_to_protobuf(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::Routine {
+                        id: "routine_id".to_string(),
+                        method: RoutineMethod::Start,
+                        message: MethodMessage::Request,
+                    },
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_START_REQUEST))))
         );
     }
 
-    #[googletest::test]
-    fn translate_routine_start_response_to_uds() {
+    #[tokio::test]
+    async fn translate_routine_start_response_to_uds() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             routine_declaration("routine_id"),
         );
 
         assert_that!(
-            translator.translate_from_protobuf_to_uds(
-                &service_fqin("ServiceBundleName"),
-                EntityId::Routine {
-                    id: "routine_id".to_string(),
-                    method: RoutineMethod::Start,
-                    message: MethodMessage::Response,
-                },
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_protobuf_to_uds(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::Routine {
+                        id: "routine_id".to_string(),
+                        method: RoutineMethod::Start,
+                        message: MethodMessage::Response,
+                    },
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_START_RESPONSE))))
         );
     }
 
-    #[googletest::test]
-    fn translate_routine_start_response_to_protobuf() {
+    #[tokio::test]
+    async fn translate_routine_start_response_to_protobuf() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             routine_declaration("routine_id"),
         );
 
         assert_that!(
-            translator.translate_from_uds_to_protobuf(
-                &service_fqin("ServiceBundleName"),
-                EntityId::Routine {
-                    id: "routine_id".to_string(),
-                    method: RoutineMethod::Start,
-                    message: MethodMessage::Response,
-                },
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_uds_to_protobuf(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::Routine {
+                        id: "routine_id".to_string(),
+                        method: RoutineMethod::Start,
+                        message: MethodMessage::Response,
+                    },
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_START_RESPONSE))))
         );
     }
 
-    #[googletest::test]
-    fn translate_routine_stop_request_to_uds() {
+    #[tokio::test]
+    async fn translate_routine_stop_request_to_uds() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             routine_declaration("routine_id"),
         );
 
         assert_that!(
-            translator.translate_from_protobuf_to_uds(
-                &service_fqin("ServiceBundleName"),
-                EntityId::Routine {
-                    id: "routine_id".to_string(),
-                    method: RoutineMethod::Stop,
-                    message: MethodMessage::Request,
-                },
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_protobuf_to_uds(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::Routine {
+                        id: "routine_id".to_string(),
+                        method: RoutineMethod::Stop,
+                        message: MethodMessage::Request,
+                    },
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_STOP_REQUEST))))
         );
     }
 
-    #[googletest::test]
-    fn translate_routine_stop_request_to_protobuf() {
+    #[tokio::test]
+    async fn translate_routine_stop_request_to_protobuf() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             routine_declaration("routine_id"),
         );
 
         assert_that!(
-            translator.translate_from_uds_to_protobuf(
-                &service_fqin("ServiceBundleName"),
-                EntityId::Routine {
-                    id: "routine_id".to_string(),
-                    method: RoutineMethod::Stop,
-                    message: MethodMessage::Request,
-                },
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_uds_to_protobuf(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::Routine {
+                        id: "routine_id".to_string(),
+                        method: RoutineMethod::Stop,
+                        message: MethodMessage::Request,
+                    },
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_STOP_REQUEST))))
         );
     }
 
-    #[googletest::test]
-    fn translate_routine_stop_response_to_uds() {
+    #[tokio::test]
+    async fn translate_routine_stop_response_to_uds() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             routine_declaration("routine_id"),
         );
 
         assert_that!(
-            translator.translate_from_protobuf_to_uds(
-                &service_fqin("ServiceBundleName"),
-                EntityId::Routine {
-                    id: "routine_id".to_string(),
-                    method: RoutineMethod::Stop,
-                    message: MethodMessage::Response,
-                },
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_protobuf_to_uds(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::Routine {
+                        id: "routine_id".to_string(),
+                        method: RoutineMethod::Stop,
+                        message: MethodMessage::Response,
+                    },
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_STOP_RESPONSE))))
         );
     }
 
-    #[googletest::test]
-    fn translate_routine_stop_response_to_protobuf() {
+    #[tokio::test]
+    async fn translate_routine_stop_response_to_protobuf() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             routine_declaration("routine_id"),
         );
 
         assert_that!(
-            translator.translate_from_uds_to_protobuf(
-                &service_fqin("ServiceBundleName"),
-                EntityId::Routine {
-                    id: "routine_id".to_string(),
-                    method: RoutineMethod::Stop,
-                    message: MethodMessage::Response,
-                },
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_uds_to_protobuf(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::Routine {
+                        id: "routine_id".to_string(),
+                        method: RoutineMethod::Stop,
+                        message: MethodMessage::Response,
+                    },
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_STOP_RESPONSE))))
         );
     }
 
-    #[googletest::test]
-    fn translate_routine_result_request_to_uds() {
+    #[tokio::test]
+    async fn translate_routine_result_request_to_uds() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             routine_declaration("routine_id"),
         );
 
         assert_that!(
-            translator.translate_from_protobuf_to_uds(
-                &service_fqin("ServiceBundleName"),
-                EntityId::Routine {
-                    id: "routine_id".to_string(),
-                    method: RoutineMethod::RequestResult,
-                    message: MethodMessage::Request,
-                },
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_protobuf_to_uds(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::Routine {
+                        id: "routine_id".to_string(),
+                        method: RoutineMethod::RequestResult,
+                        message: MethodMessage::Request,
+                    },
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_RESULT_REQUEST))))
         );
     }
 
-    #[googletest::test]
-    fn translate_routine_result_request_to_protobuf() {
+    #[tokio::test]
+    async fn translate_routine_result_request_to_protobuf() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             routine_declaration("routine_id"),
         );
 
         assert_that!(
-            translator.translate_from_uds_to_protobuf(
-                &service_fqin("ServiceBundleName"),
-                EntityId::Routine {
-                    id: "routine_id".to_string(),
-                    method: RoutineMethod::RequestResult,
-                    message: MethodMessage::Request,
-                },
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_uds_to_protobuf(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::Routine {
+                        id: "routine_id".to_string(),
+                        method: RoutineMethod::RequestResult,
+                        message: MethodMessage::Request,
+                    },
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_RESULT_REQUEST))))
         );
     }
 
-    #[googletest::test]
-    fn translate_routine_result_response_to_uds() {
+    #[tokio::test]
+    async fn translate_routine_result_response_to_uds() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             routine_declaration("routine_id"),
         );
 
         assert_that!(
-            translator.translate_from_protobuf_to_uds(
-                &service_fqin("ServiceBundleName"),
-                EntityId::Routine {
-                    id: "routine_id".to_string(),
-                    method: RoutineMethod::RequestResult,
-                    message: MethodMessage::Response,
-                },
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_protobuf_to_uds(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::Routine {
+                        id: "routine_id".to_string(),
+                        method: RoutineMethod::RequestResult,
+                        message: MethodMessage::Response,
+                    },
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_RESULT_RESPONSE))))
         );
     }
 
-    #[googletest::test]
-    fn translate_routine_result_response_to_protobuf() {
+    #[tokio::test]
+    async fn translate_routine_result_response_to_protobuf() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             routine_declaration("routine_id"),
         );
 
         assert_that!(
-            translator.translate_from_uds_to_protobuf(
-                &service_fqin("ServiceBundleName"),
-                EntityId::Routine {
-                    id: "routine_id".to_string(),
-                    method: RoutineMethod::RequestResult,
-                    message: MethodMessage::Response,
-                },
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_uds_to_protobuf(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::Routine {
+                        id: "routine_id".to_string(),
+                        method: RoutineMethod::RequestResult,
+                        message: MethodMessage::Response,
+                    },
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_RESULT_RESPONSE))))
         );
     }
@@ -612,72 +640,80 @@ mod tests {
         }
     }
 
-    #[googletest::test]
-    fn translate_event_data_to_uds() {
+    #[tokio::test]
+    async fn translate_event_data_to_uds() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             event_declaration("event_id"),
         );
 
         assert_that!(
-            translator.translate_from_protobuf_to_uds(
-                &service_fqin("ServiceBundleName"),
-                EntityId::EventExtendedData("event_id".to_string()),
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_protobuf_to_uds(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::EventExtendedData("event_id".to_string()),
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(uds_bytes_for_message(EVENT_EXTENDED_DATA))))
         );
     }
 
-    #[googletest::test]
-    fn translate_event_data_to_protobuf() {
+    #[tokio::test]
+    async fn translate_event_data_to_protobuf() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             event_declaration("event_id"),
         );
 
         assert_that!(
-            translator.translate_from_uds_to_protobuf(
-                &service_fqin("ServiceBundleName"),
-                EntityId::EventExtendedData("event_id".to_string()),
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_uds_to_protobuf(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::EventExtendedData("event_id".to_string()),
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Ok(eq(proto_bytes_for_message(EVENT_EXTENDED_DATA))))
         );
     }
 
-    #[googletest::test]
-    fn translate_service_declaration_missing() {
+    #[tokio::test]
+    async fn translate_service_declaration_missing() {
         let translator = create_diagnostics_translator(
             service_fqin("NotServiceBundleName"),
             DiagnosticsDeclaration { ..Default::default() },
         );
 
         assert_that!(
-            translator.translate_from_uds_to_protobuf(
-                &service_fqin("ServiceBundleName"),
-                EntityId::DataItem("data_item_id".to_string()),
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_uds_to_protobuf(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::DataItem("data_item_id".to_string()),
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Err(matches_pattern!(MissingServiceBundleDeclarationError(eq(
                 service_fqin("ServiceBundleName").to_string()
             )))))
         );
     }
 
-    #[googletest::test]
-    fn translate_entity_declaration_missing() {
+    #[tokio::test]
+    async fn translate_entity_declaration_missing() {
         let translator = create_diagnostics_translator(
             service_fqin("ServiceBundleName"),
             DiagnosticsDeclaration { ..Default::default() },
         );
 
         assert_that!(
-            translator.translate_from_uds_to_protobuf(
-                &service_fqin("ServiceBundleName"),
-                EntityId::DataItem("data_item_id".to_string()),
-                &MESSAGE_BYTES[..]
-            ),
+            translator
+                .translate_from_uds_to_protobuf(
+                    &service_fqin("ServiceBundleName"),
+                    EntityId::DataItem("data_item_id".to_string()),
+                    &MESSAGE_BYTES[..]
+                )
+                .await,
             matches_pattern!(Err(matches_pattern!(MissingEntityDeclarationError(
                 eq(service_fqin("ServiceBundleName").to_string()),
                 matches_pattern!(EntityId::DataItem(eq("data_item_id".to_string())))

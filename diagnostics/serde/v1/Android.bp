@@ -50,6 +50,7 @@ rust_test {
         "libserde_test",
         "libserde_json",
         "libgoogletest_rust",
+        "libtokio",
     ],
     data: [
         ":sdv_vsidl_v1_protos",
