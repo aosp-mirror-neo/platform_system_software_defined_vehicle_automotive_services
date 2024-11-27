@@ -161,3 +161,68 @@ sdv_service_bundle {
         interface: "com.sdv.google.diagnostics.DiagnosticsManagerService"
     }
 }
+
+sdv_service_bundle {
+    name: "DiagnosticsGenerationTestWithManyServersAndHandlers"
+
+    server {
+        interface: "com.sdv.google.diagnostics.data_item.DataItemService"
+    }
+    server {
+        interface: "com.sdv.google.diagnostics.routine_control.RoutineControlService"
+    }
+    server {
+        interface: "com.sdv.google.diagnostics.io_control.IoControlService"
+    }
+    server {
+        interface: "com.sdv.google.diagnostics.fault.FaultListenerService"
+    }
+    server {
+        interface: "com.sdv.google.diagnostics.file_transfer.FileTransferService"
+    }
+    server {
+        interface: "com.sdv.google.diagnostics.security_access.SecurityAccessService"
+    }
+    server {
+        interface: "com.sdv.google.diagnostics.authentication.AuthenticationService"
+    }
+    server {
+        interface: "com.sdv.google.diagnostics.authentication.AuthenticationService"
+        service_unit_name: "authentication-copy"
+    }
+
+    diagnostics_declaration {
+        data_item { id: "one" }
+        data_item { id: "two" }
+        data_item { id: "three" }
+        data_item { id: "four" }
+        data_item { id: "five" }
+        data_item { id: "six" }
+        data_item { id: "seven" }
+        data_item { id: "eight" }
+        routine { id: "one" }
+        routine { id: "two" }
+        routine { id: "three" }
+        routine { id: "four" }
+        routine { id: "five" }
+        routine { id: "six" }
+        routine { id: "seven" }
+        routine { id: "eight" }
+        io_control { id: "one" }
+        io_control { id: "two" }
+        io_control { id: "three" }
+        io_control { id: "four" }
+        io_control { id: "five" }
+        io_control { id: "six" }
+        io_control { id: "seven" }
+        io_control { id: "eight" }
+        event { id: "one" fault_listener_mask: 0x1 }
+        event { id: "two" fault_listener_mask: 0x1 }
+        event { id: "three" fault_listener_mask: 0x1 }
+        event { id: "four" fault_listener_mask: 0x1 }
+        event { id: "five" fault_listener_mask: 0x1 }
+        event { id: "six" fault_listener_mask: 0x1 }
+        event { id: "seven" fault_listener_mask: 0x1 }
+        event { id: "eight" fault_listener_mask: 0x1 }
+    }
+}

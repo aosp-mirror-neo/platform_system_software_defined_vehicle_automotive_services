@@ -58,6 +58,7 @@ impl Diagnostics {
     }
 
     /// Create DataItemService implementation.
+    #[allow(clippy::too_many_arguments)]
     pub fn create_data_item_server(
         pressure_handler: Arc<
             dyn ReadOnlyDataItemHandler<diagnostics_v1_sample_catalog::messages::Pressure>,
@@ -70,6 +71,7 @@ impl Diagnostics {
     }
 
     /// Create RoutineControlService implementation.
+    #[allow(clippy::too_many_arguments)]
     pub fn create_routine_control_server(
         pressurization_handler: Arc<
             dyn RoutineHandler<
@@ -86,6 +88,7 @@ impl Diagnostics {
     }
 
     /// Create IoControlService implementation.
+    #[allow(clippy::too_many_arguments)]
     pub fn create_io_control_server(
         pressure_handler: Arc<
             dyn IoControlHandler<diagnostics_v1_sample_catalog::messages::Pressure>,
@@ -95,6 +98,7 @@ impl Diagnostics {
     }
 
     /// Create FaultListenerSrvice implementation.
+    #[allow(clippy::too_many_arguments)]
     pub fn create_fault_listener_server(
         lowpressure_handler: Arc<
             dyn FaultListenerHandler<diagnostics_v1_sample_catalog::messages::LowPressureData>,
