@@ -36,6 +36,7 @@ impl Diagnostics {
     }
 
     /// Create FaultListenerSrvice implementation.
+    #[allow(clippy::too_many_arguments)]
     pub fn create_fault_listener_server(
         overheating_handler: Arc<
             dyn FaultListenerHandler<diagnostics_v1_sample_catalog::messages::OverheatingData>,

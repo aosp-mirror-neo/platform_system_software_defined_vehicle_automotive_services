@@ -24,6 +24,7 @@ impl Diagnostics {
     }
 
     /// Create DataItemService implementation.
+    #[allow(clippy::too_many_arguments)]
     pub fn create_data_item_server(
         pressure_handler: Arc<
             dyn ReadOnlyDataItemHandler<diagnostics_v1_sample_catalog::messages::Pressure>,
