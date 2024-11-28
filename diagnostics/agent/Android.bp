@@ -20,6 +20,7 @@ rust_binary {
         "libprotobuf",
         "libsdv_uds_serde_v1",
         "libsdv_config_provider",
+        "libfutures_executor",
         "google.sdv.comms-aidl-V1-rust",
         "google.sdv.rpc-aidl-V1-rust",
         "google.sdv.service_discovery.discovery-aidl-V1-rust",

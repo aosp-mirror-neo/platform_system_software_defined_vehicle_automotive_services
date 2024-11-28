@@ -18,9 +18,7 @@ use sdv_comms::sd::{
     ServiceDiscoveryManager, ServiceUnitDefinition, UnitNameDiscoveryArgs, UnitType,
 };
 use sdv_comms::ContextRef;
-use sdv_config_provider::{
-    vsidl_provider::VsidlProviderV1, vsidl_provider_api::VsidlConfigProviderV1,
-};
+use sdv_config_provider::{vsidl_provider, vsidl_provider_api::VsidlConfigProviderV1};
 use sdv_uds_serde::{diagnostics_translator::DiagnosticsTranslator, entity_id::EntityId};
 use std::future::Future;
 use std::str::FromStr;
@@ -43,8 +41,7 @@ async fn main() {
     let context: ContextRef = ContextRef::create(self_fqin.clone());
 
     let vsidl_provider = Arc::new(
-        VsidlProviderV1::new_sync_provider(Some(context))
-            .unwrap_or_else(|| panic!("Error creating VSIDL provider")),
+        vsidl_provider::new(context).unwrap_or_else(|| panic!("Error creating VSIDL provider")),
     );
 
     info!("Starting Diagnostics Agent");
@@ -64,13 +61,11 @@ async fn main() {
             DataItem::unit_type(),
             move |service_unit| {
                 let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
-                let declaration = vsidl_provider.get_diagnostics_declaration(&service_fqin);
-
-                debug!(
-                    "Diagnostics declaration of a {} : {:#?}",
-                    service_fqin,
-                    vsidl_provider.get_diagnostics_declaration(&service_fqin)
+                let declaration = futures_executor::block_on(
+                    vsidl_provider.get_diagnostics_declaration(&service_fqin),
                 );
+
+                debug!("Diagnostics declaration of a {} : {:#?}", service_fqin, declaration,);
 
                 tokio::spawn(read_data_items(
                     context,
@@ -152,7 +147,7 @@ async fn read_data_items(
     diagnostics_declaration: DiagnosticsDeclaration,
 ) {
     let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
-    let translator = DiagnosticsTranslator::new(Some(context));
+    let translator = DiagnosticsTranslator::new(context);
 
     for data_item in diagnostics_declaration.data_item {
         debug!("Trying to read data item: {:#?}", data_item);
@@ -163,11 +158,13 @@ async fn read_data_items(
         )
         .await;
 
-        let translation_result = translator.translate_from_protobuf_to_uds(
-            &service_fqin,
-            EntityId::DataItem(data_item.id.clone()),
-            &result.value,
-        );
+        let translation_result = translator
+            .translate_from_protobuf_to_uds(
+                &service_fqin,
+                EntityId::DataItem(data_item.id.clone()),
+                &result.value,
+            )
+            .await;
 
         match translation_result {
             Ok(uds_data_item_value) => {
