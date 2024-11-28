@@ -8,6 +8,7 @@ use mockall::automock;
 use protobuf::reflect::{MessageDescriptor, MessageRef};
 use serde::de::DeserializeSeed;
 use serde::Serialize;
+use std::sync::Arc;
 
 /// UDS to SDV translator trait.
 /// Provides methods to translate protobuf bytes to UDS-compatible bytes to and back,
@@ -38,8 +39,13 @@ pub trait Translator: Send + Sync {
     ) -> Result<Vec<u8>, TranslatorError>;
 }
 
+/// Create new UDS to SDV translator implementation.
+pub fn new() -> Arc<dyn Translator> {
+    Arc::new(TranslatorImpl)
+}
+
 /// UDS to SDV translator implementation.
-pub struct TranslatorImpl;
+struct TranslatorImpl;
 
 impl Translator for TranslatorImpl {
     fn translate_from_protobuf_to_uds(

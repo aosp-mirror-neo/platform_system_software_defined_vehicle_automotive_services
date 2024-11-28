@@ -5,11 +5,10 @@ use crate::diagnostics_translator::DiagnosticsTranslatorError::{
 use crate::entity_id::EntityId::{self, *};
 use crate::entity_id::MethodMessage::*;
 use crate::entity_id::RoutineMethod::*;
-use crate::translator::{Translator, TranslatorError, TranslatorImpl};
+use crate::translator::{self, Translator, TranslatorError};
 use protobuf::reflect::MessageDescriptor;
 use sdv_comms::id::ServiceFqin;
-use sdv_comms::ContextRef;
-use sdv_config_provider::{vsidl_provider, vsidl_provider_api::VsidlConfigProviderV1};
+use sdv_config_provider::vsidl_provider_api::VsidlConfigProviderV1;
 use std::sync::Arc;
 use vsidl_v1::diagnostics::DiagnosticsDeclaration;
 
@@ -23,11 +22,8 @@ pub struct DiagnosticsTranslator {
 
 impl DiagnosticsTranslator {
     /// Creates new instance.
-    pub fn new(context: ContextRef) -> Self {
-        Self::init(
-            Arc::new(vsidl_provider::new(context).expect("Failed to obtain VSIDL provider")),
-            Arc::new(TranslatorImpl),
-        )
+    pub fn new(vsidl_provider: Arc<dyn VsidlConfigProviderV1>) -> Self {
+        Self::init(vsidl_provider, translator::new())
     }
 
     fn init(
