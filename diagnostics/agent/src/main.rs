@@ -10,7 +10,7 @@ use futures::future;
 use futures::stream::StreamExt;
 use log::{debug, info, warn};
 use protobuf::MessageFull;
-use sdv_comms::dt::{Subscriber, SubscriberOptions};
+use sdv_comms::dt::{SubscriberOptions, SubscriberStream};
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::rpc::{Client, ClientOptions};
 use sdv_comms::sd::ServiceUnitChangeEvent;
@@ -24,9 +24,8 @@ use sdv_config_provider::{
 use sdv_uds_serde::{diagnostics_translator::DiagnosticsTranslator, entity_id::EntityId};
 use std::future::Future;
 use std::str::FromStr;
-use std::thread;
+use std::sync::Arc;
 use std::time::Duration;
-use std::{collections::HashSet, sync::Arc};
 
 mod unit_types;
 use crate::unit_types::*;
@@ -106,39 +105,45 @@ async fn main() {
 }
 
 async fn listen_to_events(context: ContextRef) {
-    let mut event_subscribers = HashSet::new();
-    let sd = ServiceDiscoveryManager::new(context);
-
-    loop {
-        let mut service_units = sd.list_units_by_type(&EventPublication::unit_type());
-
-        while let Some(service_unit) = service_units.next().await {
-            let sid = service_unit.get_unit_identifier().get_sid();
-            if event_subscribers.contains(&sid) {
-                continue;
-            }
-
-            info!(
-                "Subscribing to new event: {}#{}",
-                service_unit.get_service_bundle_identity().get_fqin(),
-                service_unit.get_unit_identifier().get_unit_name()
-            );
-
-            let uid = service_unit.get_unit_identifier();
-            let subscriber =
-                Subscriber::create(context, &uid, SubscriberOptions { fetch_last_message: true })
-                    .await
-                    .unwrap();
-
+    set_service_unit_registration_callback(
+        context,
+        EventPublication::unit_type(),
+        move |service_unit| {
             tokio::spawn(async move {
-                subscribe_to_event(subscriber).await;
+                for _ in 0..20 {
+                    let dt_stream = SubscriberStream::create(
+                        context,
+                        &service_unit.get_unit_identifier(),
+                        Duration::ZERO,
+                        SubscriberOptions { fetch_last_message: true },
+                    )
+                    .await;
+
+                    if let Ok(dt_stream) = dt_stream {
+                        dt_stream
+                            .for_each(|packet| {
+                                match packet {
+                                    Ok((msg_count, buffer)) => handle_events(msg_count, buffer),
+                                    Err(e) => {
+                                        panic!("[SubscriberStream] message read failed {}", e)
+                                    }
+                                };
+
+                                futures::future::ready(())
+                            })
+                            .await;
+
+                        break;
+                    } else {
+                        tokio::time::sleep(Duration::from_secs(1)).await;
+                    }
+                }
             });
 
-            event_subscribers.insert(sid);
-        }
-
-        thread::sleep(Duration::from_millis(200));
-    }
+            future::ready(())
+        },
+    )
+    .await;
 }
 
 async fn read_data_items(
@@ -178,36 +183,24 @@ async fn read_data_items(
     }
 }
 
-async fn subscribe_to_event(subscriber: Subscriber) {
-    let size_for_one_msg = subscriber.get_publisher_unit_metadata().get_message_size() as usize;
+fn handle_events(available_to_read: u32, bytes: Vec<u8>) {
+    info!("Available to read: {available_to_read}");
 
-    info!("Subscribe to event with msg size: {size_for_one_msg}");
+    let size_for_one_msg = bytes.len() / available_to_read as usize;
 
-    loop {
-        let available_to_read = subscriber.available_to_read().unwrap_or(0) as usize;
+    let messages_bytes = bytes
+        .chunks(size_for_one_msg)
+        .map(|chunk| chunk.to_owned().into_boxed_slice())
+        .collect::<Vec<_>>();
 
-        if available_to_read > 0 {
-            info!("Available to read: {available_to_read}");
-            let mut bytes = vec![0u8; size_for_one_msg * available_to_read];
-            let _ = subscriber.read_messages(&mut bytes);
+    for message_bytes in &messages_bytes {
+        let event = decode_with_len::<Event>(message_bytes);
+        info!("Event received: {:#?}", event);
 
-            let messages_bytes = bytes
-                .chunks(size_for_one_msg)
-                .map(|chunk| chunk.to_owned().into_boxed_slice())
-                .collect::<Vec<_>>();
-
-            for message_bytes in &messages_bytes {
-                let event = decode_with_len::<Event>(message_bytes);
-                info!("Event received: {:#?}", event);
-
-                if let Some(ref extended_data) = event.unwrap().extended_data {
-                    // TODO(372607401): use VsidlProvider to parse the extended data message.
-                    info!("Event extended data received: {:#?}", extended_data);
-                }
-            }
+        if let Some(ref extended_data) = event.unwrap().extended_data {
+            // TODO(372607401): use VsidlProvider to parse the extended data message.
+            info!("Event extended data received: {:#?}", extended_data);
         }
-
-        thread::sleep(Duration::from_secs(1));
     }
 }
 
