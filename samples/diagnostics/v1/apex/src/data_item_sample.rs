@@ -86,7 +86,9 @@ impl DiagnosticsSampleWithDataItemRunner {
         cancellation_token: CancellationToken,
     ) {
         info!("Service is running in the main loop");
-        while !cancellation_token.is_cancelled() {}
+        while !cancellation_token.is_cancelled() {
+            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+        }
         info!("Service is exiting the main loop");
     }
 }
