@@ -186,10 +186,6 @@ sdv_service_bundle {
     server {
         interface: "com.sdv.google.diagnostics.authentication.AuthenticationService"
     }
-    server {
-        interface: "com.sdv.google.diagnostics.authentication.AuthenticationService"
-        service_unit_name: "authentication-copy"
-    }
 
     diagnostics_declaration {
         data_item { id: "one" }
@@ -224,5 +220,20 @@ sdv_service_bundle {
         event { id: "six" fault_listener_mask: 0x1 }
         event { id: "seven" fault_listener_mask: 0x1 }
         event { id: "eight" fault_listener_mask: 0x1 }
+    }
+}
+
+sdv_service_bundle {
+    name: "DiagnosticsGenerationTestForEventNameSupport"
+
+    server {
+        interface: "com.sdv.google.diagnostics.fault.FaultListenerService"
+    }
+
+    diagnostics_declaration {
+        event {
+            id: "event_with_dot.with_hyphen-with_UPPERCASE"
+            fault_listener_mask: 0x3
+        }
     }
 }

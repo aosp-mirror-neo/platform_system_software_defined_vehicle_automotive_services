@@ -95,7 +95,6 @@ impl DiagnosticsGenerationTestWithManyServersAndHandlers {
             std::sync::Arc<dyn com_sdv_google_diagnostics_file_transfer_file_transfer_service_rpc::Interface>,
             std::sync::Arc<dyn com_sdv_google_diagnostics_security_access_security_access_service_rpc::Interface>,
             std::sync::Arc<dyn com_sdv_google_diagnostics_authentication_authentication_service_rpc::Interface>,
-            std::sync::Arc<dyn com_sdv_google_diagnostics_authentication_authentication_service_rpc::Interface>,
         ),
     ) -> sdv::status::SdvResult<Self> {
         let mut service = Self {
@@ -136,11 +135,6 @@ impl DiagnosticsGenerationTestWithManyServersAndHandlers {
         service.add_server::<dyn com_sdv_google_diagnostics_authentication_authentication_service_rpc::Interface>(
                 com_sdv_google_diagnostics_authentication_authentication_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
                 com_sdv_google_diagnostics_authentication_authentication_service_rpc::internal::get_method_map(servers.6.clone()),
-            )
-            .await?;
-        service.add_server::<dyn com_sdv_google_diagnostics_authentication_authentication_service_rpc::Interface>(
-                "authentication-copy".to_string(),
-                com_sdv_google_diagnostics_authentication_authentication_service_rpc::internal::get_method_map(servers.7.clone()),
             )
             .await?;
         Ok(service)
