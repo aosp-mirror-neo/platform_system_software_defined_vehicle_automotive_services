@@ -75,5 +75,4 @@ rust_defaults {
         // Contains service bundle interface definitions and helper macros.
         "libsdv_lifecycle_client_rust",
     ],
-    product_specific: true,
 }
