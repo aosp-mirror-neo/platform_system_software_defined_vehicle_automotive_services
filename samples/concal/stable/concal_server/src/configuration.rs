@@ -60,9 +60,9 @@ mod tests {
     use concal_api_stable::config_override::config_override_key_value::Value;
     use concal_api_stable::config_override::ConfigOverrideKeyValue;
     use protobuf::Message;
-    use sdvsampleconcal_proto_rust::inner_test_configuration::InnerTestConfigurationDifferentFile as InnerTestConfigurationProto;
-    use sdvsampleconcal_proto_rust::inner_test_configuration_different_package::InnerTestConfigurationDifferentPackage as DifferentPackageProto;
-    use sdvsampleconcal_proto_rust::test_configuration::{
+    use sdvtestconcal_proto_rust::inner_test_configuration::InnerTestConfigurationDifferentFile as InnerTestConfigurationProto;
+    use sdvtestconcal_proto_rust::inner_test_configuration_different_package::InnerTestConfigurationDifferentPackage as DifferentPackageProto;
+    use sdvtestconcal_proto_rust::test_configuration::{
         ComplexParameterInFile as ComplexProto, TestConfiguration as TestConfigurationProto,
     };
     use std::option::Option;

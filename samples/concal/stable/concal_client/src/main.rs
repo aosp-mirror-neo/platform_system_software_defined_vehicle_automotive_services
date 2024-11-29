@@ -25,7 +25,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::vec::Vec;
 
-use sdvsampleconcal_proto_rust::concal_rear_view_camera::RearViewCamera;
+use sdvtestconcal_proto_rust::rear_view_camera::RearViewCamera;
 
 #[tokio::main]
 async fn main() {

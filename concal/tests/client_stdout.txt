@@ -1,3 +1,5 @@
+Context for Sample ConCal Client is created.
+Sample ConCal RPC Client started.
 Registering config:
 RearViewCamera {
     model: "model 1",
@@ -23,7 +25,24 @@ Applying the following overrides:
         config_id: MessageField(
             Some(
                 ConfigId {
-                    service_fqin: "company_domain.domain.apex.service.instance",
+                    service_fqin: MessageField(
+                        Some(
+                            ServiceFqin {
+                                vm_name: "local-vm",
+                                package_name: "com.sdv.oem.sample.concal",
+                                service_name: "ConCalClientServiceBundle",
+                                instance_name: "sample",
+                                special_fields: SpecialFields {
+                                    unknown_fields: UnknownFields {
+                                        fields: None,
+                                    },
+                                    cached_size: CachedSize {
+                                        size: 0,
+                                    },
+                                },
+                            },
+                        ),
+                    ),
                     config_name: "config",
                     special_fields: SpecialFields {
                         unknown_fields: UnknownFields {
