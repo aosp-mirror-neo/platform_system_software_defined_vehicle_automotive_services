@@ -112,7 +112,7 @@ Key TEMPERATURE     Value: Int64(32)
 
 
 Attempting to Adjust HVAC temperature to invalid value 100
-Request to set invalid temperature denied SdvStatusCode::Unknown(2)
+Request to set invalid temperature denied SdvStatusCode::InvalidArgument(3)
 
 Creating another user
 
