@@ -69,6 +69,7 @@ async fn main() {
 
                 tokio::spawn(read_data_items(
                     context,
+                    vsidl_provider.clone(),
                     service_unit,
                     declaration.unwrap_or_default(),
                 ));
@@ -143,11 +144,12 @@ async fn listen_to_events(context: ContextRef) {
 
 async fn read_data_items(
     context: ContextRef,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
     service_unit: ServiceUnitDefinition,
     diagnostics_declaration: DiagnosticsDeclaration,
 ) {
     let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
-    let translator = DiagnosticsTranslator::new(context);
+    let translator = DiagnosticsTranslator::new(vsidl_provider);
 
     for data_item in diagnostics_declaration.data_item {
         debug!("Trying to read data item: {:#?}", data_item);
