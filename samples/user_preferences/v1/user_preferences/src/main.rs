@@ -3,7 +3,7 @@
 use std::{str::FromStr, sync::Arc};
 
 use admin_service_impl::AdminServiceImpl;
-use log::{error, info};
+use log::info;
 use management_service_impl::ManagementServiceImpl;
 use persistence::initialize_persistence;
 use registry_service_impl::RegistryServiceImpl;
@@ -13,7 +13,6 @@ use sdv_comms::sd::ServiceDiscoveryManager;
 use sdv_mw_rs_com_sdv_oem_user_preferences_user_preferences_service_bundle::UserPreferencesServiceBundle;
 use sdv_mw_rs_sdv_comms::SdvComms;
 use settings_change_propagator_impl::SettingsChangePropagatorImpl;
-use std::fs;
 use std::path::PathBuf;
 use subscriptions_manager_impl::SubscriptionsManagerImpl;
 use tokio_util::sync::CancellationToken;
@@ -54,17 +53,6 @@ impl BundleRunner {
             context.get_self_fqin().get_service_bundle_name(),
         ))
         .unwrap();
-        // Ensure the directory for the database file exists
-        if let Some(parent_dir) = db_path.parent() {
-            if !parent_dir.exists() {
-                if let Err(e) = fs::create_dir_all(parent_dir) {
-                    error!("Error creating database directory: {}", e);
-                    panic!("Could not create database directory"); // Or handle the error appropriately
-                } else {
-                    info!("Created directory: {:?}", parent_dir);
-                }
-            }
-        }
         let comms = Arc::new(SdvComms { context });
         let rpc_client_factory = Arc::new(RpcClientFactoryImpl::new(comms.clone()));
         let subscriptions_manager =
