@@ -47,9 +47,9 @@ async fn main() {
     tokio::spawn(listen_to_events(context));
 
     tokio::spawn(data_item_interaction(context, vsidl_provider.clone()));
-    tokio::spawn(io_control_interaction(context));
-    tokio::spawn(routine_control_interaction(context));
-    tokio::spawn(fault_listener_interaction(context));
+    tokio::spawn(io_control_interaction(context, vsidl_provider.clone()));
+    tokio::spawn(routine_control_interaction(context, vsidl_provider.clone()));
+    tokio::spawn(fault_listener_interaction(context, vsidl_provider.clone()));
 
     binder::ProcessState::start_thread_pool();
 
@@ -107,15 +107,19 @@ async fn read_data_items(
     let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
     let translator = DiagnosticsTranslator::new(vsidl_provider.clone());
 
-    let diagnostics_declaration = vsidl_provider.get_diagnostics_declaration(&service_fqin).await;
+    let diagnostics_declaration =
+        vsidl_provider.get_diagnostics_declaration(&service_fqin).await.unwrap_or_default();
 
-    debug!("Diagnostics declaration of a {} : {:#?}", service_fqin, diagnostics_declaration);
+    debug!(
+        "DataItems diagnostics declaration of a {} : {:#?}",
+        service_fqin, diagnostics_declaration.data_item
+    );
 
-    for data_item in diagnostics_declaration.unwrap_or_default().data_item {
+    for data_item in diagnostics_declaration.data_item {
         debug!("Trying to read data item: {:#?}", data_item);
         let result = perform_and_log_rpc_call::<ReadDataItem>(
             context,
-            service_unit.clone(),
+            &service_unit,
             ReadDataItemRequest { id: data_item.id.clone(), ..Default::default() },
         )
         .await;
@@ -139,6 +143,85 @@ async fn read_data_items(
                 warn!("Error reading data item: {e}");
             }
         };
+    }
+}
+
+async fn start_routines(
+    context: ContextRef,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    service_unit: ServiceUnitDefinition,
+) {
+    let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
+    let diagnostics_declaration =
+        vsidl_provider.get_diagnostics_declaration(&service_fqin).await.unwrap_or_default();
+
+    debug!(
+        "RoutinControls diagnostics declaration of a {} : {:#?}",
+        service_fqin, diagnostics_declaration.routine
+    );
+
+    for routine in diagnostics_declaration.routine {
+        debug!("Trying to start routine: {:#?}", routine);
+        perform_and_log_rpc_call::<StartRoutine>(
+            context,
+            &service_unit,
+            RoutineControlRequest { id: "pressurization".to_string(), ..Default::default() },
+        )
+        .await;
+    }
+}
+
+async fn freeze_current_state(
+    context: ContextRef,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    service_unit: ServiceUnitDefinition,
+) {
+    let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
+    let diagnostics_declaration =
+        vsidl_provider.get_diagnostics_declaration(&service_fqin).await.unwrap_or_default();
+
+    debug!(
+        "IoControls diagnostics declaration of a {} : {:#?}",
+        service_fqin, diagnostics_declaration.io_control
+    );
+
+    for io_control in diagnostics_declaration.io_control {
+        debug!("Trying to freeze current state for: {:#?}", io_control);
+        perform_and_log_rpc_call::<FreezeCurrentState>(
+            context,
+            &service_unit,
+            IoControlRequest { id: io_control.id.to_string(), ..Default::default() },
+        )
+        .await;
+    }
+}
+
+async fn update_faults_status(
+    context: ContextRef,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    service_unit: ServiceUnitDefinition,
+) {
+    let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
+    let diagnostics_declaration =
+        vsidl_provider.get_diagnostics_declaration(&service_fqin).await.unwrap_or_default();
+
+    debug!(
+        "FaultListeners diagnostics declaration of a {} : {:#?}",
+        service_fqin, diagnostics_declaration.routine
+    );
+
+    for routine in diagnostics_declaration.routine {
+        debug!("Trying to start routine: {:#?}", routine);
+        perform_and_log_rpc_call::<OnFaultStatusChange>(
+            context,
+            &service_unit,
+            OnFaultStatusChangeRequest {
+                id: routine.id.to_string(),
+                status: 1,
+                ..Default::default()
+            },
+        )
+        .await;
     }
 }
 
@@ -177,33 +260,31 @@ async fn data_item_interaction(
     .await;
 }
 
-async fn io_control_interaction(context: ContextRef) {
+async fn io_control_interaction(
+    context: ContextRef,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+) {
     info!("Starting interaction with IoControls");
 
     set_service_unit_registration_callback(context, IoControl::unit_type(), move |service_unit| {
-        tokio::spawn(perform_and_log_rpc_call::<FreezeCurrentState>(
-            context,
-            service_unit,
-            IoControlRequest { id: "pressure".to_string(), ..Default::default() },
-        ));
+        tokio::spawn(freeze_current_state(context, vsidl_provider.clone(), service_unit));
 
         future::ready(())
     })
     .await;
 }
 
-async fn routine_control_interaction(context: ContextRef) {
+async fn routine_control_interaction(
+    context: ContextRef,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+) {
     info!("Starting interaction with RoutineControls");
 
     set_service_unit_registration_callback(
         context,
         RoutineControl::unit_type(),
         move |service_unit| {
-            tokio::spawn(perform_and_log_rpc_call::<StartRoutine>(
-                context,
-                service_unit,
-                RoutineControlRequest { id: "pressurization".to_string(), ..Default::default() },
-            ));
+            tokio::spawn(start_routines(context, vsidl_provider.clone(), service_unit));
 
             future::ready(())
         },
@@ -211,22 +292,17 @@ async fn routine_control_interaction(context: ContextRef) {
     .await;
 }
 
-async fn fault_listener_interaction(context: ContextRef) {
+async fn fault_listener_interaction(
+    context: ContextRef,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+) {
     info!("Starting interaction with FaultListeners");
 
     set_service_unit_registration_callback(
         context,
         FaultListener::unit_type(),
         move |service_unit| {
-            tokio::spawn(perform_and_log_rpc_call::<OnFaultStatusChange>(
-                context,
-                service_unit,
-                OnFaultStatusChangeRequest {
-                    id: "lowpressure".to_string(),
-                    status: 1,
-                    ..Default::default()
-                },
-            ));
+            tokio::spawn(update_faults_status(context, vsidl_provider.clone(), service_unit));
 
             future::ready(())
         },
@@ -281,7 +357,7 @@ where
 
 async fn perform_and_log_rpc_call<T: Method>(
     context: ContextRef,
-    service_unit: ServiceUnitDefinition,
+    service_unit: &ServiceUnitDefinition,
     request: T::Request,
 ) -> T::Response {
     debug!("Performing RPC call: {}:{}", T::UnitType::unit_type(), T::METHOD_NAME);
