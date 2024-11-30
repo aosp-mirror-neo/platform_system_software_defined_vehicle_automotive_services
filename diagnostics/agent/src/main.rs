@@ -2,7 +2,7 @@
 
 //! Diagnostics agent implementation.
 use diagnostics_v1_api::{
-    data_item_service::ReadDataItemRequest, diagnostics::DiagnosticsDeclaration, event::Event,
+    data_item_service::ReadDataItemRequest, event::Event,
     fault_listener_service::OnFaultStatusChangeRequest, io_control_service::IoControlRequest,
     routine_control_service::RoutineControlRequest,
 };
@@ -46,54 +46,12 @@ async fn main() {
 
     info!("Starting Diagnostics Agent");
 
-    tokio::spawn(async move {
-        info!("Starting interaction with Events");
-        listen_to_events(context).await;
-    });
+    tokio::spawn(listen_to_events(context));
 
-    let cloned_vsidl_provider = vsidl_provider.clone();
-    tokio::spawn(async move {
-        info!("Starting interaction with DataItems");
-        let vsidl_provider = cloned_vsidl_provider.clone();
-
-        set_service_unit_registration_callback(
-            context,
-            DataItem::unit_type(),
-            move |service_unit| {
-                let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
-                let declaration = futures_executor::block_on(
-                    vsidl_provider.get_diagnostics_declaration(&service_fqin),
-                );
-
-                debug!("Diagnostics declaration of a {} : {:#?}", service_fqin, declaration,);
-
-                tokio::spawn(read_data_items(
-                    context,
-                    vsidl_provider.clone(),
-                    service_unit,
-                    declaration.unwrap_or_default(),
-                ));
-
-                future::ready(())
-            },
-        )
-        .await;
-    });
-
-    tokio::spawn(async move {
-        info!("Starting interaction with IoControls");
-        io_control_interaction(context).await;
-    });
-
-    tokio::spawn(async move {
-        info!("Starting interaction with RoutineControls");
-        routine_control_interaction(context).await;
-    });
-
-    tokio::spawn(async move {
-        info!("Starting interaction with FaultListeners");
-        fault_listener_interaction(context).await;
-    });
+    tokio::spawn(data_item_interaction(context, vsidl_provider.clone()));
+    tokio::spawn(io_control_interaction(context));
+    tokio::spawn(routine_control_interaction(context));
+    tokio::spawn(fault_listener_interaction(context));
 
     binder::ProcessState::start_thread_pool();
 
@@ -101,6 +59,7 @@ async fn main() {
 }
 
 async fn listen_to_events(context: ContextRef) {
+    info!("Starting interaction with Events");
     set_service_unit_registration_callback(
         context,
         EventPublication::unit_type(),
@@ -146,12 +105,15 @@ async fn read_data_items(
     context: ContextRef,
     vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
     service_unit: ServiceUnitDefinition,
-    diagnostics_declaration: DiagnosticsDeclaration,
 ) {
     let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
-    let translator = DiagnosticsTranslator::new(vsidl_provider);
+    let translator = DiagnosticsTranslator::new(vsidl_provider.clone());
 
-    for data_item in diagnostics_declaration.data_item {
+    let diagnostics_declaration = vsidl_provider.get_diagnostics_declaration(&service_fqin).await;
+
+    debug!("Diagnostics declaration of a {} : {:#?}", service_fqin, diagnostics_declaration);
+
+    for data_item in diagnostics_declaration.unwrap_or_default().data_item {
         debug!("Trying to read data item: {:#?}", data_item);
         let result = perform_and_log_rpc_call::<ReadDataItem>(
             context,
@@ -203,7 +165,22 @@ fn handle_events(available_to_read: u32, bytes: Vec<u8>) {
     }
 }
 
+async fn data_item_interaction(
+    context: ContextRef,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+) {
+    info!("Starting interaction with DataItems");
+
+    set_service_unit_registration_callback(context, DataItem::unit_type(), move |service_unit| {
+        tokio::spawn(read_data_items(context, vsidl_provider.clone(), service_unit));
+
+        future::ready(())
+    })
+    .await;
+}
+
 async fn io_control_interaction(context: ContextRef) {
+    info!("Starting interaction with IoControls");
     let service_unit = wait_for_service_unit(
         context,
         UnitNameDiscoveryArgs::new_builder()
@@ -225,6 +202,7 @@ async fn io_control_interaction(context: ContextRef) {
 }
 
 async fn routine_control_interaction(context: ContextRef) {
+    info!("Starting interaction with RoutineControls");
     let service_unit = wait_for_service_unit(
         context,
         UnitNameDiscoveryArgs::new_builder()
@@ -248,6 +226,7 @@ async fn routine_control_interaction(context: ContextRef) {
 }
 
 async fn fault_listener_interaction(context: ContextRef) {
+    info!("Starting interaction with FaultListeners");
     let service_unit = wait_for_service_unit(
         context,
         UnitNameDiscoveryArgs::new_builder()
@@ -303,19 +282,16 @@ where
 
             future::ready(result)
         })
-        .inspect(|unit| {
+        .for_each(|unit| {
             info!(
                 "Discovered unit: {} : {}",
                 unit.get_service_bundle_identity().get_fqin(),
                 unit.get_unit_identifier().get_unit_name()
             );
 
-            let unit = unit.clone();
-            let f = f.clone();
-            tokio::spawn(async move { f(unit).await });
+            f(unit.clone())
         })
-        .collect::<Vec<_>>()
-        .await;
+        .await
 }
 
 async fn wait_for_service_unit(
