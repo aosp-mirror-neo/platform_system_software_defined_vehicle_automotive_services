@@ -43,7 +43,7 @@ impl Method for ReadDataItem {
 
 pub struct FaultListener;
 impl DiagnosticsUnitType for FaultListener {
-    const TYPE_NAME: &'static str = "fault_listener.FaultListenerService";
+    const TYPE_NAME: &'static str = "fault.FaultListenerService";
 }
 
 pub struct OnFaultStatusChange;
@@ -67,8 +67,8 @@ impl Method for StartRoutine {
     type UnitType = RoutineControl;
 }
 
-pub struct InputOutputControl;
-impl DiagnosticsUnitType for InputOutputControl {
+pub struct IoControl;
+impl DiagnosticsUnitType for IoControl {
     const TYPE_NAME: &'static str = "io_control.IoControlService";
 }
 
@@ -77,7 +77,7 @@ impl Method for FreezeCurrentState {
     const METHOD_NAME: &'static str = "FreezeCurrentState";
     type Request = IoControlRequest;
     type Response = IoControlResponse;
-    type UnitType = InputOutputControl;
+    type UnitType = IoControl;
 }
 
 pub struct EventPublication;

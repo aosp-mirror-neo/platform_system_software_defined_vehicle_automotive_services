@@ -14,9 +14,7 @@ use sdv_comms::dt::{SubscriberOptions, SubscriberStream};
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::rpc::{Client, ClientOptions};
 use sdv_comms::sd::ServiceUnitChangeEvent;
-use sdv_comms::sd::{
-    ServiceDiscoveryManager, ServiceUnitDefinition, UnitNameDiscoveryArgs, UnitType,
-};
+use sdv_comms::sd::{ServiceDiscoveryManager, ServiceUnitDefinition, UnitType};
 use sdv_comms::ContextRef;
 use sdv_config_provider::{vsidl_provider, vsidl_provider_api::VsidlConfigProviderV1};
 use sdv_uds_serde::{diagnostics_translator::DiagnosticsTranslator, entity_id::EntityId};
@@ -28,7 +26,7 @@ use std::time::Duration;
 mod unit_types;
 use crate::unit_types::*;
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 8)]
+#[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() {
     sdv_log::init_logger("sdv_diagnostics_agent").unwrap();
     sdv_tracing::init_tracing();
@@ -181,71 +179,56 @@ async fn data_item_interaction(
 
 async fn io_control_interaction(context: ContextRef) {
     info!("Starting interaction with IoControls");
-    let service_unit = wait_for_service_unit(
-        context,
-        UnitNameDiscoveryArgs::new_builder()
-            .set_sdv_package_name("com.sdv.oem.sample.diagnostics")
-            .set_service_bundle_name("DiagnosticsProvider1")
-            .set_service_unit_name("com-sdv-google-diagnostics-io-control-io-control-service")
-            .build()
-            .unwrap(),
-    )
-    .await;
 
-    // TODO(372607401): use VsidlProvider to parse the response message.
-    let _ = perform_and_log_rpc_call::<FreezeCurrentState>(
-        context,
-        service_unit,
-        IoControlRequest { id: "pressure".to_string(), ..Default::default() },
-    )
+    set_service_unit_registration_callback(context, IoControl::unit_type(), move |service_unit| {
+        tokio::spawn(perform_and_log_rpc_call::<FreezeCurrentState>(
+            context,
+            service_unit,
+            IoControlRequest { id: "pressure".to_string(), ..Default::default() },
+        ));
+
+        future::ready(())
+    })
     .await;
 }
 
 async fn routine_control_interaction(context: ContextRef) {
     info!("Starting interaction with RoutineControls");
-    let service_unit = wait_for_service_unit(
-        context,
-        UnitNameDiscoveryArgs::new_builder()
-            .set_sdv_package_name("com.sdv.oem.sample.diagnostics")
-            .set_service_bundle_name("DiagnosticsProvider1")
-            .set_service_unit_name(
-                "com-sdv-google-diagnostics-routine-control-routine-control-service",
-            )
-            .build()
-            .unwrap(),
-    )
-    .await;
 
-    // TODO(372607401): use VsidlProvider to parse the response message.
-    let _ = perform_and_log_rpc_call::<StartRoutine>(
+    set_service_unit_registration_callback(
         context,
-        service_unit,
-        RoutineControlRequest { id: "pressurization".to_string(), ..Default::default() },
+        RoutineControl::unit_type(),
+        move |service_unit| {
+            tokio::spawn(perform_and_log_rpc_call::<StartRoutine>(
+                context,
+                service_unit,
+                RoutineControlRequest { id: "pressurization".to_string(), ..Default::default() },
+            ));
+
+            future::ready(())
+        },
     )
     .await;
 }
 
 async fn fault_listener_interaction(context: ContextRef) {
     info!("Starting interaction with FaultListeners");
-    let service_unit = wait_for_service_unit(
-        context,
-        UnitNameDiscoveryArgs::new_builder()
-            .set_sdv_package_name("com.sdv.oem.sample.diagnostics")
-            .set_service_bundle_name("DiagnosticsProvider1")
-            .set_service_unit_name("com-sdv-google-diagnostics-fault-fault-listener-service")
-            .build()
-            .unwrap(),
-    )
-    .await;
 
-    // TODO(372607401): use VsidlProvider to parse the response message.
-    let _ = perform_and_log_rpc_call::<OnFaultStatusChange>(
+    set_service_unit_registration_callback(
         context,
-        service_unit,
-        OnFaultStatusChangeRequest {
-            id: "lowpressure".to_string(),
-            status: 1,
-            ..Default::default()
+        FaultListener::unit_type(),
+        move |service_unit| {
+            tokio::spawn(perform_and_log_rpc_call::<OnFaultStatusChange>(
+                context,
+                service_unit,
+                OnFaultStatusChangeRequest {
+                    id: "lowpressure".to_string(),
+                    status: 1,
+                    ..Default::default()
+                },
+            ));
+
+            future::ready(())
         },
     )
     .await;
@@ -282,49 +265,18 @@ where
 
             future::ready(result)
         })
-        .for_each(|unit| {
+        .for_each(|unit: ServiceUnitDefinition| {
             info!(
                 "Discovered unit: {} : {}",
                 unit.get_service_bundle_identity().get_fqin(),
                 unit.get_unit_identifier().get_unit_name()
             );
 
-            f(unit.clone())
+            tokio::spawn(f(unit.clone()));
+
+            future::ready(())
         })
         .await
-}
-
-async fn wait_for_service_unit(
-    context: ContextRef,
-    args: UnitNameDiscoveryArgs,
-) -> ServiceUnitDefinition {
-    info!("Waiting for service unit: {:?}", args.get_unit_name());
-    let sd = ServiceDiscoveryManager::new(context);
-
-    let unit_event_stream = sd.subscribe_service_unit_change_by_name(&args).await.unwrap();
-
-    unit_event_stream
-        .filter_map(move |event| {
-            info!("Event received: {event:#?}");
-
-            let result = if let ServiceUnitChangeEvent::Registered(unit) = event {
-                Some(unit)
-            } else {
-                None
-            };
-
-            future::ready(result)
-        })
-        .next()
-        .await
-        .inspect(|unit| {
-            info!(
-                "Discovered unit: {} : {}",
-                unit.get_service_bundle_identity().get_fqin(),
-                unit.get_unit_identifier().get_unit_name()
-            )
-        })
-        .unwrap()
 }
 
 async fn perform_and_log_rpc_call<T: Method>(
