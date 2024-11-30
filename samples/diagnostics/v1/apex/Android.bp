@@ -34,6 +34,10 @@ apex {
         "com.sdv.oem.sample.diagnostics.event.diag",
         // VSIDL schemas
         "com.sdv.oem.sample.diagnostics.event.vsidl",
+        // Diagnostics declaration
+        "com.sdv.oem.sample.diagnostics.provider1.diag",
+        // VSIDL schemas
+        "com.sdv.oem.sample.diagnostics.provider1.vsidl",
         // Linker configuration to enable loading library from apex.
         "com.sdv.oem.sample.diagnostics.linker_config",
     ],
@@ -83,6 +87,19 @@ prebuilt_etc {
     name: "com.sdv.oem.sample.diagnostics.event.acl_policy",
     src: "configuration/bundle_with_event/acl.textproto",
     sub_dir: "event",
+    filename: "acl.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// File with the ACL policy of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.sdv.oem.sample.diagnostics.provider1.acl_policy",
+    src: "configuration/provider1/acl.textproto",
+    sub_dir: "provider1",
     filename: "acl.textproto",
     // Disable direct installation of the manifest to one of the partitions.
     // The manifest will be used only inside of service bundles registry apexes.
@@ -157,6 +174,30 @@ prebuilt_etc {
     name: "com.sdv.oem.sample.diagnostics.event.vsidl",
     src: ":generate_from_vsidl_for_diagnostics_sample_with_event{vsidl-config.binpb}",
     sub_dir: "event",
+    filename: "vsidl.binpb",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+prebuilt_etc {
+    name: "com.sdv.oem.sample.diagnostics.provider1.diag",
+    src: ":generate_from_vsidl_for_diagnostics_provider1{diagnostics-config.binpb}",
+    sub_dir: "provider1",
+    filename: "diag.binpb",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+prebuilt_etc {
+    name: "com.sdv.oem.sample.diagnostics.provider1.vsidl",
+    src: ":generate_from_vsidl_for_diagnostics_provider1{vsidl-config.binpb}",
+    sub_dir: "provider1",
     filename: "vsidl.binpb",
     // Disable direct installation of the manifest to one of the partitions.
     // The manifest will be used only inside of service bundles registry apexes.
