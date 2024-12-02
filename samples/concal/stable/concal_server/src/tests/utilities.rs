@@ -6,7 +6,7 @@ use concal_api_stable::service_fqin::ServiceFqin;
 use protobuf::descriptor::FileDescriptorSet;
 use protobuf::well_known_types::any::Any;
 use protobuf::MessageField;
-use sdvsampleconcal_proto_rust::test_configuration::TestConfiguration;
+use sdvtestconcal_proto_rust::test_configuration::TestConfiguration;
 use std::path::PathBuf;
 
 pub(crate) fn test_config() -> Configuration {

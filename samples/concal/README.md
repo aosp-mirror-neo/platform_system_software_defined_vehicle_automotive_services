@@ -32,7 +32,7 @@ implements Lifecycle Manager interface. To run the demo, follow the steps below:
 
 3.  Once executed the client will register the following configuration and you
     will see the output as in
-    [expected client stdout file](../../concal/integration_test/tests/client_stdout.txt)
+    [expected client stdout file](../../concal/tests/client_stdout.txt)
 
 ## SDV ConCal Sample Code Generation
 
@@ -47,23 +47,6 @@ If you get an error that *vsidlc* is not found, build it first:
 
 ```bash
 mm vsidlc
-```
-
-## SDV ConCal Sample Code Generation (Deprecated)
-
-This sample will be deprecated.
-
-To generate code from the VSIDL definitions, run the following command from this
-folder:
-
-```bash
-sdv_catalog_update --catalog con-cal
-```
-
-If you get an error that *sdv_catalog_update* is not found, build it first:
-
-```bash
-mm sdv_catalog_update
 ```
 
 ## ConCal Config Override Library
@@ -86,35 +69,5 @@ mm sdv_catalog_update
 3.  Run tests
 
     ```bash
-    atest lib_override_tests sdv_con_cal_service_tests sdv_concal_integration_test
+    atest lib_override_tests
     ```
-
-## ConCal Demo Application (Deprecated)
-
-This demo application will be deprecated. The samples include a reference
-implementation of the ConCal server along with a sample client. The client
-registers a configuration in ConCal, updates it via overrides, and performs a
-rollback. To run the demo, follow the steps below:
-
-1.  Start the sample ConCal server in one shell
-
-    Using root, because the binary is on the `/product` partition.
-
-    ```bash
-    adb shell su root /product/bin/sdv_con_cal_service
-    ```
-
-    The output `ConCalServer service bundle started` means that the server was
-    successfully launched.
-
-2.  Run the sample ConCal client in another shell
-
-    Using root, because the binary is on the `/product` partition.
-
-    ```bash
-    adb shell su root /product/bin/sdv_con_cal_client
-    ```
-
-3.  Once executed the client will register the following configuration and you
-    will see the output as in
-    [expected client stdout file](../../concal/integration_test/tests/client_stdout.txt)

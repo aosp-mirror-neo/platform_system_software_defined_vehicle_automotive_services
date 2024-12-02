@@ -535,7 +535,7 @@ mod tests {
     use protobuf::well_known_types::any::Any;
     use sdv_comms::id::ServiceFqin;
     use sdv_status_rs::SdvStatusCode;
-    use sdvsampleconcal_proto_rust::test_configuration::TestConfiguration;
+    use sdvtestconcal_proto_rust::test_configuration::TestConfiguration;
     use std::str::FromStr;
 
     use crate::tests::utilities::*;
