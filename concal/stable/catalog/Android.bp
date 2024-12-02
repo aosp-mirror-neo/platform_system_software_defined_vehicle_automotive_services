@@ -19,6 +19,7 @@ rust_protobuf {
     apex_available: [
         "//apex_available:platform",
     ],
+    min_sdk_version: "35",
 }
 
 filegroup {

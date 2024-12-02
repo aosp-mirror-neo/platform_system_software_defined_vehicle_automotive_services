@@ -34,6 +34,7 @@ rust_ffi_shared {
         "libsdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_sample_with_data_item",
     ],
     defaults: ["diag_sample@defaults"],
+    min_sdk_version: "35",
 }
 
 rust_ffi_shared {
@@ -45,4 +46,5 @@ rust_ffi_shared {
     rustlibs: [
         "libsdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_sample_with_event",
     ],
+    min_sdk_version: "35",
 }

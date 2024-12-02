@@ -19,6 +19,7 @@ rust_protobuf {
     vendor_available: true,
     product_available: true,
     host_supported: true,
+    min_sdk_version: "35",
 }
 
 filegroup {

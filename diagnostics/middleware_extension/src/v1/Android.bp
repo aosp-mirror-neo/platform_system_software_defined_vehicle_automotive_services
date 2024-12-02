@@ -34,6 +34,7 @@ rust_library {
     ],
     vendor_available: true,
     product_available: true,
+    min_sdk_version: "35",
 }
 
 rust_test {

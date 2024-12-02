@@ -23,10 +23,12 @@ apex {
     file_contexts: "apex_file_contexts",
     // Name of the apex_key module that provides the private key to sign the APEX bundle.
     key: "com.android.sdv.samples.key",
-    // Mark apex as non-updatable for now, this might be revisited going forward.
-    updatable: false,
     // Service bundle package is installed into /product partition.
     product_specific: true,
+    // Set the min sdk version.
+    min_sdk_version: "35",
+    // Mark apex as updatable.
+    updatable: true,
 }
 
 // SDV manifest file prebuilt.

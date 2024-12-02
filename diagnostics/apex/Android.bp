@@ -10,7 +10,6 @@ apex {
     key: "com.sdv.google.diagnostics.key",
     certificate: ":com.sdv.google.diagnostics.certificate",
     file_contexts: "file_contexts",
-    updatable: false,
     prebuilts: [
         // SDV Manifest - used by SBR
         "com.sdv.google.diagnostics.manifest",
@@ -18,6 +17,8 @@ apex {
         "com.sdv.google.diagnostics.acl_policy",
     ],
     product_specific: true,
+    min_sdk_version: "35",
+    updatable: true,
 }
 
 apex_key {

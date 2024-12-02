@@ -40,6 +40,7 @@ rust_ffi_shared {
     proc_macros: [
         "libasync_trait",
     ],
+    min_sdk_version: "35",
 }
 
 rust_test {
