@@ -91,12 +91,12 @@ sdv_service_bundle {
 
     publisher {
         type: "com.sdv.google.diagnostics.event.EnableCondition"
-        service_unit_name: "traction-on"
+        service_unit_name: "enable-conditions"
     }
 
     publisher {
         type: "com.sdv.google.diagnostics.event.OperationCycle"
-        service_unit_name: "ignition"
+        service_unit_name: "operation-cycles"
     }
 
     server {

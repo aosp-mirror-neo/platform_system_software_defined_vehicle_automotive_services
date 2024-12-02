@@ -21,6 +21,10 @@ pub trait DiagnosticsUnitType {
     }
 }
 
+pub trait PublicationUnitType: DiagnosticsUnitType {
+    type Message: MessageFull;
+}
+
 pub trait Method {
     const METHOD_NAME: &'static str;
     type Request: MessageFull;
@@ -83,4 +87,26 @@ impl Method for FreezeCurrentState {
 pub struct EventPublication;
 impl DiagnosticsUnitType for EventPublication {
     const TYPE_NAME: &'static str = "event.Event";
+}
+
+impl PublicationUnitType for EventPublication {
+    type Message = diagnostics_v1_api::event::Event;
+}
+
+pub struct OperationCyclePublication;
+impl DiagnosticsUnitType for OperationCyclePublication {
+    const TYPE_NAME: &'static str = "event.OperationCycle";
+}
+
+impl PublicationUnitType for OperationCyclePublication {
+    type Message = diagnostics_v1_api::event::OperationCycle;
+}
+
+pub struct EnableConditionPublication;
+impl DiagnosticsUnitType for EnableConditionPublication {
+    const TYPE_NAME: &'static str = "event.EnableCondition";
+}
+
+impl PublicationUnitType for EnableConditionPublication {
+    type Message = diagnostics_v1_api::event::EnableCondition;
 }

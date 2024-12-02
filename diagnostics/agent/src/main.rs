@@ -1,6 +1,7 @@
 // Copyright 2024 Google LLC
 
 //! Diagnostics agent implementation.
+use diagnostics_v1_api::event::{EnableCondition, OperationCycle};
 use diagnostics_v1_api::{
     data_item_service::ReadDataItemRequest, event::Event,
     fault_listener_service::OnFaultStatusChangeRequest, io_control_service::IoControlRequest,
@@ -44,7 +45,9 @@ async fn main() {
 
     info!("Starting Diagnostics Agent");
 
-    tokio::spawn(listen_to_events(context));
+    tokio::spawn(listen_to_enable_conditions(context, vsidl_provider.clone()));
+    tokio::spawn(listen_to_operation_cycles(context, vsidl_provider.clone()));
+    tokio::spawn(listen_to_events(context, vsidl_provider.clone()));
 
     tokio::spawn(data_item_interaction(context, vsidl_provider.clone()));
     tokio::spawn(io_control_interaction(context, vsidl_provider.clone()));
@@ -56,12 +59,24 @@ async fn main() {
     binder::ProcessState::join_thread_pool();
 }
 
-async fn listen_to_events(context: ContextRef) {
-    info!("Starting interaction with Events");
+async fn listen_to_all_publications_of_type<T: PublicationUnitType>(
+    context: ContextRef,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    handler: impl Fn(ServiceUnitDefinition, Arc<dyn VsidlConfigProviderV1>, T::Message)
+        + Send
+        + Sync
+        + Clone
+        + 'static,
+) {
     set_service_unit_registration_callback(
         context,
-        EventPublication::unit_type(),
-        move |service_unit| {
+        T::unit_type(),
+        move|service_unit| {
+
+            let service_unit = service_unit.clone();
+            let handler = handler.clone();
+            let vsidl_provider = vsidl_provider.clone();
+
             tokio::spawn(async move {
                 for _ in 0..20 {
                     let dt_stream = SubscriberStream::create(
@@ -76,9 +91,28 @@ async fn listen_to_events(context: ContextRef) {
                         dt_stream
                             .for_each(|packet| {
                                 match packet {
-                                    Ok((msg_count, buffer)) => handle_events(msg_count, buffer),
+                                    Ok((msg_count, buffer)) => {
+                                        info!("Available to read: {msg_count}");
+
+                                        let size_for_one_msg = buffer.len() / msg_count as usize;
+
+                                        let messages_bytes = buffer
+                                            .chunks(size_for_one_msg)
+                                            .map(|chunk| chunk.to_owned().into_boxed_slice())
+                                            .collect::<Vec<_>>();
+
+                                        for message_bytes in &messages_bytes {
+                                            let event = decode_with_len::<T::Message>(message_bytes);
+
+                                            if let Ok(event) = event {
+                                                handler(service_unit.clone(), vsidl_provider.clone(), event)
+                                            } else {
+                                                warn!("Failed to parse publication of type {} for {service_unit:?}", T::TYPE_NAME)
+                                            }
+                                        }
+                                    },
                                     Err(e) => {
-                                        panic!("[SubscriberStream] message read failed {}", e)
+                                        warn!("Publisher unregistered: {:#?}", e)
                                     }
                                 };
 
@@ -95,6 +129,38 @@ async fn listen_to_events(context: ContextRef) {
 
             future::ready(())
         },
+    )
+    .await;
+}
+
+async fn listen_to_events(context: ContextRef, vsidl_provider: Arc<dyn VsidlConfigProviderV1>) {
+    info!("Starting interaction with Events");
+    listen_to_all_publications_of_type::<EventPublication>(context, vsidl_provider, handle_event)
+        .await
+}
+
+async fn listen_to_enable_conditions(
+    context: ContextRef,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+) {
+    info!("Starting interaction with EnableConditions");
+    listen_to_all_publications_of_type::<EnableConditionPublication>(
+        context,
+        vsidl_provider,
+        handle_enable_condition,
+    )
+    .await;
+}
+
+async fn listen_to_operation_cycles(
+    context: ContextRef,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+) {
+    info!("Starting interaction with OperationCycles");
+    listen_to_all_publications_of_type::<OperationCyclePublication>(
+        context,
+        vsidl_provider,
+        handle_operation_cycle,
     )
     .await;
 }
@@ -207,16 +273,16 @@ async fn update_faults_status(
 
     debug!(
         "FaultListeners diagnostics declaration of a {} : {:#?}",
-        service_fqin, diagnostics_declaration.routine
+        service_fqin, diagnostics_declaration.event
     );
 
-    for routine in diagnostics_declaration.routine {
-        debug!("Trying to start routine: {:#?}", routine);
+    for event in diagnostics_declaration.event {
+        debug!("Trying to update fault status: {:#?}", event);
         perform_and_log_rpc_call::<OnFaultStatusChange>(
             context,
             &service_unit,
             OnFaultStatusChangeRequest {
-                id: routine.id.to_string(),
+                id: event.id.to_string(),
                 status: 1,
                 ..Default::default()
             },
@@ -225,25 +291,59 @@ async fn update_faults_status(
     }
 }
 
-fn handle_events(available_to_read: u32, bytes: Vec<u8>) {
-    info!("Available to read: {available_to_read}");
+fn handle_event(
+    service_unit: ServiceUnitDefinition,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    event: Event,
+) {
+    info!("Event received: {:#?}", event);
 
-    let size_for_one_msg = bytes.len() / available_to_read as usize;
+    if let Some(ref extended_data) = event.extended_data {
+        info!("Event extended data received: {:#?}", extended_data);
 
-    let messages_bytes = bytes
-        .chunks(size_for_one_msg)
-        .map(|chunk| chunk.to_owned().into_boxed_slice())
-        .collect::<Vec<_>>();
+        let unit_name = service_unit.get_unit_identifier().get_unit_name().to_string();
 
-    for message_bytes in &messages_bytes {
-        let event = decode_with_len::<Event>(message_bytes);
-        info!("Event received: {:#?}", event);
+        let translator = DiagnosticsTranslator::new(vsidl_provider.clone());
 
-        if let Some(ref extended_data) = event.unwrap().extended_data {
-            // TODO(372607401): use VsidlProvider to parse the extended data message.
-            info!("Event extended data received: {:#?}", extended_data);
+        let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
+        let diagnostics_declaration =
+            futures_executor::block_on(vsidl_provider.get_diagnostics_declaration(&service_fqin))
+                .unwrap_or_default();
+
+        let event_declaration =
+            diagnostics_declaration.event.iter().find(|event| event.service_unit_name == unit_name);
+
+        if let Some(event_declaration) = event_declaration {
+            info!("Found declaration for event: {event_declaration}");
+            if let Some(data) = event.extended_data {
+                let uds_extended_data =
+                    futures_executor::block_on(translator.translate_from_protobuf_to_uds(
+                        &service_fqin,
+                        EntityId::EventExtendedData(event_declaration.id.clone()),
+                        &data,
+                    ));
+                info!("Event extended data in UDS format: {uds_extended_data:#?}")
+            }
+        } else {
+            warn!("Didn't find declaration for event: {service_unit:#?}");
         }
     }
+}
+
+fn handle_enable_condition(
+    _service_unit: ServiceUnitDefinition,
+    _vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    enable_condition: EnableCondition,
+) {
+    info!("Enable condition change received: {:#?}", enable_condition);
+}
+
+fn handle_operation_cycle(
+    _service_unit: ServiceUnitDefinition,
+    _vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    operation_cycle: OperationCycle,
+) {
+    info!("Operaction cycle command received: {:#?}", operation_cycle);
 }
 
 async fn data_item_interaction(

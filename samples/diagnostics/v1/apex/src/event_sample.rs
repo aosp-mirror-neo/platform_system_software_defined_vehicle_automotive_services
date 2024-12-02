@@ -56,6 +56,9 @@ impl ServiceBundle for DiagnosticsSampleWithEventRunner {
                 .await
                 .unwrap();
 
+                // Publisher "taken" from service_bundle should be kept in memory, in order to
+                // keep publication "alive".
+                // Here, publications die as soon as publishers get out of scope.
                 service_bundle
                     .take_publisher::<OperationCycle>(Variant::<OperationCycle>::UNIQUE)
                     .unwrap_or_else(|| panic!("Error taking publisher for OperationCycle"))
