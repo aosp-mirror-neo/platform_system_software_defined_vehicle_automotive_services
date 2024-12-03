@@ -626,4 +626,12 @@ mod tests {
             .expect("List users to succeed");
         assert_eq!(response.users.len(), 0);
     }
+
+    pub fn create_service_impl(test_setup: &TestSetup) -> AdminServiceImpl {
+        AdminServiceImpl::new(
+            test_setup.persistence.clone(),
+            test_setup.rpc_client_factory.clone(),
+            test_setup.settings_change_propagator.clone(),
+        )
+    }
 }
