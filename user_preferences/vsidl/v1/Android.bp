@@ -36,6 +36,96 @@ filegroup {
     ],
 }
 
+cc_library {
+    name: "user_preferences_protos",
+    vendor: true,
+    host_supported: true,
+    srcs: [
+        ":libuser_preferences_protos_stable",
+    ],
+    proto: {
+        canonical_path_from_root: false,
+        export_proto_headers: true,
+        include_dirs: [
+            "external/protobuf/src",
+            "system/software_defined_vehicle/automotive_services/user_preferences/vsidl/v1",
+        ],
+        type: "full",
+    },
+    shared_libs: [
+        "libprotobuf-cpp-full",
+    ],
+}
+
+genrule_defaults {
+    name: "user-preferences-grpc-gen-defaults",
+    tools: [
+        "aprotoc",
+        "protoc-gen-grpc-cpp-plugin",
+    ],
+    cmd: "$(location aprotoc)" +
+        "    -Isystem/software_defined_vehicle/automotive_services/user_preferences/vsidl/v1" +
+        "    -Iexternal/protobuf/src" +
+        "    --plugin=protoc-gen-grpc=$(location protoc-gen-grpc-cpp-plugin)" +
+        "    --grpc_out=$(genDir)" +
+        "    --cpp_out=$(genDir)" +
+        "    $(locations :libuser_preferences_protos_stable)",
+    srcs: [
+        ":libuser_preferences_protos_stable",
+    ],
+}
+
+genrule {
+    name: "user_preferences_gen_headers",
+    defaults: ["user-preferences-grpc-gen-defaults"],
+    out: [
+        "change_notifier.grpc.pb.h",
+        "user_controllable_service.grpc.pb.h",
+        "user_preferences_admin_service.grpc.pb.h",
+        "user_preferences_management_service.grpc.pb.h",
+        "user_preferences_registry_service.grpc.pb.h",
+    ],
+}
+
+genrule {
+    name: "user_preferences_gen",
+    defaults: ["user-preferences-grpc-gen-defaults"],
+    out: [
+        "change_notifier.grpc.pb.cc",
+        "user_controllable_service.grpc.pb.cc",
+        "user_preferences_admin_service.grpc.pb.cc",
+        "user_preferences_management_service.grpc.pb.cc",
+        "user_preferences_registry_service.grpc.pb.cc",
+    ],
+}
+
+cc_library_static {
+    name: "user_preferences_grpc_stubs",
+    host_supported: true,
+    generated_headers: [
+        "user_preferences_gen_headers",
+    ],
+    export_generated_headers: [
+        "user_preferences_gen_headers",
+    ],
+    generated_sources: [
+        "user_preferences_gen",
+    ],
+    shared_libs: [
+        "libgrpc++",
+        "libprotobuf-cpp-full",
+    ],
+    static_libs: [
+        "user_preferences_protos",
+    ],
+    cflags: [
+        // gRPC++ generated code is full of unused parameters.
+        "-Wno-unused-parameter",
+    ],
+    vendor_available: true,
+    product_available: true,
+}
+
 JAVA_LITE_PROTO_CMD = "mkdir -p $(genDir)/gen && " +
     "$(location aprotoc) --java_opt=annotate_code=false " +
     "-Iexternal/protobuf/src " +
