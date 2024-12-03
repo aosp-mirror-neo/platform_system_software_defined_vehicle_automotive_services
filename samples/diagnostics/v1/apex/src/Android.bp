@@ -7,7 +7,6 @@ rust_defaults {
         "libprotobuf",
         "libanyhow",
         "liblog_rust",
-        "libsdvmiddleware_rpc",
         "libdiagnostics_v1_sample_catalog",
         "libdiagnostics_v1_api",
         "libsdv_lifecycle_client_rust",

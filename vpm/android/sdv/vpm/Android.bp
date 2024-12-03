@@ -23,7 +23,6 @@ rust_defaults {
         "libsdv_pm",
         "libtokio_util",
         "libthiserror",
-        "libsdvmiddleware_rpc",
         "libsdv_comms_ctx_impl",
         "libsdv_comms_rs",
         "libsdv_status_rs",
