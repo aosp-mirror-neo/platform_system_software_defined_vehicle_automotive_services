@@ -85,7 +85,7 @@ pub mod publisher {
         pub const UNIQUE: &Self = &Self {
             _proto: std::marker::PhantomData,
             id: vsidl_v1::annotations::UniqueInstance::UNIQUE as i32,
-            service_unit: "traction-on",
+            service_unit: "enable-conditions",
         };
         /// List of all publication variants of 'com.sdv.google.diagnostics.event.EnableCondition' available to the service bundle
         pub const ALL_VARIANTS: &'static [&'static Self] = &[Self::UNIQUE];
@@ -112,7 +112,7 @@ pub mod publisher {
         pub const UNIQUE: &Self = &Self {
             _proto: std::marker::PhantomData,
             id: vsidl_v1::annotations::UniqueInstance::UNIQUE as i32,
-            service_unit: "ignition",
+            service_unit: "operation-cycles",
         };
         /// List of all publication variants of 'com.sdv.google.diagnostics.event.OperationCycle' available to the service bundle
         pub const ALL_VARIANTS: &'static [&'static Self] = &[Self::UNIQUE];

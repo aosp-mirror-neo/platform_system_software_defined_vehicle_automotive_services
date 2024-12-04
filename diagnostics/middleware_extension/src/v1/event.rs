@@ -7,6 +7,7 @@ use sdv_mw_rs_comms::{
 };
 use sdv_proto_reflection_rs::message_metadata::MessageMetadata;
 use sdv_status_rs::SdvResult;
+use sdv_status_rs::{SdvStatus, SdvStatusCode};
 use std::marker::PhantomData;
 use std::sync::Arc;
 use vsidl_v1::annotations;
@@ -64,7 +65,7 @@ impl<M: Message> EventPublisher<M> {
             status: status.into(),
             extended_data: data
                 .as_ref()
-                .map(|data| codec::encode(data))
+                .map(encode_event_extended_data)
                 .transpose()?
                 .map(Vec::from),
             ..Default::default()
@@ -83,6 +84,10 @@ fn event_message_metadata() -> MessageMetadata {
         ],
         ..Default::default()
     }
+}
+
+fn encode_event_extended_data<M: Message>(data: &M) -> SdvResult<Vec<u8>> {
+    data.write_to_bytes().map_err(|_| SdvStatus::new(SdvStatusCode::InvalidArgument))
 }
 
 // Compute size of com.sdv.google.diagnostics.event.Event size, based on exteded data max size.
