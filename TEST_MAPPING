@@ -5,12 +5,6 @@
       "name": "sdv_uds_serde_v1_tests"
     },
     {
-      "name": "sdv_sample_concal_tests"
-    },
-    {
-      "name": "lib_override_tests"
-    },
-    {
       "name": "sdv_vpm_agent_unit_tests"
     },
     {
@@ -24,6 +18,12 @@
     },
     {
       "name": "sdv_combined_sample_per_bundle_generation_test"
+    },
+    {
+      "name": "sdv_core_automotive_services_unit_concal_override_test"
+    },
+    {
+      "name": "sdv_core_automotive_services_unit_concal_server_sample_test"
     }
   ],
   "sdv_automotive_service_postsubmit": [],

@@ -43,7 +43,7 @@ rust_ffi_shared {
 }
 
 rust_test {
-    name: "sdv_sample_concal_tests",
+    name: "sdv_core_automotive_services_unit_concal_server_sample_test",
     srcs: [
         "src/concal_sb_lib.rs",
     ],
