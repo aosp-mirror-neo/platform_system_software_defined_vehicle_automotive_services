@@ -426,7 +426,24 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn set_power_state_callbacks_fail_send_timeout() {
+    async fn set_power_state_notify_oem_fail_with_disconnect() {
+        set_power_state_callbacks_fail_with_error_send_timeout(
+            PowerStateNotificationError::Disconnected,
+        )
+        .await
+    }
+
+    #[tokio::test]
+    async fn set_power_state_notify_oem_fail_with_timeout() {
+        set_power_state_callbacks_fail_with_error_send_timeout(
+            PowerStateNotificationError::TimedOut,
+        )
+        .await
+    }
+
+    async fn set_power_state_callbacks_fail_with_error_send_timeout(
+        err: PowerStateNotificationError,
+    ) {
         // Given: the power state request handler.
         let new_report = PowerStateReport::ON;
         let mut new_state = MockPowerState::default();
@@ -438,7 +455,7 @@ mod tests {
             .expect_notify()
             .times(1)
             .withf(move |report| *report == new_report)
-            .returning(|_| Err(PowerStateNotificationError::Failed));
+            .returning(move |_| Err(err.clone()));
 
         // expect OEM to be notified.
         power_state_notifier

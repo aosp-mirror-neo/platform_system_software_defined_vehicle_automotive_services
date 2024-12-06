@@ -682,6 +682,25 @@ mod tests {
         assert!(power_off.execute(sender.clone(), /*timeout=*/ 100).await.is_ok());
     }
 
+    #[test]
+    fn verify_sleep_states() {
+        // Allowed sleep states
+        let allowed_states: Vec<Box<dyn PowerState>> = vec![
+            Box::new(PowerOffPostFinish {}),
+            Box::new(SuspendToDiskPostFinish {}),
+            Box::new(SuspendToRamPostFinish {}),
+        ];
+
+        for state in &allowed_states {
+            assert!(state.is_sleep_state());
+        }
+
+        // non sleep states
+        for state in filter_from_all_states(&allowed_states) {
+            assert!(!state.is_sleep_state());
+        }
+    }
+
     fn get_all_states() -> Vec<Box<dyn PowerState>> {
         vec![
             Box::new(PowerOffExit {}),

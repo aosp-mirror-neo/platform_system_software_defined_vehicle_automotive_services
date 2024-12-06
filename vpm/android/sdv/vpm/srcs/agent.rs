@@ -91,8 +91,12 @@ impl Agent {
 mod tests {
     use super::*;
     use crate::power_service::MockPowerService;
+    use crate::power_service::PowerRequest;
+    use crate::power_state::PowerOffExit;
     use crate::system_service::MockVpmService;
     use crate::Agent;
+    use tokio::sync::mpsc::channel;
+    use tokio::sync::watch::channel as WatchChannel;
 
     #[tokio::test]
     async fn vpm_agent_starts() {
@@ -100,6 +104,18 @@ mod tests {
         let mut mock_vpm_service = MockVpmService::default();
         let mut mock_power_service = MockPowerService::default();
         let mut mock_vpm_bundle = MockVpmServiceBundle::default();
+        let (tx, _) = channel::<PowerRequest>(1);
+        let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
+
+        mock_power_service
+            .expect_get_power_state_request_sender()
+            .times(1)
+            .returning(move || tx.clone());
+
+        mock_power_service
+            .expect_get_power_state_watch_receiver()
+            .times(1)
+            .returning(move || rx.clone());
 
         // Expect: the publisher and the rpc server will be started.return_const(()).
         mock_vpm_service.expect_start().times(1).return_const(());
@@ -115,6 +131,11 @@ mod tests {
             Box::new(mock_vpm_bundle),
         );
 
+        // Then: assert power state request sender and watch receiver are accessible.
+        let _sender = agent.power_service.get_power_state_request_sender();
+        let _watch_receiver = agent.power_service.get_power_state_watch_receiver();
+
+        // Then: assert agent can start.
         let _test = agent.start().await;
     }
 }
