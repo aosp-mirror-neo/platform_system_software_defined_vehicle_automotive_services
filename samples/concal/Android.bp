@@ -22,7 +22,7 @@ rust_library {
 }
 
 rust_test {
-    name: "lib_override_tests",
+    name: "sdv_core_automotive_services_unit_concal_override_test",
     srcs: [
         "src/override_lib.rs",
     ],
