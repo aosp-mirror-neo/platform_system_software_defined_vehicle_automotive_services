@@ -22,62 +22,11 @@ rust_protobuf {
     product_available: true,
 }
 
-genrule {
-    name: "generate_from_vsidl_for_diagnostics_sample_with_data_item",
-    tools: ["vsidl_rc_generator"],
+filegroup {
+    name: "libdiagnostics_v1_sample_catalog_files",
     srcs: [
-        ":sdv_vsidl_v1_protos",
-        ":diagnostics_v1_catalog_files",
-        "*.*",
-    ],
-    cmd: "$(location vsidl_rc_generator) " +
-        " --vsidl-path  system/software_defined_vehicle/core_services/vsidl/protos" +
-        " --catalog-path system/software_defined_vehicle/automotive_services/samples/diagnostics/v1/catalog" +
-        " --output-path $(genDir) " +
-        " --dependency-catalog-path system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1" +
-        " --service-bundle-name DiagnosticsSampleWithDataItem",
-    out: [
-        "diagnostics-config.binpb",
-        "vsidl-config.binpb",
-    ],
-}
-
-genrule {
-    name: "generate_from_vsidl_for_diagnostics_sample_with_event",
-    tools: ["vsidl_rc_generator"],
-    srcs: [
-        ":sdv_vsidl_v1_protos",
-        ":diagnostics_v1_catalog_files",
-        "*.*",
-    ],
-    cmd: "$(location vsidl_rc_generator) " +
-        " --vsidl-path  system/software_defined_vehicle/core_services/vsidl/protos" +
-        " --catalog-path system/software_defined_vehicle/automotive_services/samples/diagnostics/v1/catalog" +
-        " --output-path $(genDir) " +
-        " --dependency-catalog-path system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1" +
-        " --service-bundle-name DiagnosticsSampleWithEvent",
-    out: [
-        "diagnostics-config.binpb",
-        "vsidl-config.binpb",
-    ],
-}
-
-genrule {
-    name: "generate_from_vsidl_for_diagnostics_provider1",
-    tools: ["vsidl_rc_generator"],
-    srcs: [
-        ":sdv_vsidl_v1_protos",
-        ":diagnostics_v1_catalog_files",
-        "*.*",
-    ],
-    cmd: "$(location vsidl_rc_generator) " +
-        " --vsidl-path  system/software_defined_vehicle/core_services/vsidl/protos" +
-        " --catalog-path system/software_defined_vehicle/automotive_services/samples/diagnostics/v1/catalog" +
-        " --output-path $(genDir) " +
-        " --dependency-catalog-path system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1" +
-        " --service-bundle-name DiagnosticsProvider1",
-    out: [
-        "diagnostics-config.binpb",
-        "vsidl-config.binpb",
+        "*.proto",
+        "Android.bp",
+        "*.vsidl",
     ],
 }
