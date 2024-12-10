@@ -18,7 +18,7 @@ genrule {
         "--dependency-catalog-path system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1/ " +
         "--dependency-catalog-path system/software_defined_vehicle/automotive_services/user_preferences/vsidl/v1/ " +
         "--dependency-catalog-path system/software_defined_vehicle/automotive_services/vpm/stable/vsidl/ " +
-        "--dependency-catalog-path system/software_defined_vehicle/core_services/health_monitor/stable/catalog/ " +
+        "--dependency-catalog-path system/software_defined_vehicle/core_services/health_monitor/catalog/ " +
         "--dependency-catalog-path system/software_defined_vehicle/core_services/orchestration/engine/stable/vsidl/ " +
         "--dependency-catalog-path system/software_defined_vehicle/core_services/update_manager/catalog/",
     out: [
@@ -41,7 +41,7 @@ genrule {
         "--dependency-catalog-path system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1/ " +
         "--dependency-catalog-path system/software_defined_vehicle/automotive_services/user_preferences/vsidl/v1/ " +
         "--dependency-catalog-path system/software_defined_vehicle/automotive_services/vpm/stable/vsidl/ " +
-        "--dependency-catalog-path system/software_defined_vehicle/core_services/health_monitor/stable/catalog/ " +
+        "--dependency-catalog-path system/software_defined_vehicle/core_services/health_monitor/catalog/ " +
         "--dependency-catalog-path system/software_defined_vehicle/core_services/orchestration/engine/stable/vsidl/ " +
         "--dependency-catalog-path system/software_defined_vehicle/core_services/update_manager/catalog/ " +
         " --service-bundle-name SampleServiceWithAllDependencies",
