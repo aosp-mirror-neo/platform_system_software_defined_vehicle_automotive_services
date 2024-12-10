@@ -227,22 +227,30 @@ impl VpmSystemClient {
     }
 
     /// Creates a new event stream
-    pub async fn create_registration_event_stream<M: ::protobuf::Message + 'static>(
+    pub async fn create_registration_event_stream<
+        M: ::protobuf::Message + subscriber::Metadata + UnitType + 'static,
+    >(
         &mut self,
         variant: &subscriber::Variant<M>,
         options: &sdv::mw::SubscribeOptions,
     ) -> sdv::status::SdvResult<
         std::pin::Pin<Box<dyn futures::Stream<Item = sdv::mw::Availability> + Send>>,
     > {
-        self.comms
-            .create_registration_event_stream(&sdv::mw::UnitQuery::Name(
-                sdv::mw::UnitName::builder()
-                    .vm_name(options.get_vm_name())
-                    .package_name(variant.service_bundle_package)
-                    .bundle_name(variant.service_bundle_name)
-                    .service_unit_name(variant.service_unit)
-                    .build()?,
-            ))
-            .await
+        if M::IS_MULTIPUB {
+            self.comms
+                .create_registration_event_stream(&sdv::mw::UnitQuery::Type(M::to_type_name()?))
+                .await
+        } else {
+            self.comms
+                .create_registration_event_stream(&sdv::mw::UnitQuery::Name(
+                    sdv::mw::UnitName::builder()
+                        .vm_name(options.get_vm_name())
+                        .package_name(variant.service_bundle_package)
+                        .bundle_name(variant.service_bundle_name)
+                        .service_unit_name(variant.service_unit)
+                        .build()?,
+                ))
+                .await
+        }
     }
 }
