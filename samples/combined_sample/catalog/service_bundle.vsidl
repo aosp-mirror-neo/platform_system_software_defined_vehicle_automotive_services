@@ -36,4 +36,13 @@ sdv_service_bundle {
     server {
         interface: "com.sdv.google.orchestrator.CustomStateService"
     }
+
+    diagnostics_declaration {
+        data_item {
+            id: "item"
+        }
+    }
+}
+
+some_ip_mapping {
 }

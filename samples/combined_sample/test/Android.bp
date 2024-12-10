@@ -9,7 +9,7 @@ rust_test {
     name: "sdv_combined_sample_generation_test",
     srcs: ["per_vm_generation.rs"],
     data: [
-        ":generate_sample_rc_files",
+        ":generate_vsidl_files_combined_sample_v1_catalog_files",
     ],
     test_suites: [
         "automotive-sdv-tests",
@@ -27,7 +27,7 @@ rust_test {
     name: "sdv_combined_sample_per_bundle_generation_test",
     srcs: ["per_bundle_generation.rs"],
     data: [
-        ":generate_sample_per_bundle_rc_files",
+        ":generate_vsidl_files_single_bundle_com.sdv.google.sample.combined.SampleServiceWithAllDependencies",
     ],
     test_suites: [
         "automotive-sdv-tests",
