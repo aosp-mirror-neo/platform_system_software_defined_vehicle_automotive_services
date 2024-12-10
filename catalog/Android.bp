@@ -1,0 +1,14 @@
+// Copyright 2024 Google LLC
+
+filegroup {
+    name: "sdv_v1_catalog_files",
+    srcs: [
+        ":vpm_v1_catalog_files",
+        ":user_preferences_v1_catalog_files",
+        ":concal_v1_catalog_files",
+        ":diagnostics_v1_catalog_files",
+        ":health_v1_catalog_files",
+        ":orch_v1_catalog_files",
+        ":update_manager_v1_catalog_files",
+    ],
+}
