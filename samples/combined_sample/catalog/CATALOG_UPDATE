@@ -3,7 +3,7 @@
 # proto-message: Catalog
 
 output_path: ".."
-dependency_catalog_paths: "../../../concal/stable/catalog"
+dependency_catalog_paths: "../../../concal/catalog"
 dependency_catalog_paths: "../../../diagnostics/vsidl/v1"
 dependency_catalog_paths: "../../../user_preferences/vsidl/v1"
 dependency_catalog_paths: "../../../vpm/stable/vsidl"

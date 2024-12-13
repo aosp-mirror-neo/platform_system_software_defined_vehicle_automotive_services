@@ -61,8 +61,8 @@ impl ProtoManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use concal_api_stable::config_override::config_override_key_value::Value;
-    use concal_api_stable::config_override::ConfigOverrideKeyValue as CoPair;
+    use concal_api::config_override::config_override_key_value::Value;
+    use concal_api::config_override::ConfigOverrideKeyValue as CoPair;
     use protobuf::reflect::ReflectMapRef;
     use protobuf::reflect::RuntimeFieldType;
     use protobuf::reflect::{FieldDescriptor, MessageDescriptor, RuntimeType};

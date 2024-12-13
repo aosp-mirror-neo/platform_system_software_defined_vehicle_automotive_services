@@ -9,7 +9,7 @@ rust_library {
     srcs: ["src/override_lib.rs"],
     crate_name: "override",
     rustlibs: [
-        "libconcal_api_stable",
+        "libconcal_api",
         "libprotobuf",
         "liblog_rust",
         "libsdv_log_rust",
@@ -27,7 +27,7 @@ rust_test {
         "src/override_lib.rs",
     ],
     rustlibs: [
-        "libconcal_api_stable",
+        "libconcal_api",
         "liblog_rust",
         "libregex",
         "libprotobuf",

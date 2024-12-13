@@ -37,10 +37,10 @@ implements Lifecycle Manager interface. To run the demo, follow the steps below:
 ## SDV ConCal Sample Code Generation
 
 To generate code from the VSIDL definitions, run the following command from
-`system/software_defined_vehicle/automotive_services/concal/stable`:
+`system/software_defined_vehicle/automotive_services/concal/`:
 
 ```bash
-vsidlc   --catalog-path catalog/     --output-path ../../samples/concal/stable
+vsidlc   --catalog-path catalog/     --output-path ../../samples/concal/
 ```
 
 If you get an error that *vsidlc* is not found, build it first:
