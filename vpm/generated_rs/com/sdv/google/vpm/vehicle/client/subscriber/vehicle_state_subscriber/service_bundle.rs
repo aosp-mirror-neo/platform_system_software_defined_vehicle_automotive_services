@@ -126,7 +126,9 @@ impl VehicleStateSubscriber {
     }
 
     /// Creates a new history
-    pub async fn create_history<M: ::protobuf::Message + subscriber::Metadata + 'static>(
+    pub async fn create_history<
+        M: ::protobuf::Message + subscriber::Metadata + UnitType + 'static,
+    >(
         &mut self,
         variant: &subscriber::Variant<M>,
         options: &sdv::mw::SubscribeOptions,
@@ -143,7 +145,9 @@ impl VehicleStateSubscriber {
     }
 
     /// Creates a new instant reader
-    pub async fn create_instant_reader<M: ::protobuf::Message + subscriber::Metadata + 'static>(
+    pub async fn create_instant_reader<
+        M: ::protobuf::Message + subscriber::Metadata + UnitType + 'static,
+    >(
         &mut self,
         variant: &subscriber::Variant<M>,
         options: &sdv::mw::SubscribeOptions,
@@ -159,7 +163,9 @@ impl VehicleStateSubscriber {
         }
     }
 
-    async fn find_publication<M: ::protobuf::Message + 'static>(
+    async fn find_publication<
+        M: ::protobuf::Message + subscriber::Metadata + UnitType + 'static,
+    >(
         &mut self,
         variant: &subscriber::Variant<M>,
         options: &sdv::mw::SubscribeOptions,
@@ -177,6 +183,8 @@ impl VehicleStateSubscriber {
     }
 
     /// Creates a new event stream
+    /// If the message variant is MULTIPUB, this stream yields Availability::Available
+    /// for every publisher publishing this variant.
     pub async fn create_registration_event_stream<
         M: ::protobuf::Message + subscriber::Metadata + UnitType + 'static,
     >(
