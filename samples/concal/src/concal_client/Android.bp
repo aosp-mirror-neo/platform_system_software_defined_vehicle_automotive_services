@@ -1,0 +1,33 @@
+// Copyright 2024 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+rust_binary {
+    name: "sdv_concal_sample_client",
+    crate_name: "sdv_concal_sample_client",
+    srcs: [
+        "src/main.rs",
+    ],
+    prefer_rlib: true,
+    rustlibs: [
+        "libconcal_api",
+        "libprotobuf_parse",
+        "libprotobuf",
+        "libcom_sdv_google_concal_con_cal_registration_service_rpc_rs",
+        "libcom_sdv_google_concal_con_cal_update_service_rpc_rs",
+        "libsdv_mw_rs_com_sdv_oem_sample_concal_sample_oem_con_cal_client_service_bundle",
+        "libsdv_rs",
+        "libsdvtestconcal_proto_rust",
+        "libtokio",
+    ],
+    required: [
+        "rear_view_camera.proto",
+    ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
+    product_specific: true,
+}
