@@ -4,3 +4,5 @@
 
 output_path: ".."
 dependency_catalog_paths: "../../../../diagnostics/vsidl/v1"
+prebuilts_output_path: "../apex/vsidl_provider_targets/Android.bp"
+prebuilts_filegroup: "libdiagnostics_v1_sample_catalog_files"

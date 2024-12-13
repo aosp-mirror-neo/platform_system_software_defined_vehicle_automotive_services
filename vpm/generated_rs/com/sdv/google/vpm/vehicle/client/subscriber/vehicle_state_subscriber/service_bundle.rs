@@ -177,6 +177,8 @@ impl VehicleStateSubscriber {
     }
 
     /// Creates a new event stream
+    /// If the message variant is MULTIPUB, this stream yields Availability::Available
+    /// for every publisher publishing this variant.
     pub async fn create_registration_event_stream<
         M: ::protobuf::Message + subscriber::Metadata + UnitType + 'static,
     >(
