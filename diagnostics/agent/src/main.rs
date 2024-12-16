@@ -18,7 +18,7 @@ use sdv_comms::sd::ServiceUnitChangeEvent;
 use sdv_comms::sd::{ServiceDiscoveryManager, ServiceUnitDefinition, UnitType};
 use sdv_comms::ContextRef;
 use sdv_config_provider::{vsidl_provider, vsidl_provider_api::VsidlConfigProviderV1};
-use sdv_uds_serde::{diagnostics_translator::DiagnosticsTranslator, entity_id::EntityId};
+use sdv_uds_serde::{diagnostics_translator::DiagnosticsTranslator, entity_id::*};
 use std::future::Future;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -220,6 +220,7 @@ async fn start_routines(
     let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
     let diagnostics_declaration =
         vsidl_provider.get_diagnostics_declaration(&service_fqin).await.unwrap_or_default();
+    let translator = DiagnosticsTranslator::new(vsidl_provider.clone());
 
     debug!(
         "RoutinControls diagnostics declaration of a {} : {:#?}",
@@ -228,12 +229,36 @@ async fn start_routines(
 
     for routine in diagnostics_declaration.routine {
         debug!("Trying to start routine: {:#?}", routine);
-        perform_and_log_rpc_call::<StartRoutine>(
+        let response = perform_and_log_rpc_call::<StartRoutine>(
             context,
             &service_unit,
-            RoutineControlRequest { id: "pressurization".to_string(), ..Default::default() },
+            RoutineControlRequest { id: routine.id.to_string(), ..Default::default() },
         )
         .await;
+
+        let translation_result = translator
+            .translate_from_protobuf_to_uds(
+                &service_fqin,
+                EntityId::Routine {
+                    id: routine.id.clone(),
+                    method: RoutineMethod::Start,
+                    message: MethodMessage::Response,
+                },
+                &response.response,
+            )
+            .await;
+
+        match translation_result {
+            Ok(uds_response) => {
+                debug!(
+                    "Start routine: {}#{}, proto_value: {:?}, uds_value {:?}",
+                    &service_fqin, routine.id, response.response, uds_response
+                );
+            }
+            Err(e) => {
+                warn!("Error starting routine: {e}");
+            }
+        };
     }
 }
 
@@ -245,6 +270,7 @@ async fn freeze_current_state(
     let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
     let diagnostics_declaration =
         vsidl_provider.get_diagnostics_declaration(&service_fqin).await.unwrap_or_default();
+    let translator = DiagnosticsTranslator::new(vsidl_provider.clone());
 
     debug!(
         "IoControls diagnostics declaration of a {} : {:#?}",
@@ -253,12 +279,32 @@ async fn freeze_current_state(
 
     for io_control in diagnostics_declaration.io_control {
         debug!("Trying to freeze current state for: {:#?}", io_control);
-        perform_and_log_rpc_call::<FreezeCurrentState>(
+        let response = perform_and_log_rpc_call::<FreezeCurrentState>(
             context,
             &service_unit,
             IoControlRequest { id: io_control.id.to_string(), ..Default::default() },
         )
         .await;
+
+        let translation_result = translator
+            .translate_from_protobuf_to_uds(
+                &service_fqin,
+                EntityId::InputOutputData(io_control.id.clone()),
+                &response.value,
+            )
+            .await;
+
+        match translation_result {
+            Ok(uds_data_item_value) => {
+                debug!(
+                    "Freeze current state for: {}#{}, proto_response: {:?}, uds_response: {:?}",
+                    &service_fqin, io_control.id, response.value, uds_data_item_value
+                );
+            }
+            Err(e) => {
+                warn!("Error freezing current state: {e}");
+            }
+        };
     }
 }
 
