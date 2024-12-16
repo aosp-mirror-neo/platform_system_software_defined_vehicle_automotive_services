@@ -5,6 +5,10 @@
 //! This file was generated using the following command:
 //! vsidl_rc_generator --catalog-path system/software_defined_vehicle/automotive_services/samples/combined_sample/catalog --output-path system/software_defined_vehicle/automotive_services/samples/combined_sample/catalog/../generated/Android.bp --variant runtime-config-prebuilts  --dependency-catalog-path system/software_defined_vehicle/automotive_services/samples/combined_sample/catalog/../../../concal/catalog --dependency-catalog-path system/software_defined_vehicle/automotive_services/samples/combined_sample/catalog/../../../diagnostics/vsidl/v1 --dependency-catalog-path system/software_defined_vehicle/automotive_services/samples/combined_sample/catalog/../../../user_preferences/vsidl/v1 --dependency-catalog-path system/software_defined_vehicle/automotive_services/samples/combined_sample/catalog/../../../vpm/stable/vsidl --dependency-catalog-path system/software_defined_vehicle/automotive_services/samples/combined_sample/catalog/../../../../core_services/health_monitor/catalog/ --dependency-catalog-path system/software_defined_vehicle/automotive_services/samples/combined_sample/catalog/../../../../core_services/orchestration/engine/stable/vsidl    --filegroup combined_sample_v1_catalog_files
 
+// Pre-compiled file with Diagnostics declaration for com.sdv.google.sample.combined.SampleServiceWithAllDependencies.
+//
+// Usage: add the following line to com.sdv.google.sample.combined.SampleServiceWithAllDependencies manifest declaration:
+// + diagnostics_config_path: "etc/vsidl_provider/SampleServiceWithAllDependencies-diag-config.binpb"
 prebuilt_etc {
     name: "com.sdv.google.sample.combined.SampleServiceWithAllDependencies-diag-config.binpb",
     filename: "SampleServiceWithAllDependencies-diag-config.binpb",
@@ -13,6 +17,10 @@ prebuilt_etc {
     installable: false,
 }
 
+// Pre-compiled file with VSIDL schemas for com.sdv.google.sample.combined.SampleServiceWithAllDependencies.
+//
+// Usage: add the following line to com.sdv.google.sample.combined.SampleServiceWithAllDependencies manifest declaration:
+// + vsidl_schemas_path: "etc/vsidl_provider/SampleServiceWithAllDependencies-vsidl-config.binpb"
 prebuilt_etc {
     name: "com.sdv.google.sample.combined.SampleServiceWithAllDependencies-vsidl-config.binpb",
     filename: "SampleServiceWithAllDependencies-vsidl-config.binpb",
@@ -47,6 +55,10 @@ genrule {
     ],
 }
 
+// Pre-compiled file with SOME/IP mappings for the combined_sample_v1_catalog_files catalog.
+//
+// Usage: add the following line to SOME/IP configuration APEX manifest declaration:
+// + external_protocol_mapping_path: "etc/vsidl_provider/someip-config.binpb"
 prebuilt_etc {
     name: "combined_sample_v1_catalog_files-someip-config.binpb",
     filename: "someip-config.binpb",
@@ -55,6 +67,12 @@ prebuilt_etc {
     installable: false,
 }
 
+// Pre-compiled file with VSIDL schemas for combined_sample_v1_catalog_files catalog.
+//
+// Usage: add this target to the VM image.
+//
+// This will be used by VSIDL provider as a fallback if the data can't be read from
+// one of the per-Bundle files.
 prebuilt_etc {
     name: "combined_sample_v1_catalog_files-vsidl-config.binpb",
     sub_dir: "vsidl_v1/vsidl_config",
