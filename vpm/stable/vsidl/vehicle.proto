@@ -27,7 +27,7 @@ enum VpmVehicleState {
 message VehicleStateChange {
   option (.sdv.vsidl.v1.publication) = {
     model: SINGLE_PUB
-    message_count: 1
+    message_count: 2
   };
 
   /* Required. Indicates the current state of the vehicle. */

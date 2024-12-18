@@ -64,7 +64,7 @@ pub mod publisher {
 
     impl Metadata for diagnostics_v1_api::event::EnableCondition {
         const MESSAGE_SIZE: u32 = 77;
-        const MESSAGE_COUNT: u32 = 1;
+        const MESSAGE_COUNT: u32 = 2;
         const IS_MULTIPUB: bool = true;
         fn get_message_metadata() -> sdv_proto_reflection_rs::message_metadata::MessageMetadata {
             sdv_proto_reflection_rs::message_metadata::MessageMetadata {
@@ -93,7 +93,7 @@ pub mod publisher {
 
     impl Metadata for diagnostics_v1_api::event::OperationCycle {
         const MESSAGE_SIZE: u32 = 77;
-        const MESSAGE_COUNT: u32 = 1;
+        const MESSAGE_COUNT: u32 = 2;
         const IS_MULTIPUB: bool = true;
         fn get_message_metadata() -> sdv_proto_reflection_rs::message_metadata::MessageMetadata {
             sdv_proto_reflection_rs::message_metadata::MessageMetadata {

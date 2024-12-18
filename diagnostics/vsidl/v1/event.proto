@@ -69,7 +69,7 @@ message Event {
 message EnableCondition {
   option (.sdv.vsidl.v1.publication) = {
     model: MULTI_PUB
-    message_count: 1
+    message_count: 2
   };
 
   // Required. Id of the enable condition.
@@ -95,7 +95,7 @@ message EnableCondition {
 message OperationCycle {
   option (.sdv.vsidl.v1.publication) = {
     model: MULTI_PUB
-    message_count: 1
+    message_count: 2
   };
 
   // Commands for the operation cycle.
