@@ -122,7 +122,8 @@ pub mod publisher {
 /// Service bundle
 pub struct DiagnosticsSampleWithEvent {
     comms: std::sync::Arc<dyn sdv::mw::Communicate>,
-    publishers: std::collections::HashMap<(std::any::TypeId, i32), Box<dyn std::any::Any + Send>>,
+    publishers:
+        std::collections::HashMap<(std::any::TypeId, i32), Box<dyn std::any::Any + Send + Sync>>,
     servers: std::vec::Vec<std::sync::Arc<dyn sdv::mw::ServerTransport>>,
     /// Diagnostic capabilities of the service bundle.
     pub diagnostics: Diagnostics,
@@ -190,13 +191,12 @@ impl DiagnosticsSampleWithEvent {
         &mut self,
         variant: &publisher::Variant<M>,
     ) -> Option<sdv::mw::Publisher<M>> {
-        Some(
-            *self
-                .publishers
-                .remove(&(std::any::TypeId::of::<M>(), variant.id))?
-                .downcast::<sdv::mw::Publisher<M>>()
-                .unwrap(),
-        )
+        let guarded_publisher = *self
+            .publishers
+            .remove(&(std::any::TypeId::of::<M>(), variant.id))?
+            .downcast::<std::sync::Mutex<sdv::mw::Publisher<M>>>()
+            .unwrap();
+        Some(guarded_publisher.into_inner().unwrap())
     }
 
     async fn fill_publication_variants<
@@ -231,7 +231,7 @@ impl DiagnosticsSampleWithEvent {
                 .await?;
             self.publishers.insert(
                 (std::any::TypeId::of::<M>(), variant.id),
-                Box::new(sdv::mw::Publisher::<M>::new(publish_handle)),
+                Box::new(std::sync::Mutex::new(sdv::mw::Publisher::<M>::new(publish_handle))),
             );
         }
         Ok(())
