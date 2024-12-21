@@ -4,3 +4,23 @@
 
 # ACL policies for User Preferences Unit Types.
 
+acls {
+    name: "Internal"
+    include: "com.sdv.google.user_preferences.UserPreferencesServiceBundle"
+    include: "com.sdv.oem.user_preferences.UserPreferencesServiceBundle"
+}
+
+unit_types {
+    name: "UserPreferencesAdminService"
+    acl_names: "Internal"
+}
+
+unit_types {
+    name: "UserPreferencesManagementService"
+    acl_names: "Internal"
+}
+
+unit_types {
+    name: "UserPreferencesRegistryService"
+    acl_names: "Internal"
+}

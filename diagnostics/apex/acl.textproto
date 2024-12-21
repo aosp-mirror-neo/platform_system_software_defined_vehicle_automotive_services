@@ -3,3 +3,31 @@
 # proto-message: AclPolicy
 
 # ACL policies for Diagnostics Unit Types.
+
+acls {
+    name: "Public"
+    include: "*"
+}
+
+unit_types {
+    name: "data_item.DataItemService"
+    acl_names: "Public"
+}
+
+unit_types {
+    name: "event.OperationCycle"
+    acl_names: "Public"
+}
+unit_types {
+    name: "event.Event"
+    acl_names: "Public"
+}
+unit_types {
+    name: "event.EnableCondition"
+    acl_names: "Public"
+}
+
+unit_types {
+    name: "fault.FaultListenerService"
+    acl_names: "Public"
+}

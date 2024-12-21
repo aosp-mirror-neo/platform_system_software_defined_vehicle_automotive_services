@@ -3,3 +3,38 @@
 # proto-message: AclPolicy
 
 # ACL policies for VPM Unit Types.
+
+acls {
+    name: "Internal"
+    include: "com.sdv.google.vpm.VpmSystemServiceBundle"
+}
+
+acls {
+    name: "Public"
+    include: "*"
+}
+
+acls {
+    name: "VpmClients"
+    include: "com.sdv.google.orchestrator.OrchestratorServiceBundle"
+}
+
+unit_types {
+    name: "VpmSystemService"
+    acl_names: "Internal"
+}
+
+unit_types {
+    name: "vehicle.VehicleStateChange"
+    acl_names: "Public"
+}
+
+service_units {
+    name: "com-sdv-google-vpm-vehicle-vehicle-state-change-unique"
+    acl_names: "VpmClients"
+}
+
+service_units {
+    name: "com-sdv-google-vpm-vpm-system-service"
+    acl_names: "VpmClients"
+}

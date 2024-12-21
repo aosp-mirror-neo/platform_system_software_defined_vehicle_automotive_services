@@ -3,3 +3,13 @@
 # proto-message: AclPolicy
 
 # ACL policies for service units of bundle with data item.
+
+acls {
+    name: "DiagnosticsAgentAvailable"
+    include: "com.sdv.oem.diagnostics.DiagnosticsAgent"
+}
+
+service_units {
+    name: "com-sdv-google-diagnostics-data-item-data-item-service"
+    acl_names: "DiagnosticsAgentAvailable"
+}
