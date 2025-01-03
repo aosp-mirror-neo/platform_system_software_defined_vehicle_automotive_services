@@ -273,7 +273,7 @@ mod tests {
                 message.extended_data.as_ref().map(|data| decode::<TestProto>(data).unwrap());
             assert_that!(
                 decoded_data.unwrap(),
-                eq(TestProto { id: "test".to_string(), ..Default::default() })
+                eq(&TestProto { id: "test".to_string(), ..Default::default() })
             );
         });
     }

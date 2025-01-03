@@ -151,7 +151,7 @@ mod tests {
     use crate::translator::runtime_message_descriptor::get_file_descriptor;
     use crate::translator::MockTranslator;
     use googletest::assert_that;
-    use googletest::prelude::{eq, matches_pattern};
+    use googletest::matchers::{eq, matches_pattern, ok};
     use mockall::predicate::{always, eq as mock_eq};
     use protobuf::MessageField;
     use sdv_comms::id::ServiceFqin;
@@ -252,7 +252,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(uds_bytes_for_message(DATA_ITEM_MESSAGE))))
+            ok(eq(&uds_bytes_for_message(DATA_ITEM_MESSAGE)))
         );
     }
 
@@ -271,7 +271,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(proto_bytes_for_message(DATA_ITEM_MESSAGE))))
+            ok(eq(&proto_bytes_for_message(DATA_ITEM_MESSAGE)))
         );
     }
 
@@ -301,7 +301,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(uds_bytes_for_message(IO_CONTROL_MESSAGE))))
+            ok(eq(&uds_bytes_for_message(IO_CONTROL_MESSAGE)))
         );
     }
 
@@ -320,7 +320,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(proto_bytes_for_message(IO_CONTROL_MESSAGE))))
+            ok(eq(&proto_bytes_for_message(IO_CONTROL_MESSAGE)))
         );
     }
 
@@ -368,7 +368,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_START_REQUEST))))
+            ok(eq(&uds_bytes_for_message(ROUTINE_START_REQUEST)))
         );
     }
 
@@ -391,7 +391,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_START_REQUEST))))
+            ok(eq(&proto_bytes_for_message(ROUTINE_START_REQUEST)))
         );
     }
 
@@ -414,7 +414,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_START_RESPONSE))))
+            ok(eq(&uds_bytes_for_message(ROUTINE_START_RESPONSE)))
         );
     }
 
@@ -437,7 +437,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_START_RESPONSE))))
+            ok(eq(&proto_bytes_for_message(ROUTINE_START_RESPONSE)))
         );
     }
 
@@ -460,7 +460,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_STOP_REQUEST))))
+            ok(eq(&uds_bytes_for_message(ROUTINE_STOP_REQUEST)))
         );
     }
 
@@ -483,7 +483,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_STOP_REQUEST))))
+            ok(eq(&proto_bytes_for_message(ROUTINE_STOP_REQUEST)))
         );
     }
 
@@ -506,7 +506,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_STOP_RESPONSE))))
+            ok(eq(&uds_bytes_for_message(ROUTINE_STOP_RESPONSE)))
         );
     }
 
@@ -529,7 +529,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_STOP_RESPONSE))))
+            ok(eq(&proto_bytes_for_message(ROUTINE_STOP_RESPONSE)))
         );
     }
 
@@ -552,7 +552,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_RESULT_REQUEST))))
+            ok(eq(&uds_bytes_for_message(ROUTINE_RESULT_REQUEST)))
         );
     }
 
@@ -575,7 +575,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_RESULT_REQUEST))))
+            ok(eq(&proto_bytes_for_message(ROUTINE_RESULT_REQUEST)))
         );
     }
 
@@ -598,7 +598,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(uds_bytes_for_message(ROUTINE_RESULT_RESPONSE))))
+            ok(eq(&uds_bytes_for_message(ROUTINE_RESULT_RESPONSE)))
         );
     }
 
@@ -621,7 +621,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(proto_bytes_for_message(ROUTINE_RESULT_RESPONSE))))
+            ok(eq(&proto_bytes_for_message(ROUTINE_RESULT_RESPONSE)))
         );
     }
 
@@ -651,7 +651,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(uds_bytes_for_message(EVENT_EXTENDED_DATA))))
+            ok(eq(&uds_bytes_for_message(EVENT_EXTENDED_DATA)))
         );
     }
 
@@ -670,7 +670,7 @@ mod tests {
                     &MESSAGE_BYTES[..]
                 )
                 .await,
-            matches_pattern!(Ok(eq(proto_bytes_for_message(EVENT_EXTENDED_DATA))))
+            ok(eq(&proto_bytes_for_message(EVENT_EXTENDED_DATA)))
         );
     }
 
@@ -690,7 +690,7 @@ mod tests {
                 )
                 .await,
             matches_pattern!(Err(matches_pattern!(MissingServiceBundleDeclarationError(eq(
-                service_fqin("ServiceBundleName").to_string()
+                &service_fqin("ServiceBundleName").to_string()
             )))))
         );
     }
@@ -711,8 +711,8 @@ mod tests {
                 )
                 .await,
             matches_pattern!(Err(matches_pattern!(MissingEntityDeclarationError(
-                eq(service_fqin("ServiceBundleName").to_string()),
-                matches_pattern!(EntityId::DataItem(eq("data_item_id".to_string())))
+                eq(&service_fqin("ServiceBundleName").to_string()),
+                matches_pattern!(EntityId::DataItem(eq("data_item_id")))
             ))))
         );
     }

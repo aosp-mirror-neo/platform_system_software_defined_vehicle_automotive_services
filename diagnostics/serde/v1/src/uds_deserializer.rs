@@ -399,7 +399,7 @@ mod tests {
 
         assert_that!(
             TestStruct::deserialize(&mut deserializer),
-            matches_pattern!(Ok(eq(expected_struct)))
+            matches_pattern!(Ok(eq(&expected_struct)))
         );
     }
 
@@ -420,7 +420,7 @@ mod tests {
         assert_that!(
             TestStruct::deserialize(&mut deserializer),
             matches_pattern!(Err(matches_pattern!(UdsDeserializerError::UnsupportedType(eq(
-                "Variable-size string".to_string()
+                "Variable-size string"
             )))))
         );
     }
@@ -440,7 +440,7 @@ mod tests {
         assert_that!(
             TestStruct::deserialize(&mut deserializer),
             matches_pattern!(Err(matches_pattern!(UdsDeserializerError::UnsupportedType(eq(
-                "Variable-size byte array".to_string()
+                "Variable-size byte array"
             )))))
         );
     }

@@ -327,7 +327,7 @@ mod tests {
         let mut serializer = UdsSerializer::new(&mut byte_buffer);
 
         assert_that!(value.serialize(&mut serializer), matches_pattern!(Ok(())));
-        assert_that!(byte_buffer.freeze(), eq(expected_bytes.freeze()));
+        assert_that!(byte_buffer.freeze(), eq(&expected_bytes.freeze()));
     }
 
     #[test]
@@ -350,7 +350,7 @@ mod tests {
         assert_that!(
             value.serialize(&mut serializer),
             matches_pattern!(Err(matches_pattern!(UdsSerializerError::UnsupportedType(eq(
-                "Variable-size string".to_string()
+                "Variable-size string"
             )))))
         );
     }
@@ -373,7 +373,7 @@ mod tests {
         assert_that!(
             value.serialize(&mut serializer),
             matches_pattern!(Err(matches_pattern!(UdsSerializerError::UnsupportedType(eq(
-                "Variable-size sequence".to_string()
+                "Variable-size sequence"
             )))))
         );
     }
