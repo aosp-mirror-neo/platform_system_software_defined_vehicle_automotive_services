@@ -18,6 +18,7 @@ acls {
     name: "VpmClients"
     include: "com.sdv.google.orchestrator.OrchestratorServiceBundle"
     include: "com.sdv.google.orchestrator.test.OrchTestServiceBundle"
+    include: "com.sdv.google.vpm.client.VpmSystemClient"
 }
 
 unit_types {

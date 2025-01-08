@@ -3,3 +3,25 @@
 # proto-message: AclPolicy
 
 # ACL policies for VPM Client Unit Types.
+
+# RPC interface ACL: who can implement that interface.
+acls {
+    name: "Internal"
+    include: "com.sdv.google.vpm.client.VpmSystemClient"
+}
+
+# RPC server ACL: who can discover and connect to the server.
+acls {
+    name: "VpmSystemClients"
+    include: "com.sdv.google.vpm.VpmSystemServiceBundle"
+}
+
+unit_types {
+    name: "PowerNotificationService"
+    acl_names: "Internal"
+}
+
+service_units {
+    name: "com-sdv-google-vpm-client-power-notification-service"
+    acl_names: "VpmSystemClients"
+}
