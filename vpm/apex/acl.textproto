@@ -19,6 +19,7 @@ acls {
     include: "com.sdv.google.orchestrator.OrchestratorServiceBundle"
     include: "com.sdv.google.orchestrator.test.OrchTestServiceBundle"
     include: "com.sdv.google.vpm.client.VpmSystemClient"
+    include: "com.sdv.google.vpm.vehicle.client.subscriber.VehicleStateSubscriber"
 }
 
 unit_types {
