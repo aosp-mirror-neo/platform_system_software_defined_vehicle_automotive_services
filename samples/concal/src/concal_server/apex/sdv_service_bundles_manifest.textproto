@@ -12,4 +12,5 @@ sdv_service_bundle_metadata {
   version_name: "0.alpha"
   # Service bundle library path.
   native_library_path: "lib64/libconcal_service_bundle_runner.so"
+  access_control_list_policy_path: "etc/acl.textproto"
 }

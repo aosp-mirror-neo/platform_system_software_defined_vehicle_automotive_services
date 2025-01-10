@@ -15,6 +15,8 @@ apex {
         "com.sdv.oem.sample.concal.service_bundles_manifest",
         // Linker configuration to enable loading library from apex.
         "com.sdv.oem.sample.concal.linker_config",
+        // ACL Policy
+        "com.sdv.oem.sample.concal.acl_policy",
     ],
     // Json manifest file describes metadata of the APEX package.
     // The 'name' filed from the json is used as mounting point.
@@ -50,4 +52,17 @@ linker_config {
     // Disable direct installation of the prebuilt to one of the partitions.
     // The linker configuration is used only inside of an apex.
     installable: false,
+}
+
+// File with the ACL policy of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.sdv.oem.sample.concal.acl_policy",
+    // The source name of the manifest file.
+    src: "acl.textproto",
+    filename: "acl.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
 }

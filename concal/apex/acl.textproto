@@ -3,3 +3,28 @@
 # proto-message: AclPolicy
 
 # ACL policies for ConCal Unit Types.
+
+acls {
+    name: "Internal"
+    include: "com.sdv.oem.sample.concal.SampleOemConCalServiceBundle"
+}
+
+unit_types {
+    name: "ConCalRegistrationService"
+    acl_names: "Internal"
+}
+
+unit_types {
+    name: "ConCalUpdateService"
+    acl_names: "Internal"
+}
+
+unit_types {
+    name: "calib.server.ConCalCalibrationService"
+    acl_names: "Internal"
+}
+
+unit_types {
+    name: "calib.ConCalCalibrationNotificationService"
+    acl_names: "Internal"
+}
