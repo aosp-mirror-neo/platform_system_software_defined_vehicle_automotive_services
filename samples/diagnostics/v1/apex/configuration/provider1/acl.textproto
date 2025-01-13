@@ -3,3 +3,38 @@
 # proto-message: AclPolicy
 
 # ACL policies for service units of bundle with data item.
+
+acls {
+    name: "DiagnosticsAgent"
+    include: "com.sdv.oem.diagnostics.DiagnosticsAgent"
+}
+
+service_units {
+    name: "pressure-change-publisher"
+    acl_names: "DiagnosticsAgent"
+}
+
+service_units {
+    name: "com-sdv-google-diagnostics-event-event-lowpressure"
+    acl_names: "DiagnosticsAgent"
+}
+
+service_units {
+    name: "com-sdv-google-diagnostics-data-item-data-item-service"
+    acl_names: "DiagnosticsAgent"
+}
+
+service_units {
+    name: "com-sdv-google-diagnostics-routine-control-routine-control-service"
+    acl_names: "DiagnosticsAgent"
+}
+
+service_units {
+    name: "com-sdv-google-diagnostics-io-control-io-control-service"
+    acl_names: "DiagnosticsAgent"
+}
+
+service_units {
+    name: "com-sdv-google-diagnostics-fault-fault-listener-service"
+    acl_names: "DiagnosticsAgent"
+}
