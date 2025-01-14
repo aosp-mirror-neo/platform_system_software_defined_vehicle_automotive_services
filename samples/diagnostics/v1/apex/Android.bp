@@ -35,6 +35,8 @@ apex {
         // End: VSIDL provider precompiled files
         // Linker configuration to enable loading library from apex.
         "com.sdv.oem.sample.diagnostics.linker_config",
+        // ACL Policy
+        "com.sdv.oem.sample.diagnostics.provider1.acl_policy",
     ],
     product_specific: true,
     min_sdk_version: "35",

@@ -31,3 +31,13 @@ unit_types {
     name: "fault.FaultListenerService"
     acl_names: "Public"
 }
+
+unit_types {
+    name: "routine_control.RoutineControlService"
+    acl_names: "Public"
+}
+
+unit_types {
+    name: "io_control.IoControlService"
+    acl_names: "Public"
+}
