@@ -14,7 +14,11 @@ apex {
         // SDV Manifest - used by SBR
         "com.sdv.oem.user_preferences.manifest",
         // ACL Policy
-        "com.sdv.oem.user_preferences.acl_policy",
+        "com.sdv.oem.user_preferences.hvac_service.acl_policy",
+        // ACL Policy
+        "com.sdv.oem.user_preferences.user_preferences_service_bundle.acl_policy",
+        // ACL Policy
+        "com.sdv.oem.user_preferences.hmi_service.acl_policy",
         // Orchestration config
         "com.sdv.oem.user_preferences.orchestration",
         // Linker configuration to enable loading library from apex.
@@ -54,9 +58,38 @@ prebuilt_etc {
 
 // File with the ACL policy of service bundle is stored in the apex.
 prebuilt_etc {
-    name: "com.sdv.oem.user_preferences.acl_policy",
+    name: "com.sdv.oem.user_preferences.hvac_service.acl_policy",
     // The source name of the manifest file.
-    src: "acl.textproto",
+    src: "acl_configs/hvac_service/acl.textproto",
+    sub_dir: "hvac_service",
+    filename: "acl.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// File with the ACL policy of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.sdv.oem.user_preferences.user_preferences_service_bundle.acl_policy",
+    // The source name of the manifest file.
+    src: "acl_configs/user_preferences_service_bundle/acl.textproto",
+    sub_dir: "user_preferences_service_bundle",
+    filename: "acl.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// File with the ACL policy of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.sdv.oem.user_preferences.hmi_service.acl_policy",
+    // The source name of the manifest file.
+    src: "acl_configs/hmi_service/acl.textproto",
+    sub_dir: "hmi_service",
     filename: "acl.textproto",
     // Disable direct installation of the manifest to one of the partitions.
     // The manifest will be used only inside of service bundles registry apexes.
