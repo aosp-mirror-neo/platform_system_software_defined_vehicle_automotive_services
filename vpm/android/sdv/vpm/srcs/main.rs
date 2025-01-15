@@ -11,6 +11,7 @@ static LOG_TAG: &str = "sdv_vpm_agent";
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 async fn main() -> anyhow::Result<()> {
     sdv_log::init_logger(LOG_TAG)?;
+    sdv_tracing::init_tracing();
     binder::ProcessState::start_thread_pool();
 
     let res = sdv_comms_ctx::wait_for_agents();
