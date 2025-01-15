@@ -10,6 +10,11 @@ acls {
     include: "com.sdv.oem.user_preferences.UserPreferencesServiceBundle"
 }
 
+acls {
+    name: "Public"
+    include: "com.sdv.oem.user_preferences.*"
+}
+
 unit_types {
     name: "UserPreferencesAdminService"
     acl_names: "Internal"
@@ -23,4 +28,14 @@ unit_types {
 unit_types {
     name: "UserPreferencesRegistryService"
     acl_names: "Internal"
+}
+
+unit_types {
+    name: "user_controllable.UserControllableService"
+    acl_names: "Public"
+}
+
+unit_types {
+    name: "view.ChangeNotifier"
+    acl_names: "Public"
 }

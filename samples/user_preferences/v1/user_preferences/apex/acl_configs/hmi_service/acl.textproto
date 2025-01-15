@@ -4,3 +4,13 @@
 
 # ACL policies for User Preferences Unit Types.
 
+acls {
+    name: "PackagePublic"
+    include: "com.sdv.oem.user_preferences.*"
+}
+
+service_units {
+    name: "com-sdv-google-user-preferences-view-change-notifier"
+    acl_names: "PackagePublic"
+}
+
