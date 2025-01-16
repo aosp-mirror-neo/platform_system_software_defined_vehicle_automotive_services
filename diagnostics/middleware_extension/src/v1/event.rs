@@ -312,9 +312,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_event_message_metadata_is_set() {
+        // Note: ACLs for this test are in the respective acl textproto file of the com.sdv.oem.sample.diagnostics apex
         // GIVEN event publication
         let context = ContextRef::create(
-            ServiceFqin::from_str("vm:com.sdv.google.sample.diagnostics.SampleBundle/instance")
+            ServiceFqin::from_str("vm:com.sdv.oem.sample.diagnostics.SampleBundle/instance")
                 .unwrap(),
         );
         let comms = Arc::new(SdvComms { context });
@@ -323,7 +324,7 @@ mod tests {
 
         let sd = ServiceDiscoveryManager::new(context);
         let discovery_args = UnitNameDiscoveryArgs::new_builder()
-            .set_sdv_package_name("com.sdv.google.sample.diagnostics")
+            .set_sdv_package_name("com.sdv.oem.sample.diagnostics")
             .set_service_bundle_name("SampleBundle")
             .set_service_unit_name("event")
             .build()

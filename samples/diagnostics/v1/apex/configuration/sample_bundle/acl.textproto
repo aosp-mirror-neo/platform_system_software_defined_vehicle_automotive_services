@@ -1,0 +1,19 @@
+# Copyright 2025 Google LLC
+# proto-file: //system/software_defined_vehicle/core_services/service_authz/policy/src/proto/acl_policy.proto
+# proto-message: AclPolicy
+
+acls {
+    name: "Internal"
+    include: "com.sdv.oem.sample.diagnostics.SampleBundle"
+}
+
+acls {
+    name: "Public"
+    include: "com.sdv.oem.diagnostics.*"
+}
+
+service_units {
+    name: "event"
+    acl_names: "Internal"
+    acl_names: "Public"
+}
