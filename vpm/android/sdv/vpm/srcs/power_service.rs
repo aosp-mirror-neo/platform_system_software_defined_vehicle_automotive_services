@@ -25,6 +25,7 @@ use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tokio::time::Duration;
 use tokio_util::sync::CancellationToken;
+use tracing::instrument;
 
 #[automock]
 #[async_trait]
@@ -99,6 +100,9 @@ impl PowerServiceImpl {
         }
     }
 
+    // Instrument somehow messes clippy and generates this lint error.
+    #[allow(clippy::async_yields_async)]
+    #[instrument(skip(self))]
     // Power state request should be already validated processing the new power state.
     async fn process_power_request(
         &self,
@@ -164,6 +168,7 @@ impl PowerServiceImpl {
     }
 }
 
+#[instrument(skip(cloned_power_state_notifier))]
 async fn notify_oem(
     new_state: Arc<dyn PowerState>,
     select_result: anyhow::Result<(), PowerStateNotificationError>,
@@ -253,6 +258,7 @@ impl PowerService for PowerServiceImpl {
     }
 }
 
+#[derive(Debug)]
 pub struct PowerRequest {
     pub power_state: Box<dyn PowerState>,
     pub timeout_ms: u64,

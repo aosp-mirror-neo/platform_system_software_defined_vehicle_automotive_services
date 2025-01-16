@@ -37,6 +37,7 @@ use tokio::runtime::Handle;
 use tokio::sync::watch::Receiver as WatchReceiver;
 use tokio::sync::Mutex as AsyncMutex;
 use tokio::task::JoinSet;
+use tracing::instrument;
 
 #[automock]
 #[async_trait]
@@ -136,6 +137,7 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     async fn notify(
         &self,
         power_state_report: PowerStateReport,
@@ -184,6 +186,7 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
         }
     }
 
+    #[instrument(skip(self))]
     async fn notify_oem(
         &self,
         power_state_report: PowerStateReport,

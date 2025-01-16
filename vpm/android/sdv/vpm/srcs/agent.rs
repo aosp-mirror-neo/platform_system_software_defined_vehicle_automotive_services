@@ -24,6 +24,7 @@ use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_vpm_api::vehicle::VehicleStateChange;
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::instrument;
 
 const POWER_STATE_CHANNEL_QUEUE_SIZE: usize = 1;
 
@@ -51,6 +52,7 @@ impl VpmServiceBundle for VpmSystemServiceBundle {
 /// VPM agent implementation.
 impl Agent {
     /// Creates a new VPM agent.
+    #[instrument]
     pub async fn new() -> Self {
         let service_fqin = ServiceFqin::from_str(FQIN).expect("Could not create context for VPM!");
         let context = ContextRef::create(service_fqin.clone());

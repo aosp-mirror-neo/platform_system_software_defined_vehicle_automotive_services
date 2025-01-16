@@ -27,6 +27,7 @@ use tokio::sync::mpsc::channel;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender as MpscSender;
 use tokio::sync::watch::Receiver as WatchReceiver;
+use tracing::instrument;
 
 const VEHICLE_STATE_CHANNEL_QUEUE_SIZE: usize = 1;
 
@@ -102,6 +103,7 @@ impl RpcServer {
 #[allow(non_snake_case, missing_docs)]
 #[async_trait::async_trait]
 impl Interface for RpcServer {
+    #[instrument(skip(self))]
     async fn SetVehicleState(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
@@ -125,6 +127,7 @@ impl Interface for RpcServer {
         Ok(SetVehicleStateResponse::new())
     }
 
+    #[instrument(skip(self))]
     async fn SetPowerState(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
@@ -142,6 +145,7 @@ impl Interface for RpcServer {
         }
     }
 
+    #[instrument(skip(self))]
     async fn GetPowerState(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,

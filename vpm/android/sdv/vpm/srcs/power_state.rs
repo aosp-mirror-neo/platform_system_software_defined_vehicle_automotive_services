@@ -7,6 +7,7 @@ use rustutils::system_properties::read;
 use sdv_pm::PlatformPower;
 use sdv_pm::SuspendMode;
 use sdv_vpm_api::power::PowerStateReport;
+use std::fmt::Debug;
 use tokio::sync::mpsc::Sender;
 
 const PLATFORM_SUSPEND_TIMEOUT_MS_PROP: &str = "sdv.vpm.platform.timeout_ms";
@@ -69,7 +70,7 @@ fn power_off() -> anyhow::Result<()> {
 
 #[automock]
 #[async_trait]
-pub trait PowerState: Send + Sync {
+pub trait PowerState: Send + Sync + Debug {
     fn get_report(&self) -> PowerStateReport;
 
     fn is_valid_next_state(&self, next_state: PowerStateReport) -> bool;
