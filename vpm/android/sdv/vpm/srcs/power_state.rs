@@ -9,6 +9,7 @@ use sdv_pm::SuspendMode;
 use sdv_vpm_api::power::PowerStateReport;
 use std::fmt::Debug;
 use tokio::sync::mpsc::Sender;
+use tracing::Level;
 
 const PLATFORM_SUSPEND_TIMEOUT_MS_PROP: &str = "sdv.vpm.platform.timeout_ms";
 const PLATFORM_SUSPEND_RETRY_INTERVAL_MS_PROP: &str = "sdv.vpm.platform.retry_interval_ms";
@@ -51,6 +52,8 @@ fn suspend_to_ram() -> anyhow::Result<()> {
         get_platform_timeout_ms(),
         get_platform_retry_interval_ms(),
     )?;
+    debug!("sdv_vpm_agent has resumed successfully");
+    tracing::event!(Level::DEBUG, "sdv_vpm_agent has resumed successfully");
     Ok(())
 }
 
@@ -60,6 +63,8 @@ fn suspend_to_disk() -> anyhow::Result<()> {
         get_platform_timeout_ms(),
         get_platform_retry_interval_ms(),
     )?;
+    debug!("sdv_vpm_agent has resumed successfully");
+    tracing::event!(Level::DEBUG, "sdv_vpm_agent has resumed successfully");
     Ok(())
 }
 
