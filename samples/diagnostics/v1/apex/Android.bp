@@ -37,6 +37,8 @@ apex {
         "com.sdv.oem.sample.diagnostics.linker_config",
         // ACL Policy
         "com.sdv.oem.sample.diagnostics.provider1.acl_policy",
+        // ACL Policy
+        "com.sdv.oem.sample.diagnostics.sample_bundle.acl_policy",
     ],
     product_specific: true,
     min_sdk_version: "35",
@@ -99,6 +101,19 @@ prebuilt_etc {
     name: "com.sdv.oem.sample.diagnostics.provider1.acl_policy",
     src: "configuration/provider1/acl.textproto",
     sub_dir: "provider1",
+    filename: "acl.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// File with the ACL policy of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.sdv.oem.sample.diagnostics.sample_bundle.acl_policy",
+    src: "configuration/sample_bundle/acl.textproto",
+    sub_dir: "sample_bundle",
     filename: "acl.textproto",
     // Disable direct installation of the manifest to one of the partitions.
     // The manifest will be used only inside of service bundles registry apexes.
