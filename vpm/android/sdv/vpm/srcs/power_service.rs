@@ -26,6 +26,7 @@ use tokio::time::sleep;
 use tokio::time::Duration;
 use tokio_util::sync::CancellationToken;
 use tracing::instrument;
+use tracing::Level;
 
 #[automock]
 #[async_trait]
@@ -89,7 +90,8 @@ impl PowerServiceImpl {
             watch_channel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
 
         power_state_notifier.create_binder_service(power_state_watch_receiver.clone()).unwrap();
-
+        log::debug!("sdv_vpm_agent has started successfully");
+        tracing::event!(Level::DEBUG, "sdv_vpm_agent has started successfully");
         Self {
             power_state_notifier,
             power_state_request_sender,
