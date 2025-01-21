@@ -32,6 +32,12 @@ async fn main() {
     sdv_log::init_logger("sdv_diagnostics_agent").unwrap();
     sdv_tracing::init_tracing();
 
+    // Emulate opening external connection
+    let _ = tokio::net::TcpListener::bind("127.0.0.1:8080").await.unwrap();
+
+    log::debug!("sdv_diagnostics_agent accepts external connections");
+    tracing::event!(tracing::Level::DEBUG, "sdv_diagnostics_agent accepts external connections");
+
     sdv_comms::wait_for_agents()
         .unwrap_or_else(|err| panic!("Error waiting for Comms Stack agents: {err}"));
 
@@ -43,6 +49,9 @@ async fn main() {
         vsidl_provider::new(context).unwrap_or_else(|| panic!("Error creating VSIDL provider")),
     );
 
+    log::debug!("sdv_diagnostics_agent VSIDL provider initialized");
+    tracing::event!(tracing::Level::DEBUG, "sdv_diagnostics_agent VSIDL provider initialized");
+
     info!("Starting Diagnostics Agent");
 
     tokio::spawn(listen_to_enable_conditions(context, vsidl_provider.clone()));
@@ -53,6 +62,9 @@ async fn main() {
     tokio::spawn(io_control_interaction(context, vsidl_provider.clone()));
     tokio::spawn(routine_control_interaction(context, vsidl_provider.clone()));
     tokio::spawn(fault_listener_interaction(context, vsidl_provider.clone()));
+
+    log::debug!("sdv_diagnostics_agent has started successfully");
+    tracing::event!(tracing::Level::DEBUG, "sdv_diagnostics_agent has started successfully");
 
     binder::ProcessState::start_thread_pool();
 
