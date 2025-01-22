@@ -15,7 +15,7 @@ rust_ffi_shared {
 }
 
 rust_test {
-    name: "sdv_user_preferences_service_stable_tests",
+    name: "sdv_core_automotive_services_unit_user_pref_test",
     defaults: ["libuser_preferences_stable@rust_defaults"],
     test_options: {
         unit_test: true,
