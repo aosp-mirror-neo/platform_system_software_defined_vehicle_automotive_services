@@ -361,13 +361,11 @@ impl SettingsChangePropagator for SettingsChangePropagatorImpl {
 #[async_trait]
 impl OnlineServicesListener for SettingsChangePropagatorImpl {
     async fn on_service_start(&self, fqin: &ServiceFqin) {
-        self.init_service_with_user_preferences(fqin).await;
-
         let mut online_services = self.online_services.lock().await;
         online_services.insert(fqin.clone());
         drop(online_services);
-        //once service is online, Attempt to apply any pending changes
-        self.process_pending_setting_changes(fqin).await;
+
+        self.init_service_with_user_preferences(fqin).await;
     }
 
     async fn on_service_stop(&self, fqin: &ServiceFqin) {
