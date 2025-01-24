@@ -27,7 +27,11 @@ use std::time::Duration;
 mod unit_types;
 use crate::unit_types::*;
 
+use protobuf::MessageDyn;
+use tracing::instrument;
+
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
+#[instrument]
 async fn main() {
     sdv_log::init_logger("sdv_diagnostics_agent").unwrap();
     sdv_tracing::init_tracing();
@@ -177,6 +181,7 @@ async fn listen_to_operation_cycles(
     .await;
 }
 
+#[instrument(skip_all)]
 async fn read_data_items(
     context: ContextRef,
     vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
@@ -224,6 +229,7 @@ async fn read_data_items(
     }
 }
 
+#[instrument(skip_all)]
 async fn start_routines(
     context: ContextRef,
     vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
@@ -274,6 +280,7 @@ async fn start_routines(
     }
 }
 
+#[instrument(skip_all)]
 async fn freeze_current_state(
     context: ContextRef,
     vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
@@ -320,6 +327,7 @@ async fn freeze_current_state(
     }
 }
 
+#[instrument(skip_all)]
 async fn update_faults_status(
     context: ContextRef,
     vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
@@ -349,6 +357,7 @@ async fn update_faults_status(
     }
 }
 
+#[instrument(skip_all)]
 fn handle_event(
     service_unit: ServiceUnitDefinition,
     vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
@@ -388,6 +397,7 @@ fn handle_event(
     }
 }
 
+#[instrument(skip_all)]
 fn handle_enable_condition(
     _service_unit: ServiceUnitDefinition,
     _vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
@@ -418,6 +428,7 @@ async fn data_item_interaction(
     .await;
 }
 
+#[instrument(skip_all)]
 async fn io_control_interaction(
     context: ContextRef,
     vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
@@ -432,6 +443,7 @@ async fn io_control_interaction(
     .await;
 }
 
+#[instrument(skip_all)]
 async fn routine_control_interaction(
     context: ContextRef,
     vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
@@ -450,6 +462,7 @@ async fn routine_control_interaction(
     .await;
 }
 
+#[instrument(skip_all)]
 async fn fault_listener_interaction(
     context: ContextRef,
     vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
@@ -468,6 +481,7 @@ async fn fault_listener_interaction(
     .await;
 }
 
+#[instrument(skip_all)]
 async fn set_service_unit_registration_callback<F, Fut>(context: ContextRef, args: UnitType, f: F)
 where
     F: Fn(ServiceUnitDefinition) -> Fut + Send + Sync + 'static,
@@ -513,6 +527,7 @@ where
         .await
 }
 
+#[instrument(skip_all, fields(request = request.descriptor_dyn().name()))]
 async fn perform_and_log_rpc_call<T: Method>(
     context: ContextRef,
     service_unit: &ServiceUnitDefinition,
