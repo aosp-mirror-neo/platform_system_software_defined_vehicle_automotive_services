@@ -1,5 +1,5 @@
 // Copyright 2024 Google LLC
-#![allow(missing_docs)]
+//! This library provides the base implementation of the User Controllable Service interface used by the car_seats_service and hvac_service sample bundles.
 
 use async_trait::async_trait;
 use com_sdv_google_user_preferences_user_controllable_user_controllable_service_rpc::Interface as UserControllableService;
@@ -16,14 +16,16 @@ use user_preferences_api::{
     user_preferences_registry_service::{RegisterSettingsRequest, UpdateSettingsRequest},
 };
 
-// Definition of the settings group a service provides to users.
+/// Definition of the settings group a service provides to users of a vehicle.
+/// Examples of the SettingGRoupDefinition usage can be found in the car seats
+/// service bundle automotive_services/samples/user_preferences/v1/car_seats_service/src/main.rs
 #[derive(Clone)]
 pub struct SettingGroupDefinition {
-    // Name of the settings group.
+    /// Name of the settings group.
     pub name: String,
-    // Version of the schema of this group.
+    /// Version of the schema of this group.
     pub version: String,
-    // The definition of the settings within this group.
+    /// The definition of the settings within this group.
     pub setting_definitions: Vec<SettingDefinition>,
 }
 
@@ -33,6 +35,11 @@ struct SettingGroup {
     setting_with_constraints: HashMap<String, SettingWithConstraints>,
 }
 
+/// Implements the `UserControllableService` interface, providing a simple service bundle that
+/// accepts all setting change requests and registers settings within the User Preferences service.
+/// OEM services must inform the User Preferences service of the settings they support.  This is done by calling
+/// the register settings API exposed by the User Preferences service.  This service bundle automatically performs this
+/// registration.
 pub struct SimpleUserControllableServiceImpl {
     setting_groups_definitions: Vec<SettingGroupDefinition>,
     setting_groups: Mutex<HashMap<String, SettingGroup>>,
@@ -40,6 +47,15 @@ pub struct SimpleUserControllableServiceImpl {
 }
 
 impl SimpleUserControllableServiceImpl {
+    /// Creates a new instance of `SimpleUserControllableServiceImpl`.
+    ///
+    /// # Arguments
+    /// * `setting_groups_definitions` - A vector of `SettingGroupDefinition` structs defining the settings groups managed by this service.
+    /// * `client` - A RegistryServiceClient used to communicate with the settings registry.
+    ///
+    /// # Returns
+    /// A new `SimpleUserControllableServiceImpl` instance.  This function also initializes the setting groups
+    /// and registers the defined settings with the User Preferences service.
     pub async fn new(
         setting_groups_definitions: Vec<SettingGroupDefinition>,
         client: Arc<RegistryServiceClient>,
@@ -100,6 +116,16 @@ impl SimpleUserControllableServiceImpl {
 
 #[async_trait]
 impl UserControllableService for SimpleUserControllableServiceImpl {
+    /// Handles requests to change settings.  This function retrieves the relevant setting group,
+    /// updates the settings values, and sends a response indicating whether the changes were applied.
+    ///
+    /// # Arguments
+    /// * `_caller_id` - The identifier of the calling service.
+    /// * `request` - The `RequestSettingsChangeRequest` containing the settings to be changed.
+    ///
+    /// # Returns
+    /// An `SdvResult` containing a `RequestSettingsChangeResponse` with the applied settings,
+    /// or an error if the setting group is not found.
     async fn RequestSettingsChange(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
@@ -135,6 +161,15 @@ impl UserControllableService for SimpleUserControllableServiceImpl {
         })
     }
 
+    /// Handles factory reset requests.  This function resets the settings to their default values
+    /// as defined in the `SettingGroupDefinition` and updates the registry.
+    ///
+    /// # Arguments
+    /// * `_caller_id` - The identifier of the calling service.
+    /// * `_request` - The `FactoryResetRequest`.
+    ///
+    /// # Returns
+    /// An `SdvResult` containing a `FactoryResetResponse`.
     async fn FactoryReset(
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
