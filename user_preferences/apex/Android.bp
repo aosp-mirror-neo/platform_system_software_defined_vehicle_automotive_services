@@ -3,6 +3,11 @@ package {
     default_applicable_licenses: ["sdv_license"],
 }
 
+// This APEX contains the ACL policy and manifest for the User Preferences service.
+// It does *not* contain the User Preferences service implementation itself.  The implementation
+// is expected to be provided by OEMs, typically packaged within their own APEX.
+// Therefore the reference implementation is packaged within the com.sdv.oem.user_preferences APEX
+// defined within automotive_services/samples/user_preferences/v1/user_preferences/apex/Android.bp.
 apex {
     name: "com.sdv.google.user_preferences",
     manifest: "apex_manifest.json",

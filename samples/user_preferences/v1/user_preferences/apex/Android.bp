@@ -3,6 +3,12 @@ package {
     default_applicable_licenses: ["sdv_license"],
 }
 
+// This APEX packages the User Preferences service implementation and the
+// orchestration configuration file required to launch the service.
+// The service is automatically started by the `sdv_orchestrator` upon boot.
+// This acts as a reference implementation for OEMs to adapt and integrate
+// within their own APEXes. For the configuration APEX containing the
+// ACL policy and manifest, refer to com.sdv.google.user_preferences.
 apex {
     name: "com.sdv.oem.user_preferences",
     manifest: "apex_manifest.json",

@@ -4,7 +4,9 @@
 
 This package provides a reference implementation for the SDV User Preferences
 service. The included sample services demonstrate how to effectively utilize the
-User Preferences Service APIs.
+User Preferences Service APIs. The User Preferences service is packaged as an
+APEX (Android Pony EXpress) and is automatically started by the Orchestrator
+service upon system startup.
 
 ## Included Services
 
