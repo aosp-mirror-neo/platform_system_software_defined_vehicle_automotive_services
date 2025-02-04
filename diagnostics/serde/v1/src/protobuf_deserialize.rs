@@ -31,7 +31,7 @@ impl<'lt> MessageDeserializeSeed<'lt> {
     }
 }
 
-impl<'de, 'lt> DeserializeSeed<'de> for MessageDeserializeSeed<'lt> {
+impl<'de> DeserializeSeed<'de> for MessageDeserializeSeed<'_> {
     type Value = Box<dyn MessageDyn>;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -48,7 +48,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for MessageDeserializeSeed<'lt> {
             }
         }
 
-        impl<'de, 'lt> Visitor<'de> for MessageVisitor<'lt> {
+        impl<'de> Visitor<'de> for MessageVisitor<'_> {
             type Value = Box<dyn MessageDyn>;
 
             fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -105,7 +105,7 @@ impl<'lt> FieldDeserializeSeed<'lt> {
     }
 }
 
-impl<'de, 'lt> DeserializeSeed<'de> for FieldDeserializeSeed<'lt> {
+impl<'de> DeserializeSeed<'de> for FieldDeserializeSeed<'_> {
     type Value = ();
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -183,7 +183,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for FieldDeserializeSeed<'lt> {
             }
         }
 
-        impl<'de, 'lt> Visitor<'de> for RepeatedFieldVisitor<'lt> {
+        impl<'de> Visitor<'de> for RepeatedFieldVisitor<'_> {
             type Value = ();
 
             fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -243,7 +243,7 @@ impl<'lt> SingularFieldDeserializeSeed<'lt> {
     }
 }
 
-impl<'de, 'lt> DeserializeSeed<'de> for SingularFieldDeserializeSeed<'lt> {
+impl<'de> DeserializeSeed<'de> for SingularFieldDeserializeSeed<'_> {
     type Value = Option<ReflectValueBox>;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -265,7 +265,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for SingularFieldDeserializeSeed<'lt> {
             }
         }
 
-        impl<'de, 'lt> Visitor<'de> for OptionVisitor<'lt> {
+        impl<'de> Visitor<'de> for OptionVisitor<'_> {
             type Value = Option<ReflectValueBox>;
 
             fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -328,7 +328,7 @@ impl<'lt> ValueDeserializeSeed<'lt> {
     }
 }
 
-impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
+impl<'de> DeserializeSeed<'de> for ValueDeserializeSeed<'_> {
     type Value = ReflectValueBox;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -336,7 +336,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
         D: Deserializer<'de>,
     {
         struct I64ValueVisitor;
-        impl<'de> Visitor<'de> for I64ValueVisitor {
+        impl Visitor<'_> for I64ValueVisitor {
             type Value = ReflectValueBox;
 
             fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -362,7 +362,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
         }
 
         struct I32ValueVisitor;
-        impl<'de> Visitor<'de> for I32ValueVisitor {
+        impl Visitor<'_> for I32ValueVisitor {
             type Value = ReflectValueBox;
 
             fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -407,7 +407,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
             RuntimeType::U32 => {
                 struct U32ValueVisitor;
 
-                impl<'de> Visitor<'de> for U32ValueVisitor {
+                impl Visitor<'_> for U32ValueVisitor {
                     type Value = ReflectValueBox;
 
                     fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -454,7 +454,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
             RuntimeType::U64 => {
                 struct U64ValueVisitor;
 
-                impl<'de> Visitor<'de> for U64ValueVisitor {
+                impl Visitor<'_> for U64ValueVisitor {
                     type Value = ReflectValueBox;
 
                     fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -484,7 +484,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
             RuntimeType::F32 => {
                 struct F32ValueVisitor;
 
-                impl<'de> Visitor<'de> for F32ValueVisitor {
+                impl Visitor<'_> for F32ValueVisitor {
                     type Value = ReflectValueBox;
 
                     fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -529,7 +529,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
             RuntimeType::F64 => {
                 struct F64ValueVisitor;
 
-                impl<'de> Visitor<'de> for F64ValueVisitor {
+                impl Visitor<'_> for F64ValueVisitor {
                     type Value = ReflectValueBox;
 
                     fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -559,7 +559,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
             RuntimeType::Bool => {
                 struct BoolValueVisitor;
 
-                impl<'de> Visitor<'de> for BoolValueVisitor {
+                impl Visitor<'_> for BoolValueVisitor {
                     type Value = ReflectValueBox;
 
                     fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -579,7 +579,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
             RuntimeType::String => {
                 struct StringValueVisitor;
 
-                impl<'de> Visitor<'de> for StringValueVisitor {
+                impl Visitor<'_> for StringValueVisitor {
                     type Value = ReflectValueBox;
 
                     fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -652,7 +652,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
             RuntimeType::VecU8 => {
                 struct VecU8ValueVisitor;
 
-                impl<'de> Visitor<'de> for VecU8ValueVisitor {
+                impl Visitor<'_> for VecU8ValueVisitor {
                     type Value = ReflectValueBox;
 
                     fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
@@ -719,7 +719,7 @@ impl<'de, 'lt> DeserializeSeed<'de> for ValueDeserializeSeed<'lt> {
             RuntimeType::Enum(enum_descriptor) => {
                 struct EnumValueVisitor<'lt>(&'lt EnumDescriptor);
 
-                impl<'de, 'lt> Visitor<'de> for EnumValueVisitor<'lt> {
+                impl Visitor<'_> for EnumValueVisitor<'_> {
                     type Value = ReflectValueBox;
 
                     fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {

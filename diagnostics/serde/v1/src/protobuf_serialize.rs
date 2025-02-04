@@ -25,7 +25,7 @@ impl<'lt> MessageSerialize<'lt> {
     }
 }
 
-impl<'lt> Serialize for MessageSerialize<'lt> {
+impl Serialize for MessageSerialize<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -59,7 +59,7 @@ impl<'lt> FieldSerialize<'lt> {
     }
 }
 
-impl<'lt> Serialize for FieldSerialize<'lt> {
+impl Serialize for FieldSerialize<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -95,7 +95,7 @@ impl<'lt> DefaultValueSerialize<'lt> {
     }
 }
 
-impl<'lt> Serialize for DefaultValueSerialize<'lt> {
+impl Serialize for DefaultValueSerialize<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -239,7 +239,7 @@ impl<'lt> ValueSerialize<'lt> {
     }
 }
 
-impl<'lt> Serialize for ValueSerialize<'lt> {
+impl Serialize for ValueSerialize<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -357,7 +357,7 @@ impl<'lt> RepeatedValueSerialize<'lt> {
     }
 }
 
-impl<'lt> Serialize for RepeatedValueSerialize<'lt> {
+impl Serialize for RepeatedValueSerialize<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

@@ -203,7 +203,7 @@ pub struct UdsTupleSerializer<'ser_lt, 'buffer_lt> {
     serializer: &'ser_lt mut UdsSerializer<'buffer_lt>,
 }
 
-impl<'ser_lt, 'buffer_lt> SerializeTuple for UdsTupleSerializer<'ser_lt, 'buffer_lt> {
+impl SerializeTuple for UdsTupleSerializer<'_, '_> {
     type Ok = ();
     type Error = UdsSerializerError;
 
@@ -219,7 +219,7 @@ impl<'ser_lt, 'buffer_lt> SerializeTuple for UdsTupleSerializer<'ser_lt, 'buffer
     }
 }
 
-impl<'ser_lt, 'buffer_lt> SerializeStruct for UdsTupleSerializer<'ser_lt, 'buffer_lt> {
+impl SerializeStruct for UdsTupleSerializer<'_, '_> {
     type Ok = ();
     type Error = UdsSerializerError;
 

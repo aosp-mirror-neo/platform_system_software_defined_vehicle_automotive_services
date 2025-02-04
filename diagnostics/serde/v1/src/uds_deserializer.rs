@@ -17,7 +17,7 @@ impl<'buffer_lt> UdsDeserializer<'buffer_lt> {
     }
 }
 
-impl<'de_lt, 'buffer_lt> Deserializer<'buffer_lt> for &'de_lt mut UdsDeserializer<'buffer_lt> {
+impl<'buffer_lt> Deserializer<'buffer_lt> for &mut UdsDeserializer<'buffer_lt> {
     type Error = UdsDeserializerError;
 
     fn deserialize_any<V>(self, _: V) -> Result<V::Value, Self::Error>
@@ -275,7 +275,7 @@ impl<'de_lt, 'buffer_lt> UdsTupleDeserializer<'de_lt, 'buffer_lt> {
     }
 }
 
-impl<'de_lt, 'buffer_lt> SeqAccess<'buffer_lt> for UdsTupleDeserializer<'de_lt, 'buffer_lt> {
+impl<'buffer_lt> SeqAccess<'buffer_lt> for UdsTupleDeserializer<'_, 'buffer_lt> {
     type Error = UdsDeserializerError;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
