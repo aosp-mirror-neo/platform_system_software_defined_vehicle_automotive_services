@@ -13,7 +13,7 @@ use tracing::Level;
 
 const PLATFORM_SUSPEND_TIMEOUT_MS_PROP: &str = "sdv.vpm.platform.timeout_ms";
 const PLATFORM_SUSPEND_RETRY_INTERVAL_MS_PROP: &str = "sdv.vpm.platform.retry_interval_ms";
-const DEFAULT_PLATFORM_TIMEOUT_MS: u64 = 2000;
+const DEFAULT_PLATFORM_TIMEOUT_MS: u64 = 1000;
 const DEFAULT_PLATFORM_RETRY_INTERVAL_MS: u64 = 200;
 #[cfg(not(test))]
 use sdv_pm::PlatformPowerController;
@@ -628,7 +628,6 @@ mod tests {
         // Expect to call platform with S2R.
         mock.expect_suspend()
             .times(1)
-            // Test does not have access to read system properties, thus timeout is set to default.
             .withf(move |mode, platform_timeout, retry_interval_ms| {
                 mode == &SuspendMode::RAM
                     && *platform_timeout == DEFAULT_PLATFORM_TIMEOUT_MS
