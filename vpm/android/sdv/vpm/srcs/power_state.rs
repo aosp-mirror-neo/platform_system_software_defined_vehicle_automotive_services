@@ -14,7 +14,7 @@ use tracing::Level;
 const PLATFORM_SUSPEND_TIMEOUT_MS_PROP: &str = "sdv.vpm.platform.timeout_ms";
 const PLATFORM_SUSPEND_RETRY_INTERVAL_MS_PROP: &str = "sdv.vpm.platform.retry_interval_ms";
 const DEFAULT_PLATFORM_TIMEOUT_MS: u64 = 1000;
-const DEFAULT_PLATFORM_RETRY_INTERVAL_MS: u64 = 200;
+const DEFAULT_PLATFORM_RETRY_INTERVAL_MS: u64 = 100;
 #[cfg(not(test))]
 use sdv_pm::PlatformPowerController;
 #[cfg(not(test))]
@@ -634,7 +634,6 @@ mod tests {
                     && *retry_interval_ms == DEFAULT_PLATFORM_RETRY_INTERVAL_MS
             })
             .returning(|_, _, _| Ok(()));
-
         PLATFORM_MOCK_INSTANCE.set(mock).unwrap();
 
         // When state is executed.
