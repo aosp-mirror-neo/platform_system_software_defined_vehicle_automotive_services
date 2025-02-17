@@ -3,6 +3,7 @@
 use crate::power_state_notifier::binder::BinderFeatures;
 use crate::power_state_notifier::binder::ExceptionCode;
 use crate::power_state_notifier::binder::Status;
+use crate::power_state_notifier::binder::ThreadState;
 use crate::PowerState;
 use anyhow::anyhow;
 use async_trait::async_trait;
@@ -28,8 +29,6 @@ use sdv_vpm_api::power::PowerStateReport;
 use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
 use sdv_vpm_api::vpm_notifications::PowerStateNotificationRequest;
 use std::collections::HashMap;
-use std::sync::atomic::AtomicU32;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::sync::Mutex;
 use thiserror::Error;
@@ -71,6 +70,7 @@ pub enum PowerStateNotificationError {
 
 #[derive(Clone)]
 pub struct PowerStateNotifierImpl {
+    // Maps the AID of the agent with the callback.
     callbacks: Arc<Mutex<HashMap<u32, ClientCallback>>>,
     comms: Arc<SdvComms>,
     notification_rpc_client: Arc<AsyncMutex<Option<Arc<Client>>>>,
@@ -226,8 +226,6 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
 struct BinderServer {
     callbacks: Arc<Mutex<HashMap<u32, ClientCallback>>>,
     power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
-    // Should be replaced with another identifier when agents have specific SDV id.
-    id: AtomicU32,
 }
 
 impl BinderServer {
@@ -235,7 +233,7 @@ impl BinderServer {
         callbacks: Arc<Mutex<HashMap<u32, ClientCallback>>>,
         power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
     ) -> Self {
-        Self { callbacks, power_state_watch_receiver, id: AtomicU32::new(1) }
+        Self { callbacks, power_state_watch_receiver }
     }
 }
 impl Interface for BinderServer {}
@@ -254,7 +252,7 @@ impl IPowerStateClientApiAsyncServer for BinderServer {
         callback: &Strong<dyn IPowerStateReportListener>,
     ) -> BinderResult<PowerStateReportAidl> {
         info!("VPM Agent received client request to subscribe to power updates!");
-        let id = self.id.fetch_add(1, Ordering::Relaxed);
+        let id = ThreadState::get_calling_uid();
         let callbacks = self.callbacks.clone();
         let mut death_recipient = DeathRecipient::new(move || {
             info!("Handling death notification for id {:?}", id);
