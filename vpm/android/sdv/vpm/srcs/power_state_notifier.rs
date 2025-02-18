@@ -130,10 +130,10 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
             TokioRuntime(Handle::current()),
             BinderFeatures::default(),
         );
-        binder::add_service(
-            <BpPowerStateClientApi as IPowerStateClientApi>::get_descriptor(),
-            client_api_binder.as_binder(),
-        )?;
+        let descriptor = <BpPowerStateClientApi as IPowerStateClientApi>::get_descriptor()
+            .to_owned()
+            + "/default";
+        binder::add_service(&descriptor, client_api_binder.as_binder())?;
         Ok(())
     }
 

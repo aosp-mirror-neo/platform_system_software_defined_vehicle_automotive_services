@@ -6,6 +6,11 @@ package {
     default_team: "trendy_team_automotive",
 }
 
+filegroup {
+    name: "sdv_vpm_agent_vintf_fragments",
+    srcs: ["google.sdv.vpm-service.xml"],
+}
+
 rust_defaults {
     name: "vpm_agent@rust_defaults",
     defaults: ["sdv@rust_defaults"],
@@ -31,7 +36,7 @@ rust_defaults {
         "libsdv_mw_rs_com_sdv_google_vpm_vpm_system_service_bundle",
         "libcom_sdv_google_vpm_vpm_system_service_rpc_rs",
         "libcom_sdv_google_vpm_client_power_notification_service_rpc_rs",
-        "google.sdv.vpm-aidl-rust",
+        "google.sdv.vpm-aidl-V1-rust",
     ],
     proc_macros: [
         "libasync_trait",
@@ -39,6 +44,7 @@ rust_defaults {
     system_ext_specific: true,
     lints: "android",
     clippy_lints: "android",
+    vintf_fragments: [":sdv_vpm_agent_vintf_fragments"],
 }
 
 rust_library {

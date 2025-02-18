@@ -5,6 +5,7 @@ package google.sdv.vpm;
 /**
  * This API must be consistent with the VSIDL definition for PowerStateReport available for the OEM.
  */
+@VintfStability
 @Backing(type="int")
 enum PowerStateReport {
 

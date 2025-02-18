@@ -16,6 +16,7 @@ import google.sdv.vpm.PowerStateReport;
  * Subsequent callbacks can be received sequentially, the client should cancel/interrupt the older
  * callbacks and execute the more recent one.
  */
+@VintfStability
 interface IPowerStateReportListener {
     /**
      * Callback method when the power state report has changed.

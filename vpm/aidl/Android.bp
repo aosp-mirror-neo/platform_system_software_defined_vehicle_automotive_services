@@ -7,7 +7,8 @@ package {
 aidl_interface {
     name: "google.sdv.vpm-aidl",
     srcs: ["google/sdv/vpm/*.aidl"],
-    unstable: true,
+    stability: "vintf",
+    always_use_unfrozen: true,
     owner: "google",
     backend: {
         rust: {
@@ -24,4 +25,8 @@ aidl_interface {
         },
     },
     host_supported: true,
+    vendor_available: true,
+    system_ext_specific: true,
+    min_sdk_version: "34",
+    frozen: false,
 }
