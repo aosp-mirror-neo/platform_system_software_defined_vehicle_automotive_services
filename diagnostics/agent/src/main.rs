@@ -110,20 +110,22 @@ async fn listen_to_all_publications_of_type<T: PublicationUnitType>(
                                     Ok((msg_count, buffer)) => {
                                         info!("Available to read: {msg_count}");
 
-                                        let size_for_one_msg = buffer.len() / msg_count as usize;
+                                        if msg_count != 0 {
+                                            let size_for_one_msg = buffer.len() / msg_count as usize;
 
-                                        let messages_bytes = buffer
-                                            .chunks(size_for_one_msg)
-                                            .map(|chunk| chunk.to_owned().into_boxed_slice())
-                                            .collect::<Vec<_>>();
+                                            let messages_bytes = buffer
+                                                .chunks(size_for_one_msg)
+                                                .map(|chunk| chunk.to_owned().into_boxed_slice())
+                                                .collect::<Vec<_>>();
 
-                                        for message_bytes in &messages_bytes {
-                                            let event = decode_with_len::<T::Message>(message_bytes);
+                                            for message_bytes in &messages_bytes {
+                                                let event = decode_with_len::<T::Message>(message_bytes);
 
-                                            if let Ok(event) = event {
-                                                handler(service_unit.clone(), vsidl_provider.clone(), event)
-                                            } else {
-                                                warn!("Failed to parse publication of type {} for {service_unit:?}", T::TYPE_NAME)
+                                                if let Ok(event) = event {
+                                                    handler(service_unit.clone(), vsidl_provider.clone(), event)
+                                                } else {
+                                                    warn!("Failed to parse publication of type {} for {service_unit:?}", T::TYPE_NAME)
+                                                }
                                             }
                                         }
                                     },
