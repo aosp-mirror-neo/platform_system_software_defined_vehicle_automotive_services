@@ -164,9 +164,9 @@ impl PowerCallbackPreparer {
 }
 
 fn get_power_state_client_interface() -> anyhow::Result<Strong<dyn IPowerStateClientApi>> {
-    Ok(binder::wait_for_interface::<dyn IPowerStateClientApi>(
-        <BpPowerStateClientApi as IPowerStateClientApi>::get_descriptor(),
-    )?)
+    let descriptor =
+        <BpPowerStateClientApi as IPowerStateClientApi>::get_descriptor().to_owned() + "/default";
+    Ok(binder::wait_for_interface::<dyn IPowerStateClientApi>(&descriptor)?)
 }
 
 pub struct TestSdvAgent {

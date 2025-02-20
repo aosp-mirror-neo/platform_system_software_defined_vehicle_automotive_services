@@ -63,8 +63,8 @@ async fn main() -> anyhow::Result<()> {
 
 #[instrument]
 async fn get_binder_service() -> anyhow::Result<Strong<dyn IPowerStateClientApiAsync<Tokio>>> {
-    Ok(binder_tokio::wait_for_interface::<dyn IPowerStateClientApiAsync<Tokio>>(
-        <BpPowerStateClientApi as IPowerStateClientApi>::get_descriptor(),
-    )
-    .await?)
+    let descriptor =
+        <BpPowerStateClientApi as IPowerStateClientApi>::get_descriptor().to_owned() + "/default";
+    Ok(binder_tokio::wait_for_interface::<dyn IPowerStateClientApiAsync<Tokio>>(&descriptor)
+        .await?)
 }
