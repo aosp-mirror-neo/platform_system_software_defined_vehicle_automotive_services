@@ -17,7 +17,7 @@ implements Lifecycle Manager interface. To run the demo, follow the steps below:
 
     ```bash
     adb root
-    adb shell sdv_service_bundle launch local-vm:com.sdv.oem.sample.concal.SampleOemConCalServiceBundle/default
+    adb shell sdv_service_bundle start local-vm:com.sdv.oem.sample.concal.SampleOemConCalServiceBundle/default
     ```
 
     The output `ConCalServer service bundle started` printed in `logcat` means
