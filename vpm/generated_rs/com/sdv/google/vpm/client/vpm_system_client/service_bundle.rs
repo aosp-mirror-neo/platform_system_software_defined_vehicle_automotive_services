@@ -47,6 +47,7 @@ impl VpmSystemClient {
         service.add_server::<dyn com_sdv_google_vpm_client_power_notification_service_rpc::Interface>(
                 com_sdv_google_vpm_client_power_notification_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
                 com_sdv_google_vpm_client_power_notification_service_rpc::internal::get_method_map(servers.0.clone()),
+                servers.0.init_server_options(),
             )
             .await?;
         Ok(service)
@@ -69,6 +70,7 @@ impl VpmSystemClient {
         &mut self,
         unit_name: String,
         methods: std::collections::HashMap<String, sdv::comms::rpc::UnaryRpcMethod>,
+        options: sdv::mw::ServerOptions,
     ) -> sdv::status::SdvResult<()> {
         let attributes = sdv::mw::ServerAttributes::builder()
             .server_name(unit_name)
@@ -79,7 +81,7 @@ impl VpmSystemClient {
                     .type_name(T::TYPENAME)
                     .build()?,
             )
-            .server_options(sdv::mw::ServerOptions::builder().timeout_in_sec(30).build()?)
+            .server_options(options)
             .build()?;
 
         let transport = self.comms.create_server_transport(&attributes, methods).await?;
