@@ -9,7 +9,7 @@ use diagnostics_v1_api::{
 };
 use futures::future;
 use futures::stream::StreamExt;
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use protobuf::MessageFull;
 use sdv_comms::dt::{SubscriberOptions, SubscriberStream};
 use sdv_comms::id::ServiceFqin;
@@ -18,6 +18,7 @@ use sdv_comms::sd::ServiceUnitChangeEvent;
 use sdv_comms::sd::{ServiceDiscoveryManager, ServiceUnitDefinition, UnitType};
 use sdv_comms::ContextRef;
 use sdv_config_provider::{vsidl_provider, vsidl_provider_api::VsidlConfigProviderV1};
+use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
 use sdv_uds_serde::{diagnostics_translator::DiagnosticsTranslator, entity_id::*};
 use std::future::Future;
 use std::str::FromStr;
@@ -72,7 +73,7 @@ async fn main() {
 
     binder::ProcessState::start_thread_pool();
 
-    binder::ProcessState::join_thread_pool();
+    let () = future::pending().await;
 }
 
 async fn listen_to_all_publications_of_type<T: PublicationUnitType>(
@@ -209,6 +210,11 @@ async fn read_data_items(
         )
         .await;
 
+        let Ok(result) = result else {
+            error!("Failed to perform rpc call");
+            continue;
+        };
+
         let translation_result = translator
             .translate_from_protobuf_to_uds(
                 &service_fqin,
@@ -255,6 +261,11 @@ async fn start_routines(
             RoutineControlRequest { id: routine.id.to_string(), ..Default::default() },
         )
         .await;
+
+        let Ok(response) = response else {
+            error!("Failed to perform rpc call");
+            continue;
+        };
 
         let translation_result = translator
             .translate_from_protobuf_to_uds(
@@ -307,6 +318,11 @@ async fn freeze_current_state(
         )
         .await;
 
+        let Ok(response) = response else {
+            error!("Failed to perform rpc call");
+            continue;
+        };
+
         let translation_result = translator
             .translate_from_protobuf_to_uds(
                 &service_fqin,
@@ -346,7 +362,7 @@ async fn update_faults_status(
 
     for event in diagnostics_declaration.event {
         debug!("Trying to update fault status: {:#?}", event);
-        perform_and_log_rpc_call::<OnFaultStatusChange>(
+        let _ = perform_and_log_rpc_call::<OnFaultStatusChange>(
             context,
             &service_unit,
             OnFaultStatusChangeRequest {
@@ -534,24 +550,29 @@ async fn perform_and_log_rpc_call<T: Method>(
     context: ContextRef,
     service_unit: &ServiceUnitDefinition,
     request: T::Request,
-) -> T::Response {
+) -> SdvResult<T::Response> {
     debug!("Performing RPC call: {}:{}", T::UnitType::unit_type(), T::METHOD_NAME);
 
-    let client = Client::create(
-        context,
-        service_unit.get_unit_identifier(),
-        &ClientOptions::default(),
-    )
-    .await
-    .unwrap_or_else(|cause| {
-        panic!("Failed to create client for RPC call on: {service_unit:#?} with error {cause:#?}")
-    });
+    let client =
+        Client::create(context, service_unit.get_unit_identifier(), &ClientOptions::default())
+            .await?;
 
-    let response =
-        client.unary_call(T::METHOD_NAME, &encode::<T::Request>(&request).unwrap()).await.unwrap();
+    let encoded_request = encode::<T::Request>(&request).map_err(|e| {
+        SdvStatus::with_message(
+            SdvStatusCode::Internal,
+            format!("Failed to encode a request: {e:#?}"),
+        )
+    })?;
+
+    let response = client.unary_call(T::METHOD_NAME, &encoded_request).await?;
     let response_decoded = decode::<T::Response>(&response);
     info!("Response for RPC call [{}]: {:?}", T::METHOD_NAME, response_decoded);
-    response_decoded.unwrap()
+    response_decoded.map_err(|e| {
+        SdvStatus::with_message(
+            SdvStatusCode::Internal,
+            format!("Failed to decode a response: {e:#?}"),
+        )
+    })
 }
 
 fn encode<M: MessageFull>(message: &M) -> Result<Vec<u8>, protobuf::Error> {
