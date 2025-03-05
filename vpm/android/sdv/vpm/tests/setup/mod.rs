@@ -14,6 +14,7 @@ use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateReportListener::{
 };
 use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
 use google_sdv_vpm_aidl::binder;
+use rustutils::system_properties::read;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
 use sdv_mw_rs_comms::ClientOptions;
@@ -33,6 +34,7 @@ use sdv_vpm_api::vpm::ShutdownType;
 use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
 use sdv_vpm_api::vpm_notifications::PowerStateNotificationRequest;
 use sdv_vpm_api::vpm_notifications::PowerStateNotificationResponse;
+use sdv_vpm_power_persistency_tags::*;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::Arc;
 use std::thread;
@@ -44,6 +46,27 @@ use tokio::time::timeout;
 
 pub const TIMEOUT_IN_SECS: Duration = Duration::from_secs(30);
 pub const OEM_NOTIFICATION_CHANNEL_SIZE: usize = 1;
+
+/* Valid combinations of reported power state, and vpm internal power states persisted on disk */
+const VALID_REPORTED_TO_PERSISTED_TABLE: [(PowerStateReport, &str); 17] = [
+    (PowerStateReport::POWER_OFF_EXIT, POWER_OFF_EXIT_TAG),
+    (PowerStateReport::POWER_OFF_EXIT, WAIT_FOR_FINISH_POWER_OFF_TAG),
+    (PowerStateReport::SUSPEND_TO_RAM_EXIT, SUSPEND_TO_RAM_EXIT_TAG),
+    (PowerStateReport::SUSPEND_TO_DISK_EXIT, SUSPEND_TO_DISK_EXIT_TAG),
+    (PowerStateReport::ON, ON_TAG),
+    (PowerStateReport::POWER_OFF_ENTER, POWER_OFF_ENTER_TAG),
+    (PowerStateReport::SUSPEND_TO_RAM_ENTER, SUSPEND_TO_RAM_ENTER_TAG),
+    (PowerStateReport::SUSPEND_TO_RAM_ENTER, WAIT_FOR_FINISH_SUSPEND_TO_RAM_TAG),
+    (PowerStateReport::SUSPEND_TO_DISK_ENTER, SUSPEND_TO_DISK_ENTER_TAG),
+    (PowerStateReport::SUSPEND_TO_DISK_ENTER, WAIT_FOR_FINISH_SUSPEND_TO_DISK_TAG),
+    (PowerStateReport::WAIT_FOR_FINISH, WAIT_FOR_FINISH_POWER_OFF_TAG),
+    (PowerStateReport::WAIT_FOR_FINISH, WAIT_FOR_FINISH_SUSPEND_TO_DISK_TAG),
+    (PowerStateReport::WAIT_FOR_FINISH, WAIT_FOR_FINISH_SUSPEND_TO_RAM_TAG),
+    (PowerStateReport::SHUTDOWN_CANCELLED, SHUTDOWN_CANCELLED_TAG),
+    (PowerStateReport::POWER_OFF_POST_FINISH, POWER_OFF_POST_FINISH_TAG),
+    (PowerStateReport::SUSPEND_TO_RAM_POST_FINISH, SUSPEND_TO_RAM_POST_FINISH_TAG),
+    (PowerStateReport::SUSPEND_TO_DISK_POST_FINISH, SUSPEND_TO_DISK_POST_FINISH_TAG),
+];
 
 pub struct TestContext {
     pub vepsm: TestVePSM,
@@ -293,16 +316,29 @@ impl TestVePSM {
         power_state_report: PowerStateReport,
         reason: PowerStateChangeReason,
     ) {
-        if let Ok(power_notification) =
+        if let Ok(Some(power_notification)) =
             timeout(TIMEOUT_IN_SECS, self.power_request_receiver.recv()).await
         {
-            let notification = power_notification.unwrap();
-            assert_eq!(notification.power_state.unwrap(), power_state_report);
-            assert_eq!(notification.reason.unwrap(), reason);
+            assert_eq!(power_notification.power_state.unwrap(), power_state_report);
+            assert_eq!(power_notification.reason.unwrap(), reason);
+            Self::assert_matches_disk_persisted_state(power_state_report);
             self.power_state = power_state_report;
         } else {
             panic!("Timeout reached waiting for OEM notification");
         }
+    }
+
+    fn assert_matches_disk_persisted_state(power_state_report: PowerStateReport) {
+        let persisted_power_state = read(PERSISTED_POWER_STATE_PROP)
+            .ok()
+            .flatten()
+            .expect("Could not read property. Is test running as root?");
+        assert!(
+            VALID_REPORTED_TO_PERSISTED_TABLE
+                .contains(&(power_state_report, persisted_power_state.as_str())),
+            "Unexpected reported-persisted state pair encountered: {:?}",
+            (power_state_report, persisted_power_state)
+        );
     }
 }
 

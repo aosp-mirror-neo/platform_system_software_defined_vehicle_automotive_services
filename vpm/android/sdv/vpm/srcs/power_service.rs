@@ -87,7 +87,7 @@ impl PowerServiceImpl {
 
         // Watch channel that holds the value for current power state.
         let (power_state_watch_sender, power_state_watch_receiver) =
-            watch_channel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
+            watch_channel::<Arc<dyn PowerState>>(get_persisted_power_state());
 
         power_state_notifier.create_binder_service(power_state_watch_receiver.clone()).unwrap();
         log::debug!("sdv_vpm_agent has started successfully");
@@ -125,6 +125,9 @@ impl PowerServiceImpl {
             // Setting the power state so that it can be cancelled if necessary.
             let new_state: Arc<dyn PowerState> = Arc::from(power_request.power_state);
             cloned_power_state_watch_sender.send(new_state.clone())?;
+            persist_power_state(new_state.as_ref()).unwrap_or_else(|e| {
+                error!("Could not persist power state: {:?}. error: {}", new_state, e);
+            });
 
             let select_result = tokio::select! {
                  _ = sleep(Duration::from_millis(power_request.timeout_ms)) => {
@@ -411,6 +414,8 @@ mod tests {
         new_state.expect_is_sleep_state().returning(|| false);
         // expect new state to be executed.
         new_state.expect_execute().times(1).returning(|_, _| Ok(()));
+        // expect new state persistency tag to be retrieved.
+        new_state.expect_get_persistence_tag().times(1).returning(|| "");
 
         let mut power_service = PowerServiceImpl::new_with_notifier(Arc::new(power_state_notifier));
         let power_state_request_sender = power_service.get_power_state_request_sender();
@@ -480,6 +485,8 @@ mod tests {
         new_state.expect_is_sleep_state().returning(|| false);
         // expect new state to be executed.
         new_state.expect_execute().times(1).returning(|_, _| Ok(()));
+        // expect new state persistency tag to be retrieved.
+        new_state.expect_get_persistence_tag().times(1).returning(|| "");
 
         let mut power_service = PowerServiceImpl::new_with_notifier(Arc::new(power_state_notifier));
         let power_state_request_sender = power_service.get_power_state_request_sender();
@@ -523,6 +530,8 @@ mod tests {
         new_state.expect_is_sleep_state().returning(|| true);
         // expect new state to be executed.
         new_state.expect_execute().times(1).returning(|_, _| Ok(()));
+        // expect new state persistency tag to be retrieved.
+        new_state.expect_get_persistence_tag().times(1).returning(|| "");
 
         let mut power_service = PowerServiceImpl::new_with_notifier(Arc::new(power_state_notifier));
         let power_state_request_sender = power_service.get_power_state_request_sender();

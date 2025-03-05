@@ -34,6 +34,7 @@ rust_defaults {
         "libsdv_mw_rs_sdv_comms",
         "libsdv_mw_rs_comms",
         "libsdv_mw_rs_com_sdv_google_vpm_vpm_system_service_bundle",
+        "libsdv_vpm_power_persistency_tags",
         "libcom_sdv_google_vpm_vpm_system_service_rpc_rs",
         "libcom_sdv_google_vpm_client_power_notification_service_rpc_rs",
         "google.sdv.vpm-aidl-V1-rust",
@@ -45,6 +46,12 @@ rust_defaults {
     lints: "android",
     clippy_lints: "android",
     vintf_fragments: [":sdv_vpm_agent_vintf_fragments"],
+}
+
+rust_library {
+    name: "libsdv_vpm_power_persistency_tags",
+    crate_name: "sdv_vpm_power_persistency_tags",
+    srcs: ["srcs/power_state_tags.rs"],
 }
 
 rust_library {
