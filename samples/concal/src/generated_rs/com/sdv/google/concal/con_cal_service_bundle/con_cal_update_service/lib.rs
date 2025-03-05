@@ -168,6 +168,11 @@ pub trait Interface: Send + Sync {
     ) -> sdv::status::SdvResult<concal_api::concal_update_service::UninstallConfigResponse> {
         Err(sdv::status::SdvStatus::new(sdv::status::SdvStatusCode::Unimplemented))
     }
+
+    /// Implement this method to set server options other than default
+    fn init_server_options(&self) -> sdv::mw::ServerOptions {
+        sdv::mw::ServerOptions::default()
+    }
 }
 
 /// Client for ConCalUpdateService RPC interface

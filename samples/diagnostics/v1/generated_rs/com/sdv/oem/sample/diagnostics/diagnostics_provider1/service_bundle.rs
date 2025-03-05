@@ -78,21 +78,25 @@ impl DiagnosticsProvider1 {
         service.add_server::<dyn com_sdv_google_diagnostics_data_item_data_item_service_rpc::Interface>(
                 com_sdv_google_diagnostics_data_item_data_item_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
                 com_sdv_google_diagnostics_data_item_data_item_service_rpc::internal::get_method_map(servers.0.clone()),
+                servers.0.init_server_options(),
             )
             .await?;
         service.add_server::<dyn com_sdv_google_diagnostics_routine_control_routine_control_service_rpc::Interface>(
                 com_sdv_google_diagnostics_routine_control_routine_control_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
                 com_sdv_google_diagnostics_routine_control_routine_control_service_rpc::internal::get_method_map(servers.1.clone()),
+                servers.1.init_server_options(),
             )
             .await?;
         service.add_server::<dyn com_sdv_google_diagnostics_io_control_io_control_service_rpc::Interface>(
                 com_sdv_google_diagnostics_io_control_io_control_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
                 com_sdv_google_diagnostics_io_control_io_control_service_rpc::internal::get_method_map(servers.2.clone()),
+                servers.2.init_server_options(),
             )
             .await?;
         service.add_server::<dyn com_sdv_google_diagnostics_fault_fault_listener_service_rpc::Interface>(
                 com_sdv_google_diagnostics_fault_fault_listener_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
                 com_sdv_google_diagnostics_fault_fault_listener_service_rpc::internal::get_method_map(servers.3.clone()),
+                servers.3.init_server_options(),
             )
             .await?;
         Ok(service)
@@ -102,6 +106,7 @@ impl DiagnosticsProvider1 {
         &mut self,
         unit_name: String,
         methods: std::collections::HashMap<String, sdv::comms::rpc::UnaryRpcMethod>,
+        options: sdv::mw::ServerOptions,
     ) -> sdv::status::SdvResult<()> {
         let attributes = sdv::mw::ServerAttributes::builder()
             .server_name(unit_name)
@@ -112,7 +117,7 @@ impl DiagnosticsProvider1 {
                     .type_name(T::TYPENAME)
                     .build()?,
             )
-            .server_options(sdv::mw::ServerOptions::builder().timeout_in_sec(30).build()?)
+            .server_options(options)
             .build()?;
 
         let transport = self.comms.create_server_transport(&attributes, methods).await?;

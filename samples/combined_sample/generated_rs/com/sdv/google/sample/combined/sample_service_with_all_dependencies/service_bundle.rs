@@ -96,16 +96,19 @@ impl SampleServiceWithAllDependencies {
         service.add_server::<dyn com_sdv_google_diagnostics_data_item_data_item_service_rpc::Interface>(
                 com_sdv_google_diagnostics_data_item_data_item_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
                 com_sdv_google_diagnostics_data_item_data_item_service_rpc::internal::get_method_map(servers.0.clone()),
+                servers.0.init_server_options(),
             )
             .await?;
         service.add_server::<dyn com_sdv_google_concal_calib_client_calibratable_service_rpc::Interface>(
                 com_sdv_google_concal_calib_client_calibratable_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
                 com_sdv_google_concal_calib_client_calibratable_service_rpc::internal::get_method_map(servers.1.clone()),
+                servers.1.init_server_options(),
             )
             .await?;
         service.add_server::<dyn com_sdv_google_user_preferences_view_change_notifier_rpc::Interface>(
                 com_sdv_google_user_preferences_view_change_notifier_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
                 com_sdv_google_user_preferences_view_change_notifier_rpc::internal::get_method_map(servers.2.clone()),
+                servers.2.init_server_options(),
             )
             .await?;
         service
@@ -114,11 +117,13 @@ impl SampleServiceWithAllDependencies {
                 com_sdv_google_vpm_vpm_system_service_rpc::internal::get_method_map(
                     servers.3.clone(),
                 ),
+                servers.3.init_server_options(),
             )
             .await?;
         service.add_server::<dyn com_sdv_google_health_health_monitor_registration_service_rpc::Interface>(
                 com_sdv_google_health_health_monitor_registration_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
                 com_sdv_google_health_health_monitor_registration_service_rpc::internal::get_method_map(servers.4.clone()),
+                servers.4.init_server_options(),
             )
             .await?;
         service
@@ -128,6 +133,7 @@ impl SampleServiceWithAllDependencies {
                 com_sdv_google_orchestrator_custom_state_service_rpc::internal::get_method_map(
                     servers.5.clone(),
                 ),
+                servers.5.init_server_options(),
             )
             .await?;
         Ok(service)
@@ -137,6 +143,7 @@ impl SampleServiceWithAllDependencies {
         &mut self,
         unit_name: String,
         methods: std::collections::HashMap<String, sdv::comms::rpc::UnaryRpcMethod>,
+        options: sdv::mw::ServerOptions,
     ) -> sdv::status::SdvResult<()> {
         let attributes = sdv::mw::ServerAttributes::builder()
             .server_name(unit_name)
@@ -147,7 +154,7 @@ impl SampleServiceWithAllDependencies {
                     .type_name(T::TYPENAME)
                     .build()?,
             )
-            .server_options(sdv::mw::ServerOptions::builder().timeout_in_sec(30).build()?)
+            .server_options(options)
             .build()?;
 
         let transport = self.comms.create_server_transport(&attributes, methods).await?;

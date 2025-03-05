@@ -80,6 +80,11 @@ pub trait Interface: Send + Sync {
     {
         Err(sdv::status::SdvStatus::new(sdv::status::SdvStatusCode::Unimplemented))
     }
+
+    /// Implement this method to set server options other than default
+    fn init_server_options(&self) -> sdv::mw::ServerOptions {
+        sdv::mw::ServerOptions::default()
+    }
 }
 
 /// Client for routine_control.RoutineControlService RPC interface

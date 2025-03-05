@@ -59,6 +59,11 @@ pub trait Interface: Send + Sync {
     ) -> sdv::status::SdvResult<diagnostics_v1_api::security_access_service::SendKeyResponse> {
         Err(sdv::status::SdvStatus::new(sdv::status::SdvStatusCode::Unimplemented))
     }
+
+    /// Implement this method to set server options other than default
+    fn init_server_options(&self) -> sdv::mw::ServerOptions {
+        sdv::mw::ServerOptions::default()
+    }
 }
 
 /// Client for security_access.SecurityAccessService RPC interface
