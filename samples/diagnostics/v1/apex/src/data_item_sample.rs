@@ -1,7 +1,7 @@
 // Copyright 2024 Google LLC
 //! Sample service exposing diagnostics data item.
 
-use log::{debug, info};
+use log::{debug, error, info};
 use std::{sync::Arc, thread};
 use tokio_util::sync::CancellationToken;
 
@@ -51,8 +51,12 @@ impl ServiceBundle for DiagnosticsSampleWithDataItemRunner {
                     comms.clone(),
                     (Diagnostics::create_data_item_server(Arc::new(PressureDataItem {})),),
                 )
-                .await
-                .unwrap();
+                .await;
+
+                let Ok(service_bundle) = service_bundle else {
+                    error!("Failed to create service bundle");
+                    return;
+                };
 
                 debug!("data_item_sample: After Service Bundle creation");
 

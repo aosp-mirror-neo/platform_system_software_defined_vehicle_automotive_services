@@ -1,7 +1,7 @@
 // Copyright 2024 Google LLC
 //! Sample service exposing diagnostics data item.
 
-use log::info;
+use log::{error, info};
 use std::{sync::Arc, thread};
 use tokio_util::sync::CancellationToken;
 
@@ -47,37 +47,48 @@ impl ServiceBundle for DiagnosticsSampleWithEventRunner {
             let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap();
             rt.block_on(async {
                 let comms = Arc::new(SdvComms { context });
-                let mut service_bundle = DiagnosticsSampleWithEvent::new(
+                let service_bundle = DiagnosticsSampleWithEvent::new(
                     comms.clone(),
                     (Diagnostics::create_fault_listener_server(Arc::new(
                         OverheatingFaultListener {},
                     )),),
                 )
-                .await
-                .unwrap();
+                .await;
+
+                let Ok(mut service_bundle) = service_bundle else {
+                    error!("Failed to create service bundle");
+                    return;
+                };
 
                 // Publisher "taken" from service_bundle should be kept in memory, in order to
                 // keep publication "alive".
                 // Here, publications die as soon as publishers get out of scope.
                 service_bundle
                     .take_publisher::<OperationCycle>(Variant::<OperationCycle>::UNIQUE)
-                    .unwrap_or_else(|| panic!("Error taking publisher for OperationCycle"))
-                    .publish(&OperationCycle {
-                        id: "ignition".to_string(),
-                        command: Command::START.into(),
-                        ..Default::default()
-                    })
-                    .unwrap();
+                    .inspect(|publisher| {
+                        publisher
+                            .publish(&OperationCycle {
+                                id: "ignition".to_string(),
+                                command: Command::START.into(),
+                                ..Default::default()
+                            })
+                            .unwrap_or_else(|e| error!("Error publishing `ignition == START` for OperationCycle: {e:#}"));
+                        })
+                    .map(|_| ())
+                    .unwrap_or_else(|| error!("Error taking publisher for OperationCycle"));
 
                 service_bundle
                     .take_publisher::<EnableCondition>(Variant::<EnableCondition>::UNIQUE)
-                    .unwrap_or_else(|| panic!("Error taking publisher for EnableCondition"))
-                    .publish(&EnableCondition {
-                        id: "freezing_temperature".to_string(),
-                        enabled: true,
-                        ..Default::default()
+                    .inspect(|publisher| {
+                        publisher.publish(&EnableCondition {
+                            id: "freezing_temperature".to_string(),
+                            enabled: true,
+                            ..Default::default()
+                        })
+                        .unwrap_or_else(|e| error!("Error publishing `freezing_temperature == true` for EnableCondition: {e:#}"));
                     })
-                    .unwrap();
+                    .map(|_| ())
+                    .unwrap_or_else(|| error!("Error taking publisher for EnableCondition"));
 
                 service_bundle
                     .diagnostics
@@ -86,7 +97,7 @@ impl ServiceBundle for DiagnosticsSampleWithEventRunner {
                         Status::PRE_PASS,
                         OverheatingData { status: "too hot!".to_string(), ..Default::default() },
                     )
-                    .unwrap();
+                    .unwrap_or_else(|e| error!("Error publishing `too hot!` for OverheatingEvent: {e:#}"));
 
                 Self::main_loop(context, service_bundle, cancellation_token.clone()).await;
             });
