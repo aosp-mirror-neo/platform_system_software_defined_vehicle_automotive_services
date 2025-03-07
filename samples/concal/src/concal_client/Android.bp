@@ -21,6 +21,8 @@ rust_binary {
         "libsdv_rs",
         "libsdvtestconcal_proto_rust",
         "libtokio",
+        "liblog_rust",
+        "libsdv_log_rust",
     ],
     required: [
         "rear_view_camera.proto",
