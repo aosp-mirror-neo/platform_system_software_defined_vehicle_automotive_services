@@ -3,11 +3,16 @@ use crate::power_service::PowerRequest;
 use async_trait::async_trait;
 use log::debug;
 use mockall::automock;
+use rustutils::system_properties::error::PropertyWatcherError;
 use rustutils::system_properties::read;
+use rustutils::system_properties::write;
 use sdv_pm::PlatformPower;
 use sdv_pm::SuspendMode;
 use sdv_vpm_api::power::PowerStateReport;
+use sdv_vpm_power_persistency_tags::*;
 use std::fmt::Debug;
+use std::str::FromStr;
+use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 use tracing::Level;
 
@@ -15,11 +20,19 @@ const PLATFORM_SUSPEND_TIMEOUT_MS_PROP: &str = "sdv.vpm.platform.timeout_ms";
 const PLATFORM_SUSPEND_RETRY_INTERVAL_MS_PROP: &str = "sdv.vpm.platform.retry_interval_ms";
 const DEFAULT_PLATFORM_TIMEOUT_MS: u64 = 1000;
 const DEFAULT_PLATFORM_RETRY_INTERVAL_MS: u64 = 100;
+
 #[cfg(not(test))]
 use sdv_pm::PlatformPowerController;
 #[cfg(not(test))]
 fn get_platform_controller() -> PlatformPowerController {
     PlatformPowerController::default()
+}
+
+pub fn get_persisted_power_state() -> Arc<dyn PowerState> {
+    read_property_or_default(PERSISTED_POWER_STATE_PROP, DynPowerState(Arc::new(PowerOffExit {}))).0
+}
+pub fn persist_power_state(state: &dyn PowerState) -> Result<(), PropertyWatcherError> {
+    write(PERSISTED_POWER_STATE_PROP, state.get_persistence_tag())
 }
 
 fn get_platform_timeout_ms() -> u64 {
@@ -38,7 +51,7 @@ fn get_platform_retry_interval_ms() -> u64 {
     platform_interval_ms
 }
 
-fn read_property_or_default(property: &str, default: u64) -> u64 {
+fn read_property_or_default<T: FromStr>(property: &str, default: T) -> T {
     read(property)
         .ok()
         .flatten()
@@ -84,12 +97,39 @@ pub trait PowerState: Send + Sync + Debug {
         false
     }
 
+    fn get_persistence_tag(&self) -> &'static str;
+
     async fn execute(
         &self,
         _power_state_request_sender: Sender<PowerRequest>,
         _timeout_ms: u64,
     ) -> anyhow::Result<()> {
         Ok(())
+    }
+}
+
+struct DynPowerState(Arc<dyn PowerState>);
+impl FromStr for DynPowerState {
+    type Err = ();
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let state: Arc<dyn PowerState> = match s {
+            POWER_OFF_EXIT_TAG => Arc::new(PowerOffExit {}),
+            SUSPEND_TO_RAM_EXIT_TAG => Arc::new(SuspendToRamExit {}),
+            SUSPEND_TO_DISK_EXIT_TAG => Arc::new(SuspendToDiskExit {}),
+            ON_TAG => Arc::new(On {}),
+            POWER_OFF_ENTER_TAG => Arc::new(PowerOffEnter {}),
+            SUSPEND_TO_RAM_ENTER_TAG => Arc::new(SuspendToRamEnter {}),
+            SUSPEND_TO_DISK_ENTER_TAG => Arc::new(SuspendToDiskEnter {}),
+            WAIT_FOR_FINISH_SUSPEND_TO_RAM_TAG => Arc::new(WaitForFinishSuspendToRam {}),
+            WAIT_FOR_FINISH_SUSPEND_TO_DISK_TAG => Arc::new(WaitForFinishSuspendToDisk {}),
+            WAIT_FOR_FINISH_POWER_OFF_TAG => Arc::new(WaitForFinishPowerOff {}),
+            SHUTDOWN_CANCELLED_TAG => Arc::new(ShutdownCancelled {}),
+            POWER_OFF_POST_FINISH_TAG => Arc::new(PowerOffPostFinish {}),
+            SUSPEND_TO_RAM_POST_FINISH_TAG => Arc::new(SuspendToRamPostFinish {}),
+            SUSPEND_TO_DISK_POST_FINISH_TAG => Arc::new(SuspendToDiskPostFinish {}),
+            _ => return Err(()),
+        };
+        Ok(DynPowerState(state))
     }
 }
 
@@ -104,6 +144,9 @@ impl PowerState for SuspendToRamExit {
     fn get_report(&self) -> PowerStateReport {
         PowerStateReport::SUSPEND_TO_RAM_EXIT
     }
+    fn get_persistence_tag(&self) -> &'static str {
+        SUSPEND_TO_RAM_EXIT_TAG
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -117,6 +160,10 @@ impl PowerState for SuspendToDiskExit {
     fn get_report(&self) -> PowerStateReport {
         PowerStateReport::SUSPEND_TO_DISK_EXIT
     }
+
+    fn get_persistence_tag(&self) -> &'static str {
+        SUSPEND_TO_DISK_EXIT_TAG
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -128,6 +175,9 @@ impl PowerState for PowerOffExit {
     }
     fn get_report(&self) -> PowerStateReport {
         PowerStateReport::POWER_OFF_EXIT
+    }
+    fn get_persistence_tag(&self) -> &'static str {
+        POWER_OFF_EXIT_TAG
     }
 }
 
@@ -147,6 +197,9 @@ impl PowerState for On {
     fn get_report(&self) -> PowerStateReport {
         PowerStateReport::ON
     }
+    fn get_persistence_tag(&self) -> &'static str {
+        ON_TAG
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -160,6 +213,9 @@ impl PowerState for SuspendToRamEnter {
     }
     fn get_report(&self) -> PowerStateReport {
         PowerStateReport::SUSPEND_TO_RAM_ENTER
+    }
+    fn get_persistence_tag(&self) -> &'static str {
+        SUSPEND_TO_RAM_ENTER_TAG
     }
     async fn execute(
         &self,
@@ -184,6 +240,9 @@ impl PowerState for SuspendToDiskEnter {
     }
     fn get_report(&self) -> PowerStateReport {
         PowerStateReport::SUSPEND_TO_DISK_ENTER
+    }
+    fn get_persistence_tag(&self) -> &'static str {
+        SUSPEND_TO_DISK_ENTER_TAG
     }
 
     async fn execute(
@@ -210,6 +269,9 @@ impl PowerState for PowerOffEnter {
     fn get_report(&self) -> PowerStateReport {
         PowerStateReport::POWER_OFF_ENTER
     }
+    fn get_persistence_tag(&self) -> &'static str {
+        POWER_OFF_ENTER_TAG
+    }
     async fn execute(
         &self,
         power_state_request_sender: Sender<PowerRequest>,
@@ -234,6 +296,9 @@ impl PowerState for WaitForFinishSuspendToRam {
     fn get_report(&self) -> PowerStateReport {
         PowerStateReport::WAIT_FOR_FINISH
     }
+    fn get_persistence_tag(&self) -> &'static str {
+        WAIT_FOR_FINISH_SUSPEND_TO_RAM_TAG
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -247,6 +312,9 @@ impl PowerState for WaitForFinishSuspendToDisk {
     }
     fn get_report(&self) -> PowerStateReport {
         PowerStateReport::WAIT_FOR_FINISH
+    }
+    fn get_persistence_tag(&self) -> &'static str {
+        WAIT_FOR_FINISH_SUSPEND_TO_DISK_TAG
     }
 }
 
@@ -262,6 +330,9 @@ impl PowerState for WaitForFinishPowerOff {
     fn get_report(&self) -> PowerStateReport {
         PowerStateReport::WAIT_FOR_FINISH
     }
+    fn get_persistence_tag(&self) -> &'static str {
+        WAIT_FOR_FINISH_POWER_OFF_TAG
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -273,6 +344,9 @@ impl PowerState for ShutdownCancelled {
     }
     fn get_report(&self) -> PowerStateReport {
         PowerStateReport::SHUTDOWN_CANCELLED
+    }
+    fn get_persistence_tag(&self) -> &'static str {
+        SHUTDOWN_CANCELLED_TAG
     }
 }
 
@@ -290,6 +364,9 @@ impl PowerState for SuspendToRamPostFinish {
     }
     fn is_sleep_state(&self) -> bool {
         true
+    }
+    fn get_persistence_tag(&self) -> &'static str {
+        SUSPEND_TO_RAM_POST_FINISH_TAG
     }
 
     async fn execute(
@@ -319,6 +396,9 @@ impl PowerState for SuspendToDiskPostFinish {
     fn is_sleep_state(&self) -> bool {
         true
     }
+    fn get_persistence_tag(&self) -> &'static str {
+        SUSPEND_TO_DISK_POST_FINISH_TAG
+    }
 
     async fn execute(
         &self,
@@ -347,6 +427,9 @@ impl PowerState for PowerOffPostFinish {
     }
     fn is_sleep_state(&self) -> bool {
         true
+    }
+    fn get_persistence_tag(&self) -> &'static str {
+        POWER_OFF_POST_FINISH_TAG
     }
 
     async fn execute(
@@ -542,6 +625,28 @@ mod tests {
         for state in filter_from_all_states(&allowed_states) {
             assert!(!state.is_valid_next_state(power_off_post_finish));
         }
+    }
+    #[test]
+    fn verify_persistency_tags() {
+        let expected_state_to_tag: Vec<(Box<dyn PowerState>, _)> = vec![
+            (Box::new(PowerOffExit {}), POWER_OFF_EXIT_TAG),
+            (Box::new(SuspendToRamExit {}), SUSPEND_TO_RAM_EXIT_TAG),
+            (Box::new(SuspendToDiskExit {}), SUSPEND_TO_DISK_EXIT_TAG),
+            (Box::new(On {}), ON_TAG),
+            (Box::new(PowerOffEnter {}), POWER_OFF_ENTER_TAG),
+            (Box::new(SuspendToRamEnter {}), SUSPEND_TO_RAM_ENTER_TAG),
+            (Box::new(SuspendToDiskEnter {}), SUSPEND_TO_DISK_ENTER_TAG),
+            (Box::new(WaitForFinishSuspendToRam {}), WAIT_FOR_FINISH_SUSPEND_TO_RAM_TAG),
+            (Box::new(WaitForFinishSuspendToDisk {}), WAIT_FOR_FINISH_SUSPEND_TO_DISK_TAG),
+            (Box::new(WaitForFinishPowerOff {}), WAIT_FOR_FINISH_POWER_OFF_TAG),
+            (Box::new(ShutdownCancelled {}), SHUTDOWN_CANCELLED_TAG),
+            (Box::new(PowerOffPostFinish {}), POWER_OFF_POST_FINISH_TAG),
+            (Box::new(SuspendToRamPostFinish {}), SUSPEND_TO_RAM_POST_FINISH_TAG),
+            (Box::new(SuspendToDiskPostFinish {}), SUSPEND_TO_DISK_POST_FINISH_TAG),
+        ];
+        expected_state_to_tag.iter().for_each(|(power_state, expected_tag)| {
+            assert_eq!(&power_state.get_persistence_tag(), expected_tag)
+        });
     }
 
     #[test]
