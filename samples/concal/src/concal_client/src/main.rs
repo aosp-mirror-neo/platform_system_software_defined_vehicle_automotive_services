@@ -10,6 +10,7 @@ use concal_api::config_override::config_override_key_value::Value;
 use concal_api::config_override::{ConfigOverride, ConfigOverrideKeyValue};
 use concal_api::configuration::{ConfigId, ConfigMetadata};
 use concal_api::service_fqin::ServiceFqin as ProtoFqin;
+use log::info;
 use protobuf::descriptor::FileDescriptorSet as FdSet;
 use protobuf::well_known_types::any::Any;
 use protobuf::{Message, MessageField};
@@ -27,8 +28,12 @@ use std::vec::Vec;
 
 use sdvtestconcal_proto_rust::rear_view_camera::RearViewCamera;
 
+static LOG_TAG: &str = "concal_sample_client";
+
 #[tokio::main]
 async fn main() {
+    sdv_log::init_logger(LOG_TAG).unwrap();
+
     let sdv_comms = SdvComms {
         context: ContextRef::create(
             CommsFqin::from_str(
@@ -38,7 +43,7 @@ async fn main() {
         ),
     };
 
-    println!("Context for Sample ConCal Client is created.");
+    info!("Context for Sample ConCal Client is created.");
 
     let service_bundle =
         SampleOemConCalClientServiceBundle::new(Arc::new(sdv_comms)).await.unwrap();
@@ -52,12 +57,10 @@ async fn main() {
                 .unwrap(),
             ClientOptions::default(),
         )
-        .await;
-    if client.is_err() {
-        panic!("Failed to create an RPC client");
-    }
-    let client = client.unwrap();
-    println!("Sample ConCal RPC Client started.");
+        .await
+        .expect("Failed to create an RPC client");
+
+    info!("Sample ConCal RPC Client started.");
 
     // using the prebuilt_etc build rule within automotive_services/samples/concal/proto/Android.bp,
     // a sample proto rear_view_camera.proto has been placed within the /etc/protos directory for this demo
@@ -66,12 +69,12 @@ async fn main() {
     let config_id = test_config_id();
     let fds = test_file_descriptor_set(protos_path);
 
-    println!("Registering config:\n{:#?}", config);
+    info!("Registering config:\n{:#?}", config);
 
     register_config(&client, &config_id, &config, &fds).await;
 
     let overrides = overrides(&config_id);
-    println!("\nApplying the following overrides:\n{:#?}", &overrides);
+    info!("\nApplying the following overrides:\n{:#?}", &overrides);
     let update_client = service_bundle
         .create_rpc_client::<UpdateClient>(
             UnitName::builder()
@@ -83,22 +86,23 @@ async fn main() {
             ClientOptions::default(),
         )
         .await
-        .unwrap();
+        .expect("Failed to create an RPC client");
+
     update_config(&update_client, &overrides).await;
 
     let config = get_config(&client, &config_id).await;
     let config = parse_test_config_from_bytes(&config);
 
-    println!("\nModified configuration:\n{:#?}", config);
+    info!("\nModified configuration:\n{:#?}", config);
 
-    println!("\nRolling back previous changes");
+    info!("\nRolling back previous changes");
 
     rollback(&update_client).await;
 
     let config = get_config(&client, &config_id).await;
     let config = parse_test_config_from_bytes(&config);
 
-    println!("\n{:#?}", config);
+    info!("\n{:#?}", config);
 }
 
 fn test_config() -> RearViewCamera {
@@ -154,55 +158,44 @@ async fn register_config(
     config: &RearViewCamera,
     fds: &FdSet,
 ) {
-    let config = Any::pack(config).unwrap();
+    let config = Any::pack(config).expect("Failed to pack config");
     let config_metadata = ConfigMetadata {
         descriptor_set: MessageField::some(fds.clone()),
         default_config: MessageField::some(config.clone()),
         ..Default::default()
     };
 
-    let resp = client
+    client
         .RegisterConfigMetadata(&RegisterConfigMetadataRequest {
             config_id: MessageField::some(config_id.clone()),
             metadata: MessageField::some(config_metadata),
             config_version: String::from("1.0"),
             ..Default::default()
         })
-        .await;
-
-    if resp.is_err() {
-        panic!("RegisterConfigMetadata() failed: {:?}", resp);
-    }
+        .await
+        .expect("RegisterConfigMetadata() failed");
 }
 
 async fn update_config(client: &UpdateClient, overrides: &[ConfigOverride]) {
-    let resp = client.StartConfigUpdate(&StartConfigUpdateRequest::new()).await;
+    let update_id = client
+        .StartConfigUpdate(&StartConfigUpdateRequest::new())
+        .await
+        .expect("StartConfigUpdate() failed")
+        .update_id;
 
-    if resp.is_err() {
-        panic!("StartConfigUpdate() failed: {:?}", resp);
-    }
-
-    let update_id = resp.unwrap().update_id;
-
-    let resp = client
+    client
         .AddOrUpdateConfigOverride(&AddOrUpdateConfigOverrideRequest {
             update_id,
             configOverride: overrides.to_owned(),
             ..Default::default()
         })
-        .await;
+        .await
+        .expect("AddOrUpdateConfigOverride() failed");
 
-    if resp.is_err() {
-        panic!("AddOrUpdateConfigOverride() failed: {:?}", resp);
-    }
-
-    let resp = client
+    client
         .FinishConfigUpdate(&FinishConfigUpdateRequest { update_id, ..Default::default() })
-        .await;
-
-    if resp.is_err() {
-        panic!("FinishConfigUpdate() failed: {:?}", resp);
-    };
+        .await
+        .expect("FinishConfigUpdate() failed");
 }
 
 fn overrides(config_id: &ConfigId) -> Vec<ConfigOverride> {
@@ -253,17 +246,14 @@ fn overrides(config_id: &ConfigId) -> Vec<ConfigOverride> {
 }
 
 async fn get_config(client: &RegistrationClient, config_id: &ConfigId) -> Vec<u8> {
-    let resp = client
+    client
         .GetConfig(&GetConfigRequest {
             config_id: MessageField::some(config_id.clone()),
             ..Default::default()
         })
-        .await;
-
-    if resp.is_err() {
-        panic!("FetConfig() failed: {:?}", resp);
-    }
-    resp.unwrap().config
+        .await
+        .expect("FetConfig() failed")
+        .config
 }
 
 fn parse_test_config_from_bytes(bytes: &[u8]) -> RearViewCamera {
@@ -273,8 +263,5 @@ fn parse_test_config_from_bytes(bytes: &[u8]) -> RearViewCamera {
 }
 
 async fn rollback(client: &UpdateClient) {
-    let resp = client.Rollback(&RollbackRequest::new()).await;
-    if resp.is_err() {
-        panic!("Rollback() failed: {:?}", resp);
-    }
+    client.Rollback(&RollbackRequest::new()).await.expect("Rollback() failed");
 }
