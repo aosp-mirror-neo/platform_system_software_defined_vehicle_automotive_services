@@ -42,6 +42,7 @@ impl<M: Message> EventPublisher<M> {
                             .message_count(16)
                             .is_multipub(true)
                             .message_metadata(event_message_metadata())
+                            .message_metadata_required(true) // will be changed to conditional in a follow-up
                             .build()?,
                     )
                     .build()?,
