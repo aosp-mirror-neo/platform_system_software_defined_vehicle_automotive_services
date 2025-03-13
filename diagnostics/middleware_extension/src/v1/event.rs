@@ -25,10 +25,23 @@ impl<M: Message> EventPublisher<M> {
         comms: Arc<dyn Communicate>,
         publication_name: String,
     ) -> SdvResult<Self> {
+        let options = EventPublisherOptions::builder()
+            .publication_name(publication_name)
+            .data_size(data_size)
+            .build()?;
+
+        Self::new_with_options(comms, &options).await
+    }
+
+    /// Create new publisher for diagnostics event, with options.
+    pub async fn new_with_options(
+        comms: Arc<dyn Communicate>,
+        options: &EventPublisherOptions,
+    ) -> SdvResult<Self> {
         let publish = comms
             .create_publish(
                 &PublisherAttributes::builder()
-                    .publication_name(publication_name)
+                    .publication_name(options.get_publication_name())
                     .type_name(
                         TypeName::builder()
                             .package_name("com.sdv.google.diagnostics")
@@ -38,11 +51,11 @@ impl<M: Message> EventPublisher<M> {
                     )
                     .metadata(
                         PublisherMetadata::builder()
-                            .message_size(compute_event_message_size(data_size))
+                            .message_size(compute_event_message_size(options.get_data_size()))
                             .message_count(16)
                             .is_multipub(true)
                             .message_metadata(event_message_metadata())
-                            .message_metadata_required(true) // will be changed to conditional in a follow-up
+                            .message_metadata_required(options.register_reflection_metadata())
                             .build()?,
                     )
                     .build()?,
@@ -73,6 +86,85 @@ impl<M: Message> EventPublisher<M> {
         })?;
 
         self.publish.publish_messages(&[event_data])
+    }
+}
+
+/// EventPublisherOptions
+#[derive(Debug, Default, Clone)]
+pub struct EventPublisherOptions {
+    /// publication name
+    publication_name: String,
+    /// event data size
+    data_size: u32,
+    /// true if metadata for message reflection shall be registered
+    register_reflection_metadata: bool,
+}
+
+impl EventPublisherOptions {
+    /// returns a Builder for EventPublisherOptions
+    pub fn builder() -> EventPublisherOptionsBuilder {
+        EventPublisherOptionsBuilder::default()
+    }
+
+    /// publication name
+    pub fn get_publication_name(&self) -> &str {
+        &self.publication_name
+    }
+
+    /// event data size
+    pub fn get_data_size(&self) -> u32 {
+        self.data_size
+    }
+
+    /// true if metadata for message reflection shall be registered
+    pub fn register_reflection_metadata(&self) -> bool {
+        self.register_reflection_metadata
+    }
+}
+
+/// EventPublisherOptionsBuilder
+#[derive(Debug, Default, Clone)]
+pub struct EventPublisherOptionsBuilder {
+    /// publication name
+    publication_name: String,
+    /// event data size
+    data_size: u32,
+    /// true if metadata for message reflection shall be registered
+    register_reflection_metadata: bool,
+}
+
+impl EventPublisherOptionsBuilder {
+    /// set publication name
+    pub fn publication_name(mut self, publication_name: impl Into<String>) -> Self {
+        self.publication_name = publication_name.into();
+        self
+    }
+
+    ///  set event data size
+    pub fn data_size(mut self, data_size: u32) -> Self {
+        self.data_size = data_size;
+        self
+    }
+
+    /// set true if metadata for message reflection shall be registered
+    pub fn register_reflection_metadata(mut self, register_reflection_metadata: bool) -> Self {
+        self.register_reflection_metadata = register_reflection_metadata;
+        self
+    }
+
+    /// Validates EventPublisherOptions before returning an instance of it.
+    pub fn build(self) -> SdvResult<EventPublisherOptions> {
+        if self.publication_name.is_empty() {
+            return Err(SdvStatus::with_message(
+                SdvStatusCode::InvalidArgument,
+                "publication_name must not be empty.",
+            ));
+        }
+        Ok(EventPublisherOptions {
+            publication_name: self.publication_name,
+            data_size: self.data_size,
+            register_reflection_metadata: self.register_reflection_metadata,
+        })
     }
 }
 
@@ -314,23 +406,15 @@ mod tests {
     #[tokio::test]
     async fn test_event_message_metadata_is_set() {
         // Note: ACLs for this test are in the respective acl textproto file of the com.sdv.oem.sample.diagnostics apex
-        // GIVEN event publication
-        let context = ContextRef::create(
-            ServiceFqin::from_str("vm:com.sdv.oem.sample.diagnostics.SampleBundle/instance")
-                .unwrap(),
-        );
-        let comms = Arc::new(SdvComms { context });
-        let _event_publisher =
-            EventPublisher::<TestProto>::new(10, comms.clone(), "event".to_string()).await.unwrap();
-
-        let sd = ServiceDiscoveryManager::new(context);
-        let discovery_args = UnitNameDiscoveryArgs::new_builder()
-            .set_sdv_package_name("com.sdv.oem.sample.diagnostics")
-            .set_service_bundle_name("SampleBundle")
-            .set_service_unit_name("event")
-            .build()
-            .expect("Discovery args builder failed.");
-        let service_unit = sd.list_units_by_name(&discovery_args).next().await.unwrap();
+        // GIVEN event publication where register_reflection_metadata is true
+        const REGISTER_REFLECTION_METADATA: bool = true;
+        const USE_NEW_WITH_OPTIONS: bool = true;
+        let service_unit = create_event_publisher_service_unit(
+            "with-metadata",
+            REGISTER_REFLECTION_METADATA,
+            USE_NEW_WITH_OPTIONS,
+        )
+        .await;
 
         // GIVEN parsing event message descriptor from publication metadata
         let parsed_event_descriptor = parse_message_descriptor(
@@ -342,6 +426,93 @@ mod tests {
         let event_descriptor = Event { ..Default::default() }.descriptor_dyn();
 
         assert_that!(parsed_event_descriptor.proto(), eq(event_descriptor.proto()));
+    }
+
+    #[tokio::test]
+    async fn test_event_message_metadata_is_not_set() {
+        // Note: ACLs for this test are in the respective acl textproto file of the com.sdv.oem.sample.diagnostics apex
+        // GIVEN event publication where register_reflection_metadata is false
+        const REGISTER_REFLECTION_METADATA: bool = false;
+        const USE_NEW_WITH_OPTIONS: bool = true;
+        let service_unit = create_event_publisher_service_unit(
+            "without-metadata",
+            REGISTER_REFLECTION_METADATA,
+            USE_NEW_WITH_OPTIONS,
+        )
+        .await;
+
+        // THEN the application metadata is empty
+        assert_that!(service_unit.get_application_metadata().is_empty(), eq(true));
+    }
+
+    #[tokio::test]
+    async fn test_event_message_metadata_is_not_set_for_legacy_ctor() {
+        // Note: ACLs for this test are in the respective acl textproto file of the com.sdv.oem.sample.diagnostics apex
+        // GIVEN event publication created with legacy 'new()' ctor
+        const REGISTER_REFLECTION_METADATA: bool = true;
+        const USE_NEW_WITH_OPTIONS: bool = false;
+        let service_unit = create_event_publisher_service_unit(
+            "legacy",
+            REGISTER_REFLECTION_METADATA,
+            USE_NEW_WITH_OPTIONS,
+        )
+        .await;
+
+        // THEN the application metadata is empty
+        assert_that!(service_unit.get_application_metadata().is_empty(), eq(true));
+    }
+
+    // Ensure that all calls to this method pass a different instance name within the same test target.
+    async fn create_event_publisher_service_unit(
+        instance_name: &str,
+        register_reflection_metadata: bool,
+        use_ctor_new_with_options: bool,
+    ) -> sdv_comms::sd::ServiceUnitDefinition {
+        // create event publisher
+        let context = ContextRef::create(
+            ServiceFqin::from_str(&format!(
+                "vm:com.sdv.oem.sample.diagnostics.SampleBundle/{}",
+                instance_name,
+            ))
+            .expect("ContextRef creation failed."),
+        );
+        let comms = Arc::new(SdvComms { context });
+
+        // ctor: new_with_options vs. new(legacy)
+        let _event_publisher = if use_ctor_new_with_options {
+            EventPublisher::<TestProto>::new_with_options(
+                comms.clone(),
+                &EventPublisherOptions::builder()
+                    .publication_name("event")
+                    .data_size(10)
+                    .register_reflection_metadata(register_reflection_metadata)
+                    .build()
+                    .unwrap(),
+            )
+            .await
+            .unwrap()
+        } else {
+            EventPublisher::<TestProto>::new(10, comms.clone(), "event".to_string()).await.unwrap()
+        };
+
+        // discover event publisher service unit
+        let sd = ServiceDiscoveryManager::new(context);
+        let discovery_args = UnitNameDiscoveryArgs::new_builder()
+            .set_sdv_package_name("com.sdv.oem.sample.diagnostics")
+            .set_service_bundle_name("SampleBundle")
+            .set_service_unit_name("event")
+            .build()
+            .expect("Discovery args builder failed.");
+
+        let service_units = sd.list_units_by_name(&discovery_args).collect::<Vec<_>>().await;
+        service_units
+            .iter()
+            .find(|service_unit| {
+                service_unit.get_service_bundle_identity().get_fqin().get_service_instance_name()
+                    == instance_name
+            })
+            .expect("Instance not discovered")
+            .clone()
     }
 
     fn parse_message_descriptor(message_metadata: MessageMetadata) -> MessageDescriptor {
@@ -377,5 +548,37 @@ mod tests {
             .find_map(|fd| fd.message_by_full_name(&message_metadata.message_full_name))
             .expect("message descriptor was not found");
         message_descriptor
+    }
+
+    #[test]
+    fn test_event_publisher_options_builder() {
+        let publication_name = "some-name";
+        let data_size = 18;
+        let register_reflection_metadata = true;
+
+        // GIVEN publication_name is not set.
+        let result = EventPublisherOptions::builder()
+            .data_size(data_size)
+            .register_reflection_metadata(register_reflection_metadata)
+            .build();
+
+        // THEN build returns an error.
+        assert_that!(result.is_err(), eq(true));
+
+        // GIVEN all values are valid
+        let result = EventPublisherOptions::builder()
+            .publication_name(publication_name)
+            .data_size(data_size)
+            .register_reflection_metadata(register_reflection_metadata)
+            .build();
+        assert_that!(result.is_ok(), eq(true));
+        // THEN the correcct attributes are set
+        let event_publisher_options = result.unwrap();
+        assert_that!(event_publisher_options.get_publication_name(), eq(publication_name));
+        assert_that!(event_publisher_options.get_data_size(), eq(data_size));
+        assert_that!(
+            event_publisher_options.register_reflection_metadata(),
+            eq(register_reflection_metadata)
+        );
     }
 }
