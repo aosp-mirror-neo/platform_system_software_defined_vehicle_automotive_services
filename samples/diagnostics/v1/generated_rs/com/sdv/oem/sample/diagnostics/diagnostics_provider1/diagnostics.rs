@@ -40,18 +40,24 @@ impl Diagnostics {
         Ok(Self {
             lowpressure_event_publisher: EventPublisher::<
                 diagnostics_v1_sample_catalog::messages::LowPressureData,
-            >::new(
-                11,
+            >::new_with_options(
                 comms.clone(),
-                "com-sdv-google-diagnostics-event-event-lowpressure".to_string(),
+                &sdv::diagnostics::event::EventPublisherOptions::builder()
+                    .publication_name("com-sdv-google-diagnostics-event-event-lowpressure")
+                    .data_size(11)
+                    .register_reflection_metadata(false)
+                    .build()?,
             )
             .await?,
             pressure_change_event_publisher: EventPublisher::<
                 diagnostics_v1_sample_catalog::messages::Pressure,
-            >::new(
-                5,
+            >::new_with_options(
                 comms.clone(),
-                "pressure-change-publisher".to_string(),
+                &sdv::diagnostics::event::EventPublisherOptions::builder()
+                    .publication_name("pressure-change-publisher")
+                    .data_size(5)
+                    .register_reflection_metadata(false)
+                    .build()?,
             )
             .await?,
         })

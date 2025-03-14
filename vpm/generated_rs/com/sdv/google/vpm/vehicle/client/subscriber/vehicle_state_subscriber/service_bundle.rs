@@ -57,7 +57,7 @@ pub mod subscriber {
         /// Enables access to subscription variant 'UNIQUE' of 'com.sdv.google.vpm.vehicle.VehicleStateChange'
         pub const UNIQUE: &Self = &Self {
             _proto: std::marker::PhantomData,
-            id: vsidl_v1::annotations::UniqueInstance::UNIQUE as i32,
+            id: vsidl_v1_stdlib::annotations::UniqueInstance::UNIQUE as i32,
             service_bundle_package: "com.sdv.google.vpm",
             service_bundle_name: "VpmSystemServiceBundle",
             service_unit: "com-sdv-google-vpm-vehicle-vehicle-state-change-unique",

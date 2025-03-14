@@ -59,32 +59,22 @@ pub mod publisher {
         const MESSAGE_SIZE: u32;
         const MESSAGE_COUNT: u32;
         const IS_MULTIPUB: bool;
-        fn get_message_metadata() -> sdv_proto_reflection_rs::message_metadata::MessageMetadata;
+        fn get_message_metadata() -> sdv_proto_reflection_rs::message_metadata::MessageMetadata {
+            sdv_proto_reflection_rs::message_metadata::MessageMetadata::default()
+        }
     }
 
     impl Metadata for diagnostics_v1_api::event::EnableCondition {
         const MESSAGE_SIZE: u32 = 68;
         const MESSAGE_COUNT: u32 = 2;
         const IS_MULTIPUB: bool = true;
-        fn get_message_metadata() -> sdv_proto_reflection_rs::message_metadata::MessageMetadata {
-            sdv_proto_reflection_rs::message_metadata::MessageMetadata {
-                file_descriptors: vec![
-                    diagnostics_v1_api::event::file_descriptor().proto().clone(),
-                    vsidl_v1::annotations::file_descriptor().proto().clone(),
-                ],
-                message_full_name: String::from(
-                    ".com.sdv.google.diagnostics.event.EnableCondition",
-                ),
-                ..Default::default()
-            }
-        }
     }
 
     impl Variant<diagnostics_v1_api::event::EnableCondition> {
         /// Publication variant 'UNIQUE' of 'com.sdv.google.diagnostics.event.EnableCondition'
         pub const UNIQUE: &Self = &Self {
             _proto: std::marker::PhantomData,
-            id: vsidl_v1::annotations::UniqueInstance::UNIQUE as i32,
+            id: vsidl_v1_stdlib::annotations::UniqueInstance::UNIQUE as i32,
             service_unit: "enable-conditions",
         };
         /// List of all publication variants of 'com.sdv.google.diagnostics.event.EnableCondition' available to the service bundle
@@ -95,23 +85,13 @@ pub mod publisher {
         const MESSAGE_SIZE: u32 = 72;
         const MESSAGE_COUNT: u32 = 2;
         const IS_MULTIPUB: bool = true;
-        fn get_message_metadata() -> sdv_proto_reflection_rs::message_metadata::MessageMetadata {
-            sdv_proto_reflection_rs::message_metadata::MessageMetadata {
-                file_descriptors: vec![
-                    diagnostics_v1_api::event::file_descriptor().proto().clone(),
-                    vsidl_v1::annotations::file_descriptor().proto().clone(),
-                ],
-                message_full_name: String::from(".com.sdv.google.diagnostics.event.OperationCycle"),
-                ..Default::default()
-            }
-        }
     }
 
     impl Variant<diagnostics_v1_api::event::OperationCycle> {
         /// Publication variant 'UNIQUE' of 'com.sdv.google.diagnostics.event.OperationCycle'
         pub const UNIQUE: &Self = &Self {
             _proto: std::marker::PhantomData,
-            id: vsidl_v1::annotations::UniqueInstance::UNIQUE as i32,
+            id: vsidl_v1_stdlib::annotations::UniqueInstance::UNIQUE as i32,
             service_unit: "operation-cycles",
         };
         /// List of all publication variants of 'com.sdv.google.diagnostics.event.OperationCycle' available to the service bundle
@@ -226,6 +206,7 @@ impl DiagnosticsSampleWithEvent {
                                 .message_count(M::MESSAGE_COUNT)
                                 .is_multipub(M::IS_MULTIPUB)
                                 .message_metadata(M::get_message_metadata())
+                                .message_metadata_required(false)
                                 .build()?,
                         )
                         .build()?,

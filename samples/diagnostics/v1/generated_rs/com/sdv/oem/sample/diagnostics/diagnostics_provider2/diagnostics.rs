@@ -25,10 +25,13 @@ impl Diagnostics {
         Ok(Self {
             overheating_event_publisher: EventPublisher::<
                 diagnostics_v1_sample_catalog::messages::OverheatingData,
-            >::new(
-                12,
+            >::new_with_options(
                 comms.clone(),
-                "com-sdv-google-diagnostics-event-event-overheating".to_string(),
+                &sdv::diagnostics::event::EventPublisherOptions::builder()
+                    .publication_name("com-sdv-google-diagnostics-event-event-overheating")
+                    .data_size(12)
+                    .register_reflection_metadata(false)
+                    .build()?,
             )
             .await?,
         })

@@ -26,15 +26,13 @@ impl Diagnostics {
     /// Create new instance of Diagnostics.
     pub async fn new(comms: Arc<dyn Communicate>) -> SdvResult<Self> {
         Ok(Self {
-            event_with_dot_with_hyphen_with_uppercase_event_publisher: EventPublisher::<
-                protobuf::well_known_types::empty::Empty,
-            >::new(
-                0,
-                comms.clone(),
-                "com-sdv-google-diagnostics-event-event-event-with-dot-with-hyphen-with-uppercase"
-                    .to_string(),
-            )
-            .await?,
+            event_with_dot_with_hyphen_with_uppercase_event_publisher: EventPublisher::<protobuf::well_known_types::empty::Empty>::new_with_options(comms.clone(),
+                &sdv::diagnostics::event::EventPublisherOptions::builder()
+                    .publication_name("com-sdv-google-diagnostics-event-event-event-with-dot-with-hyphen-with-uppercase")
+                    .data_size(0)
+                    .register_reflection_metadata(false)
+                    .build()?,
+            ).await?,
         })
     }
 

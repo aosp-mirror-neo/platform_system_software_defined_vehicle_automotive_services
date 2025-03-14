@@ -48,54 +48,86 @@ impl Diagnostics {
     /// Create new instance of Diagnostics.
     pub async fn new(comms: Arc<dyn Communicate>) -> SdvResult<Self> {
         Ok(Self {
-            one_event_publisher: EventPublisher::<protobuf::well_known_types::empty::Empty>::new(
-                0,
-                comms.clone(),
-                "com-sdv-google-diagnostics-event-event-one".to_string(),
-            )
-            .await?,
-            two_event_publisher: EventPublisher::<protobuf::well_known_types::empty::Empty>::new(
-                0,
-                comms.clone(),
-                "com-sdv-google-diagnostics-event-event-two".to_string(),
-            )
-            .await?,
-            three_event_publisher: EventPublisher::<protobuf::well_known_types::empty::Empty>::new(
-                0,
-                comms.clone(),
-                "com-sdv-google-diagnostics-event-event-three".to_string(),
-            )
-            .await?,
-            four_event_publisher: EventPublisher::<protobuf::well_known_types::empty::Empty>::new(
-                0,
-                comms.clone(),
-                "com-sdv-google-diagnostics-event-event-four".to_string(),
-            )
-            .await?,
-            five_event_publisher: EventPublisher::<protobuf::well_known_types::empty::Empty>::new(
-                0,
-                comms.clone(),
-                "com-sdv-google-diagnostics-event-event-five".to_string(),
-            )
-            .await?,
-            six_event_publisher: EventPublisher::<protobuf::well_known_types::empty::Empty>::new(
-                0,
-                comms.clone(),
-                "com-sdv-google-diagnostics-event-event-six".to_string(),
-            )
-            .await?,
-            seven_event_publisher: EventPublisher::<protobuf::well_known_types::empty::Empty>::new(
-                0,
-                comms.clone(),
-                "com-sdv-google-diagnostics-event-event-seven".to_string(),
-            )
-            .await?,
-            eight_event_publisher: EventPublisher::<protobuf::well_known_types::empty::Empty>::new(
-                0,
-                comms.clone(),
-                "com-sdv-google-diagnostics-event-event-eight".to_string(),
-            )
-            .await?,
+            one_event_publisher:
+                EventPublisher::<protobuf::well_known_types::empty::Empty>::new_with_options(
+                    comms.clone(),
+                    &sdv::diagnostics::event::EventPublisherOptions::builder()
+                        .publication_name("com-sdv-google-diagnostics-event-event-one")
+                        .data_size(0)
+                        .register_reflection_metadata(false)
+                        .build()?,
+                )
+                .await?,
+            two_event_publisher:
+                EventPublisher::<protobuf::well_known_types::empty::Empty>::new_with_options(
+                    comms.clone(),
+                    &sdv::diagnostics::event::EventPublisherOptions::builder()
+                        .publication_name("com-sdv-google-diagnostics-event-event-two")
+                        .data_size(0)
+                        .register_reflection_metadata(false)
+                        .build()?,
+                )
+                .await?,
+            three_event_publisher:
+                EventPublisher::<protobuf::well_known_types::empty::Empty>::new_with_options(
+                    comms.clone(),
+                    &sdv::diagnostics::event::EventPublisherOptions::builder()
+                        .publication_name("com-sdv-google-diagnostics-event-event-three")
+                        .data_size(0)
+                        .register_reflection_metadata(false)
+                        .build()?,
+                )
+                .await?,
+            four_event_publisher:
+                EventPublisher::<protobuf::well_known_types::empty::Empty>::new_with_options(
+                    comms.clone(),
+                    &sdv::diagnostics::event::EventPublisherOptions::builder()
+                        .publication_name("com-sdv-google-diagnostics-event-event-four")
+                        .data_size(0)
+                        .register_reflection_metadata(false)
+                        .build()?,
+                )
+                .await?,
+            five_event_publisher:
+                EventPublisher::<protobuf::well_known_types::empty::Empty>::new_with_options(
+                    comms.clone(),
+                    &sdv::diagnostics::event::EventPublisherOptions::builder()
+                        .publication_name("com-sdv-google-diagnostics-event-event-five")
+                        .data_size(0)
+                        .register_reflection_metadata(false)
+                        .build()?,
+                )
+                .await?,
+            six_event_publisher:
+                EventPublisher::<protobuf::well_known_types::empty::Empty>::new_with_options(
+                    comms.clone(),
+                    &sdv::diagnostics::event::EventPublisherOptions::builder()
+                        .publication_name("com-sdv-google-diagnostics-event-event-six")
+                        .data_size(0)
+                        .register_reflection_metadata(false)
+                        .build()?,
+                )
+                .await?,
+            seven_event_publisher:
+                EventPublisher::<protobuf::well_known_types::empty::Empty>::new_with_options(
+                    comms.clone(),
+                    &sdv::diagnostics::event::EventPublisherOptions::builder()
+                        .publication_name("com-sdv-google-diagnostics-event-event-seven")
+                        .data_size(0)
+                        .register_reflection_metadata(false)
+                        .build()?,
+                )
+                .await?,
+            eight_event_publisher:
+                EventPublisher::<protobuf::well_known_types::empty::Empty>::new_with_options(
+                    comms.clone(),
+                    &sdv::diagnostics::event::EventPublisherOptions::builder()
+                        .publication_name("com-sdv-google-diagnostics-event-event-eight")
+                        .data_size(0)
+                        .register_reflection_metadata(false)
+                        .build()?,
+                )
+                .await?,
         })
     }
 

@@ -19,7 +19,7 @@ rust_library {
         "libsdv_rs",
         "libfutures",
         "libsdv_vpm_api",
-        "libvsidl_v1_proto_rs",
+        "libvsidl_v1_stdlib_proto_rs",
     ],
     apex_available: [
         "//apex_available:platform",

@@ -51,30 +51,22 @@ pub mod publisher {
         const MESSAGE_SIZE: u32;
         const MESSAGE_COUNT: u32;
         const IS_MULTIPUB: bool;
-        fn get_message_metadata() -> sdv_proto_reflection_rs::message_metadata::MessageMetadata;
+        fn get_message_metadata() -> sdv_proto_reflection_rs::message_metadata::MessageMetadata {
+            sdv_proto_reflection_rs::message_metadata::MessageMetadata::default()
+        }
     }
 
     impl Metadata for sdv_vpm_api::vehicle::VehicleStateChange {
         const MESSAGE_SIZE: u32 = 6;
         const MESSAGE_COUNT: u32 = 2;
         const IS_MULTIPUB: bool = false;
-        fn get_message_metadata() -> sdv_proto_reflection_rs::message_metadata::MessageMetadata {
-            sdv_proto_reflection_rs::message_metadata::MessageMetadata {
-                file_descriptors: vec![
-                    sdv_vpm_api::vehicle::file_descriptor().proto().clone(),
-                    vsidl_v1::annotations::file_descriptor().proto().clone(),
-                ],
-                message_full_name: String::from(".com.sdv.google.vpm.vehicle.VehicleStateChange"),
-                ..Default::default()
-            }
-        }
     }
 
     impl Variant<sdv_vpm_api::vehicle::VehicleStateChange> {
         /// Publication variant 'UNIQUE' of 'com.sdv.google.vpm.vehicle.VehicleStateChange'
         pub const UNIQUE: &Self = &Self {
             _proto: std::marker::PhantomData,
-            id: vsidl_v1::annotations::UniqueInstance::UNIQUE as i32,
+            id: vsidl_v1_stdlib::annotations::UniqueInstance::UNIQUE as i32,
             service_unit: "com-sdv-google-vpm-vehicle-vehicle-state-change-unique",
         };
         /// List of all publication variants of 'com.sdv.google.vpm.vehicle.VehicleStateChange' available to the service bundle
@@ -193,6 +185,7 @@ impl VpmSystemServiceBundle {
                                 .message_count(M::MESSAGE_COUNT)
                                 .is_multipub(M::IS_MULTIPUB)
                                 .message_metadata(M::get_message_metadata())
+                                .message_metadata_required(false)
                                 .build()?,
                         )
                         .build()?,
