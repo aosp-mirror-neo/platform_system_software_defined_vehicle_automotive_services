@@ -2,6 +2,7 @@
 
 //! Diagnostics agent implementation.
 use diagnostics_v1_api::event::{EnableCondition, OperationCycle};
+use diagnostics_v1_api::routine_control_service::RoutineControlResponse;
 use diagnostics_v1_api::{
     data_item_service::ReadDataItemRequest, event::Event,
     fault_listener_service::OnFaultStatusChangeRequest, io_control_service::IoControlRequest,
@@ -42,7 +43,6 @@ async fn main() {
 
     log::debug!("sdv_diagnostics_agent accepts external connections");
     tracing::event!(tracing::Level::DEBUG, "sdv_diagnostics_agent accepts external connections");
-
     sdv_comms::wait_for_agents()
         .unwrap_or_else(|err| panic!("Error waiting for Comms Stack agents: {err}"));
 
@@ -237,6 +237,32 @@ async fn read_data_items(
     }
 }
 
+async fn print_typed_routine_start_response(
+    vsidl_provider: &Arc<dyn VsidlConfigProviderV1>,
+    diag_server_fqin: &ServiceFqin,
+    routine_id: &str,
+    response: &RoutineControlResponse,
+) {
+    let diagnostics_declaration =
+        vsidl_provider.get_diagnostics_declaration(diag_server_fqin).await.unwrap_or_default();
+    let response_type_name = &diagnostics_declaration
+        .routine
+        .iter()
+        .find(|routine| routine.id == routine_id)
+        .unwrap()
+        .start
+        .response;
+
+    let response_descriptor =
+        vsidl_provider.get_message_descriptor(diag_server_fqin, response_type_name).await.unwrap();
+    let typed_routine_start_response =
+        response_descriptor.parse_from_bytes(&response.response).unwrap();
+    info!(
+        "(TEST RELEVANT LOG) For start method of routine: {}, typed response: {:?}",
+        routine_id, typed_routine_start_response
+    );
+}
+
 #[instrument(skip_all)]
 async fn start_routines(
     context: ContextRef,
@@ -266,6 +292,9 @@ async fn start_routines(
             error!("Failed to perform rpc call");
             continue;
         };
+
+        print_typed_routine_start_response(&vsidl_provider, &service_fqin, &routine.id, &response)
+            .await;
 
         let translation_result = translator
             .translate_from_protobuf_to_uds(

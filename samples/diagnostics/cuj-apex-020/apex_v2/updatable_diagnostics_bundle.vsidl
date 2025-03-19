@@ -1,0 +1,31 @@
+# Copyright 2025 Google LLC
+# proto-file: //system/software_defined_vehicle/core_services/vsidl/protos/sdv/vsidl/v1/syntax.proto
+# proto-message: VsidlEntry
+
+package: "com.sdv.google.sample.diagnostics_update"
+
+sdv_service_bundle {
+    name: "UpdatableDiagnosticsBundle"
+    build_cfg {
+        target_name: "com_sdv_google_sample_diagnostics_update_updatable_diagnostics_bundle_v2"
+    }
+    server {
+        interface: "com.sdv.google.diagnostics.routine_control.RoutineControlService"
+        service_unit_name: "tire-pressurization-routine"
+    }
+
+    diagnostics_declaration {
+        routine {
+            id: "tire_pressurization"
+            start {
+                response: "TirePressureDetailed"
+            }
+        }
+        routine {
+            id: "seat_temperature_check_routine"
+            start {
+                response: "TemperatureMeasurement"
+            }
+        }
+    }
+}
