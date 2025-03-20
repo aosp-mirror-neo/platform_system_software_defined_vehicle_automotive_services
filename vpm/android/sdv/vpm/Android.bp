@@ -100,7 +100,7 @@ rust_test {
 }
 
 rust_test {
-    name: "sdv_vpm_agent_integration_test",
+    name: "sdv_core_automotive_services_integration_vpm_agent_test",
     srcs: ["tests/integration_test.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
@@ -126,7 +126,7 @@ rust_test {
 }
 
 rust_test {
-    name: "sdv_vpm_agent_power_cancellation_test",
+    name: "sdv_core_automotive_services_integration_vpm_agent_power_cancellation_test",
     srcs: ["tests/power_cancellation_test.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
@@ -152,7 +152,7 @@ rust_test {
 }
 
 rust_test {
-    name: "sdv_vpm_agent_power_interruption_test",
+    name: "sdv_core_automotive_services_integration_vpm_agent_power_prepare_interruption_test",
     srcs: ["tests/power_interruption_test.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
@@ -175,7 +175,7 @@ rust_test {
 }
 
 rust_test {
-    name: "sdv_vpm_agent_power_timeout_test",
+    name: "sdv_core_automotive_services_integration_vpm_agent_power_timeout_test",
     srcs: ["tests/power_timeout_test.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
@@ -201,7 +201,7 @@ rust_test {
 }
 
 rust_test {
-    name: "sdv_vpm_agent_power_prepare_interruption_test",
+    name: "sdv_core_automotive_services_integration_vpm_agent_power_interruption_test",
     srcs: ["tests/power_prepare_interruption_test.rs"],
     defaults: [
         "sdv_tracing@rust_defaults",
