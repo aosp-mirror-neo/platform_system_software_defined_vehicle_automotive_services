@@ -1,0 +1,13 @@
+# Copyright 2025 Google LLC
+# proto-file: //system/software_defined_vehicle/core_services/service_authz/proto/sdv/authz/policy/acl_policy.proto
+# proto-message: AclPolicy
+
+acls {
+    name: "DiagnosticsAgent"
+    include: "com.sdv.oem.diagnostics.DiagnosticsAgent"
+}
+
+service_units {
+    name: "tire-pressurization-routine"
+    acl_names: "DiagnosticsAgent"
+}

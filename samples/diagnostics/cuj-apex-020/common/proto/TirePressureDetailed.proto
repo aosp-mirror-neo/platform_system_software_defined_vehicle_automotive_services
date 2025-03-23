@@ -1,0 +1,14 @@
+// Copyright 2025 Google LLC
+
+// Definitions of data items structures used in the sample.
+syntax = "proto3";
+
+package com.sdv.google.sample.diagnostics_update;
+
+import "sdv/vsidl/v1/annotations.proto";
+import "sdv/diagnostics/v1/diagnostics.proto";
+
+message TirePressureDetailed {
+  float value = 1;
+  string explanation_message = 2 [(.sdv.vsidl.v1.variable_type_max_size) = 100];
+}
