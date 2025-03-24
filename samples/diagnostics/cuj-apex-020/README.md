@@ -43,13 +43,6 @@ diff -r apex_v1 apex_v2 --exclude=Android.bp --exclude=README.md --exclude="gene
 Would output:
 
 ```bash
-diff '--color=auto' -r '--exclude=Android.bp' '--exclude=README.md' '--exclude=generated_rs' '--exclude=src' apex_v1/acl.textproto apex_v2/acl.textproto
-13a14,18
->
-> service_units {
->     name: "seat_temperature_check_routine"
->     acl_names: "DiagnosticsAgent"
-> }
 diff '--color=auto' -r '--exclude=Android.bp' '--exclude=README.md' '--exclude=generated_rs' '--exclude=src' apex_v1/apex_manifest.json apex_v2/apex_manifest.json
 3c3
 <   "version": 1,

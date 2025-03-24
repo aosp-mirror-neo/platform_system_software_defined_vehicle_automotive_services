@@ -14,7 +14,7 @@ prebuilt_etc {
     name: "com.sdv.google.sample.diagnostics_update.UpdatableDiagnosticsBundle-diag-config.binpb-V2",
     filename: "UpdatableDiagnosticsBundle-diag-config.binpb",
     sub_dir: "vsidl_provider",
-    src: ":generate_vsidl_files_single_bundle_com.sdv.google.sample.diagnostics_update.UpdatableDiagnosticsBundle{diagnostics-config.binpb}",
+    src: ":generate_vsidl_files_single_bundle_com.sdv.google.sample.diagnostics_update.UpdatableDiagnosticsBundle_V2{diagnostics-config.binpb}",
     installable: false,
 }
 

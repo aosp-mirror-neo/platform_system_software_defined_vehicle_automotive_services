@@ -23,6 +23,9 @@ apex {
     updatable: true,
     product_specific: true,
     min_sdk_version: "35",
+    dist: {
+        targets: ["droid"],
+    },
 }
 
 prebuilt_etc {

@@ -20,7 +20,7 @@ rust_ffi_shared {
     ],
     // Allows the library to be available inside APEX.
     apex_available: [
-        "com.sdv.google.sample.diagnostics_update",
+        "com.sdv.google.sample.diagnostics_update.v2",
     ],
     // Service bundle package is packed into /product apexes.
     product_specific: true,

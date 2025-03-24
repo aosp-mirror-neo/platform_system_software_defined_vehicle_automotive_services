@@ -11,8 +11,3 @@ service_units {
     name: "tire-pressurization-routine"
     acl_names: "DiagnosticsAgent"
 }
-
-service_units {
-    name: "seat_temperature_check_routine"
-    acl_names: "DiagnosticsAgent"
-}

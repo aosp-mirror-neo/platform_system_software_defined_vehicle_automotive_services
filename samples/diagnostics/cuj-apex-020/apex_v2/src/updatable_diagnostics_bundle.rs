@@ -44,7 +44,7 @@ impl ServiceBundle for UpdatableDiagnosticsBundle {
 
     /// Called when the service bundle is started by the system.
     fn on_start(&mut self) {
-        info!("Hello diag_bundle_v1");
+        info!("Hello diag_bundle_v2");
         let cancellation_token = CancellationToken::new();
         let cancellation_token_clone = cancellation_token.clone();
         let context_ref = self.context;
@@ -110,7 +110,7 @@ impl RoutineHandler<Empty, TirePressureDetailed, Empty, Empty, Empty, Empty>
         Ok(RoutineResponse {
             routine_info: 0,
             response: TirePressureDetailed {
-                value: 99.99f32,
+                value: 88.88f32,
                 explanation_message: "V2 of TirePressure message".to_string(),
                 ..TirePressureDetailed::default()
             },

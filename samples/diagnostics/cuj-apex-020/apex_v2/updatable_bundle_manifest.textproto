@@ -15,6 +15,6 @@ sdv_service_bundle_metadata {
 
   access_control_list_policy_path: "etc/acl/acl_policy.textproto"
 
-  diagnostics_config_path: "etc/vsidl_provider/UpdatableDiagnosticsBundleV2-diag-config.binpb"
-  vsidl_schemas_path: "etc/vsidl_provider/UpdatableDiagnosticsBundleV2-vsidl-config.binpb"
+  diagnostics_config_path: "etc/vsidl_provider/UpdatableDiagnosticsBundle-diag-config.binpb"
+  vsidl_schemas_path: "etc/vsidl_provider/UpdatableDiagnosticsBundle-vsidl-config.binpb"
 }
