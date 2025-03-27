@@ -8,9 +8,7 @@ acls {
     name: "PackagePublic"
     include: "com.sdv.google.user_preferences.UserPreferencesAdminServiceClient"
     include: "com.sdv.oem.user_preferences.*"
-    include: "com.android.testapp.sdvcarmonitor.SDVCarMonitorProductTestApp"
     include: "com.android.testapp.sdvcarmonitor.SdvCarMonitorTestApp"
-    include: "com.android.testapp.sdvcarmonitor.SDVCarMonitorVendorTestApp"
 }
 
 service_units {

@@ -13,9 +13,7 @@ acls {
 acls {
     name: "Public"
     include: "com.sdv.oem.user_preferences.*"
-    include: "com.android.testapp.sdvcarmonitor.SDVCarMonitorProductTestApp"
     include: "com.android.testapp.sdvcarmonitor.SdvCarMonitorTestApp"
-    include: "com.android.testapp.sdvcarmonitor.SDVCarMonitorVendorTestApp"
 }
 
 unit_types {
