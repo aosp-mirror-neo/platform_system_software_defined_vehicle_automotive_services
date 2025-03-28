@@ -178,7 +178,7 @@ adb wait-for-device && adb root
 ### Launch diagnostics reporting service bundle post update
 
 ```bash
-sdv_service_bundle start com.sdv.google.sample.diagnostics_update.UpdatableDiagnosticsBundle
+adb shell sdv_service_bundle start instance1:com.sdv.google.sample.diagnostics_update.UpdatableDiagnosticsBundle/instance1
 ```
 
 ### Inspect DiagnosticManager logcat output post update
