@@ -60,6 +60,7 @@ async fn main() {
     let vsidl_provider = Arc::new(
         vsidl_provider::new(context).unwrap_or_else(|| panic!("Error creating VSIDL provider")),
     );
+    dm.add_reporter("VSIDL Provider", &vsidl_provider);
 
     log::debug!("sdv_diagnostics_agent VSIDL provider initialized");
     tracing::event!(tracing::Level::DEBUG, "sdv_diagnostics_agent VSIDL provider initialized");
