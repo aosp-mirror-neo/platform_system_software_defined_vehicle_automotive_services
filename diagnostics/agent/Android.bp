@@ -22,6 +22,7 @@ rust_binary {
         "libsdv_uds_serde_v1",
         "libsdv_config_provider",
         "libfutures_executor",
+        "libsdv_dump",
     ],
     ld_flags: ["-Wl,--no-as-needed"],
     product_specific: true,

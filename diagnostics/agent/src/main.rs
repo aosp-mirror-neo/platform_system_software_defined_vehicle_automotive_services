@@ -19,6 +19,7 @@ use sdv_comms::sd::ServiceUnitChangeEvent;
 use sdv_comms::sd::{ServiceDiscoveryManager, ServiceUnitDefinition, UnitType};
 use sdv_comms::ContextRef;
 use sdv_config_provider::{vsidl_provider, vsidl_provider_api::VsidlConfigProviderV1};
+use sdv_dump::DumpBinderConnection;
 use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
 use sdv_uds_serde::{diagnostics_translator::DiagnosticsTranslator, entity_id::*};
 use std::future::Future;
@@ -32,11 +33,15 @@ use crate::unit_types::*;
 use protobuf::MessageDyn;
 use tracing::instrument;
 
+static BINDER_TAG: &str = "diagnostics";
+static DUMP_REPORT_TITLE: &str = "SDV Agent dump - Diagnostics";
+
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 #[instrument]
 async fn main() {
     sdv_log::init_logger("sdv_diagnostics_agent").unwrap();
     sdv_tracing::init_tracing();
+    let dm = DumpBinderConnection::initialize(DUMP_REPORT_TITLE, BINDER_TAG);
 
     // Emulate opening external connection
     let _ = tokio::net::TcpListener::bind("127.0.0.1:8080").await.unwrap();
@@ -49,6 +54,8 @@ async fn main() {
     let self_fqin =
         ServiceFqin::from_str("vm:com.sdv.oem.diagnostics.DiagnosticsAgent/default").unwrap();
     let context: ContextRef = ContextRef::create(self_fqin.clone());
+
+    dm.set_self_fqin(&self_fqin);
 
     let vsidl_provider = Arc::new(
         vsidl_provider::new(context).unwrap_or_else(|| panic!("Error creating VSIDL provider")),
@@ -70,6 +77,7 @@ async fn main() {
 
     log::debug!("sdv_diagnostics_agent has started successfully");
     tracing::event!(tracing::Level::DEBUG, "sdv_diagnostics_agent has started successfully");
+    dm.set_agent_state("sdv_diagnostics_agent has started successfully");
 
     binder::ProcessState::start_thread_pool();
 
