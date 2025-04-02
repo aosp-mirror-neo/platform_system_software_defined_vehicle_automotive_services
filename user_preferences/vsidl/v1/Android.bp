@@ -176,4 +176,5 @@ java_library {
         "guava",
     ],
     sdk_version: "current",
+    min_sdk_version: "35",
 }
