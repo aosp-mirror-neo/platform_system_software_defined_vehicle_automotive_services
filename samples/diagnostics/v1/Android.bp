@@ -15,6 +15,7 @@ rust_defaults {
         "libdiagnostics_v1_sample_catalog",
         "libtokio",
         "libsdv_rs",
+        "libsdv_dump",
     ],
     proc_macros: [
         "libasync_trait",

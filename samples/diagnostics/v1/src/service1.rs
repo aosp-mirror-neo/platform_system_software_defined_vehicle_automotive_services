@@ -10,6 +10,7 @@ use sdv::diagnostics::{
     data_item::*, fault_listener::*, io_control::*, routine::*, DiagnosticsResult,
 };
 use sdv::mw::SdvComms;
+use sdv_dump::DumpBinderConnection;
 use sdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_provider1::{
     diagnostics::Diagnostics, DiagnosticsProvider1,
 };
@@ -86,16 +87,20 @@ impl FaultListenerHandler<LowPressureData> for LowPressureFault {
     }
 }
 
+static BINDER_TAG: &str = "diagnostics_test";
+static DUMP_REPORT_TITLE: &str = "SDV Sample Dump - Diagnostics Test";
+
 #[tokio::main]
 async fn main() {
-    let sdv_comms = SdvComms {
-        context: ContextRef::create(
-            ServiceFqin::from_str(
-                "vm:com.sdv.oem.sample.diagnostics.DiagnosticsProvider1/instance",
-            )
+    // Implementing dump() for the sample to be able to reliably monitor it from automated tests
+    let dm = DumpBinderConnection::initialize(DUMP_REPORT_TITLE, BINDER_TAG);
+
+    let ctx: ContextRef = ContextRef::create(
+        ServiceFqin::from_str("vm:com.sdv.oem.sample.diagnostics.DiagnosticsProvider1/instance")
             .unwrap(),
-        ),
-    };
+    );
+    let sdv_comms = SdvComms { context: ctx };
+    dm.set_self_fqin(&ctx.get_self_fqin());
 
     let service = DiagnosticsProvider1::new(
         Arc::new(sdv_comms),
@@ -114,13 +119,17 @@ async fn main() {
 
     println!("Diagnostics provider service bundle started.");
 
-    let result = service.diagnostics.lowpressure_event_publisher.publish(Status::PASS);
-    println!("{result:#?}");
+    let result_pass = service.diagnostics.lowpressure_event_publisher.publish(Status::PASS);
+    println!("{result_pass:#?}");
     thread::sleep(Duration::from_secs(1));
-    let result = service.diagnostics.lowpressure_event_publisher.publish(Status::PRE_FAIL);
-    println!("{result:#?}");
+    let result_pre_fail = service.diagnostics.lowpressure_event_publisher.publish(Status::PRE_FAIL);
+    println!("{result_pre_fail:#?}");
 
-    loop {
-        std::thread::park();
+    if result_pass.is_ok() && result_pre_fail.is_ok() {
+        dm.set_agent_state("Diagnostics Test Ok");
+    } else {
+        dm.set_agent_state("Diagnostics Test Error");
     }
+
+    sdv_dump::ProcessState::join_thread_pool();
 }
