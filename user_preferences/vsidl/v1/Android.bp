@@ -18,6 +18,7 @@ rust_protobuf {
     ],
     product_available: true,
     vendor_available: true,
+    host_supported: true,
     min_sdk_version: "35",
 }
 

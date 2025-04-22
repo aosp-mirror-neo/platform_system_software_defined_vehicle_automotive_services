@@ -16,6 +16,7 @@ rust_protobuf {
     ],
     vendor_available: true,
     product_available: true,
+    host_supported: true,
     apex_available: [
         "//apex_available:platform",
     ],
