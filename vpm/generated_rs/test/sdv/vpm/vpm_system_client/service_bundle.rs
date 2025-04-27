@@ -110,6 +110,16 @@ impl VpmSystemClient {
         Ok(T::new(self.comms.create_client_transport(&attributes).await?))
     }
 
+    /// Creates a new event stream
+    pub async fn create_server_registration_event_stream(
+        &mut self,
+        server: sdv::mw::UnitName,
+    ) -> sdv::status::SdvResult<
+        std::pin::Pin<Box<dyn futures::Stream<Item = sdv::mw::Availability> + Send>>,
+    > {
+        self.comms.create_registration_event_stream(&sdv::mw::UnitQuery::Name(server)).await
+    }
+
     async fn add_server<T: UnitType + ?Sized + 'static + Send + Sync>(
         &mut self,
         unit_name: String,
@@ -229,6 +239,7 @@ impl VpmSystemClient {
                     .package_name(variant.service_bundle_package)
                     .bundle_name(variant.service_bundle_name)
                     .service_unit_name(variant.service_unit)
+                    .instance_name(options.get_instance_name())
                     .build()?,
             ))
             .await
@@ -258,6 +269,7 @@ impl VpmSystemClient {
                         .package_name(variant.service_bundle_package)
                         .bundle_name(variant.service_bundle_name)
                         .service_unit_name(variant.service_unit)
+                        .instance_name(options.get_instance_name())
                         .build()?,
                 ))
                 .await

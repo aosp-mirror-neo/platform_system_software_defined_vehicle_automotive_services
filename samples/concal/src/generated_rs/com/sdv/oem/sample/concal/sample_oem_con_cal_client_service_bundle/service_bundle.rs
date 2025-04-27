@@ -30,4 +30,14 @@ impl SampleOemConCalClientServiceBundle {
             .build()?;
         Ok(T::new(self.comms.create_client_transport(&attributes).await?))
     }
+
+    /// Creates a new event stream
+    pub async fn create_server_registration_event_stream(
+        &mut self,
+        server: sdv::mw::UnitName,
+    ) -> sdv::status::SdvResult<
+        std::pin::Pin<Box<dyn futures::Stream<Item = sdv::mw::Availability> + Send>>,
+    > {
+        self.comms.create_registration_event_stream(&sdv::mw::UnitQuery::Name(server)).await
+    }
 }

@@ -177,6 +177,7 @@ impl VehicleStateSubscriber {
                     .package_name(variant.service_bundle_package)
                     .bundle_name(variant.service_bundle_name)
                     .service_unit_name(variant.service_unit)
+                    .instance_name(options.get_instance_name())
                     .build()?,
             ))
             .await
@@ -206,6 +207,7 @@ impl VehicleStateSubscriber {
                         .package_name(variant.service_bundle_package)
                         .bundle_name(variant.service_bundle_name)
                         .service_unit_name(variant.service_unit)
+                        .instance_name(options.get_instance_name())
                         .build()?,
                 ))
                 .await
