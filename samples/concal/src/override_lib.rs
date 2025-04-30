@@ -52,7 +52,7 @@ impl ProtoManager {
         self.fd_set
             .file
             .iter()
-            .find(|f| f.name.to_owned().map_or(false, |n| n == file_name))
+            .find(|f| f.name.to_owned().is_some_and(|n| n == file_name))
             .to_owned()
             .map(|f| f.to_owned())
     }
