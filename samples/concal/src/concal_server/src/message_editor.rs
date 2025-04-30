@@ -17,14 +17,8 @@ pub struct MessageEditor {
 
 impl MessageEditor {
     pub fn new(data: Any, fds: FileDescriptorSet) -> Result<Self, String> {
-        let msg_descriptor = match MessageEditor::find_message_descriptor(&data, &fds) {
-            Ok(x) => x,
-            Err(x) => return Err(x),
-        };
-        let dyn_msg = match MessageEditor::unpack_message(&data, &msg_descriptor) {
-            Ok(x) => x,
-            Err(x) => return Err(x),
-        };
+        let msg_descriptor = MessageEditor::find_message_descriptor(&data, &fds)?;
+        let dyn_msg = MessageEditor::unpack_message(&data, &msg_descriptor)?;
         Ok(MessageEditor { msg_descriptor, dyn_msg })
     }
 
