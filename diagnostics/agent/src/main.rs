@@ -41,12 +41,13 @@ static DUMP_REPORT_TITLE: &str = "SDV Agent dump - Diagnostics";
 async fn main() {
     sdv_log::init_logger("sdv_diagnostics_agent").unwrap();
     sdv_tracing::init_tracing();
-    let dm = DumpBinderConnection::initialize(DUMP_REPORT_TITLE, BINDER_TAG);
 
     // Emulate opening external connection
-    let _ = tokio::net::TcpListener::bind("127.0.0.1:8080").await.unwrap();
-
+    create_tcp_connection().await;
     info!("sdv_diagnostics_agent accepts external connections");
+
+    let dm = DumpBinderConnection::initialize(DUMP_REPORT_TITLE, BINDER_TAG);
+
     tracing::event!(tracing::Level::DEBUG, "sdv_diagnostics_agent accepts external connections");
     sdv_comms::wait_for_agents()
         .unwrap_or_else(|err| panic!("Error waiting for Comms Stack agents: {err}"));
@@ -628,4 +629,14 @@ fn decode_with_len<T: MessageFull>(message_bytes: &[u8]) -> Result<T, protobuf::
     let _ = input_stream.push_limit(size);
 
     T::parse_from(&mut input_stream)
+}
+
+async fn create_tcp_connection() {
+    let result = tokio::net::TcpListener::bind("127.0.0.1:8080").await;
+
+    if result.is_err() {
+        tokio::time::sleep(Duration::from_millis(10)).await;
+        debug!("Retry creating TCP connection {result:#?}");
+        Box::pin(create_tcp_connection()).await;
+    }
 }
