@@ -354,6 +354,14 @@ fn validate_power_state_request(request: PowerStateChangeRequest) -> anyhow::Res
         }
     };
 
+    // Suspend to disk is not supported in Concorde scope.
+    // TODO(b/348193447)
+    if power_state.get_report() == PowerStateReport::SUSPEND_TO_DISK_ENTER
+        || power_state.get_report() == PowerStateReport::SUSPEND_TO_DISK_POST_FINISH
+    {
+        return Err(anyhow!("Suspend to disk is not supported!"));
+    }
+
     if request.timeout_ms == 0 {
         return Err(anyhow!("Timeout cannot be Zero!"));
     }
@@ -564,7 +572,7 @@ mod tests {
         // When: a prepare power state request without a timeout is sent.
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
-            shutdown_type: ShutdownType::SUSPEND_TO_DISK.into(),
+            shutdown_type: ShutdownType::SUSPEND_TO_RAM.into(),
             ..Default::default()
         };
 
@@ -676,7 +684,7 @@ mod tests {
     #[tokio::test]
     async fn handle_power_state_prepare_s2d() {
         // Given: the power state request handler.
-        let (tx, mut rx) = channel::<PowerRequest>(1);
+        let (tx, _rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(On {}));
         let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
@@ -690,11 +698,7 @@ mod tests {
 
         // Then: power state is set.
         let result = power_state_request_handler.handle_set_power_state(request).await;
-        assert_eq!(
-            PowerStateReport::SUSPEND_TO_DISK_ENTER,
-            rx.recv().await.expect("Nothing was received!").power_state.get_report()
-        );
-        assert!(result.is_ok());
+        assert!(result.is_err());
     }
 
     #[tokio::test]
@@ -771,7 +775,7 @@ mod tests {
     #[tokio::test]
     async fn handle_power_state_s2d() {
         // Given: the power state request handler.
-        let (tx, mut rx) = channel::<PowerRequest>(1);
+        let (tx, _rx) = channel::<PowerRequest>(1);
         let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(WaitForFinishSuspendToDisk {}));
         let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
 
@@ -785,11 +789,7 @@ mod tests {
 
         // Then: power state is set.
         let result = power_state_request_handler.handle_set_power_state(request).await;
-        assert_eq!(
-            PowerStateReport::SUSPEND_TO_DISK_POST_FINISH,
-            rx.recv().await.expect("Nothing was received!").power_state.get_report()
-        );
-        assert!(result.is_ok());
+        assert!(result.is_err());
     }
 
     #[tokio::test]
