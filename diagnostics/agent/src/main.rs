@@ -89,9 +89,7 @@ async fn main() {
 
     dm.set_self_fqin(&self_fqin);
 
-    let vsidl_provider = Arc::new(
-        vsidl_provider::new(context).unwrap_or_else(|| panic!("Error creating VSIDL provider")),
-    );
+    let vsidl_provider = Arc::new(vsidl_provider::new_for_diagnostics_agent(context));
 
     info!("sdv_diagnostics_agent VSIDL provider initialized");
     dumpsys_logger.add_line("sdv_diagnostics_agent VSIDL provider initialized".to_owned());
