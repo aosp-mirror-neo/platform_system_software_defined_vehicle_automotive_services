@@ -367,7 +367,7 @@ async fn print_typed_routine_start_response(
         vsidl_provider.get_message_descriptor(diag_server_fqin, response_type_name).await.unwrap();
     let typed_routine_start_response =
         response_descriptor.parse_from_bytes(&response.response).unwrap();
-    info!(
+    debug!(
         "(TEST RELEVANT LOG) For start method of routine: {}, typed response: {:?}",
         routine_id, typed_routine_start_response
     );
