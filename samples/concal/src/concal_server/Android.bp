@@ -14,7 +14,7 @@ rust_ffi_shared {
         "libconcal_api",
         "liblog_rust",
         "libprotobuf",
-        "librand-0.8",
+        "librand",
         // Commstack library that provides context object reference.
         "libsdv_comms_rs",
         "libcom_sdv_google_concal_con_cal_registration_service_rpc_rs",
@@ -54,7 +54,7 @@ rust_test {
         "liblog_rust",
         "libprotobuf_parse",
         "libprotobuf",
-        "librand-0.8",
+        "librand",
         "libsdv_comms_rs",
         "libcom_sdv_google_concal_con_cal_registration_service_rpc_rs",
         "libcom_sdv_google_concal_con_cal_update_service_rpc_rs",
