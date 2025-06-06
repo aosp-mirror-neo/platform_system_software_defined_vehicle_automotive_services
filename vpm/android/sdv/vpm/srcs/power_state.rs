@@ -1,7 +1,7 @@
 // Copyright 2024 Google LLC
 use crate::power_service::PowerRequest;
 use async_trait::async_trait;
-use log::debug;
+use log::{debug, info};
 use mockall::automock;
 use rustutils::system_properties::error::PropertyWatcherError;
 use rustutils::system_properties::read;
@@ -65,6 +65,7 @@ fn suspend_to_ram() -> anyhow::Result<()> {
         get_platform_timeout_ms(),
         get_platform_retry_interval_ms(),
     )?;
+    info!("sdv_vpm_agent has resumed successfully");
     debug!("sdv_vpm_agent has resumed successfully");
     tracing::event!(Level::DEBUG, "sdv_vpm_agent has resumed successfully");
     Ok(())
@@ -76,6 +77,7 @@ fn suspend_to_disk() -> anyhow::Result<()> {
         get_platform_timeout_ms(),
         get_platform_retry_interval_ms(),
     )?;
+    info!("sdv_vpm_agent has resumed successfully");
     debug!("sdv_vpm_agent has resumed successfully");
     tracing::event!(Level::DEBUG, "sdv_vpm_agent has resumed successfully");
     Ok(())
