@@ -108,6 +108,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::routine::{RoutineHandler, RoutineResponse, RoutineResult};
+    use crate::test::test_messages::UnserializableMessage;
     use diagnostics_v1_api::event::Event as TestProto;
     use diagnostics_v1_api::event::Status;
     use diagnostics_v1_api::response_code::ResponseCode;
@@ -132,6 +133,32 @@ mod tests {
 
         async fn request_result(&self, _: TestProto) -> RoutineResult<TestProto> {
             self.response.clone()
+        }
+    }
+
+    struct UnserializableRoutineHandler;
+
+    #[async_trait::async_trait]
+    impl
+        RoutineHandler<
+            TestProto,
+            UnserializableMessage,
+            TestProto,
+            UnserializableMessage,
+            TestProto,
+            UnserializableMessage,
+        > for UnserializableRoutineHandler
+    {
+        async fn start(&self, _: TestProto) -> RoutineResult<UnserializableMessage> {
+            Ok(RoutineResponse { response: UnserializableMessage::default(), routine_info: 0 })
+        }
+
+        async fn stop(&self, _: TestProto) -> RoutineResult<UnserializableMessage> {
+            Ok(RoutineResponse { response: UnserializableMessage::default(), routine_info: 0 })
+        }
+
+        async fn request_result(&self, _: TestProto) -> RoutineResult<UnserializableMessage> {
+            Ok(RoutineResponse { response: UnserializableMessage::default(), routine_info: 0 })
         }
     }
 
@@ -168,13 +195,27 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_routine_start_untyped_format_err() {
+    async fn test_routine_start_untyped_deserialization_format_err() {
         let invalid_message_bytes = vec![2, 1];
 
         let handler = TestRoutineHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.start_untyped(&invalid_message_bytes).await,
+            RoutineControlResponse {
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+                ..Default::default()
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_routine_start_untyped_serialization_format_err() {
+        let message = TestProto { status: Status::PASS.into(), ..Default::default() };
+        let handler = UnserializableRoutineHandler;
+
+        assert_eq!(
+            handler.start_untyped(&message.write_to_bytes().unwrap()).await,
             RoutineControlResponse {
                 response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
@@ -215,13 +256,27 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_routine_stop_untyped_format_err() {
+    async fn test_routine_stop_untyped_deserialization_format_err() {
         let invalid_message_bytes = vec![2, 1];
 
         let handler = TestRoutineHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.stop_untyped(&invalid_message_bytes).await,
+            RoutineControlResponse {
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+                ..Default::default()
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_routine_stop_untyped_serialization_format_err() {
+        let message = TestProto { status: Status::PASS.into(), ..Default::default() };
+        let handler = UnserializableRoutineHandler;
+
+        assert_eq!(
+            handler.stop_untyped(&message.write_to_bytes().unwrap()).await,
             RoutineControlResponse {
                 response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
@@ -262,13 +317,27 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_routine_request_result_untyped_format_err() {
+    async fn test_routine_request_result_untyped_deserialization_format_err() {
         let invalid_message_bytes = vec![2, 1];
 
         let handler = TestRoutineHandler { response: Err(ResponseCode::GENERAL_REJECT) };
 
         assert_eq!(
             handler.request_result_untyped(&invalid_message_bytes).await,
+            RoutineControlResponse {
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+                ..Default::default()
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_routine_request_result_untyped_serialization_format_err() {
+        let message = TestProto { status: Status::PASS.into(), ..Default::default() };
+        let handler = UnserializableRoutineHandler;
+
+        assert_eq!(
+            handler.request_result_untyped(&message.write_to_bytes().unwrap()).await,
             RoutineControlResponse {
                 response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()

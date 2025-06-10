@@ -230,6 +230,7 @@ fn compute_length_size(content_size: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test::test_messages::UnserializableMessage;
     use diagnostics_v1_api::event::Event;
     use diagnostics_v1_api::event::{OperationCycle as TestProto, Status};
     use futures_util::StreamExt;
@@ -245,7 +246,7 @@ mod tests {
         ContextRef,
     };
     use sdv_mw_local_comms::LocalComms;
-    use sdv_mw_rs_comms::{codec::decode, *};
+    use sdv_mw_rs_comms::*;
     use sdv_mw_rs_sdv_comms::SdvComms;
     use std::str::FromStr;
 
@@ -312,11 +313,10 @@ mod tests {
 
         // THEN event message is read and decoded
         assert_that!(messages.len(), eq(1));
-        let _ = messages.iter().inspect(|message| {
-            assert_that!(message.status, eq(Status::PRE_FAIL.into()));
+        let message = &messages[0];
 
-            assert!(message.extended_data.is_none());
-        });
+        assert_that!(message.status, eq(Status::PRE_FAIL.into()));
+        assert!(message.extended_data.is_none());
     }
 
     #[tokio::test]
@@ -359,16 +359,33 @@ mod tests {
 
         // THEN event message is read and decoded
         assert_that!(messages.len(), eq(1));
-        let _ = messages.iter().inspect(|message| {
-            assert_that!(message.status, eq(Status::PRE_FAIL.into()));
+        let message = &messages[0];
 
-            let decoded_data =
-                message.extended_data.as_ref().map(|data| decode::<TestProto>(data).unwrap());
-            assert_that!(
-                decoded_data.unwrap(),
-                eq(&TestProto { id: "test".to_string(), ..Default::default() })
-            );
-        });
+        assert_that!(message.status, eq(Status::PRE_FAIL.into()));
+
+        let extended_data = message.extended_data.clone().unwrap();
+        let decoded_data = TestProto::parse_from_bytes(&extended_data).unwrap();
+        assert_that!(decoded_data, eq(&TestProto { id: "test".to_string(), ..Default::default() }));
+    }
+
+    #[tokio::test]
+    async fn test_publish_with_malformed_data() {
+        // GIVEN event publication and subscription
+        let comms = Arc::new(LocalComms::default());
+        let event_publisher = EventPublisher::<UnserializableMessage>::new(
+            1,
+            comms.clone(),
+            "sdv-diagnostics-event-event1".to_string(),
+        )
+        .await
+        .unwrap();
+
+        // WHEN publisher publishes and subscriber reads
+        let publication_result =
+            event_publisher.publish_with_data(Status::PRE_FAIL, UnserializableMessage::default());
+
+        // THEN fails to publish
+        assert!(publication_result.is_err());
     }
 
     #[test]
@@ -532,17 +549,12 @@ mod tests {
         ];
 
         // message-specific file descriptor.
-        let file_descriptors = match FileDescriptor::new_dynamic_fds(
+        let file_descriptors = FileDescriptor::new_dynamic_fds(
             message_metadata.file_descriptors,
             &wellknown_descriptors,
-        ) {
-            Err(e) => {
-                // this reveals exactly which dependency is missing.
-                eprintln!("{}", e);
-                panic!("Creating file descriptors failed!")
-            }
-            Ok(fd) => fd,
-        };
+        )
+        .expect("Creating file descriptors failed!");
+
         let message_descriptor = file_descriptors
             .iter()
             .find_map(|fd| fd.message_by_full_name(&message_metadata.message_full_name))

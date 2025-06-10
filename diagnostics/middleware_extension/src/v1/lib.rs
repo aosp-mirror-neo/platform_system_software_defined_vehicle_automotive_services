@@ -17,6 +17,10 @@ pub mod io_control;
 /// Fault listener API related utilities.
 pub mod fault_listener;
 
+/// Proto messages for testing.
+#[cfg(test)]
+mod test;
+
 use diagnostics_v1_api::response_code::ResponseCode;
 
 /// Result with diagnostics error.

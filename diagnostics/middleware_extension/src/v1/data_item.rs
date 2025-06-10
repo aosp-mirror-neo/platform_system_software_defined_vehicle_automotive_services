@@ -87,6 +87,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::data_item::{DataItemHandler, ReadOnlyDataItemHandler};
+    use crate::test::test_messages::UnserializableMessage;
     use crate::DiagnosticsResult;
     use diagnostics_v1_api::data_item_service::{ReadDataItemResponse, WriteDataItemResponse};
     use diagnostics_v1_api::event::Event as TestProto;
@@ -157,6 +158,28 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_read_only_data_item_read_untyped_format_err() {
+        struct UnserializableDataItem;
+
+        #[async_trait::async_trait]
+        impl ReadOnlyDataItemHandler<UnserializableMessage> for UnserializableDataItem {
+            async fn read(&self) -> DiagnosticsResult<UnserializableMessage> {
+                Ok(UnserializableMessage::default())
+            }
+        }
+
+        let handler = UnserializableDataItem {};
+
+        assert_eq!(
+            handler.read_untyped().await,
+            ReadDataItemResponse {
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+                ..Default::default()
+            }
+        );
+    }
+
+    #[tokio::test]
     async fn test_data_item_read_untyped_ok() {
         let message = TestProto { status: Status::PASS.into(), ..Default::default() };
 
@@ -177,6 +200,32 @@ mod tests {
             handler.read_untyped().await,
             ReadDataItemResponse {
                 response_code: ResponseCode::GENERAL_REJECT.into(),
+                ..Default::default()
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_data_item_read_untyped_format_err() {
+        struct UnserializableDataItem;
+
+        #[async_trait::async_trait]
+        impl DataItemHandler<UnserializableMessage> for UnserializableDataItem {
+            async fn read(&self) -> DiagnosticsResult<UnserializableMessage> {
+                Ok(UnserializableMessage::default())
+            }
+
+            async fn write(&self, _value: UnserializableMessage) -> ResponseCode {
+                ResponseCode::POSITIVE_RESPONSE
+            }
+        }
+
+        let handler = UnserializableDataItem {};
+
+        assert_eq!(
+            handler.read_untyped().await,
+            ReadDataItemResponse {
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             }
         );

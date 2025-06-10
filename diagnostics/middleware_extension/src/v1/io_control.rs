@@ -83,6 +83,7 @@ fn to_io_control_response<T: MessageFull>(result: DiagnosticsResult<T>) -> IoCon
 #[cfg(test)]
 mod tests {
     use crate::io_control::IoControlHandler;
+    use crate::test::test_messages::UnserializableMessage;
     use crate::DiagnosticsResult;
     use diagnostics_v1_api::event::Event as TestProto;
     use diagnostics_v1_api::event::Status;
@@ -119,6 +120,37 @@ mod tests {
         }
     }
 
+    struct UnserializableIoControlHandler;
+
+    #[async_trait::async_trait]
+    impl IoControlHandler<UnserializableMessage> for UnserializableIoControlHandler {
+        async fn return_control_to_ecu(
+            &self,
+            _mask: &[u8],
+        ) -> DiagnosticsResult<UnserializableMessage> {
+            Ok(UnserializableMessage::default())
+        }
+
+        async fn reset_to_default(&self, _mask: &[u8]) -> DiagnosticsResult<UnserializableMessage> {
+            Ok(UnserializableMessage::default())
+        }
+
+        async fn freeze_current_state(
+            &self,
+            _mask: &[u8],
+        ) -> DiagnosticsResult<UnserializableMessage> {
+            Ok(UnserializableMessage::default())
+        }
+
+        async fn short_term_adjustment(
+            &self,
+            _adjusted_value: UnserializableMessage,
+            _mask: &[u8],
+        ) -> DiagnosticsResult<UnserializableMessage> {
+            Ok(UnserializableMessage::default())
+        }
+    }
+
     #[tokio::test]
     async fn test_return_control_to_ecu_untyped_ok() {
         let message = TestProto { status: Status::PASS.into(), ..Default::default() };
@@ -139,6 +171,19 @@ mod tests {
             handler.return_control_to_ecu_untyped(MASK).await,
             IoControlResponse {
                 response_code: ResponseCode::GENERAL_REJECT.into(),
+                ..Default::default()
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_return_control_to_ecu_untyped_format_err() {
+        let handler = UnserializableIoControlHandler;
+
+        assert_eq!(
+            handler.return_control_to_ecu_untyped(MASK).await,
+            IoControlResponse {
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             }
         );
@@ -170,6 +215,19 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_reset_to_default_untyped_format_err() {
+        let handler = UnserializableIoControlHandler;
+
+        assert_eq!(
+            handler.reset_to_default_untyped(MASK).await,
+            IoControlResponse {
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
+                ..Default::default()
+            }
+        );
+    }
+
+    #[tokio::test]
     async fn test_freeze_current_state_untyped_ok() {
         let message = TestProto { status: Status::PASS.into(), ..Default::default() };
 
@@ -189,6 +247,19 @@ mod tests {
             handler.freeze_current_state_untyped(MASK).await,
             IoControlResponse {
                 response_code: ResponseCode::GENERAL_REJECT.into(),
+                ..Default::default()
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_freeze_current_state_untyped_format_err() {
+        let handler = UnserializableIoControlHandler;
+
+        assert_eq!(
+            handler.freeze_current_state_untyped(MASK).await,
+            IoControlResponse {
+                response_code: ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT.into(),
                 ..Default::default()
             }
         );
