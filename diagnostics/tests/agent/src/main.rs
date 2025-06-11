@@ -11,6 +11,7 @@ use diagnostics_v1_api::{
 use futures::future;
 use futures::stream::StreamExt;
 use log::{debug, info, warn};
+use protobuf::MessageDyn;
 use protobuf::MessageFull;
 use sdv_comms::dt::{SubscriberOptions, SubscriberStream};
 use sdv_comms::id::ServiceFqin;
@@ -29,11 +30,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
+use tracing::Instrument;
 
 mod unit_types;
 use crate::unit_types::*;
 
-use protobuf::MessageDyn;
 use tracing::instrument;
 
 static BINDER_TAG: &str = "diagnostics";
@@ -300,8 +301,14 @@ async fn read_data_items(
     let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
     let translator = DiagnosticsTranslator::new(vsidl_provider.clone());
 
-    let diagnostics_declaration =
-        vsidl_provider.get_diagnostics_declaration(&service_fqin).await.unwrap_or_default();
+    let diagnostics_declaration = vsidl_provider
+        .get_diagnostics_declaration(&service_fqin)
+        .instrument(tracing::info_span!(
+            "get_diagnostics_declaration_pre_read_data_rpc_call",
+            fqin = service_unit.get_service_bundle_identity().get_fqin().get_service_bundle_name()
+        ))
+        .await
+        .unwrap_or_default();
 
     dumpsys_logger.add_line(format!(
         "DataItems diagnostics declaration of a {} : {:#?}",
@@ -316,6 +323,12 @@ async fn read_data_items(
             ReadDataItemRequest { id: data_item.id.clone(), ..Default::default() },
             dumpsys_logger.clone(),
         )
+        .instrument(tracing::info_span!(
+            "read_data_item_rpc_call",
+            fqbn = service_unit.get_service_bundle_identity().get_fqin().get_service_bundle_name(),
+            data_type = service_unit.get_unit_identifier().get_unit_name(),
+            data_item_id = data_item.id.clone()
+        ))
         .await;
 
         let Ok(result) = result else {
@@ -755,7 +768,11 @@ async fn set_service_unit_registration_callback<F, Fut>(
         .await
 }
 
-#[instrument(skip_all, fields(request = request.descriptor_dyn().name()))]
+#[instrument(skip_all, fields(
+    fqbn = service_unit.get_service_bundle_identity().get_fqin().get_service_bundle_name(),
+    data_type = service_unit.get_unit_identifier().get_unit_name(),
+    request = request.descriptor_dyn().name()
+))]
 async fn perform_and_log_rpc_call<T: Method>(
     context: ContextRef,
     service_unit: &ServiceUnitDefinition,

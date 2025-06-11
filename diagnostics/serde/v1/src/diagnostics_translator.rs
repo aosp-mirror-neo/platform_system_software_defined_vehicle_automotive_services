@@ -10,6 +10,7 @@ use protobuf::reflect::MessageDescriptor;
 use sdv_comms::id::ServiceFqin;
 use sdv_config_provider::vsidl_provider_api::VsidlConfigProviderV1;
 use std::sync::Arc;
+use tracing::instrument;
 use vsidl_v1::diagnostics::DiagnosticsDeclaration;
 
 /// UDS to SDV translator for diagnostic entities.
@@ -39,6 +40,10 @@ impl DiagnosticsTranslator {
     ///
     /// `proto_bytes` are expected to be in format produced by
     /// `MessageDyn::write_to_bytes()`.
+    #[instrument(skip_all, fields(
+        fqbn = service_fqbn.get_service_bundle_name(),
+        entity = format!("{:?}", entity_id)
+    ))]
     pub async fn translate_from_protobuf_to_uds(
         &self,
         service_fqbn: &ServiceFqin,
