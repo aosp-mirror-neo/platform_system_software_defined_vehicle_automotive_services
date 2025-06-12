@@ -131,5 +131,5 @@ async fn main() {
         dm.set_agent_state("Diagnostics Test Error");
     }
 
-    sdv_dump::ProcessState::join_thread_pool();
+    tokio::task::block_in_place(sdv_dump::ProcessState::join_thread_pool);
 }
