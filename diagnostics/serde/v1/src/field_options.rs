@@ -38,6 +38,19 @@ fn get_varint_option(field_descriptor: &FieldDescriptor, option_id: u32) -> Opti
     })
 }
 
+fn get_length_delimited_option(
+    field_descriptor: &FieldDescriptor,
+    option_id: u32,
+) -> Option<&[u8]> {
+    get_option_by_id(field_descriptor, option_id).and_then(|unknown_value| {
+        if let LengthDelimited(value) = unknown_value {
+            Some(value)
+        } else {
+            None
+        }
+    })
+}
+
 /// Helper function for retrieving option value as an `UnknownValueRef`.
 fn get_option_by_id(field_descriptor: &FieldDescriptor, option_id: u32) -> Option<UnknownValueRef> {
     field_descriptor.proto().options.special_fields.unknown_fields().get(option_id)
@@ -68,16 +81,7 @@ impl FieldOptions for FieldDescriptor {
     fn fixed_point_encoding(&self) -> Option<FixedPointEncoding> {
         const FIXED_POINT_ENCODING: u32 = 50201;
 
-        get_option_by_id(self, FIXED_POINT_ENCODING)
-            .and_then(
-                |unknown_value| {
-                    if let LengthDelimited(value) = unknown_value {
-                        Some(value)
-                    } else {
-                        None
-                    }
-                },
-            )
+        get_length_delimited_option(self, FIXED_POINT_ENCODING)
             .map(FixedPointEncoding::parse_from_bytes)
             .and_then(Result::ok)
     }
@@ -85,17 +89,45 @@ impl FieldOptions for FieldDescriptor {
     fn skip_for_diag(&self) -> bool {
         const SKIP_FOR_DIAG: u32 = 50202;
 
-        get_option_by_id(self, SKIP_FOR_DIAG)
-            .and_then(
-                |unknown_value| {
-                    if let Varint(value) = unknown_value {
-                        Some(value)
-                    } else {
-                        None
-                    }
-                },
-            )
-            .map(|value| value != 0)
-            .unwrap_or(false)
+        get_varint_option(self, SKIP_FOR_DIAG).map(|value| value != 0).unwrap_or(false)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::translator::runtime_message_descriptor::get_message_descriptor;
+
+    #[test]
+    fn test_mistyped_option() {
+        let descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/diagnostics/v1/diagnostics.proto";
+
+            message TestProto {
+                float field_with_mistyped_options = 1 [
+                    (sdv.diagnostics.v1.fixed_point_encoding) = {
+                        scale: 0.001
+                        offset: 20
+                    },
+                    (sdv.diagnostics.v1.primitive_byte_size) = ONE,
+                    (sdv.diagnostics.v1.skip_for_diag) = true
+                ];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let field_descriptor = descriptor.field_by_name("field_with_mistyped_options").unwrap();
+
+        // Options are present
+        assert!(field_descriptor.fixed_point_encoding().is_some());
+        assert!(field_descriptor.skip_for_diag());
+
+        // Getting them with wrong type returns `None`
+        assert!(get_varint_option(&field_descriptor, 50201).is_none());
+        assert!(get_length_delimited_option(&field_descriptor, 50202).is_none());
     }
 }
