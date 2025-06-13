@@ -24,14 +24,16 @@ impl ProtoManager {
                 .iter()
                 .filter_map(|dep| self.get_file_descriptor_with_deps(dep))
                 .collect::<Vec<_>>();
-            let fd = Fd::new_dynamic(fd_proto.clone(), &deps).unwrap();
-            if fd.message_by_full_name(full_mes_name).is_some() {
-                let deps = fd_proto
-                    .dependency
-                    .iter()
-                    .filter_map(|dep| self.get_file_descriptor_with_deps(dep))
-                    .collect::<Vec<_>>();
-                return Some(Fd::new_dynamic(fd_proto.clone(), &deps.clone()).unwrap());
+            let fd_res = Fd::new_dynamic(fd_proto.clone(), &deps);
+            if let Ok(fd) = fd_res {
+                if fd.message_by_full_name(full_mes_name).is_some() {
+                    let deps = fd_proto
+                        .dependency
+                        .iter()
+                        .filter_map(|dep| self.get_file_descriptor_with_deps(dep))
+                        .collect::<Vec<_>>();
+                    return Fd::new_dynamic(fd_proto.clone(), &deps.clone()).ok();
+                }
             }
         }
         None
@@ -45,7 +47,7 @@ impl ProtoManager {
             .iter()
             .filter_map(|dep| self.get_file_descriptor_with_deps(dep))
             .collect::<Vec<_>>();
-        Some(Fd::new_dynamic(fd, &deps).unwrap())
+        Fd::new_dynamic(fd, &deps).ok()
     }
 
     fn find_file_descriptor(&self, file_name: &str) -> Option<FdProto> {
