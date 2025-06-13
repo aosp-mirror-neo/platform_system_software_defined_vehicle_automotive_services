@@ -129,31 +129,33 @@ impl com_sdv_google_concal_con_cal_registration_service_rpc::Interface
     ) -> sdv_status_rs::SdvResult<concal_api::concal_registration_service::GetConfigResponse> {
         let mlock = acquire_lock_or_return_err!(self.data, GetConfigResponse);
 
-        if request.config_id.is_none() {
+        let Some(config_id_req) = request.config_id.clone().into_option() else {
             return Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::InvalidArgument,
                 "Request does not provide a config id",
             ));
+        };
+        let config_id = HashableConfigId::from(config_id_req);
+        let Some(config) =
+            mlock.derived_configs.get(&config_id).or(mlock.base_configs.get(&config_id))
+        else {
+            return Err(sdv_status_rs::SdvStatus::with_message(
+                SdvStatusCode::NotFound,
+                format!("Config with ID {:?} does not exist", config_id),
+            ));
+        };
+
+        match config.data().clone().write_to_bytes() {
+            Ok(config_bytes) => Ok(GetConfigResponse {
+                config: config_bytes,
+                config_version: config.version().clone(),
+                ..Default::default()
+            }),
+            Err(error) => Err(sdv_status_rs::SdvStatus::with_message(
+                SdvStatusCode::Internal,
+                format!("Failed to write config data to bytes: {:?}", error),
+            )),
         }
-
-        let config_id = HashableConfigId::from(request.config_id.clone().unwrap());
-        let config =
-            match mlock.derived_configs.get(&config_id).or(mlock.base_configs.get(&config_id)) {
-                Some(x) => x,
-                None => {
-                    return Err(sdv_status_rs::SdvStatus::with_message(
-                        SdvStatusCode::NotFound,
-                        format!("Config with ID {:?} does not exist", config_id),
-                    ))
-                }
-            };
-
-        let config_bytes = config.data().clone().write_to_bytes().unwrap();
-        return Ok(GetConfigResponse {
-            config: config_bytes,
-            config_version: config.version().clone(),
-            ..Default::default()
-        });
     }
 
     async fn RegisterConfigMetadata(
@@ -165,14 +167,13 @@ impl com_sdv_google_concal_con_cal_registration_service_rpc::Interface
     > {
         let mut mlock = acquire_lock_or_return_err!(self.data, RegisterConfigMetadataResponse);
 
-        let config_id = match request.config_id.is_some() {
-            true => HashableConfigId::from(request.config_id.clone().unwrap()),
-            false => {
-                return Err(sdv_status_rs::SdvStatus::with_message(
-                    SdvStatusCode::InvalidArgument,
-                    "ConfigId is empty",
-                ));
-            }
+        let config_id = if let Some(config_id_req) = request.config_id.clone().into_option() {
+            HashableConfigId::from(config_id_req)
+        } else {
+            return Err(sdv_status_rs::SdvStatus::with_message(
+                SdvStatusCode::InvalidArgument,
+                "ConfigId is empty",
+            ));
         };
         if config_id.contains_empty_fields() {
             return Err(sdv_status_rs::SdvStatus::with_message(
@@ -181,38 +182,37 @@ impl com_sdv_google_concal_con_cal_registration_service_rpc::Interface
             ));
         }
         if mlock.base_configs.contains_key(&config_id)
-            && mlock.base_configs.get(&config_id).unwrap().version() == &request.config_version
+            && mlock
+                .base_configs
+                .get(&config_id)
+                .is_some_and(|config| config.version() == &request.config_version)
         {
             return Ok(RegisterConfigMetadataResponse { ..Default::default() });
         }
 
-        let metadata: ConfigMetadata = match request.metadata.is_some() {
-            true => request.metadata.clone().unwrap(),
-            false => {
-                return Err(sdv_status_rs::SdvStatus::with_message(
-                    SdvStatusCode::InvalidArgument,
-                    format!("Metadata for config {:?} is not initialized", config_id),
-                ));
-            }
+        let Some(metadata) = request.metadata.clone().into_option() else {
+            return Err(sdv_status_rs::SdvStatus::with_message(
+                SdvStatusCode::InvalidArgument,
+                format!("Metadata for config {:?} is not initialized", config_id),
+            ));
         };
 
-        if metadata.default_config.is_none() {
+        let Some(metadata_default_config) = metadata.default_config.clone().into_option() else {
             return Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::InvalidArgument,
                 format!("Default configuration for config {:?} is not provided", config_id),
             ));
-        }
+        };
 
-        if metadata.descriptor_set.is_none() {
+        let Some(metadata_descriptor_set) = metadata.descriptor_set.clone().into_option() else {
             return Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::InvalidArgument,
                 format!("Descriptor set for config {:?} is not provided", config_id),
             ));
-        }
-
+        };
         let config = Configuration::new(
-            metadata.default_config.unwrap().clone(),
-            metadata.descriptor_set.unwrap().clone(),
+            metadata_default_config,
+            metadata_descriptor_set,
             request.config_version.clone(),
         );
 
@@ -229,15 +229,14 @@ impl com_sdv_google_concal_con_cal_registration_service_rpc::Interface
     {
         let mlock = acquire_lock_or_return_err!(self.data, GetConfigMetadataResponse);
 
-        let config_id = match request.config_id.is_some() {
-            true => HashableConfigId::from(request.config_id.clone().unwrap()),
-            false => {
-                return Err(sdv_status_rs::SdvStatus::with_message(
-                    SdvStatusCode::InvalidArgument,
-                    "ConfigId is empty",
-                ));
-            }
+        let Some(config_id_req) = request.config_id.clone().into_option() else {
+            return Err(sdv_status_rs::SdvStatus::with_message(
+                SdvStatusCode::InvalidArgument,
+                "ConfigId is empty",
+            ));
         };
+        let config_id = HashableConfigId::from(config_id_req);
+
         if config_id.contains_empty_fields() {
             return Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::InvalidArgument,
@@ -245,9 +244,8 @@ impl com_sdv_google_concal_con_cal_registration_service_rpc::Interface
             ));
         }
 
-        let config = match mlock.base_configs.get(&config_id) {
-            Some(x) => x,
-            None => return Ok(GetConfigMetadataResponse::new()),
+        let Some(config) = mlock.base_configs.get(&config_id) else {
+            return Ok(GetConfigMetadataResponse::new());
         };
 
         let mut response = GetConfigMetadataResponse::new();
@@ -284,10 +282,15 @@ impl com_sdv_google_concal_con_cal_update_service_rpc::Interface
 
         mlock.overrides.snapshot();
 
-        Ok(StartConfigUpdateResponse {
-            update_id: mlock.current_update_id.unwrap(),
-            ..Default::default()
-        })
+        match mlock.current_update_id {
+            Some(current_update_id) => {
+                Ok(StartConfigUpdateResponse { update_id: current_update_id, ..Default::default() })
+            }
+            None => Err(sdv_status_rs::SdvStatus::with_message(
+                SdvStatusCode::NotFound,
+                "Update ID not found",
+            )),
+        }
     }
     async fn AddOrUpdateConfigOverride(
         &self,
@@ -307,8 +310,9 @@ impl com_sdv_google_concal_con_cal_update_service_rpc::Interface
             }
         }
 
-        if mlock.current_update_id.is_none()
-            || request.update_id != mlock.current_update_id.unwrap()
+        if mlock
+            .current_update_id
+            .is_none_or(|current_update_id| request.update_id != current_update_id)
         {
             return Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::InvalidArgument,
@@ -347,8 +351,9 @@ impl com_sdv_google_concal_con_cal_update_service_rpc::Interface
     {
         let mut mlock = acquire_lock_or_return_err!(self.data, CancelConfigUpdateResponse);
 
-        if mlock.current_update_id.is_none()
-            || request.update_id != mlock.current_update_id.unwrap()
+        if mlock
+            .current_update_id
+            .is_none_or(|current_update_id| request.update_id != current_update_id)
         {
             return Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::InvalidArgument,
@@ -372,8 +377,9 @@ impl com_sdv_google_concal_con_cal_update_service_rpc::Interface
     {
         let mut mlock = acquire_lock_or_return_err!(self.data, FinishConfigUpdateResponse);
 
-        if mlock.current_update_id.is_none()
-            || request.update_id != mlock.current_update_id.unwrap()
+        if mlock
+            .current_update_id
+            .is_none_or(|current_update_id| request.update_id != current_update_id)
         {
             return Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::InvalidArgument,
