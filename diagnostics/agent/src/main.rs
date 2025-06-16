@@ -10,8 +10,7 @@ use diagnostics_v1_api::{
 };
 use futures::future;
 use futures::stream::StreamExt;
-use log::debug;
-use log::info;
+use log::{debug, info, warn};
 use protobuf::MessageFull;
 use sdv_comms::dt::{SubscriberOptions, SubscriberStream};
 use sdv_comms::id::ServiceFqin;
@@ -66,8 +65,8 @@ impl Display for Logger {
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 2)]
 #[instrument]
-async fn main() {
-    sdv_log::init_logger("sdv_diagnostics_agent").unwrap();
+async fn main() -> anyhow::Result<()> {
+    sdv_log::init_logger("sdv_diagnostics_agent")?;
     sdv_tracing::init_tracing();
 
     let dm = DumpBinderConnection::initialize(DUMP_REPORT_TITLE, BINDER_TAG);
@@ -83,8 +82,7 @@ async fn main() {
     sdv_comms::wait_for_agents()
         .unwrap_or_else(|err| panic!("Error waiting for Comms Stack agents: {err}"));
 
-    let self_fqin =
-        ServiceFqin::from_str("vm:com.sdv.oem.diagnostics.DiagnosticsAgent/default").unwrap();
+    let self_fqin = ServiceFqin::from_str("vm:com.sdv.oem.diagnostics.DiagnosticsAgent/default")?;
     let context: ContextRef = ContextRef::create(self_fqin.clone());
 
     dm.set_self_fqin(&self_fqin);
@@ -163,6 +161,7 @@ async fn main() {
     binder::ProcessState::start_thread_pool();
 
     let () = future::pending().await;
+    Ok(())
 }
 
 async fn listen_to_all_publications_of_type<T: PublicationUnitType>(
@@ -355,13 +354,14 @@ async fn print_typed_routine_start_response(
 ) {
     let diagnostics_declaration =
         vsidl_provider.get_diagnostics_declaration(diag_server_fqin).await.unwrap_or_default();
-    let response_type_name = &diagnostics_declaration
-        .routine
-        .iter()
-        .find(|routine| routine.id == routine_id)
-        .unwrap()
-        .start
-        .response;
+    let routine = &diagnostics_declaration.routine.iter().find(|routine| routine.id == routine_id);
+
+    let Some(routine) = routine else {
+        warn!("Failed to retrieve routine info from declaration: {routine:?}");
+        return;
+    };
+
+    let response_type_name = &routine.start.response;
 
     let response_descriptor =
         vsidl_provider.get_message_descriptor(diag_server_fqin, response_type_name).await.unwrap();
@@ -516,7 +516,7 @@ async fn update_faults_status(
 
     for event in diagnostics_declaration.event {
         dumpsys_logger.add_line(format!("Trying to update fault status: {:#?}", event));
-        let _ = perform_and_log_rpc_call::<OnFaultStatusChange>(
+        let response = perform_and_log_rpc_call::<OnFaultStatusChange>(
             context,
             &service_unit,
             OnFaultStatusChangeRequest {
@@ -527,6 +527,10 @@ async fn update_faults_status(
             dumpsys_logger.clone(),
         )
         .await;
+
+        if response.is_err() {
+            dumpsys_logger.add_line("Error: Failed to perform rpc call".to_owned());
+        };
     }
 }
 
@@ -800,9 +804,9 @@ fn decode<T: MessageFull>(message_bytes: &[u8]) -> Result<T, protobuf::Error> {
 
 fn decode_with_len<T: MessageFull>(message_bytes: &[u8]) -> Result<T, protobuf::Error> {
     let mut input_stream = protobuf::CodedInputStream::from_bytes(message_bytes);
-    let size = input_stream.read_raw_varint32().unwrap().into();
+    let size = input_stream.read_raw_varint32()?.into();
     // And parse only the part of the byte array that contains the message
-    let _ = input_stream.push_limit(size);
+    input_stream.push_limit(size)?;
 
     T::parse_from(&mut input_stream)
 }

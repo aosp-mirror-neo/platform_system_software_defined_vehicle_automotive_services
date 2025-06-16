@@ -13,14 +13,13 @@ use diagnostics_v1_sample_catalog::messages::OverheatingData;
 use sdv::diagnostics::api::event::Status;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     let sdv_comms = SdvComms {
-        context: ContextRef::create(
-            ServiceFqin::from_str("vm:com.sdv.oem.sample.diagnostics.DiagnosticsProvider2/sample")
-                .unwrap(),
-        ),
+        context: ContextRef::create(ServiceFqin::from_str(
+            "vm:com.sdv.oem.sample.diagnostics.DiagnosticsProvider2/sample",
+        )?),
     };
-    let service = DiagnosticsProvider2::new(Arc::new(sdv_comms)).await.unwrap();
+    let service = DiagnosticsProvider2::new(Arc::new(sdv_comms)).await?;
 
     println!("Diagnostics provider service bundle started.");
 

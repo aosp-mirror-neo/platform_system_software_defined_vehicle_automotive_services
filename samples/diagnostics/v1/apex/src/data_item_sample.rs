@@ -44,7 +44,11 @@ impl ServiceBundle for DiagnosticsSampleWithDataItemRunner {
         let context = self.context;
 
         self.background_thread = Some(thread::spawn(move || {
-            let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap();
+            let Ok(rt) = tokio::runtime::Builder::new_multi_thread().enable_all().build() else {
+                error!("Failed to build Tokio runtime");
+                return;
+            };
+
             rt.block_on(async {
                 let comms = Arc::new(SdvComms { context });
                 let service_bundle = DiagnosticsSampleWithDataItem::new(
@@ -74,7 +78,9 @@ impl ServiceBundle for DiagnosticsSampleWithDataItemRunner {
         self.cancellation_token.as_mut().expect("Must have been created on_start").cancel();
 
         if let Some(thread) = self.background_thread.take() {
-            let _ = thread.join();
+            if thread.join().is_err() {
+                error!("Failed to join background thread in on_stop");
+            }
         }
 
         self.cancellation_token = None;
