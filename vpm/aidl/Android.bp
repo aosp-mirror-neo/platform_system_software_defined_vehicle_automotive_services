@@ -19,7 +19,11 @@ aidl_interface {
             ],
         },
         ndk: {
-            enabled: false,
+            enabled: true,
+            apex_available: [
+                "//apex_available:anyapex",
+                "//apex_available:platform",
+            ],
         },
         cpp: {
             enabled: false,
