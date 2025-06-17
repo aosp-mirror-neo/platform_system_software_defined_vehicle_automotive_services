@@ -37,6 +37,11 @@ sdv_service_bundle {
         interface: "com.sdv.google.orchestrator.CustomStateService"
     }
 
+    # Dependency on Update Manager.
+    server {
+        interface: "com.sdv.google.update_manager.client.UpdateManagerListenerService"
+    }
+
     diagnostics_declaration {
         data_item {
             id: "item"

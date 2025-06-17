@@ -20,6 +20,7 @@ rust_protobuf {
     apex_available: [
         "//apex_available:platform",
     ],
+    exported_include_dirs: ["."],
     min_sdk_version: "35",
 }
 
