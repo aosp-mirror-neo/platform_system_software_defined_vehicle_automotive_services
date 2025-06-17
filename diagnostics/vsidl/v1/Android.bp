@@ -17,6 +17,7 @@ rust_protobuf {
     rustlibs: [
         "libvsidl_v1_proto_rs",
     ],
+    exported_include_dirs: ["."],
     vendor_available: true,
     product_available: true,
     host_supported: true,

@@ -11,11 +11,12 @@ rust_protobuf {
     protos: [
         ":libuser_preferences_protos_stable",
     ],
-    rustlibs: ["libvsidl_v1_proto_rs"],
+    rustlibs: ["libvsidl_v1_stdlib_proto_rs"],
     source_stem: "user_preferences_source_stable",
     proto_flags: [
         "-I external/protobuf/src",
     ],
+    exported_include_dirs: ["."],
     product_available: true,
     vendor_available: true,
     host_supported: true,

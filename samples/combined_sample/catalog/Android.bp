@@ -16,6 +16,13 @@ rust_protobuf {
     ],
     rustlibs: [
         "libvsidl_v1_proto_rs",
+        "libconcal_api",
+        "libdiagnostics_v1_api",
+        "libuser_preferences_api_stable",
+        "libsdv_vpm_api",
+        "libhealth_api",
+        "libsdv_orch_api_stable",
+        "libupdate_manager_api",
     ],
     vendor_available: true,
     product_available: true,

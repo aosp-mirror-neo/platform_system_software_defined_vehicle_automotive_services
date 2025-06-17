@@ -61,6 +61,14 @@ impl UnitType for dyn com_sdv_google_orchestrator_custom_state_service_rpc::Inte
     const TYPENAME: &'static str = "CustomStateService";
 }
 
+impl UnitType
+    for dyn com_sdv_google_update_manager_client_update_manager_listener_service_rpc::Interface
+{
+    const PACKAGE: &'static str = "com.sdv.google.update_manager";
+    const SERVICE_BUNDLE: &'static str = "UpdateManagerAgent";
+    const TYPENAME: &'static str = "client.UpdateManagerListenerService";
+}
+
 /// Service bundle
 pub struct SampleServiceWithAllDependencies {
     comms: std::sync::Arc<dyn sdv::mw::Communicate>,
@@ -74,18 +82,13 @@ impl SampleServiceWithAllDependencies {
     pub async fn new(
         comms: std::sync::Arc<dyn sdv::mw::Communicate>,
         servers: (
-            std::sync::Arc<
-                dyn com_sdv_google_diagnostics_data_item_data_item_service_rpc::Interface,
-            >,
-            std::sync::Arc<
-                dyn com_sdv_google_concal_calib_client_calibratable_service_rpc::Interface,
-            >,
+            std::sync::Arc<dyn com_sdv_google_diagnostics_data_item_data_item_service_rpc::Interface>,
+            std::sync::Arc<dyn com_sdv_google_concal_calib_client_calibratable_service_rpc::Interface>,
             std::sync::Arc<dyn com_sdv_google_user_preferences_view_change_notifier_rpc::Interface>,
             std::sync::Arc<dyn com_sdv_google_vpm_vpm_system_service_rpc::Interface>,
-            std::sync::Arc<
-                dyn com_sdv_google_health_health_monitor_registration_service_rpc::Interface,
-            >,
+            std::sync::Arc<dyn com_sdv_google_health_health_monitor_registration_service_rpc::Interface>,
             std::sync::Arc<dyn com_sdv_google_orchestrator_custom_state_service_rpc::Interface>,
+            std::sync::Arc<dyn com_sdv_google_update_manager_client_update_manager_listener_service_rpc::Interface>,
         ),
     ) -> sdv::status::SdvResult<Self> {
         let mut service = Self {
@@ -134,6 +137,12 @@ impl SampleServiceWithAllDependencies {
                     servers.5.clone(),
                 ),
                 servers.5.init_server_options(),
+            )
+            .await?;
+        service.add_server::<dyn com_sdv_google_update_manager_client_update_manager_listener_service_rpc::Interface>(
+                com_sdv_google_update_manager_client_update_manager_listener_service_rpc::internal::DEFAULT_UNIT_NAME.to_string(),
+                com_sdv_google_update_manager_client_update_manager_listener_service_rpc::internal::get_method_map(servers.6.clone()),
+                servers.6.init_server_options(),
             )
             .await?;
         Ok(service)
