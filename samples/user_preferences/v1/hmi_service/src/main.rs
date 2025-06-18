@@ -12,6 +12,7 @@ use sdv_comms::ContextRef;
 use sdv_mw_rs_com_sdv_oem_user_preferences_hmi_service::HMIService;
 use sdv_mw_rs_comms::{ClientOptions, RpcClient, UnitName};
 use sdv_mw_rs_sdv_comms::SdvComms;
+use sdv_status_rs::SdvResult;
 use std::sync::Arc;
 use user_preferences_api::setting::setting::Value;
 use user_preferences_api::user::{user::UserFlags, User};
@@ -34,16 +35,16 @@ pub const SETTINGS_GROUP_NAME: &str = "HVAC";
 pub const TEMPERATURE: &str = "TEMPERATURE";
 
 #[tokio::main]
-async fn main() {
-    let context = create_context();
+async fn main() -> anyhow::Result<()> {
+    let context = create_context()?;
     let sdv_coms = Arc::new(SdvComms { context });
 
-    let hvac_service_fqin = get_hvac_service_fqin(context).await;
+    let hvac_service_fqin = get_hvac_service_fqin(context).await?;
 
     let hmi_service_impl = Arc::new(HmiServiceImpl::new());
     let service = HMIService::new(sdv_coms, (hmi_service_impl.clone(),))
         .await
-        .expect("Failed to start service bundle");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to start service bundle: {e}")))?;
 
     let admin_service_client: AdminServiceClient = service
         .create_rpc_client::<AdminServiceClient>(
@@ -51,24 +52,26 @@ async fn main() {
                 .package_name("com.sdv.oem.user_preferences")
                 .bundle_name("UserPreferencesServiceBundle")
                 .service_unit_name(AdminServiceClient::DEFAULT_UNIT_NAME)
-                .build()
-                .unwrap(),
+                .build()?,
             ClientOptions::default(),
         )
         .await
-        .expect("Failed to create client to User Preferences");
+        .map_err(|e| {
+            anyhow::Error::msg(format!("Failed to create client to User Preferences: {e}"))
+        })?;
     let management_service_client: ManagementServiceClient = service
         .create_rpc_client::<ManagementServiceClient>(
             UnitName::builder()
                 .package_name("com.sdv.oem.user_preferences")
                 .bundle_name("UserPreferencesServiceBundle")
                 .service_unit_name(ManagementServiceClient::DEFAULT_UNIT_NAME)
-                .build()
-                .unwrap(),
+                .build()?,
             ClientOptions::default(),
         )
         .await
-        .expect("Failed to create client to User Preferences");
+        .map_err(|e| {
+            anyhow::Error::msg(format!("Failed to create client to User Preferences: {e}"))
+        })?;
 
     let user_id = 1_i32;
     println!("Creating an ephemeral user");
@@ -83,12 +86,12 @@ async fn main() {
             ..Default::default()
         })
         .await
-        .expect("Failed to create user");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to create user: {e}")))?;
 
     admin_service_client
         .SelectUser(&SelectUserRequest { user_id, ..Default::default() })
         .await
-        .expect("Failed to select user");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to select user: {e}")))?;
 
     println!("Subscribing to setting changes");
     let response = management_service_client
@@ -102,7 +105,7 @@ async fn main() {
             ..Default::default()
         })
         .await
-        .expect("Failed to subscribe to setting changes");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to subscribe to setting changes: {e}")))?;
 
     println!("Current HVAC settings");
     print_settings_and_constraints(&response.active_settings);
@@ -124,7 +127,7 @@ async fn main() {
             ..Default::default()
         })
         .await
-        .expect("Failed to request setting change");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to request setting change: {e}")))?;
 
     hmi_service_impl.wait_for_settings_change().await;
 
@@ -165,12 +168,12 @@ async fn main() {
             ..Default::default()
         })
         .await
-        .expect("Failed to create user");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to create user: {e}")))?;
 
     admin_service_client
         .SelectUser(&SelectUserRequest { user_id: user_id_2, ..Default::default() })
         .await
-        .expect("Failed to select user");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to select user: {e}")))?;
 
     hmi_service_impl.wait_for_settings_change().await;
     println!("Switched to user {}", user_id_2);
@@ -178,7 +181,7 @@ async fn main() {
     let response = admin_service_client
         .ListUsers(&ListUsersRequest::new())
         .await
-        .expect("Failed to list users");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to list users: {e}")))?;
     println!(
         "List of available users: \"{}\"\n",
         response.users.into_iter().map(|user| format!("{}", user.id)).collect::<Vec<_>>().join(",")
@@ -197,12 +200,14 @@ async fn main() {
             ..Default::default()
         })
         .await
-        .expect("Failed to create user");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to create user: {e}")))?;
 
     admin_service_client
         .DeleteUser(&DeleteUserRequest { user_id: user_id_3, ..Default::default() })
         .await
-        .expect("Failed to perform request to delete user");
+        .map_err(|e| {
+            anyhow::Error::msg(format!("Failed to perform request to delete user: {e}"))
+        })?;
 
     println!("Deleted user {}", user_id_3);
 
@@ -218,12 +223,12 @@ async fn main() {
             ..Default::default()
         })
         .await
-        .expect("Failed to subscribe to setting changes");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to subscribe to setting changes: {e}")))?;
 
     admin_service_client
         .FactoryReset(&FactoryResetRequest::new())
         .await
-        .expect("Failed to perform factory reset");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to perform factory reset: {e}")))?;
 
     println!("---------------------------");
     println!("Scenario 2: User Preference configuring HVAC temperature to persisted temperature");
@@ -241,12 +246,12 @@ async fn main() {
             ..Default::default()
         })
         .await
-        .expect("Failed to create user");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to create user: {e}")))?;
 
     admin_service_client
         .SelectUser(&SelectUserRequest { user_id: user_id_4, ..Default::default() })
         .await
-        .expect("Failed to select user");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to select user: {e}")))?;
 
     println!("Set preferred temperature to 24");
     let _response = management_service_client
@@ -265,7 +270,7 @@ async fn main() {
             ..Default::default()
         })
         .await
-        .expect("Failed to request setting change");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to request setting change: {e}")))?;
 
     println!("Subscribing from setting changes");
     let _response = management_service_client
@@ -279,26 +284,26 @@ async fn main() {
             ..Default::default()
         })
         .await
-        .expect("Failed to subscribe to setting changes");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to subscribe to setting changes: {e}")))?;
 
     println!("Please restart the HVAC sample binary");
     println!("User Preferences will automatically detect it starting and set HVAC temperature to the user's desired temperature 24 ");
     std::thread::park();
+
+    Ok(())
 }
 
-fn create_context() -> ContextRef {
+fn create_context() -> SdvResult<ContextRef> {
     let fqin = ServiceFqin::builder()
         .sdv_vm_name("vm")
         .sdv_package_name("com.sdv.oem.user_preferences")
         .service_bundle_name("HmiService")
         .service_instance_name("default")
-        .build()
-        .unwrap();
-
-    ContextRef::create(fqin)
+        .build()?;
+    Ok(ContextRef::create(fqin))
 }
 
-async fn get_hvac_service_fqin(context: ContextRef) -> ServiceFqin {
+async fn get_hvac_service_fqin(context: ContextRef) -> anyhow::Result<ServiceFqin> {
     let sd = ServiceDiscoveryManager::new(context);
 
     let unit_type = UnitType::builder()
@@ -306,7 +311,11 @@ async fn get_hvac_service_fqin(context: ContextRef) -> ServiceFqin {
         .set_service_bundle_name("UserPreferencesServiceBundle")
         .set_unit_type_name("user_controllable.UserControllableService")
         .build()
-        .expect("Failed to construct unit type for user controllable services");
+        .map_err(|e| {
+            anyhow::Error::msg(format!(
+                "Failed to construct unit type for user controllable services: {e}"
+            ))
+        })?;
 
     let mut service_units_stream = sd.list_units_by_type(&unit_type);
 
@@ -317,7 +326,7 @@ async fn get_hvac_service_fqin(context: ContextRef) -> ServiceFqin {
             && fqin.get_service_bundle_name() == "HvacService"
             && fqin.get_service_instance_name() == "default"
         {
-            return fqin.clone();
+            return Ok(fqin.clone());
         }
     }
     panic!("Failed to find HVAC service");
