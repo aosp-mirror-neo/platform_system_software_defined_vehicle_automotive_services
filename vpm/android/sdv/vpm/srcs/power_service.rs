@@ -75,7 +75,9 @@ impl PowerServiceImpl {
     /// The POWER_OFF_EXIT state is the only possible state at this step because calling new() means we are coming from cold boot.
     /// If we resume from S2R or S2D new() should not be called again.
     pub fn new(comms: Arc<SdvComms>) -> Self {
-        Self::new_with_notifier(Arc::new(PowerStateNotifierImpl::new(comms)))
+        let self_fqin = comms.context.get_self_fqin();
+        let vm_name = self_fqin.get_sdv_vm_name();
+        Self::new_with_notifier(Arc::new(PowerStateNotifierImpl::new(comms, vm_name)))
     }
 
     fn new_with_notifier(power_state_notifier: Arc<dyn PowerStateNotifier>) -> Self {
