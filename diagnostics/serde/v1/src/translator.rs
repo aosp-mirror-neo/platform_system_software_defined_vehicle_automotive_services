@@ -152,6 +152,8 @@ mod tests {
                     offset: 20
                 }, (sdv.diagnostics.v1.primitive_byte_size) = TWO];
                 int32 my_skipped_i32 = 17 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                int32 my_three_byte_i32 = 18 [(sdv.diagnostics.v1.primitive_byte_size) = THREE];
+                uint32 my_three_bytes_u32 = 19 [(sdv.diagnostics.v1.primitive_byte_size) = THREE];
             }
 
             message InnerProto {
@@ -217,6 +219,10 @@ mod tests {
         proto_bytes.put(&20.101f32.to_le_bytes()[..]);
         proto_bytes.put(&[136, 1][..]); // VARINT field with field number '17'
         proto_bytes.put(&[128, 8][..]); // +1024
+        proto_bytes.put(&[144, 1][..]); // VARINT field with field number '18'
+        proto_bytes.put_u8(32); // +32
+        proto_bytes.put(&[152, 1][..]); // VARINT field with field number '19'
+        proto_bytes.put_u8(32); // +32
 
         let mut expected_uds_bytes = BytesMut::new();
         expected_uds_bytes.put_i64(-64);
@@ -240,6 +246,8 @@ mod tests {
         expected_uds_bytes.put_i8(1);
         expected_uds_bytes.put_i8(101);
         expected_uds_bytes.put_i16(101);
+        expected_uds_bytes.put(&[0, 0, 32][..]);
+        expected_uds_bytes.put(&[0, 0, 32][..]);
         let expected_uds_bytes = expected_uds_bytes.freeze();
 
         let uds_bytes =
@@ -291,6 +299,8 @@ mod tests {
                     offset: 20
                 }, (sdv.diagnostics.v1.primitive_byte_size) = TWO];
                 int32 my_skipped_i32 = 17 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                int32 my_three_byte_i32 = 18 [(sdv.diagnostics.v1.primitive_byte_size) = THREE];
+                uint32 my_three_bytes_u32 = 19 [(sdv.diagnostics.v1.primitive_byte_size) = THREE];
             }
 
             message InnerProto {
@@ -338,6 +348,8 @@ mod tests {
         uds_bytes.put_i8(1);
         uds_bytes.put_i8(101);
         uds_bytes.put_i16(101);
+        uds_bytes.put(&[0, 0, 32][..]);
+        uds_bytes.put(&[0, 0, 32][..]);
         let uds_bytes = uds_bytes.freeze();
 
         let mut expected_proto_bytes: Vec<u8> = vec![];
@@ -378,6 +390,10 @@ mod tests {
         expected_proto_bytes.put(&20.101f32.to_le_bytes()[..]);
         expected_proto_bytes.put(&[133, 1][..]); // I32 field with field number '16'
         expected_proto_bytes.put(&20.101f32.to_le_bytes()[..]);
+        expected_proto_bytes.put(&[144, 1][..]); // VARINT field with field number '18'
+        expected_proto_bytes.put_u8(32); // +32
+        expected_proto_bytes.put(&[152, 1][..]); // VARINT field with field number '19'
+        expected_proto_bytes.put_u8(32); // +32
 
         let proto_bytes =
             translator.translate_from_uds_to_protobuf(&uds_bytes, &message_descriptor).unwrap();
