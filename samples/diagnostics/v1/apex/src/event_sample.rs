@@ -67,7 +67,7 @@ impl ServiceBundle for DiagnosticsSampleWithEventRunner {
                 // Publisher "taken" from service_bundle should be kept in memory, in order to
                 // keep publication "alive".
                 // Here, publications die as soon as publishers get out of scope.
-                service_bundle
+                let operation_cycle_publisher = service_bundle
                     .take_publisher::<OperationCycle>(Variant::<OperationCycle>::UNIQUE)
                     .inspect(|publisher| {
                         publisher
@@ -77,11 +77,13 @@ impl ServiceBundle for DiagnosticsSampleWithEventRunner {
                                 ..Default::default()
                             })
                             .unwrap_or_else(|e| error!("Error publishing `ignition == START` for OperationCycle: {e:#}"));
-                        })
-                    .map(|_| ())
-                    .unwrap_or_else(|| error!("Error taking publisher for OperationCycle"));
+                    });
 
-                service_bundle
+                if operation_cycle_publisher.is_none() {
+                    error!("Error taking publisher for OperationCycle");
+                }
+
+                let enable_condition_publisher = service_bundle
                     .take_publisher::<EnableCondition>(Variant::<EnableCondition>::UNIQUE)
                     .inspect(|publisher| {
                         publisher.publish(&EnableCondition {
@@ -90,9 +92,11 @@ impl ServiceBundle for DiagnosticsSampleWithEventRunner {
                             ..Default::default()
                         })
                         .unwrap_or_else(|e| error!("Error publishing `freezing_temperature == true` for EnableCondition: {e:#}"));
-                    })
-                    .map(|_| ())
-                    .unwrap_or_else(|| error!("Error taking publisher for EnableCondition"));
+                    });
+
+                if enable_condition_publisher.is_none() {
+                    error!("Error taking publisher for EnableCondition");
+                }
 
                 service_bundle
                     .diagnostics
