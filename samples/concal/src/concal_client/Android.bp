@@ -19,6 +19,7 @@ rust_binary {
         "libcom_sdv_google_concal_con_cal_update_service_rpc_rs",
         "libsdv_mw_rs_com_sdv_oem_sample_concal_sample_oem_con_cal_client_service_bundle",
         "libsdv_rs",
+        "libanyhow",
         "libsdvtestconcal_proto_rust",
         "libtokio",
         "liblog_rust",

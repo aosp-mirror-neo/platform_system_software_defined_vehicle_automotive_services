@@ -31,30 +31,25 @@ use sdvtestconcal_proto_rust::rear_view_camera::RearViewCamera;
 static LOG_TAG: &str = "concal_sample_client";
 
 #[tokio::main]
-async fn main() {
-    sdv_log::init_logger(LOG_TAG).unwrap();
+async fn main() -> anyhow::Result<()> {
+    sdv_log::init_logger(LOG_TAG)?;
 
     let sdv_comms = SdvComms {
-        context: ContextRef::create(
-            CommsFqin::from_str(
-                "local-vm:com.sdv.oem.sample.concal.SampleOemConCalClientServiceBundle/sample",
-            )
-            .unwrap(),
-        ),
+        context: ContextRef::create(CommsFqin::from_str(
+            "local-vm:com.sdv.oem.sample.concal.SampleOemConCalClientServiceBundle/sample",
+        )?),
     };
 
     info!("Context for Sample ConCal Client is created.");
 
-    let service_bundle =
-        SampleOemConCalClientServiceBundle::new(Arc::new(sdv_comms)).await.unwrap();
+    let service_bundle = SampleOemConCalClientServiceBundle::new(Arc::new(sdv_comms)).await?;
     let client = service_bundle
         .create_rpc_client::<RegistrationClient>(
             UnitName::builder()
                 .package_name("com.sdv.oem.sample.concal")
                 .bundle_name("SampleOemConCalServiceBundle")
                 .service_unit_name(RegistrationClient::DEFAULT_UNIT_NAME)
-                .build()
-                .unwrap(),
+                .build()?,
             ClientOptions::default(),
         )
         .await
@@ -81,8 +76,7 @@ async fn main() {
                 .package_name("com.sdv.oem.sample.concal")
                 .bundle_name("SampleOemConCalServiceBundle")
                 .service_unit_name(UpdateClient::DEFAULT_UNIT_NAME)
-                .build()
-                .unwrap(),
+                .build()?,
             ClientOptions::default(),
         )
         .await
@@ -103,6 +97,8 @@ async fn main() {
     let config = parse_test_config_from_bytes(&config);
 
     info!("\n{:#?}", config);
+
+    Ok(())
 }
 
 fn test_config() -> RearViewCamera {

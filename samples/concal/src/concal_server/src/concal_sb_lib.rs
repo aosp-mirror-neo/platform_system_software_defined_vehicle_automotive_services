@@ -14,7 +14,7 @@ mod versioned_object;
 
 use crate::concal_impl::SampleOemConCalServiceBundleImpl;
 
-use log::info;
+use log::{error, info, warn};
 use sdv_mw_rs_com_sdv_oem_sample_concal_sample_oem_con_cal_service_bundle::SampleOemConCalServiceBundle as ConCalServiceBundleMw;
 use sdv_mw_rs_sdv_comms::SdvComms;
 use std::time::Duration;
@@ -59,7 +59,10 @@ impl ServiceBundle for SampleOemConCalServiceBundle {
         let cancellation_token = CancellationToken::new();
         self.cancellation_token = Some(cancellation_token.clone());
         self.background_thread = Some(thread::spawn(move || {
-            let rt = tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap();
+            let Ok(rt) = tokio::runtime::Builder::new_multi_thread().enable_all().build() else {
+                error!("Failed to build tokio runtime on start");
+                return;
+            };
             rt.block_on(async {
                 let concal = Arc::new(SampleOemConCalServiceBundleImpl::new());
                 let _service = match ConCalServiceBundleMw::new(
@@ -84,7 +87,10 @@ impl ServiceBundle for SampleOemConCalServiceBundle {
         // Trigger cancellation token to exit Tokio runtime execution and drop it
         self.cancellation_token.as_mut().expect("Must have been created on_start").cancel();
         if let Some(thread) = self.background_thread.take() {
-            let _ = thread.join();
+            let join_res = thread.join();
+            if join_res.is_err() {
+                warn!("Could not join thread to stop ConCal service.");
+            }
         }
         self.cancellation_token = None;
         info!("ConCal service bundle stopped");
