@@ -45,7 +45,7 @@ async fn main() -> anyhow::Result<()> {
         )?));
 
     let sb_implementation = Arc::new(
-        SimpleUserControllableServiceImpl::new(vec![hvac_setting_definition], client).await,
+        SimpleUserControllableServiceImpl::new(vec![hvac_setting_definition], client).await?,
     );
 
     let _hvac_service = CarSeatsService::new(comms, (sb_implementation,))
