@@ -63,9 +63,14 @@ impl ManagementServiceImpl {
                 )
             })?;
 
-            setting_definition.is_valid_value(&setting.value.clone().unwrap().into()).map_err(
-                |err| SdvStatus::with_message(SdvStatusCode::InvalidArgument, format!("{}", err)),
-            )?;
+            setting
+                .value
+                .clone()
+                .ok_or(SdvStatus::new(SdvStatusCode::NotFound))
+                .and_then(|value| setting_definition.is_valid_value(&value.into()))
+                .map_err(|err| {
+                    SdvStatus::with_message(SdvStatusCode::InvalidArgument, format!("{}", err))
+                })?;
         }
 
         Ok(())
@@ -130,7 +135,7 @@ impl ManagementService for ManagementServiceImpl {
 
         self.settings_change_propagator
             .queue_setting_change(
-                ServiceFqin::from_str(&setting_group.service_fqin).unwrap(),
+                ServiceFqin::from_str(&setting_group.service_fqin)?,
                 setting_group.name,
                 request.settings.iter().cloned().map_into().collect_vec(),
             )
@@ -144,7 +149,10 @@ impl ManagementService for ManagementServiceImpl {
         caller_id: sdv_comms::id::ServiceFqin,
         request: &SubscribeToSettingsChangeAndGetSettingsRequest,
     ) -> sdv_status_rs::SdvResult<SubscribeToSettingsChangeAndGetSettingsResponse> {
-        let settings_group_id = request.settings_group_id.as_ref().unwrap();
+        let settings_group_id = request
+            .settings_group_id
+            .as_ref()
+            .ok_or(Err(SdvStatus::new(SdvStatusCode::NotFound)))?;
         let settings_group = match self
             .persistence
             .setting_groups
@@ -188,7 +196,7 @@ impl ManagementService for ManagementServiceImpl {
         let pending_settings: Vec<SettingProto> = self
             .settings_change_propagator
             .get_pending_setting_changes(
-                &ServiceFqin::from_str(&settings_group_id.service_fqin).unwrap(),
+                &ServiceFqin::from_str(&settings_group_id.service_fqin)?,
                 &settings_group_id.name,
             )
             .await
@@ -212,7 +220,10 @@ impl ManagementService for ManagementServiceImpl {
         caller_id: sdv_comms::id::ServiceFqin,
         request: &UnsubscribeToSettingsChangeRequest,
     ) -> sdv_status_rs::SdvResult<UnsubscribeToSettingsChangeResponse> {
-        let settings_group_id = request.settings_group_id.as_ref().unwrap();
+        let settings_group_id = request
+            .settings_group_id
+            .as_ref()
+            .ok_or(Err(SdvStatus::new(SdvStatusCode::NotFound)))?;
 
         self.subscriptions_manager
             .unregister_subscriber(settings_group_id.clone(), caller_id)
