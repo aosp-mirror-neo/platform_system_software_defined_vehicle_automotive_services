@@ -11,7 +11,6 @@ use crate::settings_change_propagator_impl::SettingsChangePropagator;
 
 use async_trait::async_trait;
 use com_sdv_google_user_preferences_user_preferences_registry_service_rpc::Interface as RegistryService;
-use itertools::Itertools;
 use log::{error, info, warn};
 use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
 use std::collections::HashSet;
@@ -118,7 +117,12 @@ impl RegistryService for RegistryServiceImpl {
             }
         };
 
-        let settings: Vec<Setting> = request.settings.iter().cloned().map_into().collect_vec();
+        let settings: Vec<Setting> = request
+            .settings
+            .iter()
+            .cloned()
+            .map(|setting| setting.try_into())
+            .collect::<SdvResult<Vec<_>>>()?;
         info!("Updating vehicle settings in group: {}\n{:?}", settings_group, settings);
 
         if let Err(err) = self.persistence.vehicle_settings.store_all(settings_group.id, settings) {

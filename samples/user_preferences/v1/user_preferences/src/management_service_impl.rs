@@ -83,7 +83,7 @@ impl ManagementService for ManagementServiceImpl {
         &self,
         _caller_id: sdv_comms::id::ServiceFqin,
         request: &RequestSettingsChangeRequest,
-    ) -> sdv_status_rs::SdvResult<RequestSettingsChangeResponse> {
+    ) -> SdvResult<RequestSettingsChangeResponse> {
         let settings_group_id = match request.settings_group_id.clone().into_option() {
             Some(x) => x,
             None => {
@@ -119,7 +119,12 @@ impl ManagementService for ManagementServiceImpl {
                 }
             };
             if let Some(current_user) = current_user {
-                let settings: Vec<Setting> = request.settings.iter().cloned().map_into().collect();
+                let settings: Vec<Setting> = request
+                    .settings
+                    .iter()
+                    .cloned()
+                    .map(|setting| setting.try_into())
+                    .collect::<SdvResult<Vec<_>>>()?;
                 self.persistence.user_settings.store_all(
                     current_user.id,
                     setting_group.id,
@@ -137,7 +142,12 @@ impl ManagementService for ManagementServiceImpl {
             .queue_setting_change(
                 ServiceFqin::from_str(&setting_group.service_fqin)?,
                 setting_group.name,
-                request.settings.iter().cloned().map_into().collect_vec(),
+                request
+                    .settings
+                    .iter()
+                    .cloned()
+                    .map(|setting| setting.try_into())
+                    .collect::<SdvResult<Vec<_>>>()?,
             )
             .await;
 
@@ -148,7 +158,7 @@ impl ManagementService for ManagementServiceImpl {
         &self,
         caller_id: sdv_comms::id::ServiceFqin,
         request: &SubscribeToSettingsChangeAndGetSettingsRequest,
-    ) -> sdv_status_rs::SdvResult<SubscribeToSettingsChangeAndGetSettingsResponse> {
+    ) -> SdvResult<SubscribeToSettingsChangeAndGetSettingsResponse> {
         let settings_group_id = request
             .settings_group_id
             .as_ref()
@@ -219,7 +229,7 @@ impl ManagementService for ManagementServiceImpl {
         &self,
         caller_id: sdv_comms::id::ServiceFqin,
         request: &UnsubscribeToSettingsChangeRequest,
-    ) -> sdv_status_rs::SdvResult<UnsubscribeToSettingsChangeResponse> {
+    ) -> SdvResult<UnsubscribeToSettingsChangeResponse> {
         let settings_group_id = request
             .settings_group_id
             .as_ref()
