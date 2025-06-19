@@ -12,6 +12,7 @@ rust_binary {
         "src/main.rs",
     ],
     rustlibs: [
+        "libanyhow",
         "libtokio",
         "libfutures",
         "libprotobuf",

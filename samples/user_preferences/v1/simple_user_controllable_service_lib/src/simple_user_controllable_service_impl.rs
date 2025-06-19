@@ -6,7 +6,9 @@ use com_sdv_google_user_preferences_user_controllable_user_controllable_service_
 use com_sdv_google_user_preferences_user_preferences_registry_service_rpc::Client as RegistryServiceClient;
 use itertools::Itertools;
 use protobuf::MessageField;
+use sdv_status_rs::SdvResult;
 use sdv_status_rs::SdvStatus;
+use sdv_status_rs::SdvStatusCode;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -59,17 +61,17 @@ impl SimpleUserControllableServiceImpl {
     pub async fn new(
         setting_groups_definitions: Vec<SettingGroupDefinition>,
         client: Arc<RegistryServiceClient>,
-    ) -> Self {
+    ) -> SdvResult<Self> {
         let service_impl =
             Self { setting_groups_definitions, setting_groups: Mutex::new(HashMap::new()), client };
 
-        service_impl.init_setting_groups().await;
-        service_impl.register_settings().await;
+        service_impl.init_setting_groups().await?;
+        service_impl.register_settings().await?;
 
-        service_impl
+        Ok(service_impl)
     }
 
-    async fn init_setting_groups(&self) {
+    async fn init_setting_groups(&self) -> SdvResult<()> {
         let mut setting_groups = self.setting_groups.lock().await;
 
         for group in self.setting_groups_definitions.iter().cloned() {
@@ -81,20 +83,29 @@ impl SimpleUserControllableServiceImpl {
                         .setting_definitions
                         .into_iter()
                         .map(|setting_definition| {
-                            let setting_and_constraint =
-                                setting_definition.setting_with_constraints.into_option().unwrap();
-                            (
-                                setting_and_constraint.setting.as_ref().unwrap().key.clone(),
+                            let setting_and_constraint = setting_definition
+                                .setting_with_constraints
+                                .into_option()
+                                .ok_or(SdvStatus::new(SdvStatusCode::NotFound))?;
+                            Ok((
+                                setting_and_constraint
+                                    .setting
+                                    .as_ref()
+                                    .ok_or(SdvStatus::new(SdvStatusCode::NotFound))?
+                                    .key
+                                    .clone(),
                                 setting_and_constraint,
-                            )
+                            ))
                         })
-                        .collect(),
+                        .collect::<SdvResult<HashMap<_, _>>>()?,
                 },
             );
         }
+
+        Ok(())
     }
 
-    async fn register_settings(&self) {
+    async fn register_settings(&self) -> SdvResult<()> {
         for group in self.setting_groups_definitions.iter().cloned() {
             println!(
                 "Registering settings group with name: {},\nVersion: {}",
@@ -109,8 +120,14 @@ impl SimpleUserControllableServiceImpl {
                     ..Default::default()
                 })
                 .await
-                .expect("Failed to register settings");
+                .map_err(|e| {
+                    Err(SdvStatus::with_message(
+                        sdv_status_rs::SdvStatusCode::Internal,
+                        format!("Failed to register settings: {e}"),
+                    ))
+                })?;
         }
+        Ok(())
     }
 }
 
@@ -177,7 +194,7 @@ impl UserControllableService for SimpleUserControllableServiceImpl {
     ) -> sdv_status_rs::SdvResult<
         user_preferences_api::user_controllable_service::FactoryResetResponse,
     > {
-        self.init_setting_groups().await;
+        self.init_setting_groups().await?;
 
         let setting_groups = self.setting_groups.lock().await;
         for setting_group in setting_groups.values() {
@@ -194,7 +211,12 @@ impl UserControllableService for SimpleUserControllableServiceImpl {
                     ..Default::default()
                 })
                 .await
-                .expect("Unexpected failure to update settings");
+                .map_err(|e| {
+                    Err(SdvStatus::with_message(
+                        sdv_status_rs::SdvStatusCode::Internal,
+                        format!("Unexpected failure to update settings: {e}"),
+                    ))
+                })?;
 
             println!("\nPerformed factory reset");
         }

@@ -8,14 +8,15 @@ use sdv_mw_rs_com_sdv_oem_user_preferences_hvac_service::HVACService;
 use sdv_mw_rs_comms::Communicate;
 use sdv_mw_rs_comms::RpcClient;
 use sdv_mw_rs_sdv_comms::SdvComms;
+use sdv_status_rs::SdvResult;
 use std::sync::Arc;
 use user_controllable_service_impl::{SettingGroupDefinition, SimpleUserControllableServiceImpl};
 
 mod properties;
 
 #[tokio::main]
-async fn main() {
-    let context = create_context();
+async fn main() -> anyhow::Result<()> {
+    let context = create_context()?;
     let comms = Arc::new(SdvComms { context });
 
     let hvac_setting_definition = SettingGroupDefinition {
@@ -36,39 +37,38 @@ async fn main() {
                 .bundle_name("UserPreferencesServiceBundle")
                 .service_unit_name(RegistryClient::DEFAULT_UNIT_NAME)
                 .build()
-                .expect("invalid server UnitName"),
+                .map_err(|e| anyhow::Error::msg(format!("invalid server UnitName: {e}")))?,
         )
         .client_options(sdv_mw_rs_comms::ClientOptions::default())
         .build()
-        .expect("invalid ClientAttributes");
+        .map_err(|e| anyhow::Error::msg(format!("invalid ClientAttributes: {e}")))?;
 
-    let client = Arc::new(RegistryClient::new(
-        comms
-            .create_client_transport(&attributes)
-            .await
-            .expect("Failed to create client to user preferences"),
-    ));
+    let client =
+        Arc::new(RegistryClient::new(comms.create_client_transport(&attributes).await.map_err(
+            |e| anyhow::Error::msg(format!("Failed to create client to user preferences: {e}")),
+        )?));
 
     let sb_implementation = Arc::new(
-        SimpleUserControllableServiceImpl::new(vec![hvac_setting_definition], client).await,
+        SimpleUserControllableServiceImpl::new(vec![hvac_setting_definition], client).await?,
     );
 
     let _hvac_service = HVACService::new(comms, (sb_implementation,))
         .await
-        .expect("Failed to start Hvac Service bundle");
+        .map_err(|e| anyhow::Error::msg(format!("Failed to start Hvac Service bundle: {e}")))?;
 
     println!("Started service bundle");
     std::thread::park();
+
+    Ok(())
 }
 
-fn create_context() -> ContextRef {
+fn create_context() -> SdvResult<ContextRef> {
     let fqin = ServiceFqin::builder()
         .sdv_vm_name("vm")
         .sdv_package_name("com.sdv.oem.user_preferences")
         .service_bundle_name("HvacService")
         .service_instance_name("default")
-        .build()
-        .unwrap();
+        .build()?;
 
-    ContextRef::create(fqin)
+    Ok(ContextRef::create(fqin))
 }
