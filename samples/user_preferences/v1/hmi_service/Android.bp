@@ -13,6 +13,7 @@ rust_binary {
     ],
     rustlibs: [
         "libanyhow",
+        "liblog_rust",
         "libtokio",
         "libfutures",
         "libprotobuf",

@@ -1,6 +1,7 @@
 // Copyright 2024 Google LLC
 use async_trait::async_trait;
 use com_sdv_google_user_preferences_view_change_notifier_rpc::Interface as ViewChangeNotifier;
+use log::error;
 use tokio::sync::{mpsc, Mutex};
 use user_preferences_api::change_notifier::{OnSettingsChangeRequest, OnSettingsChangeResponse};
 use user_preferences_utils::print_settings;
@@ -37,7 +38,9 @@ impl ViewChangeNotifier for HmiServiceImpl {
         }
 
         // Send a notification that settings have changed.
-        let _ = self.sender.try_send(());
+        if let Err(e) = self.sender.try_send(()) {
+            error!("Try send error: {e}");
+        };
 
         Ok(OnSettingsChangeResponse::new())
     }

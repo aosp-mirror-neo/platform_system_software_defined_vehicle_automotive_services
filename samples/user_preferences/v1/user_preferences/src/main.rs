@@ -108,7 +108,10 @@ impl BundleRunner {
             comms,
             (admin_service.clone(), management_service.clone(), registry_service.clone()),
         )
-        .await;
+        .await
+        .inspect_err(|e| {
+            error!("Error in user preferences bundle creation: {e}");
+        });
 
         let sd = Arc::new(ServiceDiscoveryManager::new(context));
 
