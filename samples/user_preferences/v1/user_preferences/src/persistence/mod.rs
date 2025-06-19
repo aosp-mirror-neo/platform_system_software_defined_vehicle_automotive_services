@@ -16,6 +16,7 @@ use crate::persistence::user_repository::UserRepository;
 use crate::persistence::user_settings_repository::UserSettingsRepository;
 use crate::persistence::vehicle_settings_repository::VehicleSettingsRepository;
 use rusqlite::Connection;
+use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
 use std::sync::{Arc, Mutex};
 
 pub struct Persistence {
@@ -26,23 +27,43 @@ pub struct Persistence {
     pub vehicle_settings: VehicleSettingsRepository,
 }
 
-pub fn initialize_persistence(conn: Connection) -> Persistence {
+pub fn initialize_persistence(conn: Connection) -> SdvResult<Persistence> {
     let conn = Arc::new(Mutex::new(conn));
 
-    let users = UserRepository::new(Arc::clone(&conn))
-        .expect("Unable to create an instance of user repository");
+    let users = UserRepository::new(Arc::clone(&conn)).map_err(|e| {
+        SdvStatus::with_message(
+            SdvStatusCode::Internal,
+            format!("Unable to create an instance of user repository: {e}"),
+        )
+    })?;
 
-    let setting_groups = SettingsGroupRepository::new(Arc::clone(&conn))
-        .expect("Unable to create an instance of settings group repository");
+    let setting_groups = SettingsGroupRepository::new(Arc::clone(&conn)).map_err(|e| {
+        SdvStatus::with_message(
+            SdvStatusCode::Internal,
+            format!("Unable to create an instance of settings group repository: {e}"),
+        )
+    })?;
 
-    let setting_definitions = SettingDefinitionRepository::new(Arc::clone(&conn))
-        .expect("Unable to create an instance of settings definition repository");
+    let setting_definitions = SettingDefinitionRepository::new(Arc::clone(&conn)).map_err(|e| {
+        SdvStatus::with_message(
+            SdvStatusCode::Internal,
+            format!("Unable to create an instance of settings definition repository: {e}"),
+        )
+    })?;
 
-    let user_settings = UserSettingsRepository::new(Arc::clone(&conn))
-        .expect("Unable to create an instance of user settings repository");
+    let user_settings = UserSettingsRepository::new(Arc::clone(&conn)).map_err(|e| {
+        SdvStatus::with_message(
+            SdvStatusCode::Internal,
+            format!("Unable to create an instance of user settings repository: {e}"),
+        )
+    })?;
 
-    let vehicle_settings = VehicleSettingsRepository::new(Arc::clone(&conn))
-        .expect("Unable to create an instance of vehicle state repository");
+    let vehicle_settings = VehicleSettingsRepository::new(Arc::clone(&conn)).map_err(|e| {
+        SdvStatus::with_message(
+            SdvStatusCode::Internal,
+            format!("Unable to create an instance of vehicle state repository: {e}"),
+        )
+    })?;
 
-    Persistence { users, user_settings, setting_groups, setting_definitions, vehicle_settings }
+    Ok(Persistence { users, user_settings, setting_groups, setting_definitions, vehicle_settings })
 }

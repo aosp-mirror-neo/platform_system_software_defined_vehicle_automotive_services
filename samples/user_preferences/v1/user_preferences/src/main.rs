@@ -73,7 +73,13 @@ impl BundleRunner {
                 return;
             }
         };
-        let persistence = Arc::new(initialize_persistence(connection));
+        let persistence = Arc::new(match initialize_persistence(connection) {
+            Ok(persistence) => persistence,
+            Err(e) => {
+                error!("Initializing persistence failed: {e}");
+                return;
+            }
+        });
 
         let settings_change_propagator = Arc::new(SettingsChangePropagatorImpl::new(
             persistence.clone(),
