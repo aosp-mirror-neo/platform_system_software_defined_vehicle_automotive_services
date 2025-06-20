@@ -23,7 +23,6 @@ use google_sdv_vpm_aidl::binder::{Interface, Result as BinderResult, Strong};
 use log::{debug, error, info};
 use mockall::automock;
 use sdv_mw_rs_comms::{ClientAttributes, ClientOptions, Communicate, RpcClient, UnitName};
-use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_status_rs::SdvStatusCode;
 use sdv_vpm_api::power::PowerStateReport;
 use sdv_vpm_api::vpm_notifications::power_state_notification_request::PowerStateChangeReason;
@@ -72,15 +71,17 @@ pub enum PowerStateNotificationError {
 pub struct PowerStateNotifierImpl {
     // Maps the AID of the agent with the callback.
     callbacks: Arc<Mutex<HashMap<u32, ClientCallback>>>,
-    comms: Arc<SdvComms>,
+    comms: Arc<dyn Communicate>,
+    vm_name: String,
     notification_rpc_client: Arc<AsyncMutex<Option<Arc<Client>>>>,
 }
 
 impl PowerStateNotifierImpl {
-    pub fn new(comms: Arc<SdvComms>) -> Self {
+    pub fn new(comms: Arc<dyn Communicate>, vm_name: &str) -> Self {
         Self {
             callbacks: Arc::new(Mutex::new(HashMap::new())),
             comms,
+            vm_name: vm_name.to_string(),
             notification_rpc_client: Arc::new(AsyncMutex::new(None)),
         }
     }
@@ -95,7 +96,7 @@ impl PowerStateNotifierImpl {
         let mut client = self.notification_rpc_client.lock().await;
 
         let server_name = UnitName::builder()
-            .vm_name(self.comms.context.get_self_fqin().get_sdv_vm_name())
+            .vm_name(self.vm_name.to_string())
             .package_name("com.sdv.google.vpm.client")
             .bundle_name("VpmSystemClient")
             .service_unit_name(Client::DEFAULT_UNIT_NAME)
@@ -126,7 +127,11 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
     ) -> anyhow::Result<()> {
         info!("VPM client binder starting!");
         let client_api_binder = BnPowerStateClientApi::new_async_binder(
-            BinderServer::new(self.callbacks.clone(), power_state_watch_receiver),
+            BinderServer::new(
+                self.callbacks.clone(),
+                power_state_watch_receiver,
+                Arc::new(DeathLinkerImpl {}),
+            ),
             TokioRuntime(Handle::current()),
             BinderFeatures::default(),
         );
@@ -173,7 +178,7 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
                 notification_failed = true;
                 continue;
             }
-            if let Err(result) = handle {
+            if let Ok(Err(result)) = handle {
                 error!("Power notification callback request failed, {:?}", result);
                 notification_failed = true;
             }
@@ -223,17 +228,33 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
     }
 }
 
+#[automock]
+trait DeathLinker: Send + Sync {
+    fn link_callback_to_death_recipient(
+        &self,
+        callback: &Strong<dyn IPowerStateReportListener>,
+        death_recipient: &mut DeathRecipient,
+    ) -> BinderResult<()> {
+        Ok(callback.as_binder().clone().link_to_death(death_recipient)?)
+    }
+}
+
+struct DeathLinkerImpl {}
+impl DeathLinker for DeathLinkerImpl {}
+
 struct BinderServer {
     callbacks: Arc<Mutex<HashMap<u32, ClientCallback>>>,
     power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
+    death_linker: Arc<dyn DeathLinker>,
 }
 
 impl BinderServer {
     fn new(
         callbacks: Arc<Mutex<HashMap<u32, ClientCallback>>>,
         power_state_watch_receiver: WatchReceiver<Arc<dyn PowerState>>,
+        death_linker: Arc<dyn DeathLinker>,
     ) -> Self {
-        Self { callbacks, power_state_watch_receiver }
+        Self { callbacks, power_state_watch_receiver, death_linker }
     }
 }
 impl Interface for BinderServer {}
@@ -258,7 +279,8 @@ impl IPowerStateClientApiAsyncServer for BinderServer {
             info!("Handling death notification for id {:?}", id);
             callbacks.lock().unwrap().remove(&id);
         });
-        let result = callback.as_binder().clone().link_to_death(&mut death_recipient);
+        let result =
+            self.death_linker.link_callback_to_death_recipient(callback, &mut death_recipient);
         if result.is_err() {
             error!("Failed to link death binder {:?}", result);
             return Err(Status::new_exception(ExceptionCode::SERVICE_SPECIFIC, None));
@@ -273,6 +295,7 @@ impl IPowerStateClientApiAsyncServer for BinderServer {
         Ok(convert_to_aidl(power_state.get_report()))
     }
 }
+
 fn convert_to_aidl(power_state_report: PowerStateReport) -> PowerStateReportAidl {
     match power_state_report {
         PowerStateReport::POWER_OFF_EXIT => PowerStateReportAidl::POWER_OFF_EXIT,
@@ -292,5 +315,454 @@ fn convert_to_aidl(power_state_report: PowerStateReport) -> PowerStateReportAidl
         }
         PowerStateReport::WAIT_FOR_FINISH => PowerStateReportAidl::WAIT_FOR_FINISH,
         PowerStateReport::REPORT_UNSPECIFIED => panic!("This conversion should never be called!"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::power_state::PowerOffExit;
+    use crate::power_state_notifier::binder::BinderFeatures;
+    use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateReportListener::{
+        BnPowerStateReportListener, MockIPowerStateReportListener,
+    };
+    use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
+    use sdv_mw_rs_comms::{ClientTransport, MockCommunicate};
+    use sdv_status_rs::SdvResult;
+    use sdv_status_rs::SdvStatus;
+    use sdv_vpm_api::power::PowerStateReport;
+
+    mockall::mock! {
+        TestClientTransport {}
+        #[async_trait::async_trait]
+        impl ClientTransport for TestClientTransport {
+            async fn call_method(&self, method: &str, request: &[u8]) -> SdvResult<Vec<u8>>;
+        }
+    }
+
+    #[test]
+    fn test_convert_to_aidl_valid_conversions() {
+        assert_eq!(
+            convert_to_aidl(PowerStateReport::POWER_OFF_EXIT),
+            PowerStateReportAidl::POWER_OFF_EXIT
+        );
+        assert_eq!(
+            convert_to_aidl(PowerStateReport::SUSPEND_TO_RAM_EXIT),
+            PowerStateReportAidl::SUSPEND_TO_RAM_EXIT
+        );
+        assert_eq!(
+            convert_to_aidl(PowerStateReport::SUSPEND_TO_DISK_EXIT),
+            PowerStateReportAidl::SUSPEND_TO_DISK_EXIT
+        );
+        assert_eq!(convert_to_aidl(PowerStateReport::ON), PowerStateReportAidl::ON);
+        assert_eq!(
+            convert_to_aidl(PowerStateReport::SHUTDOWN_CANCELLED),
+            PowerStateReportAidl::SHUTDOWN_CANCELLED
+        );
+        assert_eq!(
+            convert_to_aidl(PowerStateReport::POWER_OFF_ENTER),
+            PowerStateReportAidl::POWER_OFF_ENTER
+        );
+        assert_eq!(
+            convert_to_aidl(PowerStateReport::SUSPEND_TO_RAM_ENTER),
+            PowerStateReportAidl::SUSPEND_TO_RAM_ENTER
+        );
+        assert_eq!(
+            convert_to_aidl(PowerStateReport::SUSPEND_TO_DISK_ENTER),
+            PowerStateReportAidl::SUSPEND_TO_DISK_ENTER
+        );
+        assert_eq!(
+            convert_to_aidl(PowerStateReport::POWER_OFF_POST_FINISH),
+            PowerStateReportAidl::POWER_OFF_POST_FINISH
+        );
+        assert_eq!(
+            convert_to_aidl(PowerStateReport::SUSPEND_TO_RAM_POST_FINISH),
+            PowerStateReportAidl::SUSPEND_TO_RAM_POST_FINISH
+        );
+        assert_eq!(
+            convert_to_aidl(PowerStateReport::SUSPEND_TO_DISK_POST_FINISH),
+            PowerStateReportAidl::SUSPEND_TO_DISK_POST_FINISH
+        );
+        assert_eq!(
+            convert_to_aidl(PowerStateReport::WAIT_FOR_FINISH),
+            PowerStateReportAidl::WAIT_FOR_FINISH
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "This conversion should never be called!")]
+    fn test_convert_to_aidl_report_unspecified() {
+        let input = PowerStateReport::REPORT_UNSPECIFIED;
+        convert_to_aidl(input);
+    }
+
+    #[tokio::test]
+    async fn power_state_notifier_impl_get_notification_client_when_none() {
+        let notifier = PowerStateNotifierImpl::new(Arc::new(MockCommunicate::new()), "test");
+
+        let result = notifier.get_notification_client().await;
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap().to_string(), "No notification client is stored");
+    }
+
+    #[tokio::test]
+    async fn power_state_notifier_impl_get_notification_updates_client() {
+        let mut mock_comms = MockCommunicate::new();
+        mock_comms.expect_create_client_transport().times(1).returning(|_| {
+            let mock_client_transport = MockTestClientTransport::new();
+            Box::pin(async move { Ok(Box::new(mock_client_transport) as Box<dyn ClientTransport>) })
+        });
+        let notifier = PowerStateNotifierImpl::new(Arc::new(mock_comms), "test");
+
+        let result = notifier.update_client().await;
+        let client = notifier.get_notification_client().await;
+        assert!(result.is_ok());
+        assert!(client.is_ok());
+    }
+
+    #[tokio::test]
+    async fn power_state_notifier_impl_update_client_fails() {
+        let mut mock_comms = MockCommunicate::new();
+        mock_comms
+            .expect_create_client_transport()
+            .times(1)
+            .returning(|_| Box::pin(async move { Err(SdvStatus::new(SdvStatusCode::Unknown)) }));
+        let notifier = PowerStateNotifierImpl::new(Arc::new(mock_comms), "test");
+
+        let update_result = notifier.update_client().await;
+        assert!(update_result.is_err());
+        assert_eq!(
+            update_result.err().unwrap().to_string(),
+            "Could not get a client for vpm notifications"
+        );
+
+        let client_result = notifier.get_notification_client().await;
+        assert!(client_result.is_err());
+        assert_eq!(client_result.err().unwrap().to_string(), "No notification client is stored");
+    }
+
+    #[tokio::test]
+    async fn test_subscribe_to_power_state_report_success() {
+        let callbacks_map = Arc::new(Mutex::new(HashMap::new()));
+        let power_off_exit_state = Arc::new(PowerOffExit {});
+        let (_tx, rx) =
+            tokio::sync::watch::channel(power_off_exit_state.clone() as Arc<dyn PowerState>);
+        let mut mock_death_linker = MockDeathLinker::default();
+        mock_death_linker
+            .expect_link_callback_to_death_recipient()
+            .times(1)
+            .returning(|_, _| Ok(()));
+        let server = BinderServer::new(callbacks_map.clone(), rx, Arc::new(mock_death_linker));
+        let fake_listener_impl = MockIPowerStateReportListener::new();
+        let fake_listener_binder =
+            BnPowerStateReportListener::new_binder(fake_listener_impl, BinderFeatures::default());
+
+        let result = server.subscribeToPowerStateReport(&fake_listener_binder).await;
+
+        assert!(result.is_ok(), "subscribeToPowerStateReport failed: {:?}", result.err());
+        let returned_report_aidl = result.unwrap();
+        assert_eq!(returned_report_aidl, convert_to_aidl(PowerStateReport::POWER_OFF_EXIT));
+        assert_eq!(callbacks_map.lock().unwrap().len(), 1, "Callback not added to map");
+    }
+
+    #[tokio::test]
+    async fn test_subscribe_to_power_state_report_link_death_fails() {
+        let callbacks_map = Arc::new(Mutex::new(HashMap::new()));
+        let power_off_exit_state = Arc::new(PowerOffExit {});
+        let (_tx, rx) =
+            tokio::sync::watch::channel(power_off_exit_state.clone() as Arc<dyn PowerState>);
+        let server = BinderServer::new(callbacks_map.clone(), rx, Arc::new(DeathLinkerImpl {}));
+        let fake_listener_impl = MockIPowerStateReportListener::new();
+        let fake_listener_binder =
+            BnPowerStateReportListener::new_binder(fake_listener_impl, BinderFeatures::default());
+
+        let result = server.subscribeToPowerStateReport(&fake_listener_binder).await;
+
+        assert!(result.is_err(), "subscribeToPowerStateReport should have failed");
+        let error_status = result.err().unwrap();
+        assert_eq!(error_status.exception_code(), ExceptionCode::SERVICE_SPECIFIC);
+        assert_eq!(
+            callbacks_map.lock().unwrap().len(),
+            0,
+            "Callback should not be added if linking death recipient fails"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_notify_no_listeners() {
+        let notifier = PowerStateNotifierImpl::new(Arc::new(MockCommunicate::new()), "test");
+        let report = PowerStateReport::ON;
+
+        let result = notifier.notify(report).await;
+        assert!(result.is_ok(), "notify failed when no listeners are present: {:?}", result.err());
+    }
+
+    #[tokio::test]
+    async fn test_notify_one_listener_success() {
+        let notifier = PowerStateNotifierImpl::new(Arc::new(MockCommunicate::new()), "test");
+        let report = PowerStateReport::ON;
+        let report_aidl = convert_to_aidl(report);
+
+        let mock_listener = MockIPowerStateReportListener::new();
+        let client_callback = create_mock_listener_callback(mock_listener, report_aidl, true);
+        notifier.callbacks.lock().unwrap().insert(123u32, client_callback);
+
+        let result = notifier.notify(report).await;
+        assert!(result.is_ok(), "notify failed for one successful listener: {:?}", result.err());
+    }
+
+    #[tokio::test]
+    async fn test_notify_one_listener_fails() {
+        let notifier = PowerStateNotifierImpl::new(Arc::new(MockCommunicate::new()), "test");
+        let report = PowerStateReport::POWER_OFF_ENTER;
+        let report_aidl = convert_to_aidl(report);
+
+        let mock_listener = MockIPowerStateReportListener::new();
+        let client_callback = create_mock_listener_callback(mock_listener, report_aidl, false);
+        notifier.callbacks.lock().unwrap().insert(456u32, client_callback);
+
+        let result = notifier.notify(report).await;
+        assert!(result.is_err(), "notify should have failed for one failing listener");
+        assert!(matches!(result.unwrap_err(), PowerStateNotificationError::Failed));
+    }
+
+    #[tokio::test]
+    async fn test_notify_multiple_listeners_all_succeed() {
+        let notifier = PowerStateNotifierImpl::new(Arc::new(MockCommunicate::new()), "test");
+        let report = PowerStateReport::SUSPEND_TO_RAM_ENTER;
+        let report_aidl = convert_to_aidl(report);
+
+        let mock_listener1 = MockIPowerStateReportListener::new();
+        let client_callback1 = create_mock_listener_callback(mock_listener1, report_aidl, true);
+        notifier.callbacks.lock().unwrap().insert(1u32, client_callback1);
+
+        let mock_listener2 = MockIPowerStateReportListener::new();
+        let client_callback2 = create_mock_listener_callback(mock_listener2, report_aidl, true);
+        notifier.callbacks.lock().unwrap().insert(2u32, client_callback2);
+
+        let result = notifier.notify(report).await;
+        assert!(
+            result.is_ok(),
+            "notify failed for multiple successful listeners: {:?}",
+            result.err()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_notify_multiple_listeners_one_fails() {
+        let notifier = PowerStateNotifierImpl::new(Arc::new(MockCommunicate::new()), "test");
+        let report = PowerStateReport::WAIT_FOR_FINISH;
+        let report_aidl = convert_to_aidl(report);
+
+        let mock_listener_success = MockIPowerStateReportListener::new();
+        let client_callback_success =
+            create_mock_listener_callback(mock_listener_success, report_aidl, true);
+        notifier.callbacks.lock().unwrap().insert(1u32, client_callback_success);
+
+        let mock_listener_fail = MockIPowerStateReportListener::new();
+        let client_callback_fail =
+            create_mock_listener_callback(mock_listener_fail, report_aidl, false);
+        notifier.callbacks.lock().unwrap().insert(2u32, client_callback_fail);
+
+        let result = notifier.notify(report).await;
+        assert!(result.is_err(), "notify should have failed when one of multiple listeners fails");
+        assert!(matches!(result.unwrap_err(), PowerStateNotificationError::Failed));
+    }
+
+    #[tokio::test]
+    async fn notify_oem_success_first_try() {
+        let mut mock_comms = MockCommunicate::new();
+        mock_comms.expect_create_client_transport().times(1).returning(|_| {
+            let mut mock_client_transport = MockTestClientTransport::new();
+            mock_client_transport.expect_call_method().times(1).returning(|_, _| Ok(Vec::new()));
+            Box::pin(async move { Ok(Box::new(mock_client_transport) as Box<dyn ClientTransport>) })
+        });
+
+        let notifier = PowerStateNotifierImpl::new(Arc::new(mock_comms), "test_vm");
+        assert!(notifier.update_client().await.is_ok());
+
+        let result =
+            notifier.notify_oem(PowerStateReport::ON, PowerStateChangeReason::HOST_REQUESTED).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn notify_oem_success_after_initial_client_update() {
+        let mut mock_comms = MockCommunicate::new();
+        mock_comms.expect_create_client_transport().times(1).returning(|_| {
+            let mut mock_client_transport = MockTestClientTransport::new();
+            mock_client_transport.expect_call_method().times(1).returning(|_, _| Ok(Vec::new()));
+            Box::pin(async move { Ok(Box::new(mock_client_transport) as Box<dyn ClientTransport>) })
+        });
+
+        let notifier = PowerStateNotifierImpl::new(Arc::new(mock_comms), "test_vm");
+
+        let result =
+            notifier.notify_oem(PowerStateReport::ON, PowerStateChangeReason::HOST_REQUESTED).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn notify_oem_fails_if_initial_client_update_fails() {
+        let mut mock_comms = MockCommunicate::new();
+        mock_comms
+            .expect_create_client_transport()
+            .times(1)
+            .returning(|_| Box::pin(async move { Err(SdvStatus::new(SdvStatusCode::Unknown)) }));
+
+        let notifier = PowerStateNotifierImpl::new(Arc::new(mock_comms), "test_vm");
+
+        let result =
+            notifier.notify_oem(PowerStateReport::ON, PowerStateChangeReason::HOST_REQUESTED).await;
+        assert!(result.is_err());
+        assert_eq!(
+            result.err().unwrap().to_string(),
+            "Could not get a client for vpm notifications"
+        );
+    }
+
+    #[tokio::test]
+    async fn notify_oem_success_after_retry_due_to_unavailable() {
+        let mut mock_comms = MockCommunicate::new();
+        mock_comms.expect_create_client_transport().times(1).returning(|_| {
+            let mut mock_client_transport = MockTestClientTransport::new();
+            mock_client_transport
+                .expect_call_method()
+                .times(1)
+                .returning(|_, _| Err(SdvStatus::new(SdvStatusCode::Unavailable)));
+            Box::pin(async move { Ok(Box::new(mock_client_transport) as Box<dyn ClientTransport>) })
+        });
+        mock_comms.expect_create_client_transport().times(1).returning(|_| {
+            let mut mock_client_transport = MockTestClientTransport::new();
+            mock_client_transport.expect_call_method().times(1).returning(|_, _| Ok(Vec::new()));
+            Box::pin(async move { Ok(Box::new(mock_client_transport) as Box<dyn ClientTransport>) })
+        });
+
+        let notifier = PowerStateNotifierImpl::new(Arc::new(mock_comms), "test_vm");
+
+        let result =
+            notifier.notify_oem(PowerStateReport::ON, PowerStateChangeReason::HOST_REQUESTED).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn notify_oem_fails_if_retry_update_client_fails() {
+        let mut mock_comms = MockCommunicate::new();
+        mock_comms.expect_create_client_transport().times(1).returning(|_| {
+            let mut mock_client_transport = MockTestClientTransport::new();
+            mock_client_transport
+                .expect_call_method()
+                .times(1)
+                .returning(|_, _| Err(SdvStatus::new(SdvStatusCode::Unavailable)));
+            Box::pin(async move { Ok(Box::new(mock_client_transport) as Box<dyn ClientTransport>) })
+        });
+        mock_comms
+            .expect_create_client_transport()
+            .times(1)
+            .returning(|_| Box::pin(async move { Err(SdvStatus::new(SdvStatusCode::Internal)) }));
+
+        let notifier = PowerStateNotifierImpl::new(Arc::new(mock_comms), "test_vm");
+        assert!(notifier.update_client().await.is_ok());
+
+        let result =
+            notifier.notify_oem(PowerStateReport::ON, PowerStateChangeReason::HOST_REQUESTED).await;
+        assert!(result.is_err());
+        assert_eq!(
+            result.err().unwrap().to_string(),
+            "Could not get a client for vpm notifications"
+        );
+    }
+
+    #[tokio::test]
+    async fn notify_oem_fails_if_retry_notify_fails() {
+        let mut mock_comms = MockCommunicate::new();
+        mock_comms.expect_create_client_transport().times(1).returning(|_| {
+            let mut mock_client_transport = MockTestClientTransport::new();
+            mock_client_transport
+                .expect_call_method()
+                .times(1)
+                .returning(|_, _| Err(SdvStatus::new(SdvStatusCode::Unavailable)));
+            Box::pin(async move { Ok(Box::new(mock_client_transport) as Box<dyn ClientTransport>) })
+        });
+        mock_comms.expect_create_client_transport().times(1).returning(|_| {
+            let mut mock_client_transport = MockTestClientTransport::new();
+            mock_client_transport
+                .expect_call_method()
+                .times(1)
+                .returning(|_, _| Err(SdvStatus::new(SdvStatusCode::DeadlineExceeded)));
+            Box::pin(async move { Ok(Box::new(mock_client_transport) as Box<dyn ClientTransport>) })
+        });
+
+        let notifier = PowerStateNotifierImpl::new(Arc::new(mock_comms), "test_vm");
+        assert!(notifier.update_client().await.is_ok());
+
+        let result =
+            notifier.notify_oem(PowerStateReport::ON, PowerStateChangeReason::HOST_REQUESTED).await;
+        assert!(result.is_err());
+        let err_msg = result.err().unwrap().to_string();
+        assert!(err_msg.starts_with("Request to notify VPM client failed"));
+        assert!(err_msg.contains("DeadlineExceeded"));
+    }
+
+    #[tokio::test]
+    async fn notify_oem_fails_non_unavailable_error_no_retry() {
+        let mut mock_comms = MockCommunicate::new();
+        mock_comms.expect_create_client_transport().times(1).returning(|_| {
+            let mut mock_client_transport = MockTestClientTransport::new();
+            mock_client_transport
+                .expect_call_method()
+                .times(1)
+                .returning(|_, _| Err(SdvStatus::new(SdvStatusCode::InvalidArgument)));
+            Box::pin(async move { Ok(Box::new(mock_client_transport) as Box<dyn ClientTransport>) })
+        });
+
+        let notifier = PowerStateNotifierImpl::new(Arc::new(mock_comms), "test_vm");
+        assert!(notifier.update_client().await.is_ok());
+
+        let result =
+            notifier.notify_oem(PowerStateReport::ON, PowerStateChangeReason::HOST_REQUESTED).await;
+        assert!(result.is_err());
+        let err_msg = result.err().unwrap().to_string();
+        assert!(err_msg.starts_with("Request to notify VPM client failed"));
+        assert!(err_msg.contains("InvalidArgument"));
+    }
+
+    fn create_mock_listener_callback(
+        mut mock_listener: MockIPowerStateReportListener,
+        expected_report_aidl: PowerStateReportAidl,
+        should_succeed: bool,
+    ) -> ClientCallback {
+        if should_succeed {
+            mock_listener
+                .expect_onPowerStateReportChanged()
+                .withf(move |report_arg| *report_arg == expected_report_aidl)
+                .times(1)
+                .returning(|_| Ok(()));
+        } else {
+            mock_listener
+                .expect_onPowerStateReportChanged()
+                .withf(move |report_arg| *report_arg == expected_report_aidl)
+                .times(1)
+                .returning(|_| Err(Status::new_exception(ExceptionCode::TRANSACTION_FAILED, None)));
+        }
+
+        let listener_binder =
+            BnPowerStateReportListener::new_binder(mock_listener, BinderFeatures::default());
+        ClientCallback {
+            async_callback: listener_binder.into_async(),
+            death_recipient: DeathRecipient::new(|| {}), // Dummy for this test's scope
+        }
+    }
+
+    #[tokio::test]
+    async fn test_create_binder_service_if_add_service() {
+        let mock_comms = Arc::new(MockCommunicate::new());
+        let notifier = PowerStateNotifierImpl::new(mock_comms, "test_vm_binder_error");
+
+        let initial_state = Arc::new(PowerOffExit {}) as Arc<dyn PowerState>;
+        let (_tx, rx) = tokio::sync::watch::channel(initial_state);
+
+        let result = notifier.create_binder_service(rx.clone());
+        assert!(result.is_ok());
     }
 }
