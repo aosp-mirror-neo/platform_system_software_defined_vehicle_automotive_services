@@ -303,7 +303,7 @@ impl SettingsChangePropagator for SettingsChangePropagatorImpl {
         let active_settings = active_settings
             .into_iter()
             .filter_map(|setting_with_constraints| {
-                let setting = setting_with_constraints.setting.unwrap();
+                let setting = setting_with_constraints.setting.into_option()?;
                 match updated_settings_names.contains(&setting.key) {
                     true => Some(setting),
                     false => None,

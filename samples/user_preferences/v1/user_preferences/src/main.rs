@@ -3,6 +3,7 @@
 use std::{str::FromStr, sync::Arc};
 
 use admin_service_impl::AdminServiceImpl;
+use log::error;
 use log::info;
 use management_service_impl::ManagementServiceImpl;
 use persistence::initialize_persistence;
@@ -38,7 +39,7 @@ sdv_lifecycle_client::register_service_bundle!(BundleRunner);
 struct BundleRunner {
     context: ContextRef,
     cancellation_token: Option<CancellationToken>,
-    runtime: tokio::runtime::Runtime,
+    runtime: Option<tokio::runtime::Runtime>,
     thread_handle: Option<tokio::task::JoinHandle<()>>,
 }
 
@@ -47,20 +48,31 @@ impl BundleRunner {
         info!("Starting User Preferences...");
 
         //TODO(b/381209295) Use the API for determining a service bundle's data directory once available
-        let db_path = PathBuf::from_str(&format!(
+        let db_path = format!(
             "/data/service_bundle_data/{}/{}/database",
             context.get_self_fqin().get_sdv_package_name(),
             context.get_self_fqin().get_service_bundle_name(),
-        ))
-        .unwrap();
+        );
+        let db_path = match PathBuf::from_str(&db_path) {
+            Ok(db_path) => db_path,
+            Err(e) => {
+                error!("Cannot PathBuf::from_str({db_path}): {e}");
+                return;
+            }
+        };
         let comms = Arc::new(SdvComms { context });
         let rpc_client_factory = Arc::new(RpcClientFactoryImpl::new(comms.clone()));
         let subscriptions_manager =
             Arc::new(SubscriptionsManagerImpl::new(rpc_client_factory.clone()));
 
         info!("Creating database at {:?}", db_path);
-        let connection =
-            Connection::open(db_path).expect("Unable to open connection to database file");
+        let connection = match Connection::open(db_path) {
+            Ok(connection) => connection,
+            Err(e) => {
+                error!("Unable to open connection to database file: {e}");
+                return;
+            }
+        };
         let persistence = Arc::new(initialize_persistence(connection));
 
         let settings_change_propagator = Arc::new(SettingsChangePropagatorImpl::new(
@@ -104,25 +116,38 @@ impl BundleRunner {
 
 impl ServiceBundle for BundleRunner {
     fn new(context: ContextRef) -> Self {
-        sdv_log::init_logger(LOG_TAG).unwrap();
+        if let Err(e) = sdv_log::init_logger(LOG_TAG) {
+            error!("Cannot sdv_log::init_logger({LOG_TAG}): {e}");
+        };
         binder::ProcessState::start_thread_pool();
 
         Self {
             context,
             thread_handle: None,
             cancellation_token: None,
-            runtime: tokio::runtime::Builder::new_multi_thread().enable_all().build().unwrap(),
+            runtime: tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .inspect_err(|e| error!("Failed to build tokio runtime: {e}"))
+                .ok(),
         }
     }
 
     fn on_start(&mut self) {
         info!("Service is starting");
 
+        let Some(runtime) = self.runtime.as_ref() else {
+            error!("Tokio runtime missing");
+            return;
+        };
+
         self.cancellation_token = Some(CancellationToken::new());
-        self.thread_handle = Some(self.runtime.spawn(Self::main_loop(
-            self.context,
-            self.cancellation_token.as_ref().unwrap().clone(),
-        )));
+        let Some(cancellation_token_ref) = self.cancellation_token.as_ref() else {
+            error!("Cancelation token creation failed");
+            return;
+        };
+        self.thread_handle =
+            Some(runtime.spawn(Self::main_loop(self.context, cancellation_token_ref.clone())));
 
         info!("Service is running");
     }
@@ -130,12 +155,20 @@ impl ServiceBundle for BundleRunner {
     fn on_stop(&mut self) {
         info!("Service is stopping");
 
+        let Some(runtime) = self.runtime.as_ref() else {
+            error!("Tokio runtime missing");
+            return;
+        };
+
         // Trigger cancellation token to exit Tokio runtime execution and drop it
-        self.cancellation_token.as_mut().expect("Must have been created on_start").cancel();
+        match self.cancellation_token.as_mut() {
+            Some(cancellation_token) => cancellation_token.cancel(),
+            None => error!("cancellation_token must have been created on_start"),
+        };
         self.cancellation_token = None;
 
         if let Some(handle) = self.thread_handle.take() {
-            self.runtime.block_on(async move {
+            runtime.block_on(async move {
                 let _ = handle.await;
             });
         }

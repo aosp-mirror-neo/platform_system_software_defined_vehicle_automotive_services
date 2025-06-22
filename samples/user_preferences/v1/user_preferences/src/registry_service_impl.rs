@@ -13,7 +13,7 @@ use async_trait::async_trait;
 use com_sdv_google_user_preferences_user_preferences_registry_service_rpc::Interface as RegistryService;
 use itertools::Itertools;
 use log::{error, info, warn};
-use sdv_status_rs::{SdvStatus, SdvStatusCode};
+use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
 use std::collections::HashSet;
 use user_preferences_api::setting::SettingDefinition as SettingDefinitionProto;
 use user_preferences_api::user_preferences_registry_service::*;
@@ -38,7 +38,7 @@ impl RegistryService for RegistryServiceImpl {
         &self,
         caller_id: sdv_comms::id::ServiceFqin,
         request: &RegisterSettingsRequest,
-    ) -> sdv_status_rs::SdvResult<RegisterSettingsResponse> {
+    ) -> SdvResult<RegisterSettingsResponse> {
         let group_id = match self.persistence.setting_groups.store(&SettingsGroup {
             id: 0,
             name: request.group_name.clone(),
@@ -60,16 +60,18 @@ impl RegistryService for RegistryServiceImpl {
             .iter()
             .cloned()
             .map(|definition_proto: SettingDefinitionProto| {
-                let setting_with_constraints = definition_proto.setting_with_constraints.unwrap();
-                let setting = setting_with_constraints.setting.unwrap();
-                SettingDefinition {
+                let setting_with_constraints =
+                    definition_proto.setting_with_constraints.into_option()?;
+                let setting = setting_with_constraints.setting.into_option()?;
+                Some(SettingDefinition {
                     name: setting.key,
                     kind: definition_proto.kind.value(),
-                    default_value: setting.value.unwrap().into(),
+                    default_value: setting.value?.into(),
                     constraint: setting_with_constraints.constraints.map(|x| x.into()),
-                }
+                })
             })
-            .collect_vec();
+            .collect::<Option<Vec<_>>>()
+            .ok_or(SdvStatus::new(SdvStatusCode::NotFound))?;
 
         match self.persistence.setting_definitions.store(group_id, &definition) {
             Ok(_) => {
@@ -95,7 +97,7 @@ impl RegistryService for RegistryServiceImpl {
         &self,
         caller_id: sdv_comms::id::ServiceFqin,
         request: &UpdateSettingsRequest,
-    ) -> sdv_status_rs::SdvResult<UpdateSettingsResponse> {
+    ) -> SdvResult<UpdateSettingsResponse> {
         let settings_group = match self
             .persistence
             .setting_groups

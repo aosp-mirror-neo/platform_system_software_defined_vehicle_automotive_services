@@ -4,7 +4,6 @@
 use async_trait::async_trait;
 use com_sdv_google_user_preferences_user_controllable_user_controllable_service_rpc::Interface as UserControllableService;
 use com_sdv_google_user_preferences_user_preferences_registry_service_rpc::Client as RegistryServiceClient;
-use itertools::Itertools;
 use protobuf::MessageField;
 use sdv_status_rs::SdvResult;
 use sdv_status_rs::SdvStatus;
@@ -164,9 +163,11 @@ impl UserControllableService for SimpleUserControllableServiceImpl {
 
         println!("Adjusted the following settings: ");
         for new_setting in request.settings.iter() {
-            let persisted_setting =
-                setting_group.setting_with_constraints.get_mut(&new_setting.key);
-            persisted_setting.unwrap().setting = MessageField::some(new_setting.clone());
+            let persisted_setting = setting_group
+                .setting_with_constraints
+                .get_mut(&new_setting.key)
+                .ok_or(SdvStatus::new(SdvStatusCode::NotFound))?;
+            persisted_setting.setting = MessageField::some(new_setting.clone());
 
             println!("Key {:<15} Value {:<10?}", new_setting.key, new_setting.value)
         }
@@ -201,8 +202,14 @@ impl UserControllableService for SimpleUserControllableServiceImpl {
             let settings = setting_group
                 .setting_with_constraints
                 .values()
-                .map(|setting| setting.setting.clone().unwrap())
-                .collect_vec();
+                .map(|setting| {
+                    setting
+                        .setting
+                        .clone()
+                        .into_option()
+                        .ok_or(SdvStatus::new(SdvStatusCode::NotFound))
+                })
+                .collect::<SdvResult<Vec<_>>>()?;
 
             self.client
                 .UpdateSettings(&UpdateSettingsRequest {

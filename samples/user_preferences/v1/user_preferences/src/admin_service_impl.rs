@@ -103,7 +103,10 @@ impl AdminService for AdminServiceImpl {
                 .DeleteUser(
                     caller_id,
                     &DeleteUserRequest {
-                        user_id: previous_user.as_ref().unwrap().id,
+                        user_id: previous_user
+                            .as_ref()
+                            .ok_or(Err(SdvStatus::new(SdvStatusCode::NotFound)))?
+                            .id,
                         ..Default::default()
                     },
                 )
@@ -112,13 +115,18 @@ impl AdminService for AdminServiceImpl {
                 // Since deletion failed, revert the active_user user change
                 error!(
                     "Failed to delete ephemeral user {:?}: {}",
-                    previous_user.as_ref().unwrap(),
+                    previous_user.as_ref().ok_or(Err(SdvStatus::new(SdvStatusCode::NotFound)))?,
                     err
                 );
-                self.persistence.users.set_active_user(previous_user.as_ref().unwrap().id)?;
+                self.persistence.users.set_active_user(
+                    previous_user.as_ref().ok_or(Err(SdvStatus::new(SdvStatusCode::NotFound)))?.id,
+                )?;
                 return Ok(SelectUserResponse { ..Default::default() });
             }
-            info!("Deleted ephemeral user: {}", previous_user.as_ref().unwrap().id);
+            info!(
+                "Deleted ephemeral user: {}",
+                previous_user.as_ref().ok_or(Err(SdvStatus::new(SdvStatusCode::NotFound)))?.id
+            );
         }
 
         info!("Switching to user {}", next_user.id);
@@ -130,8 +138,7 @@ impl AdminService for AdminServiceImpl {
                 &self.persistence.user_settings,
                 next_user.id,
                 group.id,
-            )
-            .unwrap();
+            )?;
 
             debug!(
                 "Loaded settings for group {:?}\n Applying the following settings: {:?}",
@@ -140,7 +147,7 @@ impl AdminService for AdminServiceImpl {
 
             self.settings_change_propagator
                 .queue_setting_change(
-                    ServiceFqin::from_str(&group.service_fqin).unwrap(),
+                    ServiceFqin::from_str(&group.service_fqin)?,
                     group.name.clone(),
                     settings.iter().cloned().map_into().collect(),
                 )
@@ -220,7 +227,7 @@ impl AdminService for AdminServiceImpl {
         for service_fqin in services_to_reset.iter() {
             let client = match self
                 .rpc_client_factory
-                .new_user_controllable_service_client(&ServiceFqin::from_str(service_fqin).unwrap())
+                .new_user_controllable_service_client(&ServiceFqin::from_str(service_fqin)?)
                 .await
             {
                 Ok(client) => client,
