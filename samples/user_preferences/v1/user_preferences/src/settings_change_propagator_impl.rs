@@ -147,7 +147,19 @@ impl SettingsChangePropagatorImpl {
                 // Assuming you have a way to get group ID from group name
                 // Replace this with your actual logic
                 group_id,
-                response.settings.iter().cloned().map_into().collect(),
+                response
+                    .settings
+                    .iter()
+                    .cloned()
+                    .filter_map(|setting| {
+                        setting
+                            .try_into()
+                            .inspect_err(|e| {
+                                error!("Conversion error: {e}");
+                            })
+                            .ok()
+                    })
+                    .collect(),
             ) {
                 error!("Failed to store vehicle settings for {}/{}: {}", fqin, group_name, err);
             } else {

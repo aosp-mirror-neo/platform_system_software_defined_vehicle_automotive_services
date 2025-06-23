@@ -2,6 +2,7 @@
 
 use super::setting_definition::SettingDefinition;
 
+use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
 use serde::{Deserialize, Serialize};
 use user_preferences_api::setting::{setting::Value as ValueProto, Setting as SettingProto};
 
@@ -23,9 +24,14 @@ impl From<Setting> for SettingProto {
     }
 }
 
-impl From<SettingProto> for Setting {
-    fn from(setting: SettingProto) -> Self {
-        Self { name: setting.key, value: setting.value.unwrap().into() }
+impl TryFrom<SettingProto> for Setting {
+    type Error = SdvStatus;
+
+    fn try_from(setting: SettingProto) -> SdvResult<Self> {
+        Ok(Self {
+            name: setting.key,
+            value: setting.value.ok_or(SdvStatus::new(SdvStatusCode::NotFound))?.into(),
+        })
     }
 }
 
@@ -79,7 +85,7 @@ mod tests {
             ..Default::default()
         };
 
-        let setting: Setting = setting_proto.into();
+        let setting: Setting = setting_proto.try_into().unwrap();
 
         assert_eq!(setting.name, "float_setting");
         assert_eq!(setting.value, Value::Float(10.5));

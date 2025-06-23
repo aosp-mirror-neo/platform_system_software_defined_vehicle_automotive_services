@@ -73,7 +73,13 @@ impl BundleRunner {
                 return;
             }
         };
-        let persistence = Arc::new(initialize_persistence(connection));
+        let persistence = Arc::new(match initialize_persistence(connection) {
+            Ok(persistence) => persistence,
+            Err(e) => {
+                error!("Initializing persistence failed: {e}");
+                return;
+            }
+        });
 
         let settings_change_propagator = Arc::new(SettingsChangePropagatorImpl::new(
             persistence.clone(),
@@ -102,7 +108,10 @@ impl BundleRunner {
             comms,
             (admin_service.clone(), management_service.clone(), registry_service.clone()),
         )
-        .await;
+        .await
+        .inspect_err(|e| {
+            error!("Error in user preferences bundle creation: {e}");
+        });
 
         let sd = Arc::new(ServiceDiscoveryManager::new(context));
 

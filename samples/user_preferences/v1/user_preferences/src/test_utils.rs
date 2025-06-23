@@ -30,8 +30,9 @@ impl TestSetup {
         let rpc_client_factory = Arc::new(MockRpcClientFactory::new());
         let settings_change_propagator = Arc::new(MockSettingsChangePropagator::new());
         let subscriptions_manager = Arc::new(MockSubscriptionsManager::new());
-        let persistence =
-            Arc::new(initialize_persistence(rusqlite::Connection::open_in_memory().unwrap()));
+        let persistence = Arc::new(
+            initialize_persistence(rusqlite::Connection::open_in_memory().unwrap()).unwrap(),
+        );
 
         Self { rpc_client_factory, settings_change_propagator, subscriptions_manager, persistence }
     }

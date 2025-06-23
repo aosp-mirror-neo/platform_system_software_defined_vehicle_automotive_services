@@ -18,17 +18,25 @@ pub struct SettingDefinition {
     pub constraint: Option<Constraint>,
 }
 
-impl From<SettingDefinitionProto> for SettingDefinition {
-    fn from(proto: SettingDefinitionProto) -> Self {
-        let setting_with_constraints = proto.setting_with_constraints.unwrap();
-        let setting = setting_with_constraints.setting.unwrap();
+impl TryFrom<SettingDefinitionProto> for SettingDefinition {
+    type Error = SdvStatus;
+
+    fn try_from(proto: SettingDefinitionProto) -> SdvResult<Self> {
+        let setting_with_constraints = proto
+            .setting_with_constraints
+            .into_option()
+            .ok_or(SdvStatus::new(SdvStatusCode::NotFound))?;
+        let setting = setting_with_constraints
+            .setting
+            .into_option()
+            .ok_or(SdvStatus::new(SdvStatusCode::NotFound))?;
         let constraints = setting_with_constraints.constraints;
-        Self {
+        Ok(Self {
             name: setting.key,
             kind: proto.kind.value(),
-            default_value: setting.value.unwrap().into(),
+            default_value: setting.value.ok_or(SdvStatus::new(SdvStatusCode::NotFound))?.into(),
             constraint: constraints.map(|x| x.into()),
-        }
+        })
     }
 }
 
@@ -465,7 +473,7 @@ mod tests {
             ..Default::default()
         };
 
-        let setting_definition: SettingDefinition = proto.into();
+        let setting_definition: SettingDefinition = proto.try_into().unwrap();
 
         assert_eq!(setting_definition.kind, SettingKindProto::PER_USER as i32);
         assert_eq!(setting_definition.name, "int32_setting");
