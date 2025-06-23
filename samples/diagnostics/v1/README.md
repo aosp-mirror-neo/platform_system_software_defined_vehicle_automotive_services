@@ -17,7 +17,7 @@ to build it:
 ### Start the cloud virtual device
 
 ```bash
-cvd create --noresume -vsock_guest_cid=3 -base_instance_num=1 --extra_bootconfig_args="androidboot.sdv.instance_name=instance1 androidboot.virt.address=3"
+cvd create --noresume
 
 # Waits a few seconds for message "Virtual device booted successfully"
 
@@ -278,3 +278,4 @@ After launching sample binary:
 11-28 10:04:21.051   327   378 I sdv_diagnostics_agent:         },
 11-28 10:04:21.051   327   378 I sdv_diagnostics_agent:     },
 11-28 10:04:21.051   327   378 I sdv_diagnostics_agent: )
+```
