@@ -3,6 +3,7 @@
 #![allow(missing_docs)]
 
 use diagnostics_v1_sample_catalog::messages::*;
+use rand::Rng;
 use sdv::comms::id::ServiceFqin;
 use sdv::comms::ContextRef;
 use sdv::diagnostics::api::response_code::ResponseCode;
@@ -14,6 +15,7 @@ use sdv_dump::DumpBinderConnection;
 use sdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_provider1::{
     diagnostics::Diagnostics, DiagnosticsProvider1,
 };
+use std::future;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::thread;
@@ -91,14 +93,20 @@ static BINDER_TAG: &str = "diagnostics_test";
 static DUMP_REPORT_TITLE: &str = "SDV Sample Dump - Diagnostics Test";
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
+    sdv_dump::ProcessState::start_thread_pool();
+    sdv_comms::wait_for_agents()?;
+
     // Implementing dump() for the sample to be able to reliably monitor it from automated tests
     let dm = DumpBinderConnection::initialize(DUMP_REPORT_TITLE, BINDER_TAG);
 
-    let ctx: ContextRef = ContextRef::create(
-        ServiceFqin::from_str("vm:com.sdv.oem.sample.diagnostics.DiagnosticsProvider1/instance")
-            .unwrap(),
+    // Randomise FQIN for test rerun purposes, as abtd with --rerun does not restart VMs
+    let mut rng = rand::thread_rng();
+    let fqin = format!(
+        "vm:com.sdv.oem.sample.diagnostics.DiagnosticsProvider1/rand{}",
+        rng.gen_range(1..100)
     );
+    let ctx: ContextRef = ContextRef::create(ServiceFqin::from_str(&fqin).unwrap());
     let sdv_comms = SdvComms { context: ctx };
     dm.set_self_fqin(&ctx.get_self_fqin());
 
@@ -130,6 +138,5 @@ async fn main() {
     } else {
         dm.set_agent_state("Diagnostics Test Error");
     }
-
-    tokio::task::block_in_place(sdv_dump::ProcessState::join_thread_pool);
+    future::pending::<anyhow::Result<()>>().await
 }

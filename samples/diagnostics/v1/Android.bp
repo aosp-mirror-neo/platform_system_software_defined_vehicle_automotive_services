@@ -29,6 +29,8 @@ rust_binary {
     srcs: ["src/service1.rs"],
     ld_flags: ["-Wl,--no-as-needed"],
     rustlibs: [
+        "librand",
+        "libsdv_comms_rs",
         "libsdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_provider1",
     ],
 }
