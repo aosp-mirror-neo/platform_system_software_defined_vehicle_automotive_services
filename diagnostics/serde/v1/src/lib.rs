@@ -32,3 +32,6 @@ mod enum_options;
 
 /// Utilities for serialization/deserialization of three-byte integers.
 mod integer_utils;
+
+/// Calculation of size of message representation in diagnostics format.
+mod message_size;

@@ -1,4 +1,5 @@
 // Copyright 2024 Google LLC
+use crate::message_size::uds_message_size;
 use crate::protobuf_deserialize::MessageDeserializeSeed;
 use crate::protobuf_serialize::MessageSerialize;
 use crate::uds_deserializer::{UdsDeserializer, UdsDeserializerError};
@@ -57,12 +58,22 @@ impl Translator for TranslatorImpl {
             .parse_from_bytes(proto_bytes)
             .map_err(TranslatorError::ProtobufParsing)?;
 
-        let mut buffer = BytesMut::new();
+        // Calculate size of and try to allocate buffer
+        let size = uds_message_size(message_descriptor)?;
+        let mut buffer = Vec::<u8>::new();
+        buffer.try_reserve(size).map_err(|_| TranslatorError::OutOfMemory)?;
+
         let mut serializer = UdsSerializer::new(&mut buffer);
 
         MessageSerialize::new(message_descriptor, &MessageRef::new(&*message))
             .serialize(&mut serializer)?;
-        Ok(buffer.to_vec())
+
+        // Sanity check
+        if buffer.len() != size {
+            return Err(TranslatorError::Generic);
+        }
+
+        Ok(buffer)
     }
 
     fn translate_from_uds_to_protobuf(
@@ -84,8 +95,8 @@ impl Translator for TranslatorImpl {
 /// Error type for translation between protobuf and UDS formats
 #[derive(Debug, thiserror::Error)]
 pub enum TranslatorError {
-    /// Generic error during translation
-    #[error("Generic error")]
+    /// Internal error indicating an issue with translator implementation.
+    #[error("Internal error indicating an issue with translator implementation")]
     Generic,
     /// Error when parsing message from proto format,
     #[error("Protobuf parsing error: {0}")]
@@ -99,12 +110,18 @@ pub enum TranslatorError {
     /// Error when serializing message to UDS format,
     #[error("Protobuf serialization error: {0}")]
     UdsSerialization(#[from] UdsSerializerError),
+    /// Not enough memory to allocate a buffer.
+    #[error("Error allocating buffer for translation result")]
+    OutOfMemory,
+    /// Error calculating size of message in diagnostics format.
+    #[error("Diagnostics message size can not be calculated")]
+    DiagnosticsMessageSizeCalculation,
 }
 
 #[cfg(test)]
 mod tests {
     use crate::translator::runtime_message_descriptor::get_message_descriptor;
-    use crate::translator::{Translator, TranslatorImpl};
+    use crate::translator::{Translator, TranslatorError, TranslatorImpl};
     use bytes::{BufMut, BytesMut};
     use std::vec::Vec;
 
@@ -253,6 +270,32 @@ mod tests {
         let uds_bytes =
             translator.translate_from_protobuf_to_uds(&proto_bytes, &message_descriptor).unwrap();
         assert_eq!(&uds_bytes, &expected_uds_bytes);
+    }
+
+    #[test]
+    fn translate_from_protobuf_to_uds_with_out_of_memory_error() {
+        let translator = TranslatorImpl {};
+
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/vsidl/v1/syntax.proto";
+            import "sdv/vsidl/v1/annotations.proto";
+            import "sdv/diagnostics/v1/diagnostics.proto";
+
+            message TestProto {
+                repeated string my_string1 = 1 [(sdv.vsidl.v1.variable_type_max_size) = 2147483647, (sdv.vsidl.v1.repeated_field_max_count) = 2147483647];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let uds_bytes = translator.translate_from_protobuf_to_uds(&[], &message_descriptor);
+
+        match uds_bytes {
+            Result::Err(TranslatorError::OutOfMemory) => {}
+            _ => panic!("{uds_bytes:#?}"),
+        }
     }
 
     #[googletest::test]

@@ -1,14 +1,14 @@
 // Copyright 2024 Google LLC
-use bytes::{BufMut, BytesMut};
+use bytes::BufMut;
 use serde::ser::{Impossible, SerializeStruct, SerializeTuple};
 use serde::{Serialize, Serializer};
 
 pub(crate) struct UdsSerializer<'buffer_lt> {
-    output: &'buffer_lt mut BytesMut,
+    output: &'buffer_lt mut dyn BufMut,
 }
 
 impl<'buffer_lt> UdsSerializer<'buffer_lt> {
-    pub fn new(output: &'buffer_lt mut BytesMut) -> Self {
+    pub fn new(output: &'buffer_lt mut dyn BufMut) -> Self {
         UdsSerializer { output }
     }
 }
