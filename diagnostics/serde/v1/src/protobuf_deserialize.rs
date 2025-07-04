@@ -723,18 +723,25 @@ impl<'de> DeserializeSeed<'de> for ValueDeserializeSeed<'_> {
                     type Value = ReflectValueBox;
 
                     fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-                        write!(fmt, "single I32 value representing Enum")
+                        write!(fmt, "single U32 value representing Enum")
                     }
 
-                    fn visit_i32<E>(self, variant_index: i32) -> Result<Self::Value, E>
+                    fn visit_i32<E>(self, variant_value: i32) -> Result<Self::Value, E>
                     where
                         E: Error,
                     {
-                        if (variant_index as usize) < self.0.proto().value.len() {
-                            Ok(Enum(self.0.clone(), variant_index))
-                        } else {
-                            Err(E::custom("enum variant index is out of bounds"))
-                        }
+                        Ok(Enum(self.0.clone(), variant_value))
+                    }
+
+                    // Deserializer implementations might ignore `deserialize_u32` hint.
+                    fn visit_u64<E>(self, value: u64) -> Result<Self::Value, E>
+                    where
+                        E: Error,
+                    {
+                        let variant_value =
+                            value.try_into().map_err(|_| E::custom("enum value i32 overflow"))?;
+
+                        self.visit_i32(variant_value)
                     }
 
                     // Deserializer implementations might ignore `deserialize_i32` hint.
@@ -742,19 +749,19 @@ impl<'de> DeserializeSeed<'de> for ValueDeserializeSeed<'_> {
                     where
                         E: Error,
                     {
-                        let variant_index =
-                            value.try_into().map_err(|_| E::custom("i32 overflow"))?;
+                        let variant_value =
+                            value.try_into().map_err(|_| E::custom("enum value i32 overflow"))?;
 
-                        self.visit_i32(variant_index)
+                        self.visit_i32(variant_value)
                     }
                 }
 
                 let visitor = EnumValueVisitor(enum_descriptor);
 
                 match enum_descriptor.enum_byte_size() {
-                    Some(ByteSize::ONE) => deserializer.deserialize_i8(visitor),
-                    Some(ByteSize::TWO) => deserializer.deserialize_i16(visitor),
-                    Some(ByteSize::THREE) => integer_utils::deserialize_i24(deserializer, visitor),
+                    Some(ByteSize::ONE) => deserializer.deserialize_u8(visitor),
+                    Some(ByteSize::TWO) => deserializer.deserialize_u16(visitor),
+                    Some(ByteSize::THREE) => integer_utils::deserialize_u24(deserializer, visitor),
                     _ => deserializer.deserialize_i32(visitor),
                 }
             }
@@ -1663,6 +1670,51 @@ mod tests {
     }
 
     #[test]
+    fn deserialize_enum_field_with_unknown_value() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            message TestProto {
+                TestEnum my_enum = 1;
+            }
+
+            enum TestEnum {
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+            "#,
+            ".TestProto",
+            file_descriptor,
+            message_descriptor
+        );
+
+        let enum_descriptor = file_descriptor.enum_by_full_name(".TestEnum").unwrap();
+        let mut expected_message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => Enum(enum_descriptor.clone(), -5),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *expected_message, value);
+        }
+
+        let message_deserialize = DeserializeSeedWrapper { message: expected_message };
+
+        assert_de_tokens::<DeserializeSeedWrapper>(
+            &message_deserialize,
+            &[
+                Token::Tuple { len: 1 },
+                Token::Some,
+                // Unknown value should be deserialized successfully, as long as it fits within proto allowed range.
+                Token::I64(-5),
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
     fn deserialize_enum_field_with_overflow() {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
@@ -1683,14 +1735,8 @@ mod tests {
         );
 
         assert_de_tokens_error::<DeserializeSeedWrapper>(
-            &[
-                Token::Tuple { len: 1 },
-                Token::Some,
-                // Enum has only 3 values defined.
-                Token::I64(5),
-                Token::TupleEnd,
-            ],
-            "enum variant index is out of bounds",
+            &[Token::Tuple { len: 1 }, Token::Some, Token::U64(u64::MAX), Token::TupleEnd],
+            "enum value i32 overflow",
         )
     }
 
@@ -2150,14 +2196,89 @@ mod tests {
             &[
                 Token::Tuple { len: 3 },
                 Token::Some,
-                Token::I8(0),
+                Token::U8(0),
                 Token::Some,
-                Token::I16(0),
+                Token::U16(0),
                 Token::Some,
                 Token::Tuple { len: 3 },
                 Token::U8(0),
                 Token::U8(0),
                 Token::U8(0),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn deserialize_proto_with_enum_with_byte_size_max_value() {
+        prepare_descriptors_and_deserializer!(
+            r#"syntax = 'proto3';
+
+            import "sdv/diagnostics/v1/diagnostics.proto";
+
+            message TestProto {
+                TestEnumOne my_1_byte_enum = 1;
+                TestEnumTwo my_2_byte_enum = 2;
+                TestEnumThree my_3_byte_enum = 3;
+            }
+
+            enum TestEnumOne {
+                option (sdv.diagnostics.v1.enum_byte_size) = ONE;
+
+                A = 0;
+                B = 255;
+            }
+
+            enum TestEnumTwo {
+                option (sdv.diagnostics.v1.enum_byte_size) = TWO;
+
+                A = 0;
+                B = 65535;
+            }
+
+            enum TestEnumThree {
+                option (sdv.diagnostics.v1.enum_byte_size) = THREE;
+
+                A = 0;
+                B = 16777215;
+            }
+            "#,
+            ".TestProto",
+            file_descriptor,
+            message_descriptor
+        );
+
+        let enum_descriptor1 = file_descriptor.enum_by_full_name(".TestEnumOne").unwrap();
+        let enum_descriptor2 = file_descriptor.enum_by_full_name(".TestEnumTwo").unwrap();
+        let enum_descriptor3 = file_descriptor.enum_by_full_name(".TestEnumThree").unwrap();
+        let mut expected_message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => Enum(enum_descriptor1.clone(), 255),
+                1 => Enum(enum_descriptor2.clone(), 65535),
+                2 => Enum(enum_descriptor3.clone(), 16777215),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *expected_message, value);
+        }
+
+        let message_deserialize = DeserializeSeedWrapper { message: expected_message };
+
+        assert_de_tokens(
+            &message_deserialize,
+            &[
+                Token::Tuple { len: 3 },
+                Token::Some,
+                Token::U8(255),
+                Token::Some,
+                Token::U16(65535),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(255),
+                Token::U8(255),
+                Token::U8(255),
                 Token::TupleEnd,
                 Token::TupleEnd,
             ],

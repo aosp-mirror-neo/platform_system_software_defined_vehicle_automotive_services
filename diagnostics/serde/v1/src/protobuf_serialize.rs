@@ -295,13 +295,16 @@ impl Serialize for ValueSerialize<'_> {
                 }
             }
             Enum(enum_descriptor, value) => match enum_descriptor.enum_byte_size() {
-                Some(ByteSize::ONE) => serializer.serialize_i8(
-                    (*value).try_into().map_err(|_| S::Error::custom("enum i8 overflow"))?,
+                Some(ByteSize::ONE) => serializer.serialize_u8(
+                    (*value).try_into().map_err(|_| S::Error::custom("enum u8 overflow"))?,
                 ),
-                Some(ByteSize::TWO) => serializer.serialize_i16(
-                    (*value).try_into().map_err(|_| S::Error::custom("enum i16 overflow"))?,
+                Some(ByteSize::TWO) => serializer.serialize_u16(
+                    (*value).try_into().map_err(|_| S::Error::custom("enum u16 overflow"))?,
                 ),
-                Some(ByteSize::THREE) => integer_utils::serialize_i24(*value, serializer),
+                Some(ByteSize::THREE) => integer_utils::serialize_u24(
+                    (*value).try_into().map_err(|_| S::Error::custom("enum u24 overflow"))?,
+                    serializer,
+                ),
                 _ => serializer.serialize_i32(*value),
             },
             Message(value) => {
@@ -1282,14 +1285,88 @@ mod tests {
             &[
                 Token::Tuple { len: 3 },
                 Token::Some,
-                Token::I8(0),
+                Token::U8(0),
                 Token::Some,
-                Token::I16(0),
+                Token::U16(0),
                 Token::Some,
                 Token::Tuple { len: 3 },
                 Token::U8(0),
                 Token::U8(0),
                 Token::U8(0),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_enum_with_byte_size_and_max_value() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/diagnostics/v1/diagnostics.proto";
+
+            message TestProto {
+                TestEnumOne my_1_byte_enum = 1;
+                TestEnumTwo my_2_byte_enum = 2;
+                TestEnumThree my_3_byte_enum = 3;
+            }
+
+            enum TestEnumOne {
+                option (sdv.diagnostics.v1.enum_byte_size) = ONE;
+
+                B = 255;
+                A = 0;
+            }
+
+            enum TestEnumTwo {
+                option (sdv.diagnostics.v1.enum_byte_size) = TWO;
+
+                B = 65535;
+                A = 0;
+            }
+
+            enum TestEnumThree {
+                option (sdv.diagnostics.v1.enum_byte_size) = THREE;
+
+                B = 16777215;
+                A = 0;
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+        let enum_descriptor1 = file_descriptor.enum_by_full_name(".TestEnumOne").unwrap();
+        let enum_descriptor2 = file_descriptor.enum_by_full_name(".TestEnumTwo").unwrap();
+        let enum_descriptor3 = file_descriptor.enum_by_full_name(".TestEnumThree").unwrap();
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => Enum(enum_descriptor1.clone(), 255),
+                1 => Enum(enum_descriptor2.clone(), 65535),
+                2 => Enum(enum_descriptor3.clone(), 16777215),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 3 },
+                Token::Some,
+                Token::U8(255),
+                Token::Some,
+                Token::U16(65535),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(255),
+                Token::U8(255),
+                Token::U8(255),
                 Token::TupleEnd,
                 Token::TupleEnd,
             ],
@@ -1403,7 +1480,7 @@ mod tests {
                 Token::Some,
                 Token::I64(130000),
                 Token::Some,
-                Token::I8(0),
+                Token::U8(0),
                 Token::Some,
                 Token::I8(-15),
                 Token::Some,
@@ -1522,7 +1599,7 @@ mod tests {
                 Token::Some,
                 Token::I64(130000),
                 Token::Some,
-                Token::I8(0),
+                Token::U8(0),
                 Token::Some,
                 Token::I8(-15),
                 Token::Some,
