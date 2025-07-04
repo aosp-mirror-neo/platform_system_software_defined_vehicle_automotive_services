@@ -28,3 +28,38 @@ rust_binary {
     ld_flags: ["-Wl,--no-as-needed"],
     product_specific: true,
 }
+
+rust_test {
+    name: "sdv_core_automotive_services_unit_diagnostics_agent_test",
+    defaults: [
+        "sdv_tracing@rust_defaults",
+        "sdv@rust_defaults",
+    ],
+    srcs: [
+        "src/main.rs",
+    ],
+    rustlibs: [
+        "libanyhow",
+        "libsdv_log_rust",
+        "liblog_rust",
+        "libbinder_rs",
+        "libsdv_comms_rs",
+        "libsdv_status_rs",
+        "libtokio",
+        "libfutures",
+        "libdiagnostics_v1_api",
+        "libprotobuf",
+        "libsdv_uds_serde_v1",
+        "libsdv_config_provider",
+        "libfutures_executor",
+        "libsdv_dump",
+    ],
+    test_options: {
+        unit_test: true,
+    },
+    test_suites: [
+        "general-tests",
+        "automotive-sdv-tests",
+    ],
+    auto_gen_config: true,
+}

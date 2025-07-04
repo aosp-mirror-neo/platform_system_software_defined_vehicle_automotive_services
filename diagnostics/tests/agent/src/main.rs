@@ -837,3 +837,19 @@ async fn create_tcp_connection() {
         Box::pin(create_tcp_connection()).await;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use diagnostics_v1_api::event::Event;
+
+    #[test]
+    fn test_decode_with_len_buffer_out_of_bound_read() {
+        let message_bytes = [0xff, 0xff];
+
+        let result = decode_with_len::<Event>(&message_bytes);
+
+        // Should result in error, instead of out-of-bound read and panic.
+        assert!(result.is_err());
+    }
+}

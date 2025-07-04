@@ -14,6 +14,9 @@
       "name": "sdv_mw_rs_diag_tests"
     },
     {
+      "name": "sdv_core_automotive_services_unit_diagnostics_agent_test"
+    },
+    {
       "name": "sdv_combined_sample_generation_test"
     },
     {
