@@ -46,7 +46,7 @@ message Event {
   // Optional event-specific data related to this status update.
   //
   // Format of this field corresponds to the related DiagnosticsDeclaration
-  // (see "sdv/diagnostics/v1/diagnostics.proto")
+  // (see "sdv/diagnostics/v1/diagnostics_syntax.proto")
   //
   // E.g. in case of fail status it may contain additional information on the type of
   // failure.

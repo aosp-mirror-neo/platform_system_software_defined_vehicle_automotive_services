@@ -11,7 +11,7 @@ use sdv_comms::id::ServiceFqin;
 use sdv_config_provider::vsidl_provider_api::VsidlConfigProviderV1;
 use std::sync::Arc;
 use tracing::instrument;
-use vsidl_v1::diagnostics::DiagnosticsDeclaration;
+use vsidl_v1::diagnostics_syntax::DiagnosticsDeclaration;
 
 /// UDS to SDV translator for diagnostic entities.
 /// Provides methods to translate protobuf bytes to UDS-compatible bytes to and back,
@@ -163,7 +163,7 @@ mod tests {
     use sdv_config_provider::vsidl_provider_api::MockVsidlConfigProviderV1;
     use std::str::FromStr;
     use std::sync::Arc;
-    use vsidl_v1::diagnostics::{
+    use vsidl_v1::diagnostics_syntax::{
         diagnostics_declaration::{routine::Method, *},
         DiagnosticsDeclaration,
     };

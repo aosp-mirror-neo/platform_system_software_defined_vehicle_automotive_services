@@ -10,7 +10,7 @@ use sdv_status_rs::SdvResult;
 use sdv_status_rs::{SdvStatus, SdvStatusCode};
 use std::marker::PhantomData;
 use std::sync::Arc;
-use vsidl_v1::annotations;
+use vsidl_v1_stdlib::annotations;
 
 /// Publisher of diagnostics events.
 pub struct EventPublisher<M> {

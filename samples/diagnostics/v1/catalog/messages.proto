@@ -6,7 +6,6 @@ syntax = "proto3";
 package com.sdv.oem.sample.diagnostics;
 
 import "sdv/vsidl/v1/annotations.proto";
-import "sdv/diagnostics/v1/diagnostics.proto";
 
 message LowPressureData {
   int32 status = 1;

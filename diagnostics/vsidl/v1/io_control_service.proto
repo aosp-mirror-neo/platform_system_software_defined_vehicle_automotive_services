@@ -16,7 +16,7 @@ import "response_code.proto";
 // granularly (see `mask` request fields):
 //
 //  - Mapping between IoControl ids and corresponding protobuf message is defined in diagnostics
-// declaration of the service bundle (see "sdv/diagnostics/v1/diagnostics.proto").
+// declaration of the service bundle (see "sdv/diagnostics/v1/diagnostics_syntax.proto").
 //  - For the purposes of IoControl, each primitive field of the protobuf message represents a
 // parameter.
 //  - In case of nested protobuf message, parameters are numbered in order of "inorder" traversal.

@@ -67,7 +67,8 @@ message OnFaultStatusChangeRequest {
   //
   // This corresponds to the extended data of the event that triggered the fault.
   // Mapping between event ids and corresponding protobuf messages of extended data is defined in
-  // diagnostics declaration of the service bundle (see "sdv/diagnostics/v1/diagnostics.proto").
+  // diagnostics declaration of the service bundle (see
+  // "sdv/diagnostics/v1/diagnostics_syntax.proto").
   optional bytes extended_data = 3;
 }
 

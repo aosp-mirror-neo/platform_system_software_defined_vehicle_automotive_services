@@ -498,7 +498,6 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -556,7 +555,6 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -595,7 +593,6 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -634,7 +631,6 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -819,7 +815,6 @@ mod tests {
         let file_descriptor = get_file_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -865,7 +860,6 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -907,7 +901,6 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -949,7 +942,6 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -1082,7 +1074,6 @@ mod tests {
             r#"syntax = 'proto3';
 
             import "sdv/diagnostics/v1/diagnostics.proto";
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -1156,8 +1147,6 @@ mod tests {
             r#"syntax = 'proto3';
 
             import "sdv/diagnostics/v1/diagnostics.proto";
-            import "sdv/vsidl/v1/syntax.proto";
-            import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
                 float my_fixed_float = 1 [(sdv.diagnostics.v1.fixed_point_encoding) = {
@@ -1195,8 +1184,6 @@ mod tests {
             r#"syntax = 'proto3';
 
             import "sdv/diagnostics/v1/diagnostics.proto";
-            import "sdv/vsidl/v1/syntax.proto";
-            import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
                 double my_fixed_double = 1 [(sdv.diagnostics.v1.fixed_point_encoding) = {
@@ -1378,7 +1365,6 @@ mod tests {
         let file_descriptor = get_file_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
             import "sdv/diagnostics/v1/diagnostics.proto";
 
@@ -1501,7 +1487,6 @@ mod tests {
         let file_descriptor = get_file_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
             import "sdv/diagnostics/v1/diagnostics.proto";
 
@@ -1614,7 +1599,6 @@ mod tests {
         let file_descriptor = get_file_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
             import "sdv/diagnostics/v1/diagnostics.proto";
 
