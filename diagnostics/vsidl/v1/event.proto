@@ -40,10 +40,6 @@ enum Status {
 //
 // Id of the event being reported is defined by the data tunnel topic being used.
 message Event {
-  option (.sdv.vsidl.v1.publication) = {
-    message_count: 32
-  };
-
   // Required. Status of the event.
   Status status = 1;
 
@@ -54,7 +50,7 @@ message Event {
   //
   // E.g. in case of fail status it may contain additional information on the type of
   // failure.
-  optional bytes extended_data = 2 [(.sdv.vsidl.v1.variable_type_max_size) = 0x7FFFFFFF];
+  optional bytes extended_data = 2;
 }
 
 // Message to set the state of enable condition via data tunnel.

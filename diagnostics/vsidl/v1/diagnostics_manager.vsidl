@@ -16,13 +16,6 @@ sdv_service_bundle {
     }
 
     unit_type {
-        # This unit type is handled by Diagnostics MW generation.
-        #
-        # See com.sdv.google.diagnostics.v1.DiagnosticsDeclaration.Event.
-        type: "event.Event"
-    }
-
-    unit_type {
         type: "data_item.DataItemService"
     }
 
