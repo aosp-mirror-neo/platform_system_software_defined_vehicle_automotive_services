@@ -77,11 +77,7 @@ impl<M: Message> EventPublisher<M> {
     fn publish_internal(&self, status: Status, data: Option<M>) -> SdvResult<()> {
         let event_data = codec::encode(&Event {
             status: status.into(),
-            extended_data: data
-                .as_ref()
-                .map(encode_event_extended_data)
-                .transpose()?
-                .map(Vec::from),
+            extended_data: data.as_ref().map(encode_event_extended_data).transpose()?,
             ..Default::default()
         })?;
 
