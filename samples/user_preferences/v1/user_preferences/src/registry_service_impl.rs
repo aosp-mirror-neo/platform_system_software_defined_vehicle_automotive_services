@@ -76,9 +76,7 @@ impl RegistryService for RegistryServiceImpl {
             Ok(_) => {
                 info!(
                     "Registered setting group {}/{}\n{:?}",
-                    caller_id.to_string(),
-                    request.group_name,
-                    definition
+                    caller_id, request.group_name, definition
                 );
                 Ok(RegisterSettingsResponse::new())
             }
@@ -105,11 +103,7 @@ impl RegistryService for RegistryServiceImpl {
             Ok(x) => x,
             Err(err) => {
                 if err.status_code() == SdvStatusCode::NotFound {
-                    warn!(
-                        "Settings group {}/{} does not exist",
-                        request.group_name,
-                        caller_id.to_string(),
-                    );
+                    warn!("Settings group {}/{} does not exist", request.group_name, caller_id,);
                 } else {
                     error!("Unable to update setting: {:?}", err);
                 }

@@ -125,7 +125,7 @@ impl SettingsChangePropagatorImpl {
                 Err(err) => {
                     error!(
                         "RequestSettingsChange RPC to {} to update group {} failed: {}",
-                        fqin.to_string(),
+                        fqin,
                         group_name.clone(),
                         err
                     );
@@ -163,7 +163,7 @@ impl SettingsChangePropagatorImpl {
             ) {
                 error!("Failed to store vehicle settings for {}/{}: {}", fqin, group_name, err);
             } else {
-                info!("Successfully applied settings for {}/{}", fqin.to_string(), group_name);
+                info!("Successfully applied settings for {}/{}", fqin, group_name);
             }
             self.notify_subscribers_of_current_state(
                 fqin,
