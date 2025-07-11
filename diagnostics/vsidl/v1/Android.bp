@@ -15,7 +15,8 @@ rust_protobuf {
         "-I external/protobuf/src",
     ],
     rustlibs: [
-        "libvsidl_v1_proto_rs",
+        "libvsidl_v1_stdlib_diag_proto_rs",
+        "libvsidl_v1_stdlib_proto_rs",
     ],
     exported_include_dirs: ["."],
     vendor_available: true,

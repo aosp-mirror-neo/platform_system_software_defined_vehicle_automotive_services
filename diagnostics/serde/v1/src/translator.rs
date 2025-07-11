@@ -132,7 +132,6 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
             import "sdv/diagnostics/v1/diagnostics.proto";
 
@@ -279,7 +278,6 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
             import "sdv/diagnostics/v1/diagnostics.proto";
 
@@ -305,7 +303,6 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
             import "sdv/diagnostics/v1/diagnostics.proto";
 
@@ -448,7 +445,7 @@ mod tests {
 pub mod runtime_message_descriptor {
     use protobuf::reflect::{FileDescriptor, MessageDescriptor};
     use std::fs;
-    use vsidl_v1::{annotations, diagnostics, syntax};
+    use vsidl_v1::{annotations, diagnostics};
 
     pub fn get_file_descriptor(proto_text: &str) -> FileDescriptor {
         let temp_dir = tempfile::tempdir().unwrap();
@@ -470,11 +467,7 @@ pub mod runtime_message_descriptor {
 
         FileDescriptor::new_dynamic(
             file_descriptor_proto.clone(),
-            &[
-                syntax::file_descriptor().clone(),
-                diagnostics::file_descriptor().clone(),
-                annotations::file_descriptor().clone(),
-            ],
+            &[annotations::file_descriptor().clone(), diagnostics::file_descriptor().clone()],
         )
         .unwrap()
     }

@@ -103,7 +103,6 @@ mod tests {
         let descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/diagnostics/v1/diagnostics.proto";
 
             message TestProto {

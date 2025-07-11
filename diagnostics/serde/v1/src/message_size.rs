@@ -82,7 +82,6 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
             import "sdv/diagnostics/v1/diagnostics.proto";
 
@@ -154,7 +153,6 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
             import "sdv/diagnostics/v1/diagnostics.proto";
 
@@ -182,7 +180,6 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
             import "sdv/diagnostics/v1/diagnostics.proto";
 
@@ -206,9 +203,7 @@ mod tests {
         let message_descriptor = get_message_descriptor(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
-            import "sdv/diagnostics/v1/diagnostics.proto";
 
             message TestProto {
                 repeated string my_string1 = 1 [(sdv.vsidl.v1.variable_type_max_size) = 2147483647];

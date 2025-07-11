@@ -5,8 +5,6 @@ syntax = "proto3";
 
 package com.sdv.google.sample.diagnostics_update;
 
-import "sdv/diagnostics/v1/diagnostics.proto";
-
 message TirePressureSimple {
   float value = 1;
 }

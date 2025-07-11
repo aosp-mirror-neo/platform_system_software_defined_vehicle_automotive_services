@@ -1021,7 +1021,6 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -1109,7 +1108,6 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -1141,7 +1139,6 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -1175,7 +1172,6 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -1207,7 +1203,6 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -1809,7 +1804,6 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -1879,7 +1873,6 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -1910,7 +1903,6 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -1934,7 +1926,6 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -2051,7 +2042,6 @@ mod tests {
             r#"syntax = 'proto3';
 
             import "sdv/diagnostics/v1/diagnostics.proto";
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
 
             message TestProto {
@@ -2290,10 +2280,6 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
-            import "sdv/vsidl/v1/annotations.proto";
-            import "sdv/diagnostics/v1/diagnostics.proto";
-
             message TestProto {
                 optional int64 my_i64 = 1;
                 optional InnerProto my_inner_proto = 2;
@@ -2353,7 +2339,6 @@ mod tests {
         prepare_descriptors_and_deserializer!(
             r#"syntax = 'proto3';
 
-            import "sdv/vsidl/v1/syntax.proto";
             import "sdv/vsidl/v1/annotations.proto";
             import "sdv/diagnostics/v1/diagnostics.proto";
 
