@@ -274,10 +274,9 @@ impl IPowerStateClientApiAsyncServer for BinderServer {
     ) -> BinderResult<PowerStateReportAidl> {
         info!("VPM Agent received client request to subscribe to power updates!");
         let id = ThreadState::get_calling_uid();
-        let callbacks = self.callbacks.clone();
+        let callbacks_clone = self.callbacks.clone();
         let mut death_recipient = DeathRecipient::new(move || {
-            info!("Handling death notification for id {:?}", id);
-            callbacks.lock().unwrap().remove(&id);
+            on_client_died(callbacks_clone.clone(), id);
         });
         let result =
             self.death_linker.link_callback_to_death_recipient(callback, &mut death_recipient);
@@ -294,6 +293,11 @@ impl IPowerStateClientApiAsyncServer for BinderServer {
         let power_state = self.power_state_watch_receiver.borrow();
         Ok(convert_to_aidl(power_state.get_report()))
     }
+}
+
+fn on_client_died(callbacks: Arc<Mutex<HashMap<u32, ClientCallback>>>, id: u32) {
+    info!("Handling death notification for id {:?}", id);
+    callbacks.lock().unwrap().remove(&id);
 }
 
 fn convert_to_aidl(power_state_report: PowerStateReport) -> PowerStateReportAidl {
@@ -495,6 +499,37 @@ mod tests {
 
         let result = notifier.notify(report).await;
         assert!(result.is_ok(), "notify failed when no listeners are present: {:?}", result.err());
+    }
+
+    #[tokio::test]
+    async fn test_on_client_died_removes_callback() {
+        let callbacks_map = Arc::new(Mutex::new(HashMap::new()));
+        let power_off_exit_state = Arc::new(PowerOffExit {});
+        let (_tx, rx) =
+            tokio::sync::watch::channel(power_off_exit_state.clone() as Arc<dyn PowerState>);
+        let mut mock_death_linker = MockDeathLinker::default();
+        mock_death_linker
+            .expect_link_callback_to_death_recipient()
+            .times(1)
+            .returning(|_, _| Ok(()));
+        let server = BinderServer::new(callbacks_map.clone(), rx, Arc::new(mock_death_linker));
+        let fake_listener_impl = MockIPowerStateReportListener::new();
+        let fake_listener_binder =
+            BnPowerStateReportListener::new_binder(fake_listener_impl, BinderFeatures::default());
+
+        let result = server.subscribeToPowerStateReport(&fake_listener_binder).await;
+        assert!(result.is_ok(), "subscribeToPowerStateReport failed: {:?}", result.err());
+        assert_eq!(callbacks_map.lock().unwrap().len(), 1);
+
+        let id = {
+            let binding = callbacks_map.lock().unwrap();
+            let client_id_to_remove = binding.keys().next().unwrap();
+            *client_id_to_remove
+        };
+
+        on_client_died(callbacks_map.clone(), id);
+
+        assert_eq!(server.callbacks.lock().unwrap().len(), 0);
     }
 
     #[tokio::test]
