@@ -8,7 +8,6 @@ aidl_interface {
     name: "google.sdv.vpm-aidl",
     srcs: ["google/sdv/vpm/*.aidl"],
     stability: "vintf",
-    always_use_unfrozen: true,
     owner: "google",
     backend: {
         rust: {
@@ -36,5 +35,12 @@ aidl_interface {
     vendor_available: true,
     system_ext_specific: true,
     min_sdk_version: "34",
-    frozen: false,
+    frozen: true,
+    versions_with_info: [
+        {
+            version: "1",
+            imports: [],
+        },
+    ],
+
 }
