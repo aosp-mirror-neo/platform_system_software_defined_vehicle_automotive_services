@@ -394,6 +394,52 @@ mod tests {
     use tokio::time::timeout;
     use tokio::time::Duration;
 
+    use crate::power_service::notify_oem;
+    use anyhow::anyhow;
+    use sdv_comms::id::ServiceFqin;
+    use sdv_comms::ContextRef;
+    use sdv_mw_rs_sdv_comms::SdvComms;
+    use std::str::FromStr;
+
+    #[tokio::test]
+    async fn new_creates_power_service_with_initial_state() {
+        // This test relies on the test environment being able to handle binder calls.
+
+        // Given
+        let fqin =
+            ServiceFqin::from_str("vm:com.sdv.google.vpm.VpmPowerServiceBundle/default").unwrap();
+        let context = ContextRef::create(fqin);
+        let comms = Arc::new(SdvComms { context });
+
+        // When
+        let power_service = PowerServiceImpl::new(comms);
+
+        // Then
+        // The service is created, and we can access its channels.
+        let _request_sender = power_service.get_power_state_request_sender();
+        let watch_receiver = power_service.get_power_state_watch_receiver();
+
+        // The initial state should be the default persisted state, which is PowerOffExit.
+        assert_eq!(watch_receiver.borrow().get_report(), PowerStateReport::POWER_OFF_EXIT);
+    }
+
+    #[tokio::test]
+    async fn new_with_notifier_initializes_and_creates_binder_service() {
+        // Given a mock power state notifier.
+        let mut mock_power_state_notifier = MockPowerStateNotifier::new();
+        mock_power_state_notifier.expect_create_binder_service().times(1).returning(|_| Ok(()));
+
+        // When creating a new PowerServiceImpl with the mock notifier.
+        let service = PowerServiceImpl::new_with_notifier(Arc::new(mock_power_state_notifier));
+
+        // Then the initial power state is the default (PowerOffExit), and we can get the channels.
+        assert_eq!(
+            service.get_power_state_watch_receiver().borrow().get_report(),
+            PowerStateReport::POWER_OFF_EXIT
+        );
+        let _ = service.get_power_state_request_sender();
+    }
+
     #[tokio::test]
     async fn set_power_state_succeeds() {
         // Given: the power state request handler.
@@ -830,5 +876,135 @@ mod tests {
 
         // Then: power state is returned.
         assert_eq!(PowerStateReport::ON, result);
+    }
+
+    #[tokio::test]
+    async fn process_power_request_handles_execution_error() {
+        // Given a power service
+        let mut mock_notifier = MockPowerStateNotifier::default();
+        mock_notifier.expect_create_binder_service().returning(|_| Ok(()));
+        mock_notifier.expect_notify().times(1).returning(|_| Ok(()));
+        mock_notifier.expect_notify_oem().times(1).returning(|_, _| Ok(()));
+
+        let service = PowerServiceImpl::new_with_notifier(Arc::new(mock_notifier));
+
+        // And a power state that fails on execution
+        let mut failing_state = MockPowerState::new();
+        failing_state.expect_get_report().return_const(PowerStateReport::ON);
+        failing_state.expect_get_persistence_tag().return_const("failing");
+        failing_state.expect_is_sleep_state().return_const(false);
+        failing_state.expect_execute().times(1).returning(|_, _| Err(anyhow!("execution failed")));
+
+        let request = PowerRequest::new(Box::new(failing_state), 100);
+
+        // When processing the request
+        let handle = service.process_power_request(request).await;
+
+        // Then the task completes successfully, as the error is handled internally.
+        let result = handle.await.unwrap();
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn notify_oem_sends_host_requested_on_success() {
+        // Given a mock notifier that expects a HOST_REQUESTED reason
+        let mut mock_notifier = MockPowerStateNotifier::new();
+        mock_notifier
+            .expect_notify_oem()
+            .withf(|report, reason| {
+                *report == PowerStateReport::ON && *reason == PowerStateChangeReason::HOST_REQUESTED
+            })
+            .times(1)
+            .returning(|_, _| Ok(()));
+
+        let state = Arc::new(On {});
+        let select_result = Ok(());
+
+        // When calling notify_oem with a successful result
+        notify_oem(state, select_result, Arc::new(mock_notifier)).await;
+
+        // Then the mock expectations are met.
+    }
+
+    #[tokio::test]
+    async fn notify_oem_sends_timeout_on_timeout_error() {
+        // Given a mock notifier that expects a TIMEOUT reason
+        let mut mock_notifier = MockPowerStateNotifier::new();
+        mock_notifier
+            .expect_notify_oem()
+            .withf(|report, reason| {
+                *report == PowerStateReport::ON && *reason == PowerStateChangeReason::TIMEOUT
+            })
+            .times(1)
+            .returning(|_, _| Ok(()));
+
+        let state = Arc::new(On {});
+        let select_result = Err(PowerStateNotificationError::TimedOut);
+
+        // When calling notify_oem with a timeout error
+        notify_oem(state, select_result, Arc::new(mock_notifier)).await;
+
+        // Then the mock expectations are met.
+    }
+
+    #[tokio::test]
+    async fn notify_oem_sends_timeout_on_other_error() {
+        // Given a mock notifier that expects a TIMEOUT reason
+        let mut mock_notifier = MockPowerStateNotifier::new();
+        mock_notifier
+            .expect_notify_oem()
+            .withf(|report, reason| {
+                *report == PowerStateReport::ON && *reason == PowerStateChangeReason::TIMEOUT
+            })
+            .times(1)
+            .returning(|_, _| Ok(()));
+
+        let state = Arc::new(On {});
+        let select_result = Err(PowerStateNotificationError::Disconnected);
+
+        // When calling notify_oem with a different error
+        notify_oem(state, select_result, Arc::new(mock_notifier)).await;
+
+        // Then the mock expectations are met.
+    }
+
+    #[tokio::test]
+    async fn handle_set_power_state_fails_on_invalid_transition() {
+        // Given: the power state request handler with current state as ON
+        let (tx, _rx) = channel::<PowerRequest>(1);
+        // Current state is On
+        let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(On {}));
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
+
+        // When: a TURN_ON request is sent, which is not a valid next state from ON
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::TURN_ON.into(),
+            timeout_ms: 1,
+            ..Default::default()
+        };
+
+        // Then: the request should fail
+        let result = power_state_request_handler.handle_set_power_state(request).await;
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap().to_string(), "Power request was not specified!");
+    }
+
+    #[tokio::test]
+    async fn handle_set_power_state_fails_if_channel_is_closed() {
+        // Given: the power state request handler, but the receiver is dropped
+        let (tx, rx) = channel::<PowerRequest>(1);
+        drop(rx); // Close the channel
+        let (_, wrx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
+        let power_state_request_handler = PowerStateRequestHandlerImpl::new(tx, wrx);
+
+        // When: a valid power state request is sent
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::TURN_ON.into(),
+            timeout_ms: 1,
+            ..Default::default()
+        };
+        // Then: the send operation fails and returns an error
+        let result = power_state_request_handler.handle_set_power_state(request).await;
+        assert!(result.is_err());
     }
 }
