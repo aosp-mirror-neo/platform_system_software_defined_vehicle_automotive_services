@@ -160,12 +160,16 @@ impl Interface for RpcServer {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::power_service::MockPowerStateRequestHandler;
-    use crate::system_service::RpcServer;
-    use crate::system_service::VEHICLE_STATE_CHANNEL_QUEUE_SIZE;
+    use crate::power_state::On;
     use anyhow::anyhow;
     use com_sdv_google_vpm_vpm_system_service_rpc::Interface;
     use sdv_comms::id::ServiceFqin;
+    use sdv_mw_rs_comms::codec::decode;
+    use sdv_mw_rs_comms::MockPublish;
+    use sdv_mw_rs_comms::Publisher;
+    use sdv_status_rs::SdvStatus;
     use sdv_status_rs::SdvStatusCode;
     use sdv_vpm_api::power::PowerStateReport;
     use sdv_vpm_api::vehicle::VpmVehicleState;
@@ -176,7 +180,9 @@ mod tests {
     use sdv_vpm_api::vpm::SetVehicleStateRequest;
     use sdv_vpm_api::vpm::ShutdownType;
     use std::str::FromStr;
+    use std::time::Duration;
     use tokio::sync::mpsc::channel;
+    use tokio::time::timeout;
 
     #[tokio::test]
     async fn set_rpc_vehicle_state() {
@@ -324,5 +330,92 @@ mod tests {
             response.unwrap().error,
             PowerStateChangeRequestError::INVALID_TRANSITION.into()
         );
+    }
+
+    #[tokio::test]
+    async fn new_vpm_service_impl_creates_linked_components() {
+        // Given
+        let (power_req_tx, _power_req_rx) = channel::<PowerRequest>(1);
+        let (_power_state_tx, power_state_rx) =
+            tokio::sync::watch::channel(Arc::new(On {}) as Arc<dyn PowerState>);
+
+        // When
+        let (mut vpm_service, rpc_server) = VpmServiceImpl::new(power_req_tx, power_state_rx);
+
+        // Then the RpcServer's sender is connected to the VpmServiceImpl's receiver.
+        let state_to_send = VpmVehicleState::VEHICLE_ON;
+        rpc_server.vehicle_state_sender.send(state_to_send).await.unwrap();
+
+        let received_state = vpm_service.vehicle_state_receiver.recv().await.unwrap();
+        assert_eq!(received_state, state_to_send);
+    }
+
+    #[tokio::test]
+    async fn vpm_service_start_with_none_publisher_returns_quickly() {
+        let (_sender, receiver) = channel(1);
+        let mut service = VpmServiceImpl { vehicle_state_receiver: receiver };
+
+        let result =
+            tokio::time::timeout(tokio::time::Duration::from_millis(1000), service.start(None))
+                .await;
+        assert!(result.is_ok(), "start() with None publisher should not hang");
+    }
+
+    #[tokio::test]
+    async fn vpm_service_start_publishes_vehicle_state() {
+        // Given a VpmServiceImpl and a mock publisher
+        let (sender, receiver) = channel(1);
+        let mut service = VpmServiceImpl { vehicle_state_receiver: receiver };
+
+        let mut mock_publish = MockPublish::new();
+        let sent_state = VpmVehicleState::VEHICLE_ON;
+        mock_publish
+            .expect_publish_messages()
+            .withf(move |messages| {
+                if messages.len() != 1 {
+                    return false;
+                }
+                let msg: VehicleStateChange = decode(&messages[0]).unwrap();
+                msg.vehicle_state.enum_value_or_default() == sent_state
+            })
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let publisher = Publisher::<VehicleStateChange>::new(Box::new(mock_publish));
+
+        let service_handle = tokio::spawn(async move {
+            service.start(Some(publisher)).await;
+        });
+
+        // When a vehicle state is sent to the service
+        sender.send(sent_state).await.unwrap();
+        drop(sender); // Close channel to terminate the loop in start()
+
+        // Then the service should publish the state
+        let result = timeout(Duration::from_secs(1), service_handle).await;
+        assert!(result.is_ok(), "service.start() timed out");
+    }
+
+    #[tokio::test]
+    async fn vpm_service_start_handles_publish_error() {
+        // Given a service that will receive a message and a publisher that always fails
+        let (sender, receiver) = channel(1);
+        let mut service = VpmServiceImpl { vehicle_state_receiver: receiver };
+
+        let mut mock_publish = MockPublish::new();
+        mock_publish
+            .expect_publish_messages()
+            .times(1)
+            .returning(|_| Err(SdvStatus::with_message(SdvStatusCode::Unknown, "publish failed")));
+        let publisher = Publisher::<VehicleStateChange>::new(Box::new(mock_publish));
+        let service_handle = tokio::spawn(async move { service.start(Some(publisher)).await });
+
+        // When a message is sent
+        sender.send(VpmVehicleState::VEHICLE_ON).await.unwrap();
+        drop(sender);
+
+        // Then the service should handle the errors gracefully and not panic
+        let result = timeout(Duration::from_secs(1), service_handle).await;
+        assert!(result.is_ok(), "service.start() timed out or panicked");
     }
 }
