@@ -93,10 +93,15 @@ impl Agent {
 mod tests {
     use super::*;
     use crate::power_service::MockPowerService;
+    use crate::power_service::MockPowerStateRequestHandler;
     use crate::power_service::PowerRequest;
     use crate::power_state::PowerOffExit;
     use crate::system_service::MockVpmService;
+    use crate::system_service::RpcServer;
     use crate::Agent;
+    use sdv_mw_rs_comms::MockPublish;
+    use sdv_mw_rs_comms::{MockCommunicate, ServerTransport};
+    use sdv_vpm_api::vehicle::VpmVehicleState;
     use tokio::sync::mpsc::channel;
     use tokio::sync::watch::channel as WatchChannel;
 
@@ -139,5 +144,83 @@ mod tests {
 
         // Then: assert agent can start.
         let _test = agent.start().await;
+    }
+
+    #[tokio::test]
+    async fn vpm_agent_starts_with_publisher() {
+        // Given: mock services.
+        let mut mock_vpm_service = MockVpmService::new();
+        let mut mock_power_service = MockPowerService::new();
+        let mut mock_vpm_bundle = MockVpmServiceBundle::new();
+        let (tx, _) = channel::<PowerRequest>(1);
+        let (_, rx) = WatchChannel::<Arc<dyn PowerState>>(Arc::new(PowerOffExit {}));
+
+        let mock_publisher_handle = Box::new(MockPublish::new());
+        let publisher = Publisher::<VehicleStateChange>::new(mock_publisher_handle);
+
+        mock_power_service.expect_get_power_state_request_sender().returning(move || tx.clone());
+
+        mock_power_service.expect_get_power_state_watch_receiver().returning(move || rx.clone());
+
+        // Expect: the vpm bundle to provide a publisher.
+        mock_vpm_bundle
+            .expect_get_vehicle_state_publisher()
+            .times(1)
+            .return_once(|| Some(publisher));
+
+        // Expect: the system service to be started with the publisher.
+        mock_vpm_service.expect_start().withf(|p| p.is_some()).times(1).return_const(());
+
+        // Expect: the power service to start.
+        mock_power_service.expect_start().times(1).returning(|| Ok(()));
+
+        // When: the new agent is created
+        let mut agent = Agent::new_with_services(
+            Box::new(mock_vpm_service),
+            Box::new(mock_power_service),
+            Box::new(mock_vpm_bundle),
+        );
+
+        // Then: agent can start.
+        agent.start().await;
+    }
+
+    #[tokio::test]
+    async fn get_vehicle_state_publisher_takes_publisher_on_successive_calls() {
+        // This test validates that `get_vehicle_state_publisher` correctly takes ownership
+        // of the publisher, returning None on subsequent calls.
+
+        // Given: A VpmSystemServiceBundle initialized successfully.
+        let mut mock_comms = MockCommunicate::new();
+        let (tx, _) = channel::<VpmVehicleState>(1);
+        let mock_power_handler = MockPowerStateRequestHandler::new();
+        let rpc_server = Arc::new(RpcServer::new(tx, Box::new(mock_power_handler)));
+        struct MockServerTransport;
+        impl ServerTransport for MockServerTransport {}
+
+        mock_comms.expect_create_publish().times(1).returning(|_| {
+            let mock_publish_handle: Box<dyn sdv_mw_rs_comms::Publish> =
+                Box::new(MockPublish::new());
+            Box::pin(async move { Ok(mock_publish_handle) })
+        });
+        mock_comms.expect_create_server_transport().times(1).returning(|_, _| {
+            let mock_server_transport: Box<dyn ServerTransport> = Box::new(MockServerTransport);
+            Box::pin(async move { Ok(mock_server_transport) })
+        });
+        let bundle =
+            VpmSystemServiceBundle::new(Arc::new(mock_comms), (rpc_server,)).await.unwrap();
+        let mut bundle: Box<dyn VpmServiceBundle> = Box::new(bundle);
+
+        // When: get_vehicle_state_publisher is called for the first time.
+        let first_call_result = bundle.get_vehicle_state_publisher();
+
+        // Then: it returns a publisher.
+        assert!(first_call_result.is_some(), "Expected to get a publisher on the first call.");
+
+        // When: get_vehicle_state_publisher is called for the second time.
+        let second_call_result = bundle.get_vehicle_state_publisher();
+
+        // Then: it returns None, as the publisher has been taken.
+        assert!(second_call_result.is_none(), "Expected to get None on the second call.");
     }
 }
