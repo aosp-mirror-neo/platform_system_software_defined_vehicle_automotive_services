@@ -4,7 +4,6 @@ use crate::protobuf_deserialize::MessageDeserializeSeed;
 use crate::protobuf_serialize::MessageSerialize;
 use crate::uds_deserializer::{UdsDeserializer, UdsDeserializerError};
 use crate::uds_serializer::{UdsSerializer, UdsSerializerError};
-use bytes::BytesMut;
 use mockall::automock;
 use protobuf::reflect::{MessageDescriptor, MessageRef};
 use serde::de::DeserializeSeed;
@@ -81,9 +80,7 @@ impl Translator for TranslatorImpl {
         uds_bytes: &[u8],
         message_descriptor: &MessageDescriptor,
     ) -> Result<Vec<u8>, TranslatorError> {
-        let mut buffer = BytesMut::new();
-        buffer.extend_from_slice(uds_bytes);
-        let mut deserializer = UdsDeserializer::new(&mut buffer);
+        let mut deserializer = UdsDeserializer::new(uds_bytes);
 
         MessageDeserializeSeed::new(message_descriptor)
             .deserialize(&mut deserializer)?

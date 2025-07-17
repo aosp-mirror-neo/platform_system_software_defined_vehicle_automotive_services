@@ -1,19 +1,27 @@
 // Copyright 2024 Google LLC
-use bytes::{Buf, BytesMut};
-use nom::error::{Error, ErrorKind};
-use nom::number::complete::{
-    be_f32, be_f64, be_i16, be_i32, be_i64, be_i8, be_u16, be_u32, be_u64, be_u8,
-};
+
+use byteorder::BigEndian;
+use byteorder::ByteOrder;
 use serde::de::{DeserializeSeed, SeqAccess, Visitor};
 use serde::Deserializer;
 
 pub(crate) struct UdsDeserializer<'buffer_lt> {
-    input: &'buffer_lt mut BytesMut,
+    input: &'buffer_lt [u8],
+    index: usize,
 }
 
 impl<'buffer_lt> UdsDeserializer<'buffer_lt> {
-    pub fn new(input: &'buffer_lt mut BytesMut) -> Self {
-        UdsDeserializer { input }
+    pub fn new(input: &'buffer_lt [u8]) -> Self {
+        UdsDeserializer { input, index: 0 }
+    }
+
+    #[inline]
+    fn check_index(&self, num_bytes: usize) -> Result<(), UdsDeserializerError> {
+        if self.index + num_bytes > self.input.len() {
+            Err(UdsDeserializerError::Incomplete)
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -31,9 +39,10 @@ impl<'buffer_lt> Deserializer<'buffer_lt> for &mut UdsDeserializer<'buffer_lt> {
     where
         V: Visitor<'buffer_lt>,
     {
-        let (_, num) = be_u8(self.input.as_ref())?;
+        self.check_index(1)?;
+        let num = self.input[self.index];
+        self.index += 1;
         let value = (num & 0x01) == 1;
-        self.input.advance(1);
         visitor.visit_bool(value)
     }
 
@@ -41,8 +50,9 @@ impl<'buffer_lt> Deserializer<'buffer_lt> for &mut UdsDeserializer<'buffer_lt> {
     where
         V: Visitor<'buffer_lt>,
     {
-        let (_, value) = be_i8(self.input.as_ref())?;
-        self.input.advance(1);
+        self.check_index(1)?;
+        let value = self.input[self.index] as i8;
+        self.index += 1;
         visitor.visit_i8(value)
     }
 
@@ -50,8 +60,9 @@ impl<'buffer_lt> Deserializer<'buffer_lt> for &mut UdsDeserializer<'buffer_lt> {
     where
         V: Visitor<'buffer_lt>,
     {
-        let (_, value) = be_i16(self.input.as_ref())?;
-        self.input.advance(2);
+        self.check_index(2)?;
+        let value = BigEndian::read_i16(&self.input[self.index..]);
+        self.index += 2;
         visitor.visit_i16(value)
     }
 
@@ -59,8 +70,9 @@ impl<'buffer_lt> Deserializer<'buffer_lt> for &mut UdsDeserializer<'buffer_lt> {
     where
         V: Visitor<'buffer_lt>,
     {
-        let (_, value) = be_i32(self.input.as_ref())?;
-        self.input.advance(4);
+        self.check_index(4)?;
+        let value = BigEndian::read_i32(&self.input[self.index..]);
+        self.index += 4;
         visitor.visit_i32(value)
     }
 
@@ -68,8 +80,9 @@ impl<'buffer_lt> Deserializer<'buffer_lt> for &mut UdsDeserializer<'buffer_lt> {
     where
         V: Visitor<'buffer_lt>,
     {
-        let (_, value) = be_i64(self.input.as_ref())?;
-        self.input.advance(8);
+        self.check_index(8)?;
+        let value = BigEndian::read_i64(&self.input[self.index..]);
+        self.index += 8;
         visitor.visit_i64(value)
     }
 
@@ -77,8 +90,9 @@ impl<'buffer_lt> Deserializer<'buffer_lt> for &mut UdsDeserializer<'buffer_lt> {
     where
         V: Visitor<'buffer_lt>,
     {
-        let (_, value) = be_u8(self.input.as_ref())?;
-        self.input.advance(1);
+        self.check_index(1)?;
+        let value = self.input[self.index];
+        self.index += 1;
         visitor.visit_u8(value)
     }
 
@@ -86,8 +100,9 @@ impl<'buffer_lt> Deserializer<'buffer_lt> for &mut UdsDeserializer<'buffer_lt> {
     where
         V: Visitor<'buffer_lt>,
     {
-        let (_, value) = be_u16(self.input.as_ref())?;
-        self.input.advance(2);
+        self.check_index(2)?;
+        let value = BigEndian::read_u16(&self.input[self.index..]);
+        self.index += 2;
         visitor.visit_u16(value)
     }
 
@@ -95,8 +110,9 @@ impl<'buffer_lt> Deserializer<'buffer_lt> for &mut UdsDeserializer<'buffer_lt> {
     where
         V: Visitor<'buffer_lt>,
     {
-        let (_, value) = be_u32(self.input.as_ref())?;
-        self.input.advance(4);
+        self.check_index(4)?;
+        let value = BigEndian::read_u32(&self.input[self.index..]);
+        self.index += 4;
         visitor.visit_u32(value)
     }
 
@@ -104,8 +120,9 @@ impl<'buffer_lt> Deserializer<'buffer_lt> for &mut UdsDeserializer<'buffer_lt> {
     where
         V: Visitor<'buffer_lt>,
     {
-        let (_, value) = be_u64(self.input.as_ref())?;
-        self.input.advance(8);
+        self.check_index(8)?;
+        let value = BigEndian::read_u64(&self.input[self.index..]);
+        self.index += 8;
         visitor.visit_u64(value)
     }
 
@@ -113,8 +130,9 @@ impl<'buffer_lt> Deserializer<'buffer_lt> for &mut UdsDeserializer<'buffer_lt> {
     where
         V: Visitor<'buffer_lt>,
     {
-        let (_, value) = be_f32(self.input.as_ref())?;
-        self.input.advance(4);
+        self.check_index(4)?;
+        let value = BigEndian::read_f32(&self.input[self.index..]);
+        self.index += 4;
         visitor.visit_f32(value)
     }
 
@@ -122,8 +140,9 @@ impl<'buffer_lt> Deserializer<'buffer_lt> for &mut UdsDeserializer<'buffer_lt> {
     where
         V: Visitor<'buffer_lt>,
     {
-        let (_, value) = be_f64(self.input.as_ref())?;
-        self.input.advance(8);
+        self.check_index(8)?;
+        let value = BigEndian::read_f64(&self.input[self.index..]);
+        self.index += 8;
         visitor.visit_f64(value)
     }
 
@@ -299,9 +318,6 @@ pub enum UdsDeserializerError {
     /// UDS format doesn't support the type from `serde` type model.
     #[error("Serde type is not supported: {0}")]
     UnsupportedType(String),
-    /// Unrecoverable parsing error
-    #[error("Parser error: `{:?}`", {0})]
-    Failure(ErrorKind),
     /// Incomplete data,
     #[error("Incomplete data")]
     Incomplete,
@@ -313,19 +329,6 @@ impl serde::de::Error for UdsDeserializerError {
         T: std::fmt::Display,
     {
         UdsDeserializerError::CustomError(msg.to_string())
-    }
-}
-
-impl From<nom::Err<Error<&[u8]>>> for UdsDeserializerError {
-    fn from(nom_error: nom::Err<Error<&[u8]>>) -> Self {
-        match nom_error {
-            nom::Err::Incomplete(_) => UdsDeserializerError::Incomplete,
-            nom::Err::Error(Error { input: _, code: ErrorKind::Eof }) => {
-                UdsDeserializerError::Incomplete
-            }
-            nom::Err::Error(Error { input: _, code })
-            | nom::Err::Failure(Error { input: _, code }) => UdsDeserializerError::Failure(code),
-        }
     }
 }
 
@@ -395,7 +398,7 @@ mod tests {
             byte_buffer.put_u8(byte);
         }
 
-        let mut deserializer = UdsDeserializer::new(&mut byte_buffer);
+        let mut deserializer = UdsDeserializer::new(byte_buffer.as_ref());
 
         assert_that!(
             TestStruct::deserialize(&mut deserializer),
@@ -410,12 +413,7 @@ mod tests {
             my_string: String,
         }
 
-        let mut byte_buffer = BytesMut::new();
-        for byte in "Hello".bytes() {
-            byte_buffer.put_u8(byte);
-        }
-
-        let mut deserializer = UdsDeserializer::new(&mut byte_buffer);
+        let mut deserializer = UdsDeserializer::new("Hello".as_bytes());
 
         assert_that!(
             TestStruct::deserialize(&mut deserializer),
@@ -431,12 +429,7 @@ mod tests {
         struct TestStruct<'a> {
             my_bytes: &'a [u8],
         }
-
-        let mut byte_buffer = BytesMut::new();
-        byte_buffer.put(&[1, 2, 3][..]);
-
-        let mut deserializer = UdsDeserializer::new(&mut byte_buffer);
-
+        let mut deserializer = UdsDeserializer::new(&[1, 2, 3]);
         assert_that!(
             TestStruct::deserialize(&mut deserializer),
             matches_pattern!(Err(matches_pattern!(UdsDeserializerError::UnsupportedType(eq(
