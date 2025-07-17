@@ -197,40 +197,46 @@ async fn listen_to_all_publications_of_type<T: PublicationUnitType>(
                     )
                     .await;
 
-                    if let Ok(dt_stream) = dt_stream {
-                        dt_stream
-                            .for_each(|packet| {
-                                match packet {
-                                    Ok((msg_count, buffer)) => {
-                                        dumpsys_logger_inner.add_line(format!("Available to read: {msg_count}"));
+                    if let Ok(mut dt_stream) = dt_stream {
 
-                                        if msg_count != 0 {
-                                            let size_for_one_msg = buffer.len() / msg_count as usize;
+                        while let Some(packet) = dt_stream.next().await {
+                            match packet {
+                                Ok((msg_count, buffer)) => {
+                                    dumpsys_logger_inner.add_line(format!("Available to read: {msg_count}"));
 
-                                            let messages_bytes = buffer
-                                                .chunks(size_for_one_msg)
-                                                .map(|chunk| chunk.to_owned().into_boxed_slice())
-                                                .collect::<Vec<_>>();
+                                    if msg_count != 0 {
+                                        let size_for_one_msg = buffer.len() / msg_count as usize;
 
-                                            for message_bytes in &messages_bytes {
-                                                let event = decode_with_len::<T::Message>(message_bytes);
+                                        let messages_bytes = buffer
+                                            .chunks(size_for_one_msg)
+                                            .map(|chunk| chunk.to_owned().into_boxed_slice())
+                                            .collect::<Vec<_>>();
 
-                                                if let Ok(event) = event {
-                                                    handler(service_unit.clone(), vsidl_provider.clone(), event, dumpsys_logger_inner.clone())
-                                                } else {
-                                                    dumpsys_logger_inner.add_line(format!("Failed to parse publication of type {} for {service_unit:?}", T::TYPE_NAME))
+                                        for message_bytes in &messages_bytes {
+                                            let event = decode_with_len::<T::Message>(message_bytes);
+
+                                            if let Ok(event) = event {
+                                                let handler = handler.clone();
+                                                let service_unit = service_unit.clone();
+                                                let vsidl_provider = vsidl_provider.clone();
+                                                let dumpsys_logger_inner_clone = dumpsys_logger_inner.clone();
+                                                let result = tokio::task::spawn_blocking(move || handler(service_unit, vsidl_provider, event, dumpsys_logger_inner_clone)).await;
+
+                                                if result.is_err() {
+                                                    info!("DEBUG: Error handling publication");
+                                                    dumpsys_logger_inner.add_line("Error handling publication".to_string());
                                                 }
+                                            } else {
+                                                dumpsys_logger_inner.add_line(format!("Failed to parse publication of type {} for {service_unit:?}", T::TYPE_NAME));
                                             }
                                         }
-                                    },
-                                    Err(e) => {
-                                        dumpsys_logger_inner.add_line(format!("Publisher unregistered: {:#?}", e))
                                     }
-                                };
-
-                                futures::future::ready(())
-                            })
-                            .await;
+                                },
+                                Err(e) => {
+                                    dumpsys_logger_inner.add_line(format!("Publisher unregistered: {:#?}", e))
+                                }
+                            }
+                        }
 
                         break;
                     } else {
