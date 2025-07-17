@@ -94,21 +94,13 @@ impl PowerStateNotifierImpl {
 
     async fn update_client(&self) -> anyhow::Result<()> {
         let mut client = self.notification_rpc_client.lock().await;
-
-        let server_name = UnitName::builder()
-            .vm_name(self.vm_name.to_string())
-            .package_name("com.sdv.google.vpm.client")
-            .bundle_name("VpmSystemClient")
-            .service_unit_name(Client::DEFAULT_UNIT_NAME)
-            .build()
-            .map_err(|_| anyhow!("invalid server UnitName"))?;
-
-        let attributes = ClientAttributes::builder()
-            .server_name(server_name)
-            .client_options(ClientOptions::default())
-            .build()
-            .map_err(|_| anyhow!("invalid ClientAttributes"))?;
-
+        let server_name = get_server_unit_name(
+            self.vm_name.as_str(),
+            "com.sdv.google.vpm.client",
+            "VpmSystemClient",
+            Client::DEFAULT_UNIT_NAME,
+        )?;
+        let attributes = get_attributes(server_name, ClientOptions::default())?;
         let result = self.comms.create_client_transport(&attributes).await;
         if result.is_err() {
             error!("Could not get a client for vpm notifications");
@@ -171,20 +163,8 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
                 }
             });
         }
-        let mut notification_failed = false;
-        while let Some(handle) = set.join_next().await {
-            if handle.is_err() {
-                error!("Power notification callback task failed, {:?}", handle.err());
-                notification_failed = true;
-                continue;
-            }
-            if let Ok(Err(result)) = handle {
-                error!("Power notification callback request failed, {:?}", result);
-                notification_failed = true;
-            }
-        }
 
-        if notification_failed {
+        if notification_failed(set).await {
             return Err(PowerStateNotificationError::Failed);
         } else {
             Ok(())
@@ -320,6 +300,48 @@ fn convert_to_aidl(power_state_report: PowerStateReport) -> PowerStateReportAidl
         PowerStateReport::WAIT_FOR_FINISH => PowerStateReportAidl::WAIT_FOR_FINISH,
         PowerStateReport::REPORT_UNSPECIFIED => panic!("This conversion should never be called!"),
     }
+}
+
+fn get_server_unit_name(
+    vm_name: &str,
+    package_name: &str,
+    bundle_name: &str,
+    service_unit_name: &str,
+) -> anyhow::Result<UnitName> {
+    UnitName::builder()
+        .vm_name(vm_name.to_string())
+        .package_name(package_name.to_string())
+        .bundle_name(bundle_name.to_string())
+        .service_unit_name(service_unit_name)
+        .build()
+        .map_err(|e| anyhow!("invalid server UnitName for vm_name {vm_name}, package_name {package_name}, bundle_name {bundle_name}, service_unit_name {service_unit_name}: {e:?}"))
+}
+
+fn get_attributes(
+    server_name: UnitName,
+    client_options: ClientOptions,
+) -> anyhow::Result<ClientAttributes> {
+    ClientAttributes::builder()
+        .server_name(server_name)
+        .client_options(client_options)
+        .build()
+        .map_err(|e| anyhow!("invalid ClientAttributes: {e:?}"))
+}
+
+async fn notification_failed(mut set: JoinSet<Result<(), PowerStateNotificationError>>) -> bool {
+    let mut notification_failed = false;
+    while let Some(handle) = set.join_next().await {
+        if handle.is_err() {
+            error!("Power notification callback task failed, {:?}", handle.err());
+            notification_failed = true;
+            continue;
+        }
+        if let Ok(Err(result)) = handle {
+            error!("Power notification callback request failed, {:?}", result);
+            notification_failed = true;
+        }
+    }
+    notification_failed
 }
 
 #[cfg(test)]
@@ -799,5 +821,28 @@ mod tests {
 
         let result = notifier.create_binder_service(rx.clone());
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_handle_is_err_due_to_cancellation() {
+        let mut set = JoinSet::new();
+
+        // Spawn a task that will run indefinitely until explicitly cancelled.
+        // We capture its JoinHandle to abort it later.
+        let task_handle = set.spawn(async { std::future::pending().await });
+
+        // Immediately abort the spawned task.
+        // This will cause `task_handle` to resolve to an `Err(JoinError::Cancelled)`
+        // when `set.join_next().await` is called in `notification_failed`.
+        task_handle.abort();
+
+        // Call the function under test.
+        // Your function should now correctly detect the `JoinError::Cancelled`
+        // via `handle.is_err()`.
+        let failed = notification_failed(set).await;
+
+        // Assert that `notification_failed` returned `true`,
+        // indicating it successfully handled the task cancellation.
+        assert!(failed);
     }
 }
