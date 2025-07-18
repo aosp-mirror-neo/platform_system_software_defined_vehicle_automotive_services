@@ -618,7 +618,11 @@ impl<'de> DeserializeSeed<'de> for ValueDeserializeSeed<'_> {
                             }
                         }
 
-                        let mut bytes = Vec::with_capacity(self.size);
+                        let mut bytes = Vec::<u8>::new();
+                        bytes.try_reserve(self.size).map_err(|_| A::Error::custom(format!(
+                            "Out of memory trying to reserve for fixed-sized string of size {} bytes",
+                            self.size
+                        )))?;
 
                         for index in 0..self.size {
                             if let Some(byte) = seq.next_element::<u8>()? {
@@ -693,7 +697,11 @@ impl<'de> DeserializeSeed<'de> for ValueDeserializeSeed<'_> {
                             }
                         }
 
-                        let mut bytes = Vec::with_capacity(self.size);
+                        let mut bytes = Vec::<u8>::new();
+                        bytes.try_reserve(self.size).map_err(|_| A::Error::custom(format!(
+                            "Out of memory trying to reserve for fixed-sized bytes of size {} bytes",
+                            self.size
+                        )))?;
 
                         for index in 0..self.size {
                             if let Some(byte) = seq.next_element::<u8>()? {

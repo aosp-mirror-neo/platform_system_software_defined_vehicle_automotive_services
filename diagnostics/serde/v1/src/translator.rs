@@ -292,7 +292,7 @@ mod tests {
 
         match uds_bytes {
             Result::Err(TranslatorError::OutOfMemory) => {}
-            _ => panic!("{uds_bytes:#?}"),
+            _ => panic!("Expected OutOfMemory, actual result: {uds_bytes:#?}"),
         }
     }
 
