@@ -1,14 +1,15 @@
 // Copyright 2024 Google LLC
-use bytes::BufMut;
+use byteorder::BigEndian;
+use byteorder::WriteBytesExt;
 use serde::ser::{Impossible, SerializeStruct, SerializeTuple};
 use serde::{Serialize, Serializer};
 
 pub(crate) struct UdsSerializer<'buffer_lt> {
-    output: &'buffer_lt mut dyn BufMut,
+    output: &'buffer_lt mut Vec<u8>,
 }
 
 impl<'buffer_lt> UdsSerializer<'buffer_lt> {
-    pub fn new(output: &'buffer_lt mut dyn BufMut) -> Self {
+    pub fn new(output: &'buffer_lt mut Vec<u8>) -> Self {
         UdsSerializer { output }
     }
 }
@@ -26,61 +27,61 @@ impl<'ser_lt, 'buffer_lt> Serializer for &'ser_lt mut UdsSerializer<'buffer_lt> 
 
     fn serialize_bool(self, value: bool) -> Result<Self::Ok, Self::Error> {
         if value {
-            self.output.put_u8(0x01);
+            self.output.write_u8(0x01)?;
         } else {
-            self.output.put_u8(0x00);
+            self.output.write_u8(0x00)?;
         }
 
         Ok(())
     }
 
     fn serialize_i8(self, value: i8) -> Result<Self::Ok, Self::Error> {
-        self.output.put_i8(value);
+        self.output.write_i8(value)?;
         Ok(())
     }
 
     fn serialize_i16(self, value: i16) -> Result<Self::Ok, Self::Error> {
-        self.output.put_i16(value);
+        self.output.write_i16::<BigEndian>(value)?;
         Ok(())
     }
 
     fn serialize_i32(self, value: i32) -> Result<Self::Ok, Self::Error> {
-        self.output.put_i32(value);
+        self.output.write_i32::<BigEndian>(value)?;
         Ok(())
     }
 
     fn serialize_i64(self, value: i64) -> Result<Self::Ok, Self::Error> {
-        self.output.put_i64(value);
+        self.output.write_i64::<BigEndian>(value)?;
         Ok(())
     }
 
     fn serialize_u8(self, value: u8) -> Result<Self::Ok, Self::Error> {
-        self.output.put_u8(value);
+        self.output.write_u8(value)?;
         Ok(())
     }
 
     fn serialize_u16(self, value: u16) -> Result<Self::Ok, Self::Error> {
-        self.output.put_u16(value);
+        self.output.write_u16::<BigEndian>(value)?;
         Ok(())
     }
 
     fn serialize_u32(self, value: u32) -> Result<Self::Ok, Self::Error> {
-        self.output.put_u32(value);
+        self.output.write_u32::<BigEndian>(value)?;
         Ok(())
     }
 
     fn serialize_u64(self, value: u64) -> Result<Self::Ok, Self::Error> {
-        self.output.put_u64(value);
+        self.output.write_u64::<BigEndian>(value)?;
         Ok(())
     }
 
     fn serialize_f32(self, value: f32) -> Result<Self::Ok, Self::Error> {
-        self.output.put_f32(value);
+        self.output.write_f32::<BigEndian>(value)?;
         Ok(())
     }
 
     fn serialize_f64(self, value: f64) -> Result<Self::Ok, Self::Error> {
-        self.output.put_f64(value);
+        self.output.write_f64::<BigEndian>(value)?;
         Ok(())
     }
 
@@ -247,6 +248,15 @@ pub enum UdsSerializerError {
     #[error("Serde type is not supported: {0}")]
     UnsupportedType(String),
 }
+impl From<std::io::Error> for UdsSerializerError {
+    fn from(io_error: std::io::Error) -> Self {
+        UdsSerializerError::CustomError(format!(
+            "io_error: {}, kind: {}",
+            io_error,
+            io_error.kind()
+        ))
+    }
+}
 
 impl serde::ser::Error for UdsSerializerError {
     fn custom<T>(msg: T) -> Self
@@ -260,7 +270,6 @@ impl serde::ser::Error for UdsSerializerError {
 #[cfg(test)]
 mod tests {
     use crate::uds_serializer::{UdsSerializer, UdsSerializerError};
-    use bytes::{BufMut, BytesMut};
     use googletest::prelude::{assert_that, eq, matches_pattern};
     use serde::Serialize;
 
@@ -306,28 +315,26 @@ mod tests {
             },
         };
 
-        let mut expected_bytes = BytesMut::new();
-        expected_bytes.put_i8(-8);
-        expected_bytes.put_i16(-16);
-        expected_bytes.put_i32(-32);
-        expected_bytes.put_i64(-64);
-        expected_bytes.put_u8(8);
-        expected_bytes.put_u16(16);
-        expected_bytes.put_u32(32);
-        expected_bytes.put_u64(64);
-        expected_bytes.put_f32(3.2);
-        expected_bytes.put_f64(6.4);
-        expected_bytes.put_u8(0x00);
-        expected_bytes.put(&[1, 2, 3][..]);
-        for byte in "hello❤".bytes() {
-            expected_bytes.put_u8(byte);
-        }
+        let mut expected_bytes = Vec::<u8>::new();
+        expected_bytes.push(-8i8 as u8);
+        expected_bytes.extend((-16i16).to_be_bytes());
+        expected_bytes.extend((-32i32).to_be_bytes());
+        expected_bytes.extend((-64i64).to_be_bytes());
+        expected_bytes.push(8);
+        expected_bytes.extend(16u16.to_be_bytes());
+        expected_bytes.extend(32u32.to_be_bytes());
+        expected_bytes.extend(64u64.to_be_bytes());
+        expected_bytes.extend(3.2f32.to_be_bytes());
+        expected_bytes.extend(6.4f64.to_be_bytes());
+        expected_bytes.push(0x00);
+        expected_bytes.extend(&[1, 2, 3][..]);
+        expected_bytes.extend("hello❤".as_bytes());
 
-        let mut byte_buffer = BytesMut::new();
+        let mut byte_buffer = Vec::<u8>::new();
         let mut serializer = UdsSerializer::new(&mut byte_buffer);
 
         assert_that!(value.serialize(&mut serializer), matches_pattern!(Ok(())));
-        assert_that!(byte_buffer.freeze(), eq(&expected_bytes.freeze()));
+        assert_that!(byte_buffer, eq(&expected_bytes));
     }
 
     #[test]
@@ -339,12 +346,12 @@ mod tests {
 
         let value = TestStruct { my_string: "Hello".to_string() };
 
-        let mut expected_bytes = BytesMut::new();
+        let mut expected_bytes = Vec::<u8>::new();
         for utf16_char in "Hello".encode_utf16() {
-            expected_bytes.put_u16(utf16_char);
+            expected_bytes.extend(utf16_char.to_ne_bytes());
         }
 
-        let mut byte_buffer = BytesMut::new();
+        let mut byte_buffer = Vec::<u8>::new();
         let mut serializer = UdsSerializer::new(&mut byte_buffer);
 
         assert_that!(
@@ -364,10 +371,7 @@ mod tests {
 
         let value = TestStruct { my_bytes: &[1, 2, 3] };
 
-        let mut expected_bytes = BytesMut::new();
-        expected_bytes.put(&[1, 2, 3][..]);
-
-        let mut byte_buffer = BytesMut::new();
+        let mut byte_buffer = Vec::<u8>::new();
         let mut serializer = UdsSerializer::new(&mut byte_buffer);
 
         assert_that!(

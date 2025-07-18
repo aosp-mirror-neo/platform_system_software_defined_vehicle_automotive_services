@@ -4,7 +4,6 @@ use crate::protobuf_deserialize::MessageDeserializeSeed;
 use crate::protobuf_serialize::MessageSerialize;
 use crate::uds_deserializer::{UdsDeserializer, UdsDeserializerError};
 use crate::uds_serializer::{UdsSerializer, UdsSerializerError};
-use bytes::BytesMut;
 use mockall::automock;
 use protobuf::reflect::{MessageDescriptor, MessageRef};
 use serde::de::DeserializeSeed;
@@ -81,9 +80,7 @@ impl Translator for TranslatorImpl {
         uds_bytes: &[u8],
         message_descriptor: &MessageDescriptor,
     ) -> Result<Vec<u8>, TranslatorError> {
-        let mut buffer = BytesMut::new();
-        buffer.extend_from_slice(uds_bytes);
-        let mut deserializer = UdsDeserializer::new(&mut buffer);
+        let mut deserializer = UdsDeserializer::new(uds_bytes);
 
         MessageDeserializeSeed::new(message_descriptor)
             .deserialize(&mut deserializer)?
@@ -122,7 +119,6 @@ pub enum TranslatorError {
 mod tests {
     use crate::translator::runtime_message_descriptor::get_message_descriptor;
     use crate::translator::{Translator, TranslatorError, TranslatorImpl};
-    use bytes::{BufMut, BytesMut};
     use std::vec::Vec;
 
     #[googletest::test]
@@ -196,75 +192,72 @@ mod tests {
         );
 
         let mut proto_bytes: Vec<u8> = vec![];
-        proto_bytes.put_u8(8); // VARINT field with field number '1'
-        proto_bytes.put(&[192, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -64
-        proto_bytes.put_u8(16); // VARINT field with field number '2'
-        proto_bytes.put(&[224, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -32
-        proto_bytes.put_u8(24); // VARINT field with field number '3'
-        proto_bytes.put_u8(64); // +64
-        proto_bytes.put_u8(32); // VARINT field with field number '4'
-        proto_bytes.put_u8(32); // +32
-        proto_bytes.put_u8(41); // I64 field with field number '5'
-        proto_bytes.put(&6.4f64.to_le_bytes()[..]); // 6.4_f64
-        proto_bytes.put_u8(53); // I32 field with field number '6'
-        proto_bytes.put(&(-3.2f32).to_le_bytes()[..]);
-        proto_bytes.put_u8(56); // VARINT field with field number '7'
-        proto_bytes.put_u8(1); // false
-        proto_bytes.put_u8(66); // LEN field with field number '8'
-        proto_bytes.put_u8(24); // length of embedded message
-        proto_bytes.put(&[8, 1, 8, 0, 8, 1, 8, 0, 8, 1][..]); // Repeated field with field number '1' and values
-        proto_bytes.put_u8(18); // LEN field with field number '2'
-        proto_bytes.put_u8(10); // String length == 10
-        proto_bytes.put(&[104, 101, 108, 108, 111, 0, 0, 0, 0, 0][..]); // String "hello\0\0\0\0\0"
-        proto_bytes.put_u8(24); // VARINT field with field number '3'
-        proto_bytes.put_u8(1); // +1
-        proto_bytes.put_u8(72); // VARINT field with field number '9'
-        proto_bytes.put(&[136, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -120
-        proto_bytes.put_u8(80); // VARINT field with field number '10'
-        proto_bytes.put(&[128, 8][..]); // +1024
-        proto_bytes.put(&[88, 10, 88, 20][..]); // Repeated VARINT field with field number '11'
-        proto_bytes.put_u8(101); // I32 field with field number '12'
-        proto_bytes.put(&20.101f32.to_le_bytes()[..]);
-        proto_bytes.put_u8(105); // I64 field with field number '13'
-        proto_bytes.put(&(-0.010100000000000001f64).to_le_bytes()[..]);
-        proto_bytes.put_u8(112); // VARINT field with field number '14'
-        proto_bytes.put_u8(1); // 1 == OneByteEnum::B
-        proto_bytes.put_u8(125); // I32 field with field number '15'
-        proto_bytes.put(&20.101f32.to_le_bytes()[..]);
-        proto_bytes.put(&[133, 1][..]); // I32 field with field number '16'
-        proto_bytes.put(&20.101f32.to_le_bytes()[..]);
-        proto_bytes.put(&[136, 1][..]); // VARINT field with field number '17'
-        proto_bytes.put(&[128, 8][..]); // +1024
-        proto_bytes.put(&[144, 1][..]); // VARINT field with field number '18'
-        proto_bytes.put_u8(32); // +32
-        proto_bytes.put(&[152, 1][..]); // VARINT field with field number '19'
-        proto_bytes.put_u8(32); // +32
+        proto_bytes.push(8); // VARINT field with field number '1'
+        proto_bytes.extend(&[192, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -64
+        proto_bytes.push(16); // VARINT field with field number '2'
+        proto_bytes.extend(&[224, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -32
+        proto_bytes.push(24); // VARINT field with field number '3'
+        proto_bytes.push(64); // +64
+        proto_bytes.push(32); // VARINT field with field number '4'
+        proto_bytes.push(32); // +32
+        proto_bytes.push(41); // I64 field with field number '5'
+        proto_bytes.extend(&6.4f64.to_le_bytes()[..]); // 6.4_f64
+        proto_bytes.push(53); // I32 field with field number '6'
+        proto_bytes.extend(&(-3.2f32).to_le_bytes()[..]);
+        proto_bytes.push(56); // VARINT field with field number '7'
+        proto_bytes.push(1); // false
+        proto_bytes.push(66); // LEN field with field number '8'
+        proto_bytes.push(24); // length of embedded message
+        proto_bytes.extend(&[8, 1, 8, 0, 8, 1, 8, 0, 8, 1][..]); // Repeated field with field number '1' and values
+        proto_bytes.push(18); // LEN field with field number '2'
+        proto_bytes.push(10); // String length == 10
+        proto_bytes.extend(&[104, 101, 108, 108, 111, 0, 0, 0, 0, 0][..]); // String "hello\0\0\0\0\0"
+        proto_bytes.push(24); // VARINT field with field number '3'
+        proto_bytes.push(1); // +1
+        proto_bytes.push(72); // VARINT field with field number '9'
+        proto_bytes.extend(&[136, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -120
+        proto_bytes.push(80); // VARINT field with field number '10'
+        proto_bytes.extend(&[128, 8][..]); // +1024
+        proto_bytes.extend(&[88, 10, 88, 20][..]); // Repeated VARINT field with field number '11'
+        proto_bytes.push(101); // I32 field with field number '12'
+        proto_bytes.extend(&20.101f32.to_le_bytes()[..]);
+        proto_bytes.push(105); // I64 field with field number '13'
+        proto_bytes.extend(&(-0.010100000000000001f64).to_le_bytes()[..]);
+        proto_bytes.push(112); // VARINT field with field number '14'
+        proto_bytes.push(1); // 1 == OneByteEnum::B
+        proto_bytes.push(125); // I32 field with field number '15'
+        proto_bytes.extend(&20.101f32.to_le_bytes()[..]);
+        proto_bytes.extend(&[133, 1][..]); // I32 field with field number '16'
+        proto_bytes.extend(&20.101f32.to_le_bytes()[..]);
+        proto_bytes.extend(&[136, 1][..]); // VARINT field with field number '17'
+        proto_bytes.extend(&[128, 8][..]); // +1024
+        proto_bytes.extend(&[144, 1][..]); // VARINT field with field number '18'
+        proto_bytes.push(32); // +32
+        proto_bytes.extend(&[152, 1][..]); // VARINT field with field number '19'
+        proto_bytes.push(32); // +32
 
-        let mut expected_uds_bytes = BytesMut::new();
-        expected_uds_bytes.put_i64(-64);
-        expected_uds_bytes.put_i32(-32);
-        expected_uds_bytes.put_u64(64);
-        expected_uds_bytes.put_u32(32);
-        expected_uds_bytes.put_f64(6.4);
-        expected_uds_bytes.put_f32(-3.2);
-        expected_uds_bytes.put_u8(1);
-        expected_uds_bytes.put(&[1, 0, 1, 0, 1][..]);
-        for char in "hello\0\0\0\0\0".chars() {
-            expected_uds_bytes.put_u8(char.try_into().unwrap())
-        }
-        expected_uds_bytes.put_u32(1);
-        expected_uds_bytes.put_i8(-120);
-        expected_uds_bytes.put_u16(1024);
-        expected_uds_bytes.put_u8(10);
-        expected_uds_bytes.put_u8(20);
-        expected_uds_bytes.put_i32(101);
-        expected_uds_bytes.put_i64(-101);
-        expected_uds_bytes.put_i8(1);
-        expected_uds_bytes.put_i8(101);
-        expected_uds_bytes.put_i16(101);
-        expected_uds_bytes.put(&[0, 0, 32][..]);
-        expected_uds_bytes.put(&[0, 0, 32][..]);
-        let expected_uds_bytes = expected_uds_bytes.freeze();
+        let mut expected_uds_bytes = Vec::<u8>::new();
+        expected_uds_bytes.extend((-64i64).to_be_bytes());
+        expected_uds_bytes.extend((-32i32).to_be_bytes());
+        expected_uds_bytes.extend(64u64.to_be_bytes());
+        expected_uds_bytes.extend(32u32.to_be_bytes());
+        expected_uds_bytes.extend(6.4f64.to_be_bytes());
+        expected_uds_bytes.extend((-3.2f32).to_be_bytes());
+        expected_uds_bytes.push(1);
+        expected_uds_bytes.extend(&[1, 0, 1, 0, 1][..]);
+        expected_uds_bytes.extend("hello\0\0\0\0\0".as_bytes());
+        expected_uds_bytes.extend(1u32.to_be_bytes());
+        expected_uds_bytes.push(-120i8 as u8);
+        expected_uds_bytes.extend(1024u16.to_be_bytes());
+        expected_uds_bytes.push(10);
+        expected_uds_bytes.push(20);
+        expected_uds_bytes.extend(101i32.to_be_bytes());
+        expected_uds_bytes.extend((-101i64).to_be_bytes());
+        expected_uds_bytes.push(1i8 as u8);
+        expected_uds_bytes.push(101i8 as u8);
+        expected_uds_bytes.extend(101i16.to_be_bytes());
+        expected_uds_bytes.extend(&[0, 0, 32][..]);
+        expected_uds_bytes.extend(&[0, 0, 32][..]);
 
         let uds_bytes =
             translator.translate_from_protobuf_to_uds(&proto_bytes, &message_descriptor).unwrap();
@@ -366,74 +359,71 @@ mod tests {
             ".TestProto",
         );
 
-        let mut uds_bytes = BytesMut::new();
-        uds_bytes.put_i64(-64);
-        uds_bytes.put_i32(-32);
-        uds_bytes.put_u64(64);
-        uds_bytes.put_u32(32);
-        uds_bytes.put_f64(6.4);
-        uds_bytes.put_f32(-3.2);
-        uds_bytes.put_u8(1);
-        uds_bytes.put(&[1, 0, 1, 0, 1][..]);
-        for char in "hello\0\0\0\0\0".chars() {
-            uds_bytes.put_u8(char.try_into().unwrap())
-        }
-        uds_bytes.put_u32(1);
-        uds_bytes.put_i8(-120);
-        uds_bytes.put_u16(1024);
-        uds_bytes.put_u8(10);
-        uds_bytes.put_u8(20);
-        uds_bytes.put_i32(101);
-        uds_bytes.put_i64(-101);
-        uds_bytes.put_i8(1);
-        uds_bytes.put_i8(101);
-        uds_bytes.put_i16(101);
-        uds_bytes.put(&[0, 0, 32][..]);
-        uds_bytes.put(&[0, 0, 32][..]);
-        let uds_bytes = uds_bytes.freeze();
+        let mut uds_bytes = Vec::<u8>::new();
+        uds_bytes.extend((-64i64).to_be_bytes());
+        uds_bytes.extend((-32i32).to_be_bytes());
+        uds_bytes.extend(64u64.to_be_bytes());
+        uds_bytes.extend(32u32.to_be_bytes());
+        uds_bytes.extend(6.4f64.to_be_bytes());
+        uds_bytes.extend((-3.2f32).to_be_bytes());
+        uds_bytes.push(1u8);
+        uds_bytes.extend(&[1, 0, 1, 0, 1][..]);
+        uds_bytes.extend("hello\0\0\0\0\0".as_bytes());
+        uds_bytes.extend(1u32.to_be_bytes());
+        uds_bytes.push(-120i8 as u8);
+        uds_bytes.extend(1024u16.to_be_bytes());
+        uds_bytes.push(10u8);
+        uds_bytes.push(20u8);
+        uds_bytes.extend(101i32.to_be_bytes());
+        uds_bytes.extend((-101i64).to_be_bytes());
+        uds_bytes.push(1i8 as u8);
+        uds_bytes.push(101i8 as u8);
+        uds_bytes.extend(101i16.to_be_bytes());
+        uds_bytes.extend(&[0, 0, 32][..]);
+        uds_bytes.extend(&[0, 0, 32][..]);
 
         let mut expected_proto_bytes: Vec<u8> = vec![];
-        expected_proto_bytes.put_u8(8); // VARINT field with field number '1'
-        expected_proto_bytes.put(&[192, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -64
-        expected_proto_bytes.put_u8(16); // VARINT field with field number '2'
-        expected_proto_bytes.put(&[224, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -32
-        expected_proto_bytes.put_u8(24); // VARINT field with field number '3'
-        expected_proto_bytes.put_u8(64); // +64
-        expected_proto_bytes.put_u8(32); // VARINT field with field number '4'
-        expected_proto_bytes.put_u8(32); // +32
-        expected_proto_bytes.put_u8(41); // I64 field with field number '5'
-        expected_proto_bytes.put(&6.4f64.to_le_bytes()[..]); // 6.4_f64
-        expected_proto_bytes.put_u8(53); // I32 field with field number '6'
-        expected_proto_bytes.put(&(-3.2f32).to_le_bytes()[..]);
-        expected_proto_bytes.put_u8(56); // VARINT field with field number '7'
-        expected_proto_bytes.put_u8(1); // false
-        expected_proto_bytes.put_u8(66); // LEN field with field number '8'
-        expected_proto_bytes.put_u8(24); // length of embedded message
-        expected_proto_bytes.put(&[8, 1, 8, 0, 8, 1, 8, 0, 8, 1][..]); // Repeated field with field number '1' and values
-        expected_proto_bytes.put_u8(18); // LEN field with field number '2'
-        expected_proto_bytes.put_u8(10); // String length == 10
-        expected_proto_bytes.put(&[104, 101, 108, 108, 111, 0, 0, 0, 0, 0][..]); // String "hello\0\0\0\0\0"
-        expected_proto_bytes.put_u8(24); // VARINT field with field number '3'
-        expected_proto_bytes.put_u8(1); // +1
-        expected_proto_bytes.put_u8(72); // VARINT field with field number '9'
-        expected_proto_bytes.put(&[136, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -120
-        expected_proto_bytes.put_u8(80); // VARINT field with field number '10'
-        expected_proto_bytes.put(&[128, 8][..]); // +1024
-        expected_proto_bytes.put(&[88, 10, 88, 20][..]); // Repeated VARINT field with field number '11'
-        expected_proto_bytes.put_u8(101); // I32 field with field number '12'
-        expected_proto_bytes.put(&20.101f32.to_le_bytes()[..]);
-        expected_proto_bytes.put_u8(105); // I64 field with field number '13'
-        expected_proto_bytes.put(&(-0.010100000000000001f64).to_le_bytes()[..]);
-        expected_proto_bytes.put_u8(112); // VARINT field with field number '14'
-        expected_proto_bytes.put_u8(1); // 1 == OneByteEnum::B
-        expected_proto_bytes.put_u8(125); // I32 field with field number '15'
-        expected_proto_bytes.put(&20.101f32.to_le_bytes()[..]);
-        expected_proto_bytes.put(&[133, 1][..]); // I32 field with field number '16'
-        expected_proto_bytes.put(&20.101f32.to_le_bytes()[..]);
-        expected_proto_bytes.put(&[144, 1][..]); // VARINT field with field number '18'
-        expected_proto_bytes.put_u8(32); // +32
-        expected_proto_bytes.put(&[152, 1][..]); // VARINT field with field number '19'
-        expected_proto_bytes.put_u8(32); // +32
+        expected_proto_bytes.push(8u8); // VARINT field with field number '1'
+        expected_proto_bytes.extend(&[192, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -64
+        expected_proto_bytes.push(16u8); // VARINT field with field number '2'
+        expected_proto_bytes.extend(&[224, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -32
+        expected_proto_bytes.push(24u8); // VARINT field with field number '3'
+        expected_proto_bytes.push(64u8); // +64
+        expected_proto_bytes.push(32u8); // VARINT field with field number '4'
+        expected_proto_bytes.push(32u8); // +32
+        expected_proto_bytes.push(41u8); // I64 field with field number '5'
+        expected_proto_bytes.extend(&6.4f64.to_le_bytes()[..]); // 6.4_f64
+        expected_proto_bytes.push(53u8); // I32 field with field number '6'
+        expected_proto_bytes.extend(&(-3.2f32).to_le_bytes()[..]);
+        expected_proto_bytes.push(56u8); // VARINT field with field number '7'
+        expected_proto_bytes.push(1u8); // false
+        expected_proto_bytes.push(66u8); // LEN field with field number '8'
+        expected_proto_bytes.push(24u8); // length of embedded message
+        expected_proto_bytes.extend(&[8, 1, 8, 0, 8, 1, 8, 0, 8, 1][..]); // Repeated field with field number '1' and values
+        expected_proto_bytes.push(18u8); // LEN field with field number '2'
+        expected_proto_bytes.push(10u8); // String length == 10
+        expected_proto_bytes.extend(&[104, 101, 108, 108, 111, 0, 0, 0, 0, 0][..]); // String "hello\0\0\0\0\0"
+        expected_proto_bytes.push(24u8); // VARINT field with field number '3'
+        expected_proto_bytes.push(1u8); // +1
+        expected_proto_bytes.push(72u8); // VARINT field with field number '9'
+        expected_proto_bytes.extend(&[136, 255, 255, 255, 255, 255, 255, 255, 255, 1][..]); // -120
+        expected_proto_bytes.push(80u8); // VARINT field with field number '10'
+        expected_proto_bytes.extend(&[128, 8][..]); // +1024
+        expected_proto_bytes.extend(&[88, 10, 88, 20][..]); // Repeated VARINT field with field number '11'
+        expected_proto_bytes.push(101u8); // I32 field with field number '12'
+        expected_proto_bytes.extend(&20.101f32.to_le_bytes()[..]);
+        expected_proto_bytes.push(105u8); // I64 field with field number '13'
+        expected_proto_bytes.extend(&(-0.010100000000000001f64).to_le_bytes()[..]);
+        expected_proto_bytes.push(112u8); // VARINT field with field number '14'
+        expected_proto_bytes.push(1u8); // 1 == OneByteEnum::B
+        expected_proto_bytes.push(125u8); // I32 field with field number '15'
+        expected_proto_bytes.extend(&20.101f32.to_le_bytes()[..]);
+        expected_proto_bytes.extend(&[133, 1][..]); // I32 field with field number '16'
+        expected_proto_bytes.extend(&20.101f32.to_le_bytes()[..]);
+        expected_proto_bytes.extend(&[144, 1][..]); // VARINT field with field number '18'
+        expected_proto_bytes.push(32u8); // +32
+        expected_proto_bytes.extend(&[152, 1][..]); // VARINT field with field number '19'
+        expected_proto_bytes.push(32u8); // +32
 
         let proto_bytes =
             translator.translate_from_uds_to_protobuf(&uds_bytes, &message_descriptor).unwrap();
