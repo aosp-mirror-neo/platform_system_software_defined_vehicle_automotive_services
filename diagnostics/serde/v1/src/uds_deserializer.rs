@@ -335,7 +335,6 @@ impl serde::de::Error for UdsDeserializerError {
 #[cfg(test)]
 mod tests {
     use crate::uds_deserializer::{UdsDeserializer, UdsDeserializerError};
-    use bytes::{BufMut, BytesMut};
     use googletest::prelude::{assert_that, eq, matches_pattern};
     use serde::Deserialize;
 
@@ -381,22 +380,20 @@ mod tests {
             },
         };
 
-        let mut byte_buffer = BytesMut::new();
-        byte_buffer.put_i8(-8);
-        byte_buffer.put_i16(-16);
-        byte_buffer.put_i32(-32);
-        byte_buffer.put_i64(-64);
-        byte_buffer.put_u8(8);
-        byte_buffer.put_u16(16);
-        byte_buffer.put_u32(32);
-        byte_buffer.put_u64(64);
-        byte_buffer.put_f32(3.2);
-        byte_buffer.put_f64(6.4);
-        byte_buffer.put_u8(0x00);
-        byte_buffer.put(&[1, 2, 3][..]);
-        for byte in "hello❤".bytes() {
-            byte_buffer.put_u8(byte);
-        }
+        let mut byte_buffer = Vec::<u8>::new();
+        byte_buffer.push(-8i8 as u8);
+        byte_buffer.extend((-16i16).to_be_bytes());
+        byte_buffer.extend((-32i32).to_be_bytes());
+        byte_buffer.extend((-64i64).to_be_bytes());
+        byte_buffer.push(8);
+        byte_buffer.extend(16u16.to_be_bytes());
+        byte_buffer.extend(32u32.to_be_bytes());
+        byte_buffer.extend(64u64.to_be_bytes());
+        byte_buffer.extend(3.2f32.to_be_bytes());
+        byte_buffer.extend(6.4f64.to_be_bytes());
+        byte_buffer.push(0x00);
+        byte_buffer.extend(&[1, 2, 3][..]);
+        byte_buffer.extend("hello❤".as_bytes());
 
         let mut deserializer = UdsDeserializer::new(byte_buffer.as_ref());
 

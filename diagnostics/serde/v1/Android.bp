@@ -13,7 +13,6 @@ rust_defaults {
         "sdv_tracing@rust_defaults",
     ],
     rustlibs: [
-        "libbytes",
         "libbyteorder",
         "libthiserror",
         "libprotobuf",
