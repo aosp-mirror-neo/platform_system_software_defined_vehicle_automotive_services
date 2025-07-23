@@ -20,7 +20,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     tokio::spawn(async {
-        Agent::new().await.start().await;
+        Agent::new().await.expect("Failed to create VPM Agent").start().await;
     });
 
     task::block_in_place(move || {

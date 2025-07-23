@@ -53,21 +53,21 @@ impl VpmServiceBundle for VpmSystemServiceBundle {
 impl Agent {
     /// Creates a new VPM agent.
     #[instrument]
-    pub async fn new() -> Self {
+    pub async fn new() -> anyhow::Result<Self> {
         let service_fqin = ServiceFqin::from_str(FQIN).expect("Could not create context for VPM!");
         let context = ContextRef::create(service_fqin.clone());
         let sdv_comms = Arc::new(SdvComms { context });
-        let power_service = Box::new(PowerServiceImpl::new(sdv_comms.clone()));
+        let power_service = Box::new(PowerServiceImpl::new(sdv_comms.clone())?);
         let (system_service, rpc_server) = VpmServiceImpl::new(
             power_service.get_power_state_request_sender(),
             power_service.get_power_state_watch_receiver(),
         );
         let vpm_bundle = VpmSystemServiceBundle::new(sdv_comms, (Arc::new(rpc_server),)).await;
-        Self::new_with_services(
+        Ok(Self::new_with_services(
             Box::new(system_service),
             power_service,
             Box::new(vpm_bundle.expect("VPM Bundle failed to initialize")),
-        )
+        ))
     }
 
     fn new_with_services(

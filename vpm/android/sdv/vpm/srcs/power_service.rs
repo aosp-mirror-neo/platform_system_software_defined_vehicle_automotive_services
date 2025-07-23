@@ -74,13 +74,15 @@ impl PowerServiceImpl {
     /// Creates a new PowerServiceImpl with the default value of the power state being POWER_OFF_EXIST.
     /// The POWER_OFF_EXIT state is the only possible state at this step because calling new() means we are coming from cold boot.
     /// If we resume from S2R or S2D new() should not be called again.
-    pub fn new(comms: Arc<SdvComms>) -> Self {
+    pub fn new(comms: Arc<SdvComms>) -> anyhow::Result<Self> {
         let self_fqin = comms.context.get_self_fqin();
         let vm_name = self_fqin.get_sdv_vm_name();
         Self::new_with_notifier(Arc::new(PowerStateNotifierImpl::new(comms, vm_name)))
     }
 
-    fn new_with_notifier(power_state_notifier: Arc<dyn PowerStateNotifier>) -> Self {
+    fn new_with_notifier(
+        power_state_notifier: Arc<dyn PowerStateNotifier>,
+    ) -> anyhow::Result<Self> {
         //TODO: check which suspend services is provided by the Host.
 
         // Channel to forward power state requests.
@@ -91,17 +93,17 @@ impl PowerServiceImpl {
         let (power_state_watch_sender, power_state_watch_receiver) =
             watch_channel::<Arc<dyn PowerState>>(get_persisted_power_state());
 
-        power_state_notifier.create_binder_service(power_state_watch_receiver.clone()).unwrap();
+        power_state_notifier.create_binder_service(power_state_watch_receiver.clone())?;
         log::debug!("sdv_vpm_agent has started successfully");
         tracing::event!(Level::DEBUG, "sdv_vpm_agent has started successfully");
-        Self {
+        Ok(Self {
             power_state_notifier,
             power_state_request_sender,
             power_state_request_receiver,
             power_state_watch_sender: power_state_watch_sender.into(),
             power_state_watch_receiver,
             power_state_tracker: PowerStateTracker::new(),
-        }
+        })
     }
 
     // Instrument somehow messes clippy and generates this lint error.
@@ -412,7 +414,7 @@ mod tests {
         let comms = Arc::new(SdvComms { context });
 
         // When
-        let power_service = PowerServiceImpl::new(comms);
+        let power_service = PowerServiceImpl::new(comms).unwrap();
 
         // Then
         // The service is created, and we can access its channels.
@@ -430,7 +432,8 @@ mod tests {
         mock_power_state_notifier.expect_create_binder_service().times(1).returning(|_| Ok(()));
 
         // When creating a new PowerServiceImpl with the mock notifier.
-        let service = PowerServiceImpl::new_with_notifier(Arc::new(mock_power_state_notifier));
+        let service =
+            PowerServiceImpl::new_with_notifier(Arc::new(mock_power_state_notifier)).unwrap();
 
         // Then the initial power state is the default (PowerOffExit), and we can get the channels.
         assert_eq!(
@@ -473,7 +476,8 @@ mod tests {
         // expect new state persistency tag to be retrieved.
         new_state.expect_get_persistence_tag().times(1).returning(|| "");
 
-        let mut power_service = PowerServiceImpl::new_with_notifier(Arc::new(power_state_notifier));
+        let mut power_service =
+            PowerServiceImpl::new_with_notifier(Arc::new(power_state_notifier)).unwrap();
         let power_state_request_sender = power_service.get_power_state_request_sender();
         let mut power_state_watch_receiver = power_service.get_power_state_watch_receiver();
         let _handle = tokio::spawn(async move { power_service.start().await });
@@ -544,7 +548,8 @@ mod tests {
         // expect new state persistency tag to be retrieved.
         new_state.expect_get_persistence_tag().times(1).returning(|| "");
 
-        let mut power_service = PowerServiceImpl::new_with_notifier(Arc::new(power_state_notifier));
+        let mut power_service =
+            PowerServiceImpl::new_with_notifier(Arc::new(power_state_notifier)).unwrap();
         let power_state_request_sender = power_service.get_power_state_request_sender();
         let mut power_state_watch_receiver = power_service.get_power_state_watch_receiver();
         let _handle = tokio::spawn(async move { power_service.start().await });
@@ -589,7 +594,8 @@ mod tests {
         // expect new state persistency tag to be retrieved.
         new_state.expect_get_persistence_tag().times(1).returning(|| "");
 
-        let mut power_service = PowerServiceImpl::new_with_notifier(Arc::new(power_state_notifier));
+        let mut power_service =
+            PowerServiceImpl::new_with_notifier(Arc::new(power_state_notifier)).unwrap();
         let power_state_request_sender = power_service.get_power_state_request_sender();
         let mut power_state_watch_receiver = power_service.get_power_state_watch_receiver();
         let _handle = tokio::spawn(async move { power_service.start().await });
@@ -886,7 +892,7 @@ mod tests {
         mock_notifier.expect_notify().times(1).returning(|_| Ok(()));
         mock_notifier.expect_notify_oem().times(1).returning(|_, _| Ok(()));
 
-        let service = PowerServiceImpl::new_with_notifier(Arc::new(mock_notifier));
+        let service = PowerServiceImpl::new_with_notifier(Arc::new(mock_notifier)).unwrap();
 
         // And a power state that fails on execution
         let mut failing_state = MockPowerState::new();
