@@ -37,8 +37,8 @@ use tokio::sync::Mutex as AsyncMutex;
 use tokio::task::JoinSet;
 use tracing::instrument;
 
-#[automock]
 #[async_trait]
+#[automock]
 pub trait PowerStateNotifier: Send + Sync {
     fn create_binder_service(
         &self,

@@ -414,6 +414,7 @@ mod tests {
     use sdv_comms::ContextRef;
     use sdv_mw_rs_sdv_comms::SdvComms;
     use std::str::FromStr;
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     #[tokio::test]
     async fn new_creates_power_service_with_initial_state() {
@@ -468,7 +469,7 @@ mod tests {
             .expect_notify()
             .times(1)
             .withf(move |report| *report == new_report)
-            .returning(|_| Ok(()));
+            .returning(move |_| Box::pin(async { Ok(()) }));
 
         // expect OEM to be notified.
         power_state_notifier
@@ -477,7 +478,7 @@ mod tests {
             .withf(move |report, reason| {
                 *report == new_report && *reason == PowerStateChangeReason::HOST_REQUESTED
             })
-            .returning(|_, _| Ok(()));
+            .returning(move |_, _| Box::pin(async { Ok(()) }));
 
         // expect report to be ON.
         new_state.expect_get_report().returning(move || new_report);
@@ -534,13 +535,19 @@ mod tests {
         let mut new_state = MockPowerState::default();
         let mut power_state_notifier = MockPowerStateNotifier::default();
 
+        let notify_oem_executed = Arc::new(AtomicBool::new(false));
+        let notify_oem_executed_closure_clone = Arc::clone(&notify_oem_executed);
+
         power_state_notifier.expect_create_binder_service().times(1).returning(|_| Ok(()));
         // expect callback notifications to be executed.
         power_state_notifier
             .expect_notify()
             .times(1)
             .withf(move |report| *report == new_report)
-            .returning(move |_| Err(err.clone()));
+            .returning(move |_| {
+                let err = err.clone();
+                Box::pin(async move { Err(err) })
+            });
 
         // expect OEM to be notified.
         power_state_notifier
@@ -549,7 +556,14 @@ mod tests {
             .withf(move |report, reason| {
                 *report == new_report && *reason == PowerStateChangeReason::TIMEOUT
             })
-            .returning(|_, _| Ok(()));
+            .returning(move |_, _| {
+                let notify_oem_executed_closure_clone =
+                    Arc::clone(&notify_oem_executed_closure_clone);
+                Box::pin(async move {
+                    notify_oem_executed_closure_clone.swap(true, Ordering::Relaxed);
+                    Ok(())
+                })
+            });
 
         // expect report to be ON.
         new_state.expect_get_report().returning(move || new_report);
@@ -563,23 +577,19 @@ mod tests {
         let mut power_service =
             PowerServiceImpl::new_with_notifier(Arc::new(power_state_notifier)).unwrap();
         let power_state_request_sender = power_service.get_power_state_request_sender();
-        let mut power_state_watch_receiver = power_service.get_power_state_watch_receiver();
         let _handle = tokio::spawn(async move { power_service.start().await });
 
         // When: a power state request is requested
         let _ = power_state_request_sender.send(PowerRequest::new(Box::new(new_state), 1)).await;
 
-        // Then: power state is set.
-        if (timeout(
-            Duration::from_secs(5),
-            power_state_watch_receiver.wait_for(|state| state.get_report() == new_report),
-        )
-        .await)
-            .is_err()
-        {
-            fail!("Test timed out").unwrap();
-        }
-        assert_eq!(power_state_watch_receiver.borrow().get_report(), new_report);
+        // Wait for the flag to be set, with a timeout
+        let result = tokio::time::timeout(Duration::from_secs(5), async {
+            while !notify_oem_executed.load(Ordering::Relaxed) {
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            }
+        })
+        .await;
+        assert!(result.is_ok(), "Test timed out before notify_oem_executed was set!");
     }
 
     #[tokio::test]
@@ -595,7 +605,7 @@ mod tests {
             .expect_notify()
             .times(1)
             .withf(move |report| *report == new_report)
-            .returning(|_| Ok(()));
+            .returning(move |_| Box::pin(async { Ok(()) }));
 
         // expect report to be SuspendToRam.
         new_state.expect_get_report().returning(move || new_report);
@@ -901,8 +911,11 @@ mod tests {
         // Given a power service
         let mut mock_notifier = MockPowerStateNotifier::default();
         mock_notifier.expect_create_binder_service().returning(|_| Ok(()));
-        mock_notifier.expect_notify().times(1).returning(|_| Ok(()));
-        mock_notifier.expect_notify_oem().times(1).returning(|_, _| Ok(()));
+        mock_notifier.expect_notify().times(1).returning(move |_| Box::pin(async { Ok(()) }));
+        mock_notifier
+            .expect_notify_oem()
+            .times(1)
+            .returning(move |_, _| Box::pin(async { Ok(()) }));
 
         let service = PowerServiceImpl::new_with_notifier(Arc::new(mock_notifier)).unwrap();
 
@@ -933,7 +946,7 @@ mod tests {
                 *report == PowerStateReport::ON && *reason == PowerStateChangeReason::HOST_REQUESTED
             })
             .times(1)
-            .returning(|_, _| Ok(()));
+            .returning(move |_, _| Box::pin(async { Ok(()) }));
 
         let state = Arc::new(On {});
         let select_result = Ok(());
@@ -954,7 +967,7 @@ mod tests {
                 *report == PowerStateReport::ON && *reason == PowerStateChangeReason::TIMEOUT
             })
             .times(1)
-            .returning(|_, _| Ok(()));
+            .returning(move |_, _| Box::pin(async { Ok(()) }));
 
         let state = Arc::new(On {});
         let select_result = Err(PowerStateNotificationError::TimedOut);
@@ -975,7 +988,7 @@ mod tests {
                 *report == PowerStateReport::ON && *reason == PowerStateChangeReason::TIMEOUT
             })
             .times(1)
-            .returning(|_, _| Ok(()));
+            .returning(move |_, _| Box::pin(async { Ok(()) }));
 
         let state = Arc::new(On {});
         let select_result = Err(PowerStateNotificationError::Disconnected);
@@ -1024,5 +1037,136 @@ mod tests {
         // Then: the send operation fails and returns an error
         let result = power_state_request_handler.handle_set_power_state(request).await;
         assert!(result.is_err());
+    }
+
+    async fn power_service_test_fixture_with_pending_notify_future(
+        report_with_pending_notify_future: PowerStateReport,
+        persistence_tag_for_state_with_pending_notify_future: &'static str,
+        //TODO: b/353655403 Add more reasons for failing callbacks.
+        notify_oem_reason_for_state_with_pending_notify_future: Option<PowerStateChangeReason>,
+        report_to_fully_execute: PowerStateReport,
+        persistence_tag_for_state_to_fully_execute: &'static str,
+    ) {
+        // Given
+        let mut mock_notifier = MockPowerStateNotifier::default();
+        mock_notifier.expect_create_binder_service().returning(|_| Ok(()));
+
+        let notify_loop_started = Arc::new(AtomicBool::new(false));
+        let notify_loop_started_closure_clone = Arc::clone(&notify_loop_started);
+
+        // Mock calls for the first request
+        mock_notifier
+            .expect_notify()
+            .withf(move |report| *report == report_with_pending_notify_future)
+            .times(1)
+            .returning(move |_| {
+                notify_loop_started_closure_clone.swap(true, Ordering::Relaxed);
+                Box::pin(std::future::pending())
+            });
+        if let Some(notify_oem_reason) = notify_oem_reason_for_state_with_pending_notify_future {
+            mock_notifier
+                .expect_notify_oem()
+                .withf(move |report, reason| {
+                    *report == report_with_pending_notify_future && *reason == notify_oem_reason
+                })
+                .times(1)
+                .returning(move |_, _| Box::pin(async { Ok(()) }));
+        }
+
+        // Mock calls for the second request
+        mock_notifier
+            .expect_notify()
+            .withf(move |report| *report == report_to_fully_execute)
+            .times(1)
+            .returning(move |_| Box::pin(async { Ok(()) }));
+
+        mock_notifier
+            .expect_notify_oem()
+            .withf(move |report, reason| {
+                *report == report_to_fully_execute
+                    && *reason == PowerStateChangeReason::HOST_REQUESTED
+            })
+            .times(1)
+            .returning(move |_, _| Box::pin(async { Ok(()) }));
+
+        let mut service = PowerServiceImpl::new_with_notifier(Arc::new(mock_notifier)).unwrap();
+        let sender = service.get_power_state_request_sender();
+        let mut power_state_watch_receiver = service.get_power_state_watch_receiver();
+        let _service_handle = tokio::spawn(async move { service.start().await });
+
+        // When
+        // Send first request
+        let mut report_with_pending_notify_state = MockPowerState::new();
+        report_with_pending_notify_state
+            .expect_get_report()
+            .return_const(report_with_pending_notify_future);
+        report_with_pending_notify_state.expect_is_sleep_state().return_const(false);
+        report_with_pending_notify_state.expect_execute().returning(|_, _| Ok(()));
+        report_with_pending_notify_state
+            .expect_get_persistence_tag()
+            .return_const(persistence_tag_for_state_with_pending_notify_future);
+        sender
+            .send(PowerRequest::new(Box::new(report_with_pending_notify_state), 1000))
+            .await
+            .unwrap();
+
+        // Wait for the non-returning notify() to be started, with a timeout
+        let result = tokio::time::timeout(Duration::from_secs(5), async {
+            while !notify_loop_started.load(Ordering::Relaxed) {
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            }
+        })
+        .await;
+        assert!(result.is_ok(), "Test timed out before notify_loop_started was set!");
+
+        // Send second request
+        let mut report_to_fully_execute_state = MockPowerState::new();
+        report_to_fully_execute_state.expect_get_report().return_const(report_to_fully_execute);
+        report_to_fully_execute_state.expect_is_sleep_state().return_const(false);
+        report_to_fully_execute_state.expect_execute().returning(|_, _| Ok(()));
+        report_to_fully_execute_state
+            .expect_get_persistence_tag()
+            .return_const(persistence_tag_for_state_to_fully_execute);
+        sender
+            .send(PowerRequest::new(Box::new(report_to_fully_execute_state), 1000))
+            .await
+            .unwrap();
+
+        // Then: second power state is set.
+        if (timeout(
+            Duration::from_secs(5),
+            power_state_watch_receiver
+                .wait_for(|state| state.get_report() == report_to_fully_execute),
+        )
+        .await)
+            .is_err()
+        {
+            fail!("Test timed out").unwrap();
+        }
+        assert_eq!(power_state_watch_receiver.borrow().get_report(), report_to_fully_execute);
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn power_service_start_processes_multiple_requests_sequentially() {
+        power_service_test_fixture_with_pending_notify_future(
+            PowerStateReport::ON,
+            sdv_vpm_power_persistency_tags::ON_TAG,
+            Some(PowerStateChangeReason::TIMEOUT),
+            PowerStateReport::POWER_OFF_ENTER,
+            sdv_vpm_power_persistency_tags::POWER_OFF_ENTER_TAG,
+        )
+        .await;
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn power_service_start_handles_cancellation() {
+        power_service_test_fixture_with_pending_notify_future(
+            PowerStateReport::POWER_OFF_ENTER,
+            sdv_vpm_power_persistency_tags::POWER_OFF_ENTER_TAG,
+            None,
+            PowerStateReport::SHUTDOWN_CANCELLED,
+            sdv_vpm_power_persistency_tags::SHUTDOWN_CANCELLED_TAG,
+        )
+        .await;
     }
 }
