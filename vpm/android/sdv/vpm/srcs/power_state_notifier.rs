@@ -154,7 +154,12 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
             set.spawn(async move {
                 debug!("Starting callback notification for {:?}", id);
                 let result = async_callback
-                    .onPowerStateReportChanged(convert_to_aidl(power_state_report))
+                    .onPowerStateReportChanged(convert_to_aidl(power_state_report).map_err(
+                        |e| {
+                            error!("Failed to convert power state report to AIDL: {:?}", e);
+                            PowerStateNotificationError::Failed
+                        },
+                    )?)
                     .await;
                 if result.is_err() {
                     Err(PowerStateNotificationError::Disconnected)
@@ -271,7 +276,10 @@ impl IPowerStateClientApiAsyncServer for BinderServer {
 
         self.callbacks.lock().unwrap().insert(id, client_callback);
         let power_state = self.power_state_watch_receiver.borrow();
-        Ok(convert_to_aidl(power_state.get_report()))
+        convert_to_aidl(power_state.get_report()).map_err(|e| {
+            error!("Failed to convert power state report to AIDL: {:?}", e);
+            Status::new_exception(ExceptionCode::SERVICE_SPECIFIC, None)
+        })
     }
 }
 
@@ -280,8 +288,8 @@ fn on_client_died(callbacks: Arc<Mutex<HashMap<u32, ClientCallback>>>, id: u32) 
     callbacks.lock().unwrap().remove(&id);
 }
 
-fn convert_to_aidl(power_state_report: PowerStateReport) -> PowerStateReportAidl {
-    match power_state_report {
+fn convert_to_aidl(power_state_report: PowerStateReport) -> anyhow::Result<PowerStateReportAidl> {
+    Ok(match power_state_report {
         PowerStateReport::POWER_OFF_EXIT => PowerStateReportAidl::POWER_OFF_EXIT,
         PowerStateReport::SUSPEND_TO_RAM_EXIT => PowerStateReportAidl::SUSPEND_TO_RAM_EXIT,
         PowerStateReport::SUSPEND_TO_DISK_EXIT => PowerStateReportAidl::SUSPEND_TO_DISK_EXIT,
@@ -298,8 +306,11 @@ fn convert_to_aidl(power_state_report: PowerStateReport) -> PowerStateReportAidl
             PowerStateReportAidl::SUSPEND_TO_DISK_POST_FINISH
         }
         PowerStateReport::WAIT_FOR_FINISH => PowerStateReportAidl::WAIT_FOR_FINISH,
-        PowerStateReport::REPORT_UNSPECIFIED => panic!("This conversion should never be called!"),
-    }
+        PowerStateReport::REPORT_UNSPECIFIED => {
+            error!("This conversion should never be called!");
+            return Err(anyhow!("This conversion, convert_to_aidl(PowerStateReport::REPORT_UNSPECIFIED), should never be called!"));
+        }
+    })
 }
 
 fn get_server_unit_name(
@@ -369,57 +380,56 @@ mod tests {
     #[test]
     fn test_convert_to_aidl_valid_conversions() {
         assert_eq!(
-            convert_to_aidl(PowerStateReport::POWER_OFF_EXIT),
+            convert_to_aidl(PowerStateReport::POWER_OFF_EXIT).unwrap(),
             PowerStateReportAidl::POWER_OFF_EXIT
         );
         assert_eq!(
-            convert_to_aidl(PowerStateReport::SUSPEND_TO_RAM_EXIT),
+            convert_to_aidl(PowerStateReport::SUSPEND_TO_RAM_EXIT).unwrap(),
             PowerStateReportAidl::SUSPEND_TO_RAM_EXIT
         );
         assert_eq!(
-            convert_to_aidl(PowerStateReport::SUSPEND_TO_DISK_EXIT),
+            convert_to_aidl(PowerStateReport::SUSPEND_TO_DISK_EXIT).unwrap(),
             PowerStateReportAidl::SUSPEND_TO_DISK_EXIT
         );
-        assert_eq!(convert_to_aidl(PowerStateReport::ON), PowerStateReportAidl::ON);
+        assert_eq!(convert_to_aidl(PowerStateReport::ON).unwrap(), PowerStateReportAidl::ON);
         assert_eq!(
-            convert_to_aidl(PowerStateReport::SHUTDOWN_CANCELLED),
+            convert_to_aidl(PowerStateReport::SHUTDOWN_CANCELLED).unwrap(),
             PowerStateReportAidl::SHUTDOWN_CANCELLED
         );
         assert_eq!(
-            convert_to_aidl(PowerStateReport::POWER_OFF_ENTER),
+            convert_to_aidl(PowerStateReport::POWER_OFF_ENTER).unwrap(),
             PowerStateReportAidl::POWER_OFF_ENTER
         );
         assert_eq!(
-            convert_to_aidl(PowerStateReport::SUSPEND_TO_RAM_ENTER),
+            convert_to_aidl(PowerStateReport::SUSPEND_TO_RAM_ENTER).unwrap(),
             PowerStateReportAidl::SUSPEND_TO_RAM_ENTER
         );
         assert_eq!(
-            convert_to_aidl(PowerStateReport::SUSPEND_TO_DISK_ENTER),
+            convert_to_aidl(PowerStateReport::SUSPEND_TO_DISK_ENTER).unwrap(),
             PowerStateReportAidl::SUSPEND_TO_DISK_ENTER
         );
         assert_eq!(
-            convert_to_aidl(PowerStateReport::POWER_OFF_POST_FINISH),
+            convert_to_aidl(PowerStateReport::POWER_OFF_POST_FINISH).unwrap(),
             PowerStateReportAidl::POWER_OFF_POST_FINISH
         );
         assert_eq!(
-            convert_to_aidl(PowerStateReport::SUSPEND_TO_RAM_POST_FINISH),
+            convert_to_aidl(PowerStateReport::SUSPEND_TO_RAM_POST_FINISH).unwrap(),
             PowerStateReportAidl::SUSPEND_TO_RAM_POST_FINISH
         );
         assert_eq!(
-            convert_to_aidl(PowerStateReport::SUSPEND_TO_DISK_POST_FINISH),
+            convert_to_aidl(PowerStateReport::SUSPEND_TO_DISK_POST_FINISH).unwrap(),
             PowerStateReportAidl::SUSPEND_TO_DISK_POST_FINISH
         );
         assert_eq!(
-            convert_to_aidl(PowerStateReport::WAIT_FOR_FINISH),
+            convert_to_aidl(PowerStateReport::WAIT_FOR_FINISH).unwrap(),
             PowerStateReportAidl::WAIT_FOR_FINISH
         );
     }
 
     #[test]
-    #[should_panic(expected = "This conversion should never be called!")]
     fn test_convert_to_aidl_report_unspecified() {
         let input = PowerStateReport::REPORT_UNSPECIFIED;
-        convert_to_aidl(input);
+        assert!(convert_to_aidl(input).is_err());
     }
 
     #[tokio::test]
@@ -487,7 +497,10 @@ mod tests {
 
         assert!(result.is_ok(), "subscribeToPowerStateReport failed: {:?}", result.err());
         let returned_report_aidl = result.unwrap();
-        assert_eq!(returned_report_aidl, convert_to_aidl(PowerStateReport::POWER_OFF_EXIT));
+        assert_eq!(
+            returned_report_aidl,
+            convert_to_aidl(PowerStateReport::POWER_OFF_EXIT).unwrap()
+        );
         assert_eq!(callbacks_map.lock().unwrap().len(), 1, "Callback not added to map");
     }
 
@@ -558,7 +571,7 @@ mod tests {
     async fn test_notify_one_listener_success() {
         let notifier = PowerStateNotifierImpl::new(Arc::new(MockCommunicate::new()), "test");
         let report = PowerStateReport::ON;
-        let report_aidl = convert_to_aidl(report);
+        let report_aidl = convert_to_aidl(report).unwrap();
 
         let mock_listener = MockIPowerStateReportListener::new();
         let client_callback = create_mock_listener_callback(mock_listener, report_aidl, true);
@@ -572,7 +585,7 @@ mod tests {
     async fn test_notify_one_listener_fails() {
         let notifier = PowerStateNotifierImpl::new(Arc::new(MockCommunicate::new()), "test");
         let report = PowerStateReport::POWER_OFF_ENTER;
-        let report_aidl = convert_to_aidl(report);
+        let report_aidl = convert_to_aidl(report).unwrap();
 
         let mock_listener = MockIPowerStateReportListener::new();
         let client_callback = create_mock_listener_callback(mock_listener, report_aidl, false);
@@ -587,7 +600,7 @@ mod tests {
     async fn test_notify_multiple_listeners_all_succeed() {
         let notifier = PowerStateNotifierImpl::new(Arc::new(MockCommunicate::new()), "test");
         let report = PowerStateReport::SUSPEND_TO_RAM_ENTER;
-        let report_aidl = convert_to_aidl(report);
+        let report_aidl = convert_to_aidl(report).unwrap();
 
         let mock_listener1 = MockIPowerStateReportListener::new();
         let client_callback1 = create_mock_listener_callback(mock_listener1, report_aidl, true);
@@ -609,7 +622,7 @@ mod tests {
     async fn test_notify_multiple_listeners_one_fails() {
         let notifier = PowerStateNotifierImpl::new(Arc::new(MockCommunicate::new()), "test");
         let report = PowerStateReport::WAIT_FOR_FINISH;
-        let report_aidl = convert_to_aidl(report);
+        let report_aidl = convert_to_aidl(report).unwrap();
 
         let mock_listener_success = MockIPowerStateReportListener::new();
         let client_callback_success =
