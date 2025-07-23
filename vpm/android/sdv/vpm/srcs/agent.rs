@@ -13,6 +13,8 @@ use crate::power_state_notifier::PowerStateNotifier;
 use crate::power_state_notifier::PowerStateNotifierImpl;
 use crate::system_service::VpmService;
 use crate::system_service::VpmServiceImpl;
+use anyhow::anyhow;
+use log::error;
 use log::info;
 use mockall::automock;
 use sdv_comms::id::ServiceFqin;
@@ -22,6 +24,7 @@ use sdv_mw_rs_com_sdv_google_vpm_vpm_system_service_bundle::VpmSystemServiceBund
 use sdv_mw_rs_comms::Publisher;
 use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_vpm_api::vehicle::VehicleStateChange;
+use std::future::Future;
 use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
@@ -54,7 +57,8 @@ impl Agent {
     /// Creates a new VPM agent.
     #[instrument]
     pub async fn new() -> anyhow::Result<Self> {
-        let service_fqin = ServiceFqin::from_str(FQIN).expect("Could not create context for VPM!");
+        let service_fqin = ServiceFqin::from_str(FQIN)
+            .map_err(|e| anyhow!("Could not parse FQIN for VPM: {e}"))?;
         let context = ContextRef::create(service_fqin.clone());
         let sdv_comms = Arc::new(SdvComms { context });
         let power_service = Box::new(PowerServiceImpl::new(sdv_comms.clone())?);
@@ -62,12 +66,10 @@ impl Agent {
             power_service.get_power_state_request_sender(),
             power_service.get_power_state_watch_receiver(),
         );
-        let vpm_bundle = VpmSystemServiceBundle::new(sdv_comms, (Arc::new(rpc_server),)).await;
-        Ok(Self::new_with_services(
-            Box::new(system_service),
-            power_service,
-            Box::new(vpm_bundle.expect("VPM Bundle failed to initialize")),
-        ))
+        let vpm_bundle = VpmSystemServiceBundle::new(sdv_comms, (Arc::new(rpc_server),))
+            .await
+            .map_err(|e| anyhow!("VPM Bundle failed to initialize {e}"))?;
+        Ok(Self::new_with_services(Box::new(system_service), power_service, Box::new(vpm_bundle)))
     }
 
     fn new_with_services(
@@ -89,6 +91,23 @@ impl Agent {
     }
 }
 
+/// Spawns a tokio thread that runs the agent.
+pub async fn create_and_start_agent<F, Fut>(agent_factory: F) -> anyhow::Result<()>
+where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = anyhow::Result<Agent>>,
+{
+    let mut agent = agent_factory().await.map_err(|e| {
+        error!("Failed to create VPM Agent: {e}");
+        e
+    })?;
+
+    tokio::spawn(async move {
+        agent.start().await;
+    });
+
+    Ok(())
+}
 #[cfg(test)]
 mod tests {
     use super::*;

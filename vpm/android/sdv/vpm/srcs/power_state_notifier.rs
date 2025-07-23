@@ -102,11 +102,11 @@ impl PowerStateNotifierImpl {
         )?;
         let attributes = get_attributes(server_name, ClientOptions::default())?;
         let result = self.comms.create_client_transport(&attributes).await;
-        if result.is_err() {
+        let Ok(result) = result else {
             error!("Could not get a client for vpm notifications");
             return Err(anyhow!("Could not get a client for vpm notifications"));
-        }
-        *client = Some(Client::new(result.unwrap()).into());
+        };
+        *client = Some(Client::new(result).into());
         Ok(())
     }
 }

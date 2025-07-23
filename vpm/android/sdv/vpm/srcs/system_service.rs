@@ -66,11 +66,10 @@ impl VpmServiceImpl {
 #[async_trait]
 impl VpmService for VpmServiceImpl {
     async fn start(&mut self, vehicle_state_publisher: Option<Publisher<VehicleStateChange>>) {
-        if vehicle_state_publisher.is_none() {
+        let Some(vehicle_state_publisher) = vehicle_state_publisher else {
             error!("Vehicle state publisher could not be started!");
             return;
-        }
-        let vehicle_state_publisher = vehicle_state_publisher.unwrap();
+        };
 
         while let Some(vehicle_state) = self.vehicle_state_receiver.recv().await {
             let mut vehicle_state_change_message = VehicleStateChange::new();

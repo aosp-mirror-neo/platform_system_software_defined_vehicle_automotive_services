@@ -334,10 +334,18 @@ impl PowerStateRequestHandler for PowerStateRequestHandlerImpl {
 }
 
 fn validate_power_state_request(request: PowerStateChangeRequest) -> anyhow::Result<PowerRequest> {
-    let power_state: Box<dyn PowerState> = match request.power_request.unwrap() {
+    let power_state: Box<dyn PowerState> = match request
+        .power_request
+        .enum_value()
+        .map_err(|e| anyhow!("PowerStateRequest Enum invalid value: {e}"))?
+    {
         PowerStateRequest::TURN_ON => Box::new(On {}),
         PowerStateRequest::CANCEL_SHUTDOWN => Box::new(ShutdownCancelled {}),
-        PowerStateRequest::PREPARE_SHUTDOWN => match request.shutdown_type.unwrap() {
+        PowerStateRequest::PREPARE_SHUTDOWN => match request
+            .shutdown_type
+            .enum_value()
+            .map_err(|e| anyhow!("ShutdownType Enum invalid value: {e}"))?
+        {
             ShutdownType::POWER_OFF => Box::new(PowerOffEnter {}),
             ShutdownType::SUSPEND_TO_RAM => Box::new(SuspendToRamEnter {}),
             ShutdownType::SUSPEND_TO_DISK => Box::new(SuspendToDiskEnter {}),
@@ -345,7 +353,11 @@ fn validate_power_state_request(request: PowerStateChangeRequest) -> anyhow::Res
                 return Err(anyhow!("Shutdown type was not specified!"))
             }
         },
-        PowerStateRequest::FINISH_SHUTDOWN => match request.shutdown_type.unwrap() {
+        PowerStateRequest::FINISH_SHUTDOWN => match request
+            .shutdown_type
+            .enum_value()
+            .map_err(|e| anyhow!("ShutdownType Enum invalid value: {e}"))?
+        {
             ShutdownType::POWER_OFF => Box::new(PowerOffPostFinish {}),
             ShutdownType::SUSPEND_TO_RAM => Box::new(SuspendToRamPostFinish {}),
             ShutdownType::SUSPEND_TO_DISK => Box::new(SuspendToDiskPostFinish {}),

@@ -19,9 +19,7 @@ async fn main() -> anyhow::Result<()> {
         error!("wait_for_agents() failed with error: {:?}", res.unwrap_err());
     }
 
-    tokio::spawn(async {
-        Agent::new().await.expect("Failed to create VPM Agent").start().await;
-    });
+    sdv_vpm::create_and_start_agent(Agent::new).await?;
 
     task::block_in_place(move || {
         binder::ProcessState::join_thread_pool();
