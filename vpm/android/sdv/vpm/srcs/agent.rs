@@ -54,19 +54,36 @@ impl VpmServiceBundle for VpmSystemServiceBundle {
 
 /// VPM agent implementation.
 impl Agent {
-    /// Creates a new VPM agent.
+    /// Creates a new VPM agent using the default FQIN.
     #[instrument]
     pub async fn new() -> anyhow::Result<Self> {
-        let service_fqin = ServiceFqin::from_str(FQIN)
+        Self::new_with_fqin(FQIN).await
+    }
+
+    /// Creates a new VPM agent with a specific FQIN.
+    /// This function is crate-public for testing purposes.
+    #[instrument]
+    async fn new_with_fqin(fqin: &str) -> anyhow::Result<Self> {
+        let service_fqin = ServiceFqin::from_str(fqin)
             .map_err(|e| anyhow!("Could not parse FQIN for VPM: {e}"))?;
         let context = ContextRef::create(service_fqin.clone());
         let sdv_comms = Arc::new(SdvComms { context });
-        let power_service = Box::new(PowerServiceImpl::new(sdv_comms.clone())?);
+        let self_fqin = sdv_comms.context.get_self_fqin();
+        let vm_name = self_fqin.get_sdv_vm_name();
+        Self::new_with_comms(sdv_comms, vm_name).await
+    }
+
+    /// Creates a new VPM agent with a specific comms implementation.
+    async fn new_with_comms(
+        comms: Arc<dyn sdv_mw_rs_comms::Communicate>,
+        vm_name: &str,
+    ) -> anyhow::Result<Self> {
+        let power_service = Box::new(PowerServiceImpl::new(comms.clone(), vm_name)?);
         let (system_service, rpc_server) = VpmServiceImpl::new(
             power_service.get_power_state_request_sender(),
             power_service.get_power_state_watch_receiver(),
         );
-        let vpm_bundle = VpmSystemServiceBundle::new(sdv_comms, (Arc::new(rpc_server),))
+        let vpm_bundle = VpmSystemServiceBundle::new(comms, (Arc::new(rpc_server),))
             .await
             .map_err(|e| anyhow!("VPM Bundle failed to initialize {e}"))?;
         Ok(Self::new_with_services(Box::new(system_service), power_service, Box::new(vpm_bundle)))
@@ -120,6 +137,7 @@ mod tests {
     use crate::Agent;
     use sdv_mw_rs_comms::MockPublish;
     use sdv_mw_rs_comms::{MockCommunicate, ServerTransport};
+    use sdv_status_rs::{SdvStatus, SdvStatusCode};
     use sdv_vpm_api::vehicle::VpmVehicleState;
     use tokio::sync::mpsc::channel;
     use tokio::sync::watch::channel as WatchChannel;
@@ -241,5 +259,59 @@ mod tests {
 
         // Then: it returns None, as the publisher has been taken.
         assert!(second_call_result.is_none(), "Expected to get None on the second call.");
+    }
+
+    #[tokio::test]
+    async fn new_with_fqin_fails_with_invalid_fqin() {
+        // When Agent::new_with_fqin is called with an invalid FQIN.
+        let result = Agent::new_with_fqin("invalid fqin").await;
+
+        // Then it should fail with an error message.
+        assert!(result.is_err());
+        assert!(!result.err().unwrap().to_string().is_empty());
+    }
+
+    #[tokio::test]
+    async fn new_with_comms_fails_when_bundle_fails() {
+        // Given a mock comms that fails to create a publisher.
+        let mut mock_comms = MockCommunicate::new();
+        mock_comms
+            .expect_create_publish()
+            .times(1)
+            .returning(|_| Box::pin(async { Err(SdvStatus::new(SdvStatusCode::Unknown)) }));
+
+        // When Agent::new_with_comms is called.
+        let result = Agent::new_with_comms(Arc::new(mock_comms), "test_vm").await;
+
+        // Then it should fail with a specific error message.
+        assert!(result.is_err());
+        assert!(!result.err().unwrap().to_string().is_empty());
+    }
+
+    #[tokio::test]
+    async fn new_with_comms_succeeds() {
+        // Given a mock comms that succeeds in creating publishers and servers.
+        let mut mock_comms = MockCommunicate::new();
+
+        // Mock for VpmSystemServiceBundle::new -> fill_publication_variants
+        mock_comms.expect_create_publish().times(1).returning(|_| {
+            let mock_publish_handle: Box<dyn sdv_mw_rs_comms::Publish> =
+                Box::new(MockPublish::new());
+            Box::pin(async move { Ok(mock_publish_handle) })
+        });
+
+        // Mock for VpmSystemServiceBundle::new -> add_server
+        struct MockServerTransport;
+        impl ServerTransport for MockServerTransport {}
+        mock_comms.expect_create_server_transport().times(1).returning(|_, _| {
+            let mock_server_transport: Box<dyn ServerTransport> = Box::new(MockServerTransport);
+            Box::pin(async move { Ok(mock_server_transport) })
+        });
+
+        // When Agent::new_with_comms is called.
+        let result = Agent::new_with_comms(Arc::new(mock_comms), "test_vm").await;
+
+        // Then it should succeed.
+        assert!(result.is_ok(), "Agent::new_with_comms failed: {:?}", result.err());
     }
 }

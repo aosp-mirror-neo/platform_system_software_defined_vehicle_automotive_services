@@ -10,7 +10,6 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use log::{debug, error, info};
 use mockall::automock;
-use sdv_mw_rs_sdv_comms::SdvComms;
 use sdv_vpm_api::power::PowerStateReport;
 use sdv_vpm_api::vpm::PowerStateChangeRequest;
 use sdv_vpm_api::vpm::PowerStateRequest;
@@ -74,9 +73,10 @@ impl PowerServiceImpl {
     /// Creates a new PowerServiceImpl with the default value of the power state being POWER_OFF_EXIST.
     /// The POWER_OFF_EXIT state is the only possible state at this step because calling new() means we are coming from cold boot.
     /// If we resume from S2R or S2D new() should not be called again.
-    pub fn new(comms: Arc<SdvComms>) -> anyhow::Result<Self> {
-        let self_fqin = comms.context.get_self_fqin();
-        let vm_name = self_fqin.get_sdv_vm_name();
+    pub fn new(
+        comms: Arc<dyn sdv_mw_rs_comms::Communicate>,
+        vm_name: &str,
+    ) -> anyhow::Result<Self> {
         Self::new_with_notifier(Arc::new(PowerStateNotifierImpl::new(comms, vm_name)))
     }
 
@@ -426,9 +426,11 @@ mod tests {
             ServiceFqin::from_str("vm:com.sdv.google.vpm.VpmPowerServiceBundle/default").unwrap();
         let context = ContextRef::create(fqin);
         let comms = Arc::new(SdvComms { context });
+        let self_fqin = comms.context.get_self_fqin();
+        let vm_name = self_fqin.get_sdv_vm_name();
 
         // When
-        let power_service = PowerServiceImpl::new(comms).unwrap();
+        let power_service = PowerServiceImpl::new(comms, vm_name).unwrap();
 
         // Then
         // The service is created, and we can access its channels.
