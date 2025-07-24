@@ -411,6 +411,7 @@ mod tests {
 
     use crate::power_service::notify_oem;
     use anyhow::anyhow;
+    use protobuf::EnumOrUnknown;
     use sdv_comms::id::ServiceFqin;
     use sdv_comms::ContextRef;
     use sdv_mw_rs_sdv_comms::SdvComms;
@@ -1317,6 +1318,46 @@ mod tests {
     fn test_validate_power_state_request_zero_timeout() {
         let request = PowerStateChangeRequest {
             power_request: PowerStateRequest::TURN_ON.into(),
+            timeout_ms: 0,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request);
+        assert!(result.is_err());
+        assert!(!result.err().unwrap().to_string().is_empty());
+    }
+
+    #[test]
+    fn test_validate_power_state_request_invalid_enum_integer_for_power_request() {
+        let request = PowerStateChangeRequest {
+            power_request: EnumOrUnknown::<PowerStateRequest>::from_i32(-1),
+            timeout_ms: 0,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request);
+        assert!(result.is_err());
+        assert!(!result.err().unwrap().to_string().is_empty());
+    }
+
+    #[test]
+    fn test_validate_power_state_request_invalid_enum_integer_for_shutdown_type_when_prepare_shutdown(
+    ) {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
+            shutdown_type: EnumOrUnknown::<ShutdownType>::from_i32(-1),
+            timeout_ms: 0,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request);
+        assert!(result.is_err());
+        assert!(!result.err().unwrap().to_string().is_empty());
+    }
+
+    #[test]
+    fn test_validate_power_state_request_invalid_enum_integer_for_shutdown_type_when_finish_shutdown(
+    ) {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::FINISH_SHUTDOWN.into(),
+            shutdown_type: EnumOrUnknown::<ShutdownType>::from_i32(-1),
             timeout_ms: 0,
             ..Default::default()
         };
