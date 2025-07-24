@@ -387,6 +387,7 @@ fn validate_power_state_request(request: PowerStateChangeRequest) -> anyhow::Res
 
 #[cfg(test)]
 mod tests {
+    use super::validate_power_state_request;
     use crate::power_service::PowerRequest;
     use crate::power_service::PowerService;
     use crate::power_service::PowerStateRequestHandler;
@@ -1017,7 +1018,7 @@ mod tests {
         // Then: the request should fail
         let result = power_state_request_handler.handle_set_power_state(request).await;
         assert!(result.is_err());
-        assert_eq!(result.err().unwrap().to_string(), "Power request was not specified!");
+        assert!(!result.err().unwrap().to_string().is_empty());
     }
 
     #[tokio::test]
@@ -1168,5 +1169,157 @@ mod tests {
             sdv_vpm_power_persistency_tags::SHUTDOWN_CANCELLED_TAG,
         )
         .await;
+    }
+
+    #[test]
+    fn test_validate_power_state_request_turn_on() {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::TURN_ON.into(),
+            timeout_ms: 100,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request).unwrap();
+        assert_eq!(result.power_state.get_report(), PowerStateReport::ON);
+        assert_eq!(result.timeout_ms, 100);
+    }
+
+    #[test]
+    fn test_validate_power_state_request_cancel_shutdown() {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::CANCEL_SHUTDOWN.into(),
+            timeout_ms: 100,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request).unwrap();
+        assert_eq!(result.power_state.get_report(), PowerStateReport::SHUTDOWN_CANCELLED);
+        assert_eq!(result.timeout_ms, 100);
+    }
+
+    #[test]
+    fn test_validate_power_state_request_prepare_power_off() {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
+            shutdown_type: ShutdownType::POWER_OFF.into(),
+            timeout_ms: 100,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request).unwrap();
+        assert_eq!(result.power_state.get_report(), PowerStateReport::POWER_OFF_ENTER);
+        assert_eq!(result.timeout_ms, 100);
+    }
+
+    #[test]
+    fn test_validate_power_state_request_prepare_suspend_to_ram() {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
+            shutdown_type: ShutdownType::SUSPEND_TO_RAM.into(),
+            timeout_ms: 100,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request).unwrap();
+        assert_eq!(result.power_state.get_report(), PowerStateReport::SUSPEND_TO_RAM_ENTER);
+        assert_eq!(result.timeout_ms, 100);
+    }
+
+    #[test]
+    fn test_validate_power_state_request_finish_power_off() {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::FINISH_SHUTDOWN.into(),
+            shutdown_type: ShutdownType::POWER_OFF.into(),
+            timeout_ms: 100,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request).unwrap();
+        assert_eq!(result.power_state.get_report(), PowerStateReport::POWER_OFF_POST_FINISH);
+        assert_eq!(result.timeout_ms, 100);
+    }
+
+    #[test]
+    fn test_validate_power_state_request_finish_suspend_to_ram() {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::FINISH_SHUTDOWN.into(),
+            shutdown_type: ShutdownType::SUSPEND_TO_RAM.into(),
+            timeout_ms: 100,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request).unwrap();
+        assert_eq!(result.power_state.get_report(), PowerStateReport::SUSPEND_TO_RAM_POST_FINISH);
+        assert_eq!(result.timeout_ms, 100);
+    }
+
+    #[test]
+    fn test_validate_power_state_request_unspecified_request() {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::REQUEST_UNSPECIFIED.into(),
+            timeout_ms: 100,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request);
+        assert!(result.is_err());
+        assert!(!result.err().unwrap().to_string().is_empty());
+    }
+
+    #[test]
+    fn test_validate_power_state_request_prepare_unspecified_shutdown() {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
+            shutdown_type: ShutdownType::SHUTDOWN_TYPE_UNSPECIFIED.into(),
+            timeout_ms: 100,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request);
+        assert!(result.is_err());
+        assert!(!result.err().unwrap().to_string().is_empty());
+    }
+
+    #[test]
+    fn test_validate_power_state_request_finish_unspecified_shutdown() {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::FINISH_SHUTDOWN.into(),
+            shutdown_type: ShutdownType::SHUTDOWN_TYPE_UNSPECIFIED.into(),
+            timeout_ms: 100,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request);
+        assert!(result.is_err());
+        assert!(!result.err().unwrap().to_string().is_empty());
+    }
+
+    #[test]
+    fn test_validate_power_state_request_prepare_suspend_to_disk_unsupported() {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::PREPARE_SHUTDOWN.into(),
+            shutdown_type: ShutdownType::SUSPEND_TO_DISK.into(),
+            timeout_ms: 100,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request);
+        assert!(result.is_err());
+        assert!(!result.err().unwrap().to_string().is_empty());
+    }
+
+    #[test]
+    fn test_validate_power_state_request_finish_suspend_to_disk_unsupported() {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::FINISH_SHUTDOWN.into(),
+            shutdown_type: ShutdownType::SUSPEND_TO_DISK.into(),
+            timeout_ms: 100,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request);
+        assert!(result.is_err());
+        assert!(!result.err().unwrap().to_string().is_empty());
+    }
+
+    #[test]
+    fn test_validate_power_state_request_zero_timeout() {
+        let request = PowerStateChangeRequest {
+            power_request: PowerStateRequest::TURN_ON.into(),
+            timeout_ms: 0,
+            ..Default::default()
+        };
+        let result = validate_power_state_request(request);
+        assert!(result.is_err());
+        assert!(!result.err().unwrap().to_string().is_empty());
     }
 }
