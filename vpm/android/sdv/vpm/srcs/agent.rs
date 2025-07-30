@@ -139,8 +139,10 @@ mod tests {
     use sdv_mw_rs_comms::{MockCommunicate, ServerTransport};
     use sdv_status_rs::{SdvStatus, SdvStatusCode};
     use sdv_vpm_api::vehicle::VpmVehicleState;
+    use std::sync::atomic::{AtomicBool, Ordering};
     use tokio::sync::mpsc::channel;
     use tokio::sync::watch::channel as WatchChannel;
+    use tokio::time::{timeout, Duration};
 
     #[tokio::test]
     async fn vpm_agent_starts() {
@@ -313,5 +315,60 @@ mod tests {
 
         // Then it should succeed.
         assert!(result.is_ok(), "Agent::new_with_comms failed: {:?}", result.err());
+    }
+
+    #[tokio::test]
+    async fn create_and_start_agent_handles_error() {
+        // Given a mock comms that fails to create a publisher, which will cause Agent::new to fail.
+        let mut mock_comms = MockCommunicate::new();
+        mock_comms
+            .expect_create_publish()
+            .times(1)
+            .returning(|_| Box::pin(async { Err(SdvStatus::new(SdvStatusCode::Unknown)) }));
+
+        // When create_and_start_agent is called with a factory that uses the failing comms.
+        let result =
+            create_and_start_agent(|| Agent::new_with_comms(Arc::new(mock_comms), "test_vm")).await;
+
+        // Then it should fail.
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn create_and_start_agent_succeeds() {
+        // Given mock services and an atomic bool to track if start is called.
+        let mut mock_vpm_service = MockVpmService::new();
+        let mut mock_power_service = MockPowerService::new();
+        let mut mock_vpm_bundle = MockVpmServiceBundle::new();
+        let start_called = Arc::new(AtomicBool::new(false));
+        let start_called_clone = start_called.clone();
+
+        // Expect start to be called on the services, and set the flag.
+        mock_vpm_service.expect_start().times(1).return_const(());
+        mock_power_service.expect_start().times(1).returning(move || {
+            start_called_clone.store(true, Ordering::Relaxed);
+            Ok(())
+        });
+        mock_vpm_bundle.expect_get_vehicle_state_publisher().times(1).returning(|| None);
+
+        // When create_and_start_agent is called with a factory for the mock agent.
+        let agent_factory = || async {
+            Ok(Agent::new_with_services(
+                Box::new(mock_vpm_service),
+                Box::new(mock_power_service),
+                Box::new(mock_vpm_bundle),
+            ))
+        };
+        let result = create_and_start_agent(agent_factory).await;
+
+        // Then the function should succeed and the agent's start method should be called.
+        assert!(result.is_ok());
+        let start_result = timeout(Duration::from_secs(3), async {
+            while !start_called.load(Ordering::Relaxed) {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await;
+        assert!(start_result.is_ok(), "Timeout waiting for start to be called");
     }
 }
