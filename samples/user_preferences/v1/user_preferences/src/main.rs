@@ -32,8 +32,6 @@ mod subscriptions_manager_impl;
 mod test_utils;
 mod user_controllable_service_listener;
 
-static LOG_TAG: &str = "sdv_user_preferences";
-
 sdv_lifecycle_client::register_service_bundle!(BundleRunner);
 
 struct BundleRunner {
@@ -125,9 +123,6 @@ impl BundleRunner {
 
 impl ServiceBundle for BundleRunner {
     fn new(context: ContextRef) -> Self {
-        if let Err(e) = sdv_log::init_logger(LOG_TAG) {
-            error!("Cannot sdv_log::init_logger({LOG_TAG}): {e}");
-        };
         binder::ProcessState::start_thread_pool();
 
         Self {
