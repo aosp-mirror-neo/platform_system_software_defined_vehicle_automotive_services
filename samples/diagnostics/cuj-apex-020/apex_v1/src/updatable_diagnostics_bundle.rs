@@ -9,7 +9,6 @@ use sdv::diagnostics::routine::RoutineResponse;
 use sdv::diagnostics::routine::{RoutineHandler, RoutineResult};
 use sdv::mw::SdvComms;
 use sdv::status::SdvStatus;
-use sdv_log::init_logger;
 use sdv_mw_rs_com_sdv_google_sample_diagnostics_update_updatable_diagnostics_bundle::{
     diagnostics::Diagnostics, UpdatableDiagnosticsBundle as MwUpdatableDiagnosticsBundle,
 };
@@ -30,9 +29,6 @@ pub struct UpdatableDiagnosticsBundle {
 
 impl ServiceBundle for UpdatableDiagnosticsBundle {
     fn new(context: ContextRef) -> UpdatableDiagnosticsBundle {
-        // Set the logger name.
-        init_logger("diag_bundle_v1").unwrap();
-
         // The dynamic data can be loaded in the [Self::on_start()] method.
         UpdatableDiagnosticsBundle {
             context,

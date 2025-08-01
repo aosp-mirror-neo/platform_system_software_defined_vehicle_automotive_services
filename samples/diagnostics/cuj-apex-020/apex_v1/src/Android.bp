@@ -5,7 +5,6 @@ rust_ffi_shared {
     crate_name: "updatable_diagnostics_bundle",
     rustlibs: [
         "libsdv_rs",
-        "libsdv_log_rust",
         "libanyhow",
         "libprotobuf",
         "liblog_rust",
