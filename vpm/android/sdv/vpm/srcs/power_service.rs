@@ -430,6 +430,9 @@ mod tests {
         let self_fqin = comms.context.get_self_fqin();
         let vm_name = self_fqin.get_sdv_vm_name();
 
+        // Given the persistent power state is the default (PowerOffExit)
+        persist_power_state(&PowerOffExit {}).expect("Failed to set default power state");
+
         // When
         let power_service = PowerServiceImpl::new(comms, vm_name).unwrap();
 
@@ -447,6 +450,9 @@ mod tests {
         // Given a mock power state notifier.
         let mut mock_power_state_notifier = MockPowerStateNotifier::new();
         mock_power_state_notifier.expect_create_binder_service().times(1).returning(|_| Ok(()));
+
+        // Given the persistent power state is the default (PowerOffExit)
+        persist_power_state(&PowerOffExit {}).expect("Failed to set default power state");
 
         // When creating a new PowerServiceImpl with the mock notifier.
         let service =
