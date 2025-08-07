@@ -25,14 +25,14 @@ impl MessageEditor {
     pub fn to_any(&self) -> Result<Any, String> {
         match protobuf::well_known_types::any::Any::pack_dyn(self.dyn_msg.as_ref()) {
             Ok(x) => Ok(x),
-            Err(e) => Err(format!("Conversion to any failed: {}", e)),
+            Err(e) => Err(format!("Conversion to any failed: {e}")),
         }
     }
 
     pub fn update_value(&mut self, key: &str, value: &str) -> Result<(), String> {
         let field = match self.msg_descriptor.field_by_name(key) {
             Some(x) => x,
-            None => return Err(format!("Could not find field {}", key).to_string()),
+            None => return Err(format!("Could not find field {key}").to_string()),
         };
 
         match field.runtime_field_type() {
@@ -41,13 +41,12 @@ impl MessageEditor {
                 let result = merge_from_str(&mut *self.dyn_msg, &override_str);
                 match result {
                     Ok(_) => Ok(()),
-                    Err(e) => Err(format!(
-                        "Could not override: override: {:?}, error: {:?}",
-                        override_str, e
-                    )),
+                    Err(e) => {
+                        Err(format!("Could not override: override: {override_str:?}, error: {e:?}"))
+                    }
                 }
             }
-            _ => Err(format!("Unsupported runtime field type {:?}", key)),
+            _ => Err(format!("Unsupported runtime field type {key:?}")),
         }
     }
 
@@ -58,7 +57,7 @@ impl MessageEditor {
         let dyn_msg = match data.unpack_dyn(message_descriptor) {
             Ok(x) => x,
             Err(e) => {
-                return Err(format!("Failed to unpack dynamic message from data {}", e).to_string())
+                return Err(format!("Failed to unpack dynamic message from data {e}").to_string())
             }
         };
         let dyn_msg = match dyn_msg {
@@ -74,7 +73,7 @@ impl MessageEditor {
     ) -> Result<MessageDescriptor, String> {
         let file_descriptors = match FileDescriptor::new_dynamic_fds(metadata.file.clone(), &[]) {
             Ok(x) => x,
-            Err(e) => return Err(format!("Failed to create file descriptors: {}", e).to_string()),
+            Err(e) => return Err(format!("Failed to create file descriptors: {e}").to_string()),
         };
         for fd in file_descriptors {
             for msg in fd.messages() {
@@ -88,13 +87,13 @@ impl MessageEditor {
 
     fn construct_singular_textproto(key: &str, value: &str, field: &FieldDescriptor) -> String {
         let mut override_str: String = key.to_string();
-        print!("{}", override_str);
+        print!("{override_str}");
         match field.singular_runtime_type() {
             RuntimeType::Message(_) => {}
             _ => override_str.push(':'),
         }
         override_str.push_str(value);
-        print!("{}", override_str);
+        print!("{override_str}");
         override_str
     }
 }

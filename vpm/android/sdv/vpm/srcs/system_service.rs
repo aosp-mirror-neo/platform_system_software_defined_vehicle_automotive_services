@@ -74,10 +74,10 @@ impl VpmService for VpmServiceImpl {
         while let Some(vehicle_state) = self.vehicle_state_receiver.recv().await {
             let mut vehicle_state_change_message = VehicleStateChange::new();
             vehicle_state_change_message.vehicle_state = vehicle_state.into();
-            info!("Publishing Vpm vehicle mode, {:?}!", vehicle_state);
+            info!("Publishing Vpm vehicle mode, {vehicle_state:?}!");
             let result = vehicle_state_publisher.publish(&vehicle_state_change_message);
             if result.is_err() {
-                error!("Failed to publish vehicle state {:?}", vehicle_state);
+                error!("Failed to publish vehicle state {vehicle_state:?}");
             }
         }
     }

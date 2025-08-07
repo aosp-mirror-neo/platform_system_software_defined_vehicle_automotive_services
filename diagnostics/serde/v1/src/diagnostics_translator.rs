@@ -235,7 +235,7 @@ mod tests {
         DiagnosticsDeclaration {
             data_item: vec![DataItem {
                 id: data_item_id.to_string(),
-                message_name: format!(".{}", DATA_ITEM_MESSAGE),
+                message_name: format!(".{DATA_ITEM_MESSAGE}"),
                 ..Default::default()
             }],
             ..Default::default()
@@ -284,7 +284,7 @@ mod tests {
         DiagnosticsDeclaration {
             io_control: vec![InputOutputControlData {
                 id: io_control_id.to_string(),
-                message_name: format!(".{}", IO_CONTROL_MESSAGE),
+                message_name: format!(".{IO_CONTROL_MESSAGE}"),
                 ..Default::default()
             }],
             ..Default::default()
@@ -334,18 +334,18 @@ mod tests {
             routine: vec![Routine {
                 id: routine_id.to_string(),
                 start: MessageField::some(Method {
-                    request: format!(".{}", ROUTINE_START_REQUEST),
-                    response: format!(".{}", ROUTINE_START_RESPONSE),
+                    request: format!(".{ROUTINE_START_REQUEST}"),
+                    response: format!(".{ROUTINE_START_RESPONSE}"),
                     ..Default::default()
                 }),
                 stop: MessageField::some(Method {
-                    request: format!(".{}", ROUTINE_STOP_REQUEST),
-                    response: format!(".{}", ROUTINE_STOP_RESPONSE),
+                    request: format!(".{ROUTINE_STOP_REQUEST}"),
+                    response: format!(".{ROUTINE_STOP_RESPONSE}"),
                     ..Default::default()
                 }),
                 result: MessageField::some(Method {
-                    request: format!(".{}", ROUTINE_RESULT_REQUEST),
-                    response: format!(".{}", ROUTINE_RESULT_RESPONSE),
+                    request: format!(".{ROUTINE_RESULT_REQUEST}"),
+                    response: format!(".{ROUTINE_RESULT_RESPONSE}"),
                     ..Default::default()
                 }),
                 ..Default::default()
@@ -634,7 +634,7 @@ mod tests {
         DiagnosticsDeclaration {
             event: vec![Event {
                 id: event_id.to_string(),
-                extended_data_message_name: format!(".{}", EVENT_EXTENDED_DATA),
+                extended_data_message_name: format!(".{EVENT_EXTENDED_DATA}"),
                 ..Default::default()
             }],
             ..Default::default()

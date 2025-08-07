@@ -150,7 +150,7 @@ async fn main() -> anyhow::Result<()> {
         })
         .await
     {
-        println!("Request to set invalid temperature denied {}\n", err);
+        println!("Request to set invalid temperature denied {err}\n");
     } else {
         panic!("Expected request to set invalid temperature to fail");
     }
@@ -176,7 +176,7 @@ async fn main() -> anyhow::Result<()> {
         .map_err(|e| anyhow::Error::msg(format!("Failed to select user: {e}")))?;
 
     hmi_service_impl.wait_for_settings_change().await;
-    println!("Switched to user {}", user_id_2);
+    println!("Switched to user {user_id_2}");
 
     let response = admin_service_client
         .ListUsers(&ListUsersRequest::new())
@@ -209,7 +209,7 @@ async fn main() -> anyhow::Result<()> {
             anyhow::Error::msg(format!("Failed to perform request to delete user: {e}"))
         })?;
 
-    println!("Deleted user {}", user_id_3);
+    println!("Deleted user {user_id_3}");
 
     println!("Unsubscribing from setting changes");
     management_service_client

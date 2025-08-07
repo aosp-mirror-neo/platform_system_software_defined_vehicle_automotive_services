@@ -157,8 +157,7 @@ impl<'de> DeserializeSeed<'de> for FieldDeserializeSeed<'_> {
                 if let Some(seq_size) = seq.size_hint() {
                     if seq_size != count {
                         return Err(A::Error::custom(format!(
-                            "Fixed-size repeated field size mismatch: expected {}, actual {}",
-                            count, seq_size
+                            "Fixed-size repeated field size mismatch: expected {count}, actual {seq_size}"
                         )));
                     }
                 }
@@ -638,8 +637,7 @@ impl<'de> DeserializeSeed<'de> for ValueDeserializeSeed<'_> {
                         let string_value =
                             std::string::String::from_utf8(bytes).map_err(|utf8_err| {
                                 A::Error::custom(format!(
-                                    "Error decoding string from utf8 bytes: {}",
-                                    utf8_err
+                                    "Error decoding string from utf8 bytes: {utf8_err}"
                                 ))
                             })?;
 

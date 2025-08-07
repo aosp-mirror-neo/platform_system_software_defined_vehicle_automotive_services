@@ -46,7 +46,7 @@ impl RegistryService for RegistryServiceImpl {
         }) {
             Ok(x) => x,
             Err(err) => {
-                error!("Failed to register settings group: {:?}", err);
+                error!("Failed to register settings group: {err:?}");
                 return Err(SdvStatus::with_message(
                     SdvStatusCode::Internal,
                     "Unexpected error, unable to register settings",
@@ -81,7 +81,7 @@ impl RegistryService for RegistryServiceImpl {
                 Ok(RegisterSettingsResponse::new())
             }
             Err(err) => {
-                error!("Failed to register settings group: {:?}", err);
+                error!("Failed to register settings group: {err:?}");
                 return Err(SdvStatus::with_message(
                     SdvStatusCode::Internal,
                     "Unexpected error, unable to register settings",
@@ -105,7 +105,7 @@ impl RegistryService for RegistryServiceImpl {
                 if err.status_code() == SdvStatusCode::NotFound {
                     warn!("Settings group {}/{} does not exist", request.group_name, caller_id,);
                 } else {
-                    error!("Unable to update setting: {:?}", err);
+                    error!("Unable to update setting: {err:?}");
                 }
                 return Err(err);
             }
@@ -120,7 +120,7 @@ impl RegistryService for RegistryServiceImpl {
         info!("Updating vehicle settings in group: {}\n{:?}", settings_group, settings);
 
         if let Err(err) = self.persistence.vehicle_settings.store_all(settings_group.id, settings) {
-            error!("Encountered failure when updating vehicle settings repository: {}", err);
+            error!("Encountered failure when updating vehicle settings repository: {err}");
             return Err(SdvStatus::new(SdvStatusCode::Internal));
         }
 

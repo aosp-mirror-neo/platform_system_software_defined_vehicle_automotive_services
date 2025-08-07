@@ -38,7 +38,7 @@ pub fn persist_power_state(state: &dyn PowerState) -> Result<(), PropertyWatcher
 fn get_platform_timeout_ms() -> u64 {
     let platform_timeout_ms =
         read_property_or_default(PLATFORM_SUSPEND_TIMEOUT_MS_PROP, DEFAULT_PLATFORM_TIMEOUT_MS);
-    debug!("VPM platform timeout was set to {:?}", platform_timeout_ms);
+    debug!("VPM platform timeout was set to {platform_timeout_ms:?}");
     platform_timeout_ms
 }
 
@@ -47,7 +47,7 @@ fn get_platform_retry_interval_ms() -> u64 {
         PLATFORM_SUSPEND_RETRY_INTERVAL_MS_PROP,
         DEFAULT_PLATFORM_RETRY_INTERVAL_MS,
     );
-    debug!("VPM platform retry interval was set to {:?}", platform_interval_ms);
+    debug!("VPM platform retry interval was set to {platform_interval_ms:?}");
     platform_interval_ms
 }
 

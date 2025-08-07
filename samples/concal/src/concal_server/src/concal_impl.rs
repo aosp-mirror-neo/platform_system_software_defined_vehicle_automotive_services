@@ -141,7 +141,7 @@ impl com_sdv_google_concal_con_cal_registration_service_rpc::Interface
         else {
             return Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::NotFound,
-                format!("Config with ID {:?} does not exist", config_id),
+                format!("Config with ID {config_id:?} does not exist"),
             ));
         };
 
@@ -153,7 +153,7 @@ impl com_sdv_google_concal_con_cal_registration_service_rpc::Interface
             }),
             Err(error) => Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::Internal,
-                format!("Failed to write config data to bytes: {:?}", error),
+                format!("Failed to write config data to bytes: {error:?}"),
             )),
         }
     }
@@ -178,7 +178,7 @@ impl com_sdv_google_concal_con_cal_registration_service_rpc::Interface
         if config_id.contains_empty_fields() {
             return Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::InvalidArgument,
-                format!("ConfigId fields contain an empty string: {:?}", config_id),
+                format!("ConfigId fields contain an empty string: {config_id:?}"),
             ));
         }
         if mlock.base_configs.contains_key(&config_id)
@@ -193,21 +193,21 @@ impl com_sdv_google_concal_con_cal_registration_service_rpc::Interface
         let Some(metadata) = request.metadata.clone().into_option() else {
             return Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::InvalidArgument,
-                format!("Metadata for config {:?} is not initialized", config_id),
+                format!("Metadata for config {config_id:?} is not initialized"),
             ));
         };
 
         let Some(metadata_default_config) = metadata.default_config.clone().into_option() else {
             return Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::InvalidArgument,
-                format!("Default configuration for config {:?} is not provided", config_id),
+                format!("Default configuration for config {config_id:?} is not provided"),
             ));
         };
 
         let Some(metadata_descriptor_set) = metadata.descriptor_set.clone().into_option() else {
             return Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::InvalidArgument,
-                format!("Descriptor set for config {:?} is not provided", config_id),
+                format!("Descriptor set for config {config_id:?} is not provided"),
             ));
         };
         let config = Configuration::new(
@@ -240,7 +240,7 @@ impl com_sdv_google_concal_con_cal_registration_service_rpc::Interface
         if config_id.contains_empty_fields() {
             return Err(sdv_status_rs::SdvStatus::with_message(
                 SdvStatusCode::InvalidArgument,
-                format!("ConfigId fields contain an empty string: {:?}", config_id),
+                format!("ConfigId fields contain an empty string: {config_id:?}"),
             ));
         }
 
@@ -274,7 +274,7 @@ impl com_sdv_google_concal_con_cal_update_service_rpc::Interface
             Some(id) => {
                 return Err(sdv_status_rs::SdvStatus::with_message(
                     SdvStatusCode::FailedPrecondition,
-                    format!("Update with ID {:?} already in progress", id),
+                    format!("Update with ID {id:?} already in progress"),
                 ));
             }
             None => Some(rand::thread_rng().gen::<i64>()),

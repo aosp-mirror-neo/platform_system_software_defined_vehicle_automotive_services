@@ -152,11 +152,11 @@ impl PowerStateNotifier for PowerStateNotifierImpl {
         let mut set = JoinSet::new();
         for (id, async_callback) in callbacks.into_iter() {
             set.spawn(async move {
-                debug!("Starting callback notification for {:?}", id);
+                debug!("Starting callback notification for {id:?}");
                 let result = async_callback
                     .onPowerStateReportChanged(convert_to_aidl(power_state_report).map_err(
                         |e| {
-                            error!("Failed to convert power state report to AIDL: {:?}", e);
+                            error!("Failed to convert power state report to AIDL: {e:?}");
                             PowerStateNotificationError::Failed
                         },
                     )?)
@@ -266,7 +266,7 @@ impl IPowerStateClientApiAsyncServer for BinderServer {
         let result =
             self.death_linker.link_callback_to_death_recipient(callback, &mut death_recipient);
         if result.is_err() {
-            error!("Failed to link death binder {:?}", result);
+            error!("Failed to link death binder {result:?}");
             return Err(Status::new_exception(ExceptionCode::SERVICE_SPECIFIC, None));
         }
 
@@ -277,14 +277,14 @@ impl IPowerStateClientApiAsyncServer for BinderServer {
         self.callbacks.lock().unwrap().insert(id, client_callback);
         let power_state = self.power_state_watch_receiver.borrow();
         convert_to_aidl(power_state.get_report()).map_err(|e| {
-            error!("Failed to convert power state report to AIDL: {:?}", e);
+            error!("Failed to convert power state report to AIDL: {e:?}");
             Status::new_exception(ExceptionCode::SERVICE_SPECIFIC, None)
         })
     }
 }
 
 fn on_client_died(callbacks: Arc<Mutex<HashMap<u32, ClientCallback>>>, id: u32) {
-    info!("Handling death notification for id {:?}", id);
+    info!("Handling death notification for id {id:?}");
     callbacks.lock().unwrap().remove(&id);
 }
 
@@ -348,7 +348,7 @@ async fn notification_failed(mut set: JoinSet<Result<(), PowerStateNotificationE
             continue;
         }
         if let Ok(Err(result)) = handle {
-            error!("Power notification callback request failed, {:?}", result);
+            error!("Power notification callback request failed, {result:?}");
             notification_failed = true;
         }
     }

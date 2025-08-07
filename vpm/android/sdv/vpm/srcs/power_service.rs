@@ -130,7 +130,7 @@ impl PowerServiceImpl {
             let new_state: Arc<dyn PowerState> = Arc::from(power_request.power_state);
             cloned_power_state_watch_sender.send(new_state.clone())?;
             persist_power_state(new_state.as_ref()).unwrap_or_else(|e| {
-                error!("Could not persist power state: {:?}. error: {}", new_state, e);
+                error!("Could not persist power state: {new_state:?}. error: {e}");
             });
 
             let select_result = tokio::select! {

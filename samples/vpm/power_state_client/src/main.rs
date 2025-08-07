@@ -51,10 +51,9 @@ async fn main() -> anyhow::Result<()> {
     let result = vpm_client_service_interface.subscribeToPowerStateReport(&vpm_client_binder).await;
 
     match result {
-        Err(err) => panic!("Cannot subscribe to power state {:?}", err),
+        Err(err) => panic!("Cannot subscribe to power state {err:?}"),
         Ok(current_power_state_report) => println!(
-            "Successfully subscribed to vpm, current report {:?}",
-            current_power_state_report
+            "Successfully subscribed to vpm, current report {current_power_state_report:?}"
         ),
     }
     future::pending::<()>().await;

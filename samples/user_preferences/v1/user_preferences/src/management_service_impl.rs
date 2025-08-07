@@ -47,7 +47,7 @@ impl ManagementServiceImpl {
     ) -> SdvResult<()> {
         let settings_definitions: Vec<SettingDefinition> =
             self.persistence.setting_definitions.get(settings_group.id).map_err(|err| {
-                info!("Failed to retrieve settings definition: {}", err);
+                info!("Failed to retrieve settings definition: {err}");
                 SdvStatus::new(SdvStatusCode::Internal)
             })?;
         let settings_definitions: HashMap<String, SettingDefinition> = settings_definitions
@@ -69,7 +69,7 @@ impl ManagementServiceImpl {
                 .ok_or(SdvStatus::new(SdvStatusCode::NotFound))
                 .and_then(|value| setting_definition.is_valid_value(&value.into()))
                 .map_err(|err| {
-                    SdvStatus::with_message(SdvStatusCode::InvalidArgument, format!("{}", err))
+                    SdvStatus::with_message(SdvStatusCode::InvalidArgument, format!("{err}"))
                 })?;
         }
 
@@ -98,12 +98,12 @@ impl ManagementService for ManagementServiceImpl {
         {
             Ok(x) => x,
             Err(err) => {
-                error!("Failed to request setting change: {:?}", err);
+                error!("Failed to request setting change: {err:?}");
                 return Err(err);
             }
         };
         if let Err(err) = self.are_valid_settings(&setting_group, &request.settings) {
-            warn!("Received request containing invalid settings: {:?}", err);
+            warn!("Received request containing invalid settings: {err:?}");
             return Err(err);
         }
 
@@ -171,8 +171,7 @@ impl ManagementService for ManagementServiceImpl {
             Ok(x) => x,
             Err(err) => {
                 error!(
-                    "SubscribeToSettingsChangeAndGetSettings failed to retrieve settings group: {}",
-                    err
+                    "SubscribeToSettingsChangeAndGetSettings failed to retrieve settings group: {err}"
                 );
                 return Err(err);
             }
@@ -195,7 +194,7 @@ impl ManagementService for ManagementServiceImpl {
                 ) {
                     Ok(x) => x.into_iter().map_into().collect_vec(),
                     Err(err) => {
-                        error!("Failed to retrieve persisted settings: {}", err);
+                        error!("Failed to retrieve persisted settings: {err}");
                         return Err(err);
                     }
                 }

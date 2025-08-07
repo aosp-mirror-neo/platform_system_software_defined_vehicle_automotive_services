@@ -83,8 +83,7 @@ struct LowPressureFault;
 impl FaultListenerHandler<LowPressureData> for LowPressureFault {
     async fn on_fault_status_change(&self, status: u8, data: Option<LowPressureData>) {
         println!(
-            "On fault status change for LowPressureFault called: status [{}], data [{:?}]",
-            status, data
+            "On fault status change for LowPressureFault called: status [{status}], data [{data:?}]"
         )
     }
 }

@@ -42,12 +42,12 @@ impl AdminServiceImpl {
     fn are_valid_user_flags(user_flags: i32) -> bool {
         // Ensure driver flag is set since only driver is supported now
         if (user_flags & UserFlags::DRIVER.value()) != UserFlags::DRIVER.value() {
-            warn!("User flags {} does not have driver flag set", user_flags);
+            warn!("User flags {user_flags} does not have driver flag set");
             return false;
         }
         // Ensure that no other bits are set other than ephemeral & driver
         if user_flags > (UserFlags::EPHEMERAL.value() | UserFlags::DRIVER.value()) {
-            warn!("User flags {} has unexpected bits set", user_flags);
+            warn!("User flags {user_flags} has unexpected bits set");
             return false;
         }
         true
@@ -141,8 +141,7 @@ impl AdminService for AdminServiceImpl {
             )?;
 
             debug!(
-                "Loaded settings for group {:?}\n Applying the following settings: {:?}",
-                group, settings
+                "Loaded settings for group {group:?}\n Applying the following settings: {settings:?}"
             );
 
             self.settings_change_propagator
@@ -165,7 +164,7 @@ impl AdminService for AdminServiceImpl {
         let active_user = match self.persistence.users.get_active_user() {
             Ok(user) => user,
             Err(err) => {
-                error!("Failed to retrieve active user: {:?}", err);
+                error!("Failed to retrieve active user: {err:?}");
                 return Err(SdvStatus::with_message(
                     SdvStatusCode::Internal,
                     format!("Unable to delete user {}", request.user_id),
@@ -232,14 +231,14 @@ impl AdminService for AdminServiceImpl {
             {
                 Ok(client) => client,
                 Err(err) => {
-                    error!("Unable to factory reset {}: {}", service_fqin, err);
+                    error!("Unable to factory reset {service_fqin}: {err}");
                     continue;
                 }
             };
             if let Err(err) =
                 client.FactoryReset(&user_controllable_service::FactoryResetRequest::new()).await
             {
-                error!("Unable to factory reset {}: {}", service_fqin, err);
+                error!("Unable to factory reset {service_fqin}: {err}");
                 continue;
             };
         }
@@ -257,7 +256,7 @@ impl AdminService for AdminServiceImpl {
         let users = match self.persistence.users.list() {
             Ok(x) => x,
             Err(err) => {
-                error!("Failed to list users: {}", err);
+                error!("Failed to list users: {err}");
                 return Err(err);
             }
         };
@@ -279,12 +278,11 @@ impl AdminService for AdminServiceImpl {
             match err.status_code() {
                 SdvStatusCode::NotFound => {
                     info!(
-                        "Received a request to retrieve settings for user that doesn't exist: {}",
-                        err
+                        "Received a request to retrieve settings for user that doesn't exist: {err}"
                     );
                 }
                 _ => {
-                    error!("Failed to check if a user exists: {}", err);
+                    error!("Failed to check if a user exists: {err}");
                 }
             }
             return Err(err);

@@ -233,7 +233,7 @@ async fn listen_to_all_publications_of_type<T: PublicationUnitType>(
                                     }
                                 },
                                 Err(e) => {
-                                    dumpsys_logger_inner.add_line(format!("Publisher unregistered: {:#?}", e))
+                                    dumpsys_logger_inner.add_line(format!("Publisher unregistered: {e:#?}"))
                                 }
                             }
                         }
@@ -322,7 +322,7 @@ async fn read_data_items(
     ));
 
     for data_item in diagnostics_declaration.data_item {
-        dumpsys_logger.add_line(format!("Trying to read data item: {:#?}", data_item));
+        dumpsys_logger.add_line(format!("Trying to read data item: {data_item:#?}"));
         let result = perform_and_log_rpc_call::<ReadDataItem>(
             context,
             &service_unit,
@@ -387,12 +387,10 @@ async fn print_typed_routine_start_response(
     let typed_routine_start_response =
         response_descriptor.parse_from_bytes(&response.response).unwrap();
     debug!(
-        "(TEST RELEVANT LOG) For start method of routine: {}, typed response: {:?}",
-        routine_id, typed_routine_start_response
+        "(TEST RELEVANT LOG) For start method of routine: {routine_id}, typed response: {typed_routine_start_response:?}"
     );
     dumpsys_logger.add_line(format!(
-        "(TEST RELEVANT LOG) For start method of routine: {}, typed response: {:?}",
-        routine_id, typed_routine_start_response
+        "(TEST RELEVANT LOG) For start method of routine: {routine_id}, typed response: {typed_routine_start_response:?}"
     ));
 }
 
@@ -414,7 +412,7 @@ async fn start_routines(
     ));
 
     for routine in diagnostics_declaration.routine {
-        dumpsys_logger.add_line(format!("Trying to start routine: {:#?}", routine));
+        dumpsys_logger.add_line(format!("Trying to start routine: {routine:#?}"));
         let response = perform_and_log_rpc_call::<StartRoutine>(
             context,
             &service_unit,
@@ -481,7 +479,7 @@ async fn freeze_current_state(
     ));
 
     for io_control in diagnostics_declaration.io_control {
-        dumpsys_logger.add_line(format!("Trying to freeze current state for: {:#?}", io_control));
+        dumpsys_logger.add_line(format!("Trying to freeze current state for: {io_control:#?}"));
         let response = perform_and_log_rpc_call::<FreezeCurrentState>(
             context,
             &service_unit,
@@ -534,7 +532,7 @@ async fn update_faults_status(
     ));
 
     for event in diagnostics_declaration.event {
-        dumpsys_logger.add_line(format!("Trying to update fault status: {:#?}", event));
+        dumpsys_logger.add_line(format!("Trying to update fault status: {event:#?}"));
         let response = perform_and_log_rpc_call::<OnFaultStatusChange>(
             context,
             &service_unit,
@@ -560,10 +558,10 @@ fn handle_event(
     event: Event,
     dumpsys_logger: Arc<Logger>,
 ) {
-    dumpsys_logger.add_line(format!("Event received: {:#?}", event));
+    dumpsys_logger.add_line(format!("Event received: {event:#?}"));
 
     if let Some(ref extended_data) = event.extended_data {
-        dumpsys_logger.add_line(format!("Event extended data received: {:#?}", extended_data));
+        dumpsys_logger.add_line(format!("Event extended data received: {extended_data:#?}"));
 
         let unit_name = service_unit.get_unit_identifier().get_unit_name().to_string();
 
@@ -603,7 +601,7 @@ fn handle_enable_condition(
     enable_condition: EnableCondition,
     dumpsys_logger: Arc<Logger>,
 ) {
-    dumpsys_logger.add_line(format!("Enable condition change received: {:#?}", enable_condition));
+    dumpsys_logger.add_line(format!("Enable condition change received: {enable_condition:#?}"));
 }
 
 fn handle_operation_cycle(
@@ -612,7 +610,7 @@ fn handle_operation_cycle(
     operation_cycle: OperationCycle,
     dumpsys_logger: Arc<Logger>,
 ) {
-    dumpsys_logger.add_line(format!("Operaction cycle command received: {:#?}", operation_cycle));
+    dumpsys_logger.add_line(format!("Operaction cycle command received: {operation_cycle:#?}"));
 }
 
 async fn data_item_interaction(
@@ -732,7 +730,7 @@ async fn set_service_unit_registration_callback<F, Fut>(
     F: Fn(ServiceUnitDefinition) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = ()> + Send + 'static,
 {
-    dumpsys_logger.add_line(format!("Listening for service units registration by type : {}", args));
+    dumpsys_logger.add_line(format!("Listening for service units registration by type : {args}"));
 
     let sd = ServiceDiscoveryManager::new(context);
 

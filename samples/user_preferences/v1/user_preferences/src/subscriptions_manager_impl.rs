@@ -84,7 +84,7 @@ impl SubscriptionsManager for SubscriptionsManagerImpl {
             {
                 Ok(client) => client,
                 Err(err) => {
-                    error!("Failed to create rpc client for {}: {}", subscriber, err);
+                    error!("Failed to create rpc client for {subscriber}: {err}");
                     continue;
                 }
             };

@@ -484,8 +484,7 @@ mod tests {
         // create event publisher
         let context = ContextRef::create(
             ServiceFqin::from_str(&format!(
-                "vm:com.sdv.oem.sample.diagnostics.SampleBundle/{}",
-                instance_name,
+                "vm:com.sdv.oem.sample.diagnostics.SampleBundle/{instance_name}",
             ))
             .expect("ContextRef creation failed."),
         );

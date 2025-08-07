@@ -79,7 +79,7 @@ impl SettingsChangePropagatorImpl {
         {
             Ok(client) => client,
             Err(err) => {
-                error!("Failed to create RPC client for {}: {}", fqin, err);
+                error!("Failed to create RPC client for {fqin}: {err}");
                 return;
             }
         };
@@ -95,10 +95,7 @@ impl SettingsChangePropagatorImpl {
             {
                 Ok(x) => x.id,
                 Err(err) => {
-                    error!(
-                        "Failed to retrieve settings group primary key id for {}: {}",
-                        fqin, err
-                    );
+                    error!("Failed to retrieve settings group primary key id for {fqin}: {err}");
                     // notify subscribers of the latest state of these settings
                     self.notify_subscribers_of_current_state(
                         fqin,
@@ -161,9 +158,9 @@ impl SettingsChangePropagatorImpl {
                     })
                     .collect(),
             ) {
-                error!("Failed to store vehicle settings for {}/{}: {}", fqin, group_name, err);
+                error!("Failed to store vehicle settings for {fqin}/{group_name}: {err}");
             } else {
-                info!("Successfully applied settings for {}/{}", fqin, group_name);
+                info!("Successfully applied settings for {fqin}/{group_name}");
             }
             self.notify_subscribers_of_current_state(
                 fqin,
@@ -182,7 +179,7 @@ impl SettingsChangePropagatorImpl {
         let active_user = match self.persistence.users.get_active_user() {
             Ok(x) => x,
             Err(err) => {
-                error!("Unable to retrieve the active user: {}", err);
+                error!("Unable to retrieve the active user: {err}");
                 return;
             }
         };
@@ -194,7 +191,7 @@ impl SettingsChangePropagatorImpl {
         let setting_groups = match self.persistence.setting_groups.list() {
             Ok(x) => x,
             Err(err) => {
-                error!("Unable to retrieve list of setting groups: {}", err);
+                error!("Unable to retrieve list of setting groups: {err}");
                 return;
             }
         };
@@ -215,7 +212,7 @@ impl SettingsChangePropagatorImpl {
             ) {
                 Ok(x) => x,
                 Err(err) => {
-                    error!("Unable to retrieve the user preferences: {}", err);
+                    error!("Unable to retrieve the user preferences: {err}");
                     return;
                 }
             };
@@ -283,17 +280,19 @@ impl SettingsChangePropagator for SettingsChangePropagatorImpl {
         group_name: &str,
         updated_settings_names: &HashSet<String>,
     ) {
-        let settings_group_primary_key =
-            match self.persistence.setting_groups.get(group_name, &fqin.to_string()) {
-                Ok(x) => x.id,
-                Err(err) => {
-                    error!(
-                    "SubscribeToSettingsChangeAndGetSettings failed to retrieve settings group: {}",
-                    err
+        let settings_group_primary_key = match self
+            .persistence
+            .setting_groups
+            .get(group_name, &fqin.to_string())
+        {
+            Ok(x) => x.id,
+            Err(err) => {
+                error!(
+                    "SubscribeToSettingsChangeAndGetSettings failed to retrieve settings group: {err}"
                 );
-                    return;
-                }
-            };
+                return;
+            }
+        };
 
         let pending_settings: Vec<SettingProto> = self
             .get_pending_setting_changes(fqin, group_name)
@@ -308,7 +307,7 @@ impl SettingsChangePropagator for SettingsChangePropagatorImpl {
         ) {
             Ok(x) => x,
             Err(err) => {
-                error!("Unable to notify clients of settings change due to: {}", err);
+                error!("Unable to notify clients of settings change due to: {err}");
                 return;
             }
         };
@@ -326,7 +325,7 @@ impl SettingsChangePropagator for SettingsChangePropagatorImpl {
         let active_user = match self.persistence.users.get_active_user() {
             Ok(x) => x,
             Err(err) => {
-                error!("Unable to notify clients of settings change due to error retrieving active user: {}", err);
+                error!("Unable to notify clients of settings change due to error retrieving active user: {err}");
                 return;
             }
         };
@@ -340,7 +339,7 @@ impl SettingsChangePropagator for SettingsChangePropagatorImpl {
             ) {
                 Ok(x) => x.into_iter().map_into().collect(),
                 Err(err) => {
-                    error!("Unable to notify clients of settings change due to: {}", err);
+                    error!("Unable to notify clients of settings change due to: {err}");
                     return;
                 }
             }

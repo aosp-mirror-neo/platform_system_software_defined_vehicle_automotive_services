@@ -63,7 +63,7 @@ impl BundleRunner {
         let subscriptions_manager =
             Arc::new(SubscriptionsManagerImpl::new(rpc_client_factory.clone()));
 
-        info!("Creating database at {:?}", db_path);
+        info!("Creating database at {db_path:?}");
         let connection = match Connection::open(db_path) {
             Ok(connection) => connection,
             Err(e) => {

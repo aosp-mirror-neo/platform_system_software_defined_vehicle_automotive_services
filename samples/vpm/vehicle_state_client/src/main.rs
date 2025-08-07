@@ -33,7 +33,7 @@ async fn main() {
         .unwrap();
     while let Some(Ok(vehicle_state_changes)) = subscriber.next().await {
         for vehicle_state_change in vehicle_state_changes {
-            println!("Received vehicle state {:?}", vehicle_state_change)
+            println!("Received vehicle state {vehicle_state_change:?}")
         }
     }
 }

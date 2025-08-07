@@ -12,16 +12,16 @@ pub fn convert_rusqlite_error(err: RusqliteError) -> SdvStatus {
             if sqlite_err.code == RusqliteErrorCode::ConstraintViolation {
                 SdvStatus::new(SdvStatusCode::AlreadyExists)
             } else {
-                SdvStatus::with_message(SdvStatusCode::Internal, format!("{}", err))
+                SdvStatus::with_message(SdvStatusCode::Internal, format!("{err}"))
             }
         }
-        _ => SdvStatus::with_message(SdvStatusCode::Internal, format!("{}", err)),
+        _ => SdvStatus::with_message(SdvStatusCode::Internal, format!("{err}")),
     }
 }
 
 pub fn convert_serialization_error(err: SerdeJsonError) -> SdvStatus {
     SdvStatus::with_message(
         SdvStatusCode::Internal,
-        format!("Failed to serialize/deserialize: {:?}", err),
+        format!("Failed to serialize/deserialize: {err:?}"),
     )
 }

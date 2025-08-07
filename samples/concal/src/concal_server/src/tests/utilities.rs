@@ -31,21 +31,19 @@ pub(crate) fn test_config_id() -> ConfigId {
 pub(crate) fn load_file_descriptors() -> FileDescriptorSet {
     let proto_dir: PathBuf = PathBuf::from("./");
     let test_config_file = proto_dir.join("test_configuration.proto");
-    assert!(test_config_file.exists(), "Unable to find proto file {:?}.", test_config_file);
+    assert!(test_config_file.exists(), "Unable to find proto file {test_config_file:?}.");
 
     let inner_test_config_file = proto_dir.join("inner_test_configuration.proto");
     assert!(
         inner_test_config_file.exists(),
-        "Unable to find proto file {:?}.",
-        inner_test_config_file
+        "Unable to find proto file {inner_test_config_file:?}."
     );
 
     let inner_test_config_file_diff_pack =
         proto_dir.join("inner_test_configuration_different_package.proto");
     assert!(
         inner_test_config_file_diff_pack.exists(),
-        "Unable to find proto file {:?}.",
-        inner_test_config_file_diff_pack
+        "Unable to find proto file {inner_test_config_file_diff_pack:?}."
     );
 
     let fd_set = protobuf_parse::Parser::new()
@@ -56,6 +54,6 @@ pub(crate) fn load_file_descriptors() -> FileDescriptorSet {
         .input(&inner_test_config_file_diff_pack)
         .file_descriptor_set();
 
-    assert!(fd_set.is_ok(), "Could not parse protobuf files {:?}", fd_set);
+    assert!(fd_set.is_ok(), "Could not parse protobuf files {fd_set:?}");
     fd_set.unwrap()
 }

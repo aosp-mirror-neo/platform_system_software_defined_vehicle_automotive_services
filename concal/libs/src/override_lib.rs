@@ -476,7 +476,7 @@ mod tests {
 
     fn get_default_config(textproto: &str) -> TestConfigurationProto {
         let res = parse_from_str::<TestConfigurationProto>(textproto);
-        assert!(res.is_ok(), "String: {}, error: {:?}", textproto, res);
+        assert!(res.is_ok(), "String: {textproto}, error: {res:?}");
         res.unwrap()
     }
 
@@ -502,7 +502,7 @@ mod tests {
         if subkeys.is_empty() {
             let mut new_config = desc.new_instance();
             let result = merge_from_str(&mut *new_config, &value);
-            assert!(result.is_ok(), "error: {:?}", result);
+            assert!(result.is_ok(), "error: {result:?}");
             return new_config;
         }
         let key = subkeys
@@ -540,7 +540,7 @@ mod tests {
                 override_str.push_str(&value);
                 override_str.push('}');
                 let result = merge_from_str(&mut *config_dyn, &override_str);
-                assert!(result.is_ok(), "override: {:?}, error: {:?}", override_str, result);
+                assert!(result.is_ok(), "override: {override_str:?}, error: {result:?}");
                 return config_dyn;
             }
 
@@ -552,7 +552,7 @@ mod tests {
                 override_str = construct_repeated_textproto(key, value);
             }
             let result = merge_from_str(&mut *config_dyn, &override_str);
-            assert!(result.is_ok(), "override: {:?}, error: {:?}", override_str, result);
+            assert!(result.is_ok(), "override: {override_str:?}, error: {result:?}");
         };
         config_dyn
     }
@@ -576,7 +576,7 @@ mod tests {
             let mut new_config = desc.new_instance();
             assert!(value.is::<TestConfigurationProto>(), "value is {:?}", value.type_url);
             let result = new_config.merge_from_bytes_dyn(&value.value);
-            assert!(result.is_ok(), "error: {:?}", result);
+            assert!(result.is_ok(), "error: {result:?}");
             return new_config;
         }
         let key = subkeys
@@ -719,13 +719,13 @@ mod tests {
                 .join(" ")
         }
         let result = merge_from_str(&mut *config_dyn, &override_str);
-        assert!(result.is_ok(), "override: {:?}, error: {:?}", override_str, result);
+        assert!(result.is_ok(), "override: {override_str:?}, error: {result:?}");
     }
 
     fn print_pretty_map(map: ReflectMapRef) -> String {
         let mut pairs = map
             .into_iter()
-            .map(|(k, v)| format!(r#"map_parameter {{key: "{}" value: {}}}"#, k, v))
+            .map(|(k, v)| format!(r#"map_parameter {{key: "{k}" value: {v}}}"#))
             .collect::<Vec<_>>();
         pairs.sort();
         pairs.join(" ")
@@ -765,21 +765,19 @@ mod tests {
     fn get_test_proto_manager() -> ProtoManager {
         let proto_dir: PathBuf = PathBuf::from("./proto");
         let test_config_file = proto_dir.join("test_configuration.proto");
-        assert!(test_config_file.exists(), "Unable to find proto file {:?}.", test_config_file);
+        assert!(test_config_file.exists(), "Unable to find proto file {test_config_file:?}.");
 
         let inner_test_config_file = proto_dir.join("inner_test_configuration.proto");
         assert!(
             inner_test_config_file.exists(),
-            "Unable to find proto file {:?}.",
-            inner_test_config_file
+            "Unable to find proto file {inner_test_config_file:?}."
         );
 
         let inner_test_config_file_diff_pack =
             proto_dir.join("inner_test_configuration_different_package.proto");
         assert!(
             inner_test_config_file_diff_pack.exists(),
-            "Unable to find proto file {:?}.",
-            inner_test_config_file_diff_pack
+            "Unable to find proto file {inner_test_config_file_diff_pack:?}."
         );
 
         let fd_set = protobuf_parse::Parser::new()
@@ -789,7 +787,7 @@ mod tests {
             .input(&inner_test_config_file)
             .input(&inner_test_config_file_diff_pack)
             .file_descriptor_set();
-        assert!(fd_set.is_ok(), "Could not parse protobuf files {:?}", fd_set);
+        assert!(fd_set.is_ok(), "Could not parse protobuf files {fd_set:?}");
         ProtoManager::new(fd_set.unwrap())
     }
 }

@@ -64,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
     let config_id = test_config_id();
     let fds = test_file_descriptor_set(protos_path);
 
-    info!("Registering config:\n{:#?}", config);
+    info!("Registering config:\n{config:#?}");
 
     register_config(&client, &config_id, &config, &fds).await;
 
@@ -87,7 +87,7 @@ async fn main() -> anyhow::Result<()> {
     let config = get_config(&client, &config_id).await;
     let config = parse_test_config_from_bytes(&config);
 
-    info!("\nModified configuration:\n{:#?}", config);
+    info!("\nModified configuration:\n{config:#?}");
 
     info!("\nRolling back previous changes");
 
@@ -96,7 +96,7 @@ async fn main() -> anyhow::Result<()> {
     let config = get_config(&client, &config_id).await;
     let config = parse_test_config_from_bytes(&config);
 
-    info!("\n{:#?}", config);
+    info!("\n{config:#?}");
 
     Ok(())
 }
@@ -135,8 +135,7 @@ fn test_file_descriptor_set(protos_dir: String) -> FdSet {
     let inner_test_config_file_diff_pack = proto_dir.join("rear_view_camera.proto");
     assert!(
         inner_test_config_file_diff_pack.exists(),
-        "Unable to find proto file {:?}.",
-        inner_test_config_file_diff_pack
+        "Unable to find proto file {inner_test_config_file_diff_pack:?}."
     );
 
     let fd_set = protobuf_parse::Parser::new()
@@ -144,7 +143,7 @@ fn test_file_descriptor_set(protos_dir: String) -> FdSet {
         .include(&proto_dir)
         .input(&inner_test_config_file_diff_pack)
         .file_descriptor_set();
-    assert!(fd_set.is_ok(), "Could not parse protobuf files {:?}", fd_set);
+    assert!(fd_set.is_ok(), "Could not parse protobuf files {fd_set:?}");
     fd_set.unwrap()
 }
 

@@ -70,7 +70,7 @@ fn parse_input() -> Option<Cli> {
     match Cli::try_parse_from(args) {
         Ok(cli) => Some(cli),
         Err(err) => {
-            eprintln!("Error: {}", err);
+            eprintln!("Error: {err}");
             None
         }
     }
@@ -84,7 +84,7 @@ async fn handle_vehicle_state(
     let request =
         SetVehicleStateRequest { vehicle_state: vehicle_state.into(), ..Default::default() };
     client.SetVehicleState(&request).await?;
-    println!("Vehicle mode set successfully {:?}", vehicle_state_args);
+    println!("Vehicle mode set successfully {vehicle_state_args:?}");
     Ok(())
 }
 
@@ -155,7 +155,7 @@ async fn handle_power_state(power_cmd: PowerCommand, client: &Client) -> anyhow:
         if response.error == PowerStateChangeRequestError::NO_ERROR.into() {
             info!("Request was sent successfully!");
         } else {
-            error!("Request was invalid {:?}", response);
+            error!("Request was invalid {response:?}");
         }
     } else {
         error!("Failed to send power state change request, reason={:?}", result.err())

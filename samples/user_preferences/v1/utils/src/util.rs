@@ -38,7 +38,7 @@ pub fn print_settings(setting: &[Setting]) {
 
 fn option_to_string<T: std::fmt::Debug>(val: &Option<T>) -> String {
     match val {
-        Some(x) => format!("{:?}", x),
+        Some(x) => format!("{x:?}"),
         None => String::from("None"),
     }
 }
