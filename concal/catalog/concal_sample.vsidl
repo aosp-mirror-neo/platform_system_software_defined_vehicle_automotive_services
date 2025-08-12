@@ -4,28 +4,28 @@
 
 package: "com.sdv.oem.sample.concal"
 
-sdv_service_bundle {
+service_bundle {
   name: "SampleOemConCalServiceBundle"
   server {
-    interface: "com.sdv.google.concal.ConCalRegistrationService"
+    service: "com.sdv.google.concal.ConCalRegistrationService"
   }
   server {
-    interface: "com.sdv.google.concal.ConCalUpdateService"
+    service: "com.sdv.google.concal.ConCalUpdateService"
   }
   server {
-    interface: "com.sdv.google.concal.calib.server.ConCalCalibrationService"
+    service: "com.sdv.google.concal.calib.server.ConCalCalibrationService"
   }
   server {
-    interface: "com.sdv.google.concal.calib.ConCalCalibrationNotificationService"
+    service: "com.sdv.google.concal.calib.ConCalCalibrationNotificationService"
   }
 }
 
-sdv_service_bundle {
+service_bundle {
   name: "SampleOemConCalClientServiceBundle"
   client {
-    interface: "com.sdv.google.concal.ConCalRegistrationService"
+    service: "com.sdv.google.concal.ConCalRegistrationService"
   }
   client {
-    interface: "com.sdv.google.concal.ConCalUpdateService"
+    service: "com.sdv.google.concal.ConCalUpdateService"
   }
 }

@@ -21,12 +21,12 @@ sdv_service_bundle {
 
     # Client for VPM system interface.
     client {
-        interface: "com.sdv.google.vpm.VpmSystemService"
+        service: "com.sdv.google.vpm.VpmSystemService"
     }
 
     # Server to VPM notification interface.
     server {
-        interface: "com.sdv.google.vpm.client.PowerNotificationService"
+        service: "com.sdv.google.vpm.client.PowerNotificationService"
     }
 }
 

@@ -4,10 +4,10 @@
 
 package: "com.sdv.google.sample.diagnostics_update"
 
-sdv_service_bundle {
+service_bundle {
     name: "UpdatableDiagnosticsBundle"
     server {
-        interface: "com.sdv.google.diagnostics.routine_control.RoutineControlService"
+        service: "com.sdv.google.diagnostics.routine_control.RoutineControlService"
         service_unit_name: "tire-pressurization-routine"
     }
 

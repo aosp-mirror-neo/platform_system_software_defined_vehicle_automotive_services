@@ -4,7 +4,7 @@
 
 package: "com.sdv.google.diagnostics"
 
-sdv_service_bundle {
+service_bundle {
     name: "DiagnosticsManager"
 
     unit_type {
