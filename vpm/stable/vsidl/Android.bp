@@ -36,3 +36,8 @@ filegroup {
         "Android.bp",
     ],
 }
+
+filegroup {
+    name: "system_software_defined_vehicle_automotive_services_vpm_stable_vsidl",
+    srcs: ["**/*"],
+}
