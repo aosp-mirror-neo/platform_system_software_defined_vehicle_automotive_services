@@ -360,6 +360,7 @@ mod tests {
     use super::*;
     use crate::power_state::PowerOffExit;
     use crate::power_state_notifier::binder::BinderFeatures;
+    use futures::Stream;
     use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateReportListener::{
         BnPowerStateReportListener, MockIPowerStateReportListener,
     };
@@ -368,12 +369,23 @@ mod tests {
     use sdv_status_rs::SdvResult;
     use sdv_status_rs::SdvStatus;
     use sdv_vpm_api::power::PowerStateReport;
+    use std::pin::Pin;
 
     mockall::mock! {
         TestClientTransport {}
         #[async_trait::async_trait]
         impl ClientTransport for TestClientTransport {
             async fn call_method(&self, method: &str, request: &[u8]) -> SdvResult<Vec<u8>>;
+            async fn call_method_client_streaming(
+                &self,
+                method_name: &str,
+                request_stream: Pin<Box<dyn Stream<Item = Vec<u8>> + Send>>,
+            ) -> SdvResult<Vec<u8>>;
+            async fn call_method_server_streaming(
+                &self,
+                method_name: &str,
+                request: &[u8],
+            ) -> SdvResult<Pin<Box<dyn Stream<Item = SdvResult<Vec<u8>>> + Send>>>;
         }
     }
 
