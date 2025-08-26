@@ -5,6 +5,7 @@ use com_sdv_google_user_preferences_user_preferences_admin_service_rpc::Client a
 use com_sdv_google_user_preferences_user_preferences_management_service_rpc::Client as ManagementServiceClient;
 use futures::stream::StreamExt;
 use hmi_service::HmiServiceImpl;
+use log::info;
 use protobuf::Enum;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::sd::{ServiceDiscoveryManager, UnitType};
@@ -74,7 +75,7 @@ async fn main() -> anyhow::Result<()> {
         })?;
 
     let user_id = 1_i32;
-    println!("Creating an ephemeral user");
+    info!("Creating an ephemeral user");
     admin_service_client
         .CreateUser(&CreateUserRequest {
             user: Some(User {
@@ -93,7 +94,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .map_err(|e| anyhow::Error::msg(format!("Failed to select user: {e}")))?;
 
-    println!("Subscribing to setting changes");
+    info!("Subscribing to setting changes");
     let response = management_service_client
         .SubscribeToSettingsChangeAndGetSettings(&SubscribeToSettingsChangeAndGetSettingsRequest {
             settings_group_id: Some(SettingsGroupId {
@@ -107,10 +108,10 @@ async fn main() -> anyhow::Result<()> {
         .await
         .map_err(|e| anyhow::Error::msg(format!("Failed to subscribe to setting changes: {e}")))?;
 
-    println!("Current HVAC settings");
+    info!("Current HVAC settings");
     print_settings_and_constraints(&response.active_settings);
 
-    println!("Adjusting HVAC temperature to 32");
+    info!("Adjusting HVAC temperature to 32");
     management_service_client
         .RequestSettingsChange(&RequestSettingsChangeRequest {
             settings_group_id: Some(SettingsGroupId {
@@ -131,7 +132,7 @@ async fn main() -> anyhow::Result<()> {
 
     hmi_service_impl.wait_for_settings_change().await;
 
-    println!("Attempting to Adjust HVAC temperature to invalid value 100");
+    info!("Attempting to Adjust HVAC temperature to invalid value 100");
 
     if let Err(err) = management_service_client
         .RequestSettingsChange(&RequestSettingsChangeRequest {
@@ -150,12 +151,12 @@ async fn main() -> anyhow::Result<()> {
         })
         .await
     {
-        println!("Request to set invalid temperature denied {err}\n");
+        info!("Request to set invalid temperature denied {err}\n");
     } else {
         panic!("Expected request to set invalid temperature to fail");
     }
 
-    println!("Creating another user");
+    info!("Creating another user");
     let user_id_2 = 2_i32;
     admin_service_client
         .CreateUser(&CreateUserRequest {
@@ -176,18 +177,18 @@ async fn main() -> anyhow::Result<()> {
         .map_err(|e| anyhow::Error::msg(format!("Failed to select user: {e}")))?;
 
     hmi_service_impl.wait_for_settings_change().await;
-    println!("Switched to user {user_id_2}");
+    info!("Switched to user {user_id_2}");
 
     let response = admin_service_client
         .ListUsers(&ListUsersRequest::new())
         .await
         .map_err(|e| anyhow::Error::msg(format!("Failed to list users: {e}")))?;
-    println!(
+    info!(
         "List of available users: \"{}\"\n",
         response.users.into_iter().map(|user| format!("{}", user.id)).collect::<Vec<_>>().join(",")
     );
 
-    println!("Creating another user");
+    info!("Creating another user");
     let user_id_3 = 3_i32;
     admin_service_client
         .CreateUser(&CreateUserRequest {
@@ -209,9 +210,9 @@ async fn main() -> anyhow::Result<()> {
             anyhow::Error::msg(format!("Failed to perform request to delete user: {e}"))
         })?;
 
-    println!("Deleted user {user_id_3}");
+    info!("Deleted user {user_id_3}");
 
-    println!("Unsubscribing from setting changes");
+    info!("Unsubscribing from setting changes");
     management_service_client
         .UnsubscribeFromSettingsChange(&UnsubscribeToSettingsChangeRequest {
             settings_group_id: Some(SettingsGroupId {
@@ -230,10 +231,10 @@ async fn main() -> anyhow::Result<()> {
         .await
         .map_err(|e| anyhow::Error::msg(format!("Failed to perform factory reset: {e}")))?;
 
-    println!("---------------------------");
-    println!("Scenario 2: User Preference configuring HVAC temperature to persisted temperature");
+    info!("---------------------------");
+    info!("Scenario 2: User Preference configuring HVAC temperature to persisted temperature");
 
-    println!("Creating user");
+    info!("Creating user");
     let user_id_4 = 4_i32;
     admin_service_client
         .CreateUser(&CreateUserRequest {
@@ -253,7 +254,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .map_err(|e| anyhow::Error::msg(format!("Failed to select user: {e}")))?;
 
-    println!("Set preferred temperature to 24");
+    info!("Set preferred temperature to 24");
     let _response = management_service_client
         .RequestSettingsChange(&RequestSettingsChangeRequest {
             settings_group_id: Some(SettingsGroupId {
@@ -272,7 +273,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .map_err(|e| anyhow::Error::msg(format!("Failed to request setting change: {e}")))?;
 
-    println!("Subscribing from setting changes");
+    info!("Subscribing from setting changes");
     let _response = management_service_client
         .SubscribeToSettingsChangeAndGetSettings(&SubscribeToSettingsChangeAndGetSettingsRequest {
             settings_group_id: Some(SettingsGroupId {
@@ -286,8 +287,8 @@ async fn main() -> anyhow::Result<()> {
         .await
         .map_err(|e| anyhow::Error::msg(format!("Failed to subscribe to setting changes: {e}")))?;
 
-    println!("Please restart the HVAC sample binary");
-    println!("User Preferences will automatically detect it starting and set HVAC temperature to the user's desired temperature 24 ");
+    info!("Please restart the HVAC sample binary");
+    info!("User Preferences will automatically detect it starting and set HVAC temperature to the user's desired temperature 24 ");
     std::thread::park();
 
     Ok(())

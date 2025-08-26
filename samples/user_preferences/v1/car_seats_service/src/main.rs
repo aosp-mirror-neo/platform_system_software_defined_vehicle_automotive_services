@@ -2,6 +2,7 @@
 #![allow(missing_docs)]
 
 use com_sdv_google_user_preferences_user_preferences_registry_service_rpc::Client as RegistryClient;
+use log::info;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
 use sdv_mw_rs_com_sdv_oem_user_preferences_car_seats_service::CarSeatsService;
@@ -52,7 +53,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .map_err(|e| anyhow::Error::msg(format!("Failed to start Hvac Service bundle: {e}")))?;
 
-    println!("Started service bundle");
+    info!("Started service bundle");
     std::thread::park();
 
     Ok(())
