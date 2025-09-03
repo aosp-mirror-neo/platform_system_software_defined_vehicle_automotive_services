@@ -5,16 +5,20 @@ package {
     default_team: "trendy_team_automotive",
 }
 
-rust_binary {
-    name: "sdv_hmi_service_stable",
+rust_ffi_shared {
+    name: "libsdv_hmi_service",
     crate_name: "sdv_hmi_service",
     srcs: [
-        "src/main.rs",
+        "src/lib.rs",
     ],
     rustlibs: [
+        "libsdv_rs",
         "libanyhow",
         "liblog_rust",
         "libtokio",
+        "libtokio_util",
+        "libtokio_stream",
+        "libfutures",
         "libfutures",
         "libprotobuf",
         "libitertools",
@@ -23,15 +27,20 @@ rust_binary {
         "libsdv_mw_rs_comms",
         "libsdv_mw_rs_sdv_comms",
         "libuser_preferences_api_stable",
+        "libuser_controllable_service_impl_stable",
         "libsdv_mw_rs_com_sdv_oem_user_preferences_hmi_service",
         "libcom_sdv_google_user_preferences_view_change_notifier_rpc_rs",
         "libcom_sdv_google_user_preferences_user_preferences_management_service_rpc_rs",
         "libcom_sdv_google_user_preferences_user_preferences_admin_service_rpc_rs",
         "libuser_preferences_utils_stable",
+        // Contains service bundle interface definitions and helper macros.
+        "libsdv_lifecycle_client_rust",
     ],
     proc_macros: [
         "libasync_trait",
     ],
+    product_specific: true,
     ld_flags: ["-Wl,--no-as-needed"],
-    product_available: true,
+    // Allows the library to be available inside of the related APEX.
+    apex_available: ["com.sdv.oem.user_preferences"],
 }
