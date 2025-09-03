@@ -28,7 +28,7 @@ apex {
         // ACL Policy
         "com.sdv.oem.user_preferences.car_seats_service.acl_policy",
         // Orchestration config
-        "com.sdv.oem.user_preferences.orchestration",
+        "com.sdv.oem.user_preferences.user_preferences_service_bundle.orchestration",
         // Linker configuration to enable loading library from apex.
         "com.sdv.oem.user_preferences.linker_config",
     ],
@@ -122,8 +122,9 @@ prebuilt_etc {
 
 // File with the Orchestration configuration of service bundle is stored in the apex.
 prebuilt_etc {
-    name: "com.sdv.oem.user_preferences.orchestration",
-    src: "orchestration.textproto",
+    name: "com.sdv.oem.user_preferences.user_preferences_service_bundle.orchestration",
+    src: "orch_configs/user_preferences_service_bundle/orchestration.textproto",
+    sub_dir: "user_preferences_service_bundle",
     filename: "orchestration.textproto",
     // Disable direct installation of the manifest to one of the partitions.
     // The manifest will be used only inside of service bundles registry apexes.
