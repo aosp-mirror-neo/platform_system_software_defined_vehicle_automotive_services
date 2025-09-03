@@ -49,7 +49,7 @@ vsidlc --catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/autom
 
     ```bash
 
-    adb shell sdv_hvac_service_stable
+    adb shell sdv_service_bundle start local-vm:com.sdv.oem.user_preferences.HvacService/default
 
     ```
 

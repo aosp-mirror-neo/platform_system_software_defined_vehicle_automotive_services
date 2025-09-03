@@ -29,12 +29,15 @@ apex {
         "com.sdv.oem.user_preferences.car_seats_service.acl_policy",
         // Orchestration config
         "com.sdv.oem.user_preferences.user_preferences_service_bundle.orchestration",
+        // Orchestration config
+        "com.sdv.oem.user_preferences.hvac_service.orchestration",
         // Linker configuration to enable loading library from apex.
         "com.sdv.oem.user_preferences.linker_config",
     ],
     native_shared_libs: [
         // User Preferences Implementation
         "libuser_preferences_service_stable",
+        "libsdv_hvac_service",
     ],
     product_specific: true,
 }
@@ -125,6 +128,19 @@ prebuilt_etc {
     name: "com.sdv.oem.user_preferences.user_preferences_service_bundle.orchestration",
     src: "orch_configs/user_preferences_service_bundle/orchestration.textproto",
     sub_dir: "user_preferences_service_bundle",
+    filename: "orchestration.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// File with the Orchestration configuration of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.sdv.oem.user_preferences.hvac_service.orchestration",
+    src: "orch_configs/hvac_service/orchestration.textproto",
+    sub_dir: "hvac_service",
     filename: "orchestration.textproto",
     // Disable direct installation of the manifest to one of the partitions.
     // The manifest will be used only inside of service bundles registry apexes.
