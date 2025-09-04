@@ -44,7 +44,7 @@ adb logcat | grep sdv_diagnostics_agent
 Using root, because the binary is on the `/product` partition.
 
 ```bash
-adb -s <VM address> shell su root diag_v1_provider1_sample
+adb -s <VM address> shell su root sdv_service_bundle start local-vm:com.sdv.oem.sample.diagnostics.DiagnosticsProvider1/default
 ```
 
 Diagnostics provider 1 registers RPC servers for diagnostics interfaces as well
