@@ -8,6 +8,7 @@ group_mapping {
   group: "auto_start"
   subgroup: "hvac_service_auto_start"
   subgroup: "hmi_service_auto_start"
+  subgroup: "car_seats_service_auto_start"
 }
 
 # Start `auto_start` service bundles when system is started.

@@ -48,9 +48,9 @@ sdv_service_bundle_metadata {
   version_number: 1
   version_name: "1"
 
-  native_library_path: "lib64/libuser_preferences_service_stable.so"
+  native_library_path: "lib64/libsdv_car_seats_service.so"
 
-  orchestration_config_path: "etc/user_preferences_service_bundle/orchestration.textproto"
+  orchestration_config_path: "etc/car_seats_service/orchestration.textproto"
 
   access_control_list_policy_path: "etc/car_seats_service/acl.textproto"
 }
