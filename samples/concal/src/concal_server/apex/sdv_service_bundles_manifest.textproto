@@ -14,3 +14,16 @@ sdv_service_bundle_metadata {
   native_library_path: "lib64/libconcal_service_bundle_runner.so"
   access_control_list_policy_path: "etc/acl.textproto"
 }
+
+# SDV service bundle metadata definition with mondatory fields.
+sdv_service_bundle_metadata {
+  # Service bundle name.
+  name: "SampleOemConCalClientServiceBundle"
+  # Service bundle integer version.
+  version_number: 0
+  # Service bundle version as a string.
+  version_name: "0.alpha"
+  # Service bundle library path.
+  native_library_path: "lib64/libsdv_concal_sample_client.so"
+  access_control_list_policy_path: "etc/acl.textproto"
+}

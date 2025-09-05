@@ -9,6 +9,7 @@ apex {
     // The ConCal service bundle to be included in the apex.
     native_shared_libs: [
         "libconcal_service_bundle_runner",
+        "libsdv_concal_sample_client",
     ],
     prebuilts: [
         // SDV service bundles manifest file.
