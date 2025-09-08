@@ -14,6 +14,7 @@ apex {
         "liboem_diagnostics_sample_with_data_item",
         "liboem_diagnostics_sample_with_event",
         "libdiag_v1_provider1_sample",
+        "libdiag_v1_provider2_sample",
     ],
     prebuilts: [
         // SDV Manifest - used by SBR
