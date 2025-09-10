@@ -22,3 +22,8 @@ rust_protobuf {
     product_available: true,
     min_sdk_version: "35",
 }
+
+filegroup {
+    name: "sample_diagnostics_common_protos_bp",
+    srcs: ["**/*"],
+}

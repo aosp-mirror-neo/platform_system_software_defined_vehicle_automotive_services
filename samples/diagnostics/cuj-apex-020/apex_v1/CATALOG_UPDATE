@@ -5,6 +5,7 @@
 output_path: "."
 dependency_catalog_paths: "../../../../diagnostics/vsidl/v1"
 dependency_catalog_paths: "../common/proto"
+vsidlc_gen_args: "--genrule"
 
 # test_targets: "todo add when automating cuj-apex-020 sample"
 
