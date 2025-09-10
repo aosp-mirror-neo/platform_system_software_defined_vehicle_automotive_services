@@ -11,6 +11,7 @@ use concal_api::config_override::config_override_key_value::Value;
 use concal_api::config_override::{ConfigOverride, ConfigOverrideKeyValue};
 use concal_api::configuration::{ConfigId, ConfigMetadata};
 use concal_api::service_fqin::ServiceFqin as ProtoFqin;
+use futures::StreamExt;
 use log::{debug, info, trace, warn};
 use protobuf::descriptor::FileDescriptorSet as FdSet;
 use protobuf::well_known_types::any::Any;
@@ -20,6 +21,8 @@ use sdv::mw::RpcClient;
 use sdv::mw::SdvComms;
 use sdv::mw::UnitName;
 use sdv::status::{SdvStatus, SdvStatusCode};
+use sdv_comms::sd::ServiceUnitChangeEvent;
+use sdv_comms::sd::{ServiceDiscoveryManager, UnitNameDiscoveryArgs};
 use sdv_mw_rs_com_sdv_oem_sample_concal_sample_oem_con_cal_client_service_bundle::SampleOemConCalClientServiceBundle;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -149,6 +152,27 @@ async fn sample_oem_concal_client_service_bundle_main(
     let sdv_comms = SdvComms { context };
 
     info!("Context for Sample ConCal Client is created.");
+
+    let sd = ServiceDiscoveryManager::new(context);
+    let unit_name_args = UnitNameDiscoveryArgs::new_builder()
+        .set_sdv_package_name("com.sdv.oem.sample.concal")
+        .set_service_bundle_name("SampleOemConCalServiceBundle")
+        .set_service_unit_name(RegistrationClient::DEFAULT_UNIT_NAME)
+        .build()?;
+
+    let mut unit_name_stream = sd.subscribe_service_unit_change_by_name(&unit_name_args).await?;
+    while let Some(event) = unit_name_stream.next().await {
+        if let ServiceUnitChangeEvent::Registered(sud) = event {
+            let service_identity = sud.get_service_bundle_identity();
+            let fqin = service_identity.get_fqin();
+            if fqin.get_sdv_package_name() == "com.sdv.oem.sample.concal"
+                && fqin.get_service_bundle_name() == "SampleOemConCalServiceBundle"
+                && fqin.get_service_instance_name() == "default"
+            {
+                break;
+            }
+        }
+    }
 
     let service_bundle = SampleOemConCalClientServiceBundle::new(Arc::new(sdv_comms)).await?;
     let client = service_bundle
