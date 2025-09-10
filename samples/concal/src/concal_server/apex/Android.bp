@@ -12,6 +12,7 @@ apex {
         "libsdv_concal_sample_client",
     ],
     prebuilts: [
+        "rear_view_camera.proto",
         // SDV service bundles manifest file.
         "com.sdv.oem.sample.concal.service_bundles_manifest",
         // Linker configuration to enable loading library from apex.

@@ -143,13 +143,9 @@ fn spawn_execution_thread(
     })
 }
 
-static LOG_TAG: &str = "concal_sample_client";
-
 async fn sample_oem_concal_client_service_bundle_main(
     context: ContextRef,
 ) -> sdv::status::SdvResult<()> {
-    sdv_log::init_logger(LOG_TAG)?;
-
     let sdv_comms = SdvComms { context };
 
     info!("Context for Sample ConCal Client is created.");
@@ -171,7 +167,7 @@ async fn sample_oem_concal_client_service_bundle_main(
 
     // using the prebuilt_etc build rule within automotive_services/samples/concal/proto/Android.bp,
     // a sample proto rear_view_camera.proto has been placed within the /etc/protos directory for this demo
-    let protos_path = String::from("/etc/protos/");
+    let protos_path = String::from("/apex/com.sdv.oem.sample.concal/etc/protos/");
     let config = test_config();
     let config_id = test_config_id();
     let fds = test_file_descriptor_set(protos_path);
