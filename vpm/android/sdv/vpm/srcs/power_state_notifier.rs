@@ -376,12 +376,12 @@ mod tests {
         #[async_trait::async_trait]
         impl ClientTransport for TestClientTransport {
             async fn call_method(&self, method: &str, request: &[u8]) -> SdvResult<Vec<u8>>;
-            async fn call_method_client_streaming(
+            async fn call_client_streaming_method(
                 &self,
                 method_name: &str,
                 request_stream: Pin<Box<dyn Stream<Item = Vec<u8>> + Send>>,
             ) -> SdvResult<Vec<u8>>;
-            async fn call_method_server_streaming(
+            async fn call_server_streaming_method(
                 &self,
                 method_name: &str,
                 request: &[u8],
