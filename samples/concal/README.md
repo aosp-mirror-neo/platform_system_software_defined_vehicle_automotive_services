@@ -27,7 +27,7 @@ implements Lifecycle Manager interface. To run the demo, follow the steps below:
 
     ```bash
     adb root
-    adb shell /product/bin/sdv_concal_sample_client
+    adb shell sdv_service_bundle start local-vm:com.sdv.oem.sample.concal.SampleOemConCalClientServiceBundle/sample
     ```
 
 3.  Once executed the client will register the following configuration and you

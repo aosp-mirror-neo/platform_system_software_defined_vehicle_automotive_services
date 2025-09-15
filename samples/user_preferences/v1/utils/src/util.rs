@@ -1,5 +1,6 @@
 // Copyright 2024 Google LLC
 #![allow(missing_docs)]
+use log::info;
 use user_preferences_api::setting::{Setting, SettingDefinition, SettingWithConstraints};
 
 pub fn print_setting_definition(settings_definitions: &[SettingDefinition]) {
@@ -8,10 +9,10 @@ pub fn print_setting_definition(settings_definitions: &[SettingDefinition]) {
 
         let value = option_to_string(&setting.value);
 
-        println!("Key {:<15}, Type: {:<10?}, Value: {:<10}", setting.key, definition.kind, value)
+        info!("Key {:<15}, Type: {:<10?}, Value: {:<10}", setting.key, definition.kind, value)
     });
 
-    println!("\n\n");
+    info!("\n\n");
 }
 
 pub fn print_settings_and_constraints(setting_with_constraints: &[SettingWithConstraints]) {
@@ -21,19 +22,19 @@ pub fn print_settings_and_constraints(setting_with_constraints: &[SettingWithCon
         let value = option_to_string(&setting.value);
         let constraints = option_to_string(&setting_with_constraint.constraints);
 
-        println!("Key {:<15}, Value: {:<10}, Constraint: {:<10?}", setting.key, value, constraints)
+        info!("Key {:<15}, Value: {:<10}, Constraint: {:<10?}", setting.key, value, constraints)
     });
 
-    println!("\n\n");
+    info!("\n\n");
 }
 
 pub fn print_settings(setting: &[Setting]) {
     setting.iter().for_each(|setting| {
         let value = option_to_string(&setting.value);
-        println!("Key {:<15} Value: {:<10}", setting.key, value)
+        info!("Key {:<15} Value: {:<10}", setting.key, value)
     });
 
-    println!("\n\n");
+    info!("\n\n");
 }
 
 fn option_to_string<T: std::fmt::Debug>(val: &Option<T>) -> String {

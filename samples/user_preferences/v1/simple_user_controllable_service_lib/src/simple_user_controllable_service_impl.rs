@@ -4,6 +4,7 @@
 use async_trait::async_trait;
 use com_sdv_google_user_preferences_user_controllable_user_controllable_service_rpc::Interface as UserControllableService;
 use com_sdv_google_user_preferences_user_preferences_registry_service_rpc::Client as RegistryServiceClient;
+use log::info;
 use protobuf::MessageField;
 use sdv_status_rs::SdvResult;
 use sdv_status_rs::SdvStatus;
@@ -106,7 +107,7 @@ impl SimpleUserControllableServiceImpl {
 
     async fn register_settings(&self) -> SdvResult<()> {
         for group in self.setting_groups_definitions.iter().cloned() {
-            println!(
+            info!(
                 "Registering settings group with name: {},\nVersion: {}",
                 group.name, group.version,
             );
@@ -161,7 +162,7 @@ impl UserControllableService for SimpleUserControllableServiceImpl {
             }
         };
 
-        println!("Adjusted the following settings: ");
+        info!("Adjusted the following settings: ");
         for new_setting in request.settings.iter() {
             let persisted_setting = setting_group
                 .setting_with_constraints
@@ -169,7 +170,7 @@ impl UserControllableService for SimpleUserControllableServiceImpl {
                 .ok_or(SdvStatus::new(SdvStatusCode::NotFound))?;
             persisted_setting.setting = MessageField::some(new_setting.clone());
 
-            println!("Key {:<15} Value {:<10?}", new_setting.key, new_setting.value)
+            info!("Key {:<15} Value {:<10?}", new_setting.key, new_setting.value)
         }
 
         // Respond that all settings were applied as requested
@@ -225,7 +226,7 @@ impl UserControllableService for SimpleUserControllableServiceImpl {
                     ))
                 })?;
 
-            println!("\nPerformed factory reset");
+            info!("\nPerformed factory reset");
         }
         Ok(FactoryResetResponse::new())
     }
