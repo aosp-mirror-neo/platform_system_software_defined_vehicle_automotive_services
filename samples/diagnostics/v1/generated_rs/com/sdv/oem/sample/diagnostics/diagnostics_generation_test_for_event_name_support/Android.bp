@@ -7,11 +7,22 @@ package {
     default_applicable_licenses: ["sdv_license"],
 }
 
+genrule {
+    name: "libsdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_generation_test_for_event_name_support_rs",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_libdiagnostics_v1_sample_catalog_files"],
+    out: [
+        "service_bundle.rs",
+        "diagnostics.rs",
+    ],
+    cmd: "$(location extract_catalog_zip) $(in) --service-bundle com.sdv.oem.sample.diagnostics DiagnosticsGenerationTestForEventNameSupport",
+}
+
 rust_library {
     name: "libsdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_generation_test_for_event_name_support",
     crate_name: "sdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_generation_test_for_event_name_support",
     srcs: [
-        "service_bundle.rs",
+        ":libsdv_mw_rs_com_sdv_oem_sample_diagnostics_diagnostics_generation_test_for_event_name_support_rs{service_bundle.rs}",
     ],
     rustlibs: [
         "libprotobuf",
