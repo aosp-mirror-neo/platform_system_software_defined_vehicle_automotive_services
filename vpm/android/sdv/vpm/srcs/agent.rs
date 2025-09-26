@@ -242,7 +242,7 @@ mod tests {
                 Box::new(MockPublish::new());
             Box::pin(async move { Ok(mock_publish_handle) })
         });
-        mock_comms.expect_create_server_transport().times(1).returning(|_, _| {
+        mock_comms.expect_create_server_transport_all_methods().times(1).returning(|_, _| {
             let mock_server_transport: Box<dyn ServerTransport> = Box::new(MockServerTransport);
             Box::pin(async move { Ok(mock_server_transport) })
         });
@@ -305,7 +305,7 @@ mod tests {
         // Mock for VpmSystemServiceBundle::new -> add_server
         struct MockServerTransport;
         impl ServerTransport for MockServerTransport {}
-        mock_comms.expect_create_server_transport().times(1).returning(|_, _| {
+        mock_comms.expect_create_server_transport_all_methods().times(1).returning(|_, _| {
             let mock_server_transport: Box<dyn ServerTransport> = Box::new(MockServerTransport);
             Box::pin(async move { Ok(mock_server_transport) })
         });
