@@ -7,11 +7,22 @@ package {
     default_applicable_licenses: ["sdv_license"],
 }
 
+genrule {
+    name: "libsdv_mw_rs_com_sdv_google_sample_combined_sample_service_with_all_dependencies_rs",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_combined_sample_v1_catalog_files"],
+    out: [
+        "service_bundle.rs",
+        "diagnostics.rs",
+    ],
+    cmd: "$(location extract_catalog_zip) $(in) --service-bundle com.sdv.google.sample.combined SampleServiceWithAllDependencies",
+}
+
 rust_library {
     name: "libsdv_mw_rs_com_sdv_google_sample_combined_sample_service_with_all_dependencies",
     crate_name: "sdv_mw_rs_com_sdv_google_sample_combined_sample_service_with_all_dependencies",
     srcs: [
-        "service_bundle.rs",
+        ":libsdv_mw_rs_com_sdv_google_sample_combined_sample_service_with_all_dependencies_rs{service_bundle.rs}",
     ],
     rustlibs: [
         "libprotobuf",
