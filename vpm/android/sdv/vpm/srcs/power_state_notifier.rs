@@ -37,6 +37,8 @@ use tokio::sync::Mutex as AsyncMutex;
 use tokio::task::JoinSet;
 use tracing::instrument;
 
+const OEM_NOTIFICATION_TIMEOUT_SECS: u32 = 30;
+
 #[async_trait]
 #[automock]
 pub trait PowerStateNotifier: Send + Sync {
@@ -94,13 +96,7 @@ impl PowerStateNotifierImpl {
 
     async fn update_client(&self) -> anyhow::Result<()> {
         let mut client = self.notification_rpc_client.lock().await;
-        let server_name = get_server_unit_name(
-            self.vm_name.as_str(),
-            "com.sdv.google.vpm.client",
-            "VpmSystemClient",
-            Client::DEFAULT_UNIT_NAME,
-        )?;
-        let attributes = get_attributes(server_name, ClientOptions::default())?;
+        let attributes = self.get_attributes()?;
         let result = self.comms.create_client_transport(&attributes).await;
         let Ok(result) = result else {
             error!("Could not get a client for vpm notifications");
@@ -108,6 +104,22 @@ impl PowerStateNotifierImpl {
         };
         *client = Some(Client::new(result).into());
         Ok(())
+    }
+
+    fn get_attributes(&self) -> anyhow::Result<ClientAttributes> {
+        let server_name = get_server_unit_name(
+            self.vm_name.as_str(),
+            "com.sdv.google.vpm.client",
+            "VpmSystemClient",
+            Client::DEFAULT_UNIT_NAME,
+        )?;
+        let client_options =
+            ClientOptions::builder().timeout_in_sec(OEM_NOTIFICATION_TIMEOUT_SECS).build()?;
+        ClientAttributes::builder()
+            .server_name(server_name)
+            .client_options(client_options)
+            .build()
+            .map_err(|e| anyhow!("invalid ClientAttributes: {e:?}"))
     }
 }
 
@@ -328,17 +340,6 @@ fn get_server_unit_name(
         .map_err(|e| anyhow!("invalid server UnitName for vm_name {vm_name}, package_name {package_name}, bundle_name {bundle_name}, service_unit_name {service_unit_name}: {e:?}"))
 }
 
-fn get_attributes(
-    server_name: UnitName,
-    client_options: ClientOptions,
-) -> anyhow::Result<ClientAttributes> {
-    ClientAttributes::builder()
-        .server_name(server_name)
-        .client_options(client_options)
-        .build()
-        .map_err(|e| anyhow!("invalid ClientAttributes: {e:?}"))
-}
-
 async fn notification_failed(mut set: JoinSet<Result<(), PowerStateNotificationError>>) -> bool {
     let mut notification_failed = false;
     while let Some(handle) = set.join_next().await {
@@ -442,6 +443,31 @@ mod tests {
     fn test_convert_to_aidl_report_unspecified() {
         let input = PowerStateReport::REPORT_UNSPECIFIED;
         assert!(convert_to_aidl(input).is_err());
+    }
+
+    #[test]
+    fn test_get_attributes() {
+        // Given a PowerStateNotifierImpl with a specific vm_name
+        let vm_name = "test_vm";
+        let notifier = PowerStateNotifierImpl::new(Arc::new(MockCommunicate::new()), vm_name);
+
+        // When calling get_attributes
+        let attributes_result = notifier.get_attributes();
+
+        // Then the result should be Ok
+        assert!(attributes_result.is_ok());
+        let attributes = attributes_result.unwrap();
+
+        // And the server_name should be correctly constructed
+        let server_name = attributes.get_server_name();
+        assert_eq!(server_name.get_vm_name(), vm_name);
+        assert_eq!(server_name.get_package_name(), "com.sdv.google.vpm.client");
+        assert_eq!(server_name.get_bundle_name(), "VpmSystemClient");
+        assert_eq!(server_name.get_service_unit_name(), Client::DEFAULT_UNIT_NAME);
+
+        // And the client_options should have the correct timeout
+        let client_options = attributes.get_client_options();
+        assert_eq!(client_options.get_timeout_in_sec(), OEM_NOTIFICATION_TIMEOUT_SECS);
     }
 
     #[tokio::test]
