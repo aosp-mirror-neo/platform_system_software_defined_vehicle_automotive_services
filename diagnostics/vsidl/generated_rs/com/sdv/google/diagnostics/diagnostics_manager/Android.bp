@@ -7,11 +7,21 @@ package {
     default_applicable_licenses: ["sdv_license"],
 }
 
+genrule {
+    name: "libsdv_mw_rs_com_sdv_google_diagnostics_diagnostics_manager_rs",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_diagnostics_v1_catalog_files"],
+    out: [
+        "service_bundle.rs",
+    ],
+    cmd: "$(location extract_catalog_zip) $(in) --service-bundle com.sdv.google.diagnostics DiagnosticsManager",
+}
+
 rust_library {
     name: "libsdv_mw_rs_com_sdv_google_diagnostics_diagnostics_manager",
     crate_name: "sdv_mw_rs_com_sdv_google_diagnostics_diagnostics_manager",
     srcs: [
-        "service_bundle.rs",
+        ":libsdv_mw_rs_com_sdv_google_diagnostics_diagnostics_manager_rs{service_bundle.rs}",
     ],
     rustlibs: [
         "libprotobuf",
@@ -28,11 +38,19 @@ rust_library {
     min_sdk_version: "35",
 }
 
+genrule {
+    name: "libcom_sdv_google_diagnostics_data_item_data_item_service_rpc_rs_src",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_diagnostics_v1_catalog_files"],
+    out: ["lib.rs"],
+    cmd: "$(location extract_catalog_zip) $(in) --rpc com.sdv.google.diagnostics DiagnosticsManager data_item.DataItemService",
+}
+
 rust_library {
     name: "libcom_sdv_google_diagnostics_data_item_data_item_service_rpc_rs",
     crate_name: "com_sdv_google_diagnostics_data_item_data_item_service_rpc",
     srcs: [
-        "data_item_data_item_service/lib.rs",
+        ":libcom_sdv_google_diagnostics_data_item_data_item_service_rpc_rs_src",
     ],
     rustlibs: [
         "libsdv_rs",
@@ -48,13 +66,21 @@ rust_library {
     vendor_available: true,
     product_available: true,
     min_sdk_version: "35",
+}
+
+genrule {
+    name: "libcom_sdv_google_diagnostics_routine_control_routine_control_service_rpc_rs_src",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_diagnostics_v1_catalog_files"],
+    out: ["lib.rs"],
+    cmd: "$(location extract_catalog_zip) $(in) --rpc com.sdv.google.diagnostics DiagnosticsManager routine_control.RoutineControlService",
 }
 
 rust_library {
     name: "libcom_sdv_google_diagnostics_routine_control_routine_control_service_rpc_rs",
     crate_name: "com_sdv_google_diagnostics_routine_control_routine_control_service_rpc",
     srcs: [
-        "routine_control_routine_control_service/lib.rs",
+        ":libcom_sdv_google_diagnostics_routine_control_routine_control_service_rpc_rs_src",
     ],
     rustlibs: [
         "libsdv_rs",
@@ -70,13 +96,21 @@ rust_library {
     vendor_available: true,
     product_available: true,
     min_sdk_version: "35",
+}
+
+genrule {
+    name: "libcom_sdv_google_diagnostics_io_control_io_control_service_rpc_rs_src",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_diagnostics_v1_catalog_files"],
+    out: ["lib.rs"],
+    cmd: "$(location extract_catalog_zip) $(in) --rpc com.sdv.google.diagnostics DiagnosticsManager io_control.IoControlService",
 }
 
 rust_library {
     name: "libcom_sdv_google_diagnostics_io_control_io_control_service_rpc_rs",
     crate_name: "com_sdv_google_diagnostics_io_control_io_control_service_rpc",
     srcs: [
-        "io_control_io_control_service/lib.rs",
+        ":libcom_sdv_google_diagnostics_io_control_io_control_service_rpc_rs_src",
     ],
     rustlibs: [
         "libsdv_rs",
@@ -92,13 +126,21 @@ rust_library {
     vendor_available: true,
     product_available: true,
     min_sdk_version: "35",
+}
+
+genrule {
+    name: "libcom_sdv_google_diagnostics_fault_fault_listener_service_rpc_rs_src",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_diagnostics_v1_catalog_files"],
+    out: ["lib.rs"],
+    cmd: "$(location extract_catalog_zip) $(in) --rpc com.sdv.google.diagnostics DiagnosticsManager fault.FaultListenerService",
 }
 
 rust_library {
     name: "libcom_sdv_google_diagnostics_fault_fault_listener_service_rpc_rs",
     crate_name: "com_sdv_google_diagnostics_fault_fault_listener_service_rpc",
     srcs: [
-        "fault_fault_listener_service/lib.rs",
+        ":libcom_sdv_google_diagnostics_fault_fault_listener_service_rpc_rs_src",
     ],
     rustlibs: [
         "libsdv_rs",
@@ -114,13 +156,21 @@ rust_library {
     vendor_available: true,
     product_available: true,
     min_sdk_version: "35",
+}
+
+genrule {
+    name: "libcom_sdv_google_diagnostics_diagnostics_manager_service_rpc_rs_src",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_diagnostics_v1_catalog_files"],
+    out: ["lib.rs"],
+    cmd: "$(location extract_catalog_zip) $(in) --rpc com.sdv.google.diagnostics DiagnosticsManager DiagnosticsManagerService",
 }
 
 rust_library {
     name: "libcom_sdv_google_diagnostics_diagnostics_manager_service_rpc_rs",
     crate_name: "com_sdv_google_diagnostics_diagnostics_manager_service_rpc",
     srcs: [
-        "diagnostics_manager_service/lib.rs",
+        ":libcom_sdv_google_diagnostics_diagnostics_manager_service_rpc_rs_src",
     ],
     rustlibs: [
         "libsdv_rs",
@@ -136,13 +186,21 @@ rust_library {
     vendor_available: true,
     product_available: true,
     min_sdk_version: "35",
+}
+
+genrule {
+    name: "libcom_sdv_google_diagnostics_ecu_reset_ecu_reset_service_rpc_rs_src",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_diagnostics_v1_catalog_files"],
+    out: ["lib.rs"],
+    cmd: "$(location extract_catalog_zip) $(in) --rpc com.sdv.google.diagnostics DiagnosticsManager ecu_reset.EcuResetService",
 }
 
 rust_library {
     name: "libcom_sdv_google_diagnostics_ecu_reset_ecu_reset_service_rpc_rs",
     crate_name: "com_sdv_google_diagnostics_ecu_reset_ecu_reset_service_rpc",
     srcs: [
-        "ecu_reset_ecu_reset_service/lib.rs",
+        ":libcom_sdv_google_diagnostics_ecu_reset_ecu_reset_service_rpc_rs_src",
     ],
     rustlibs: [
         "libsdv_rs",
@@ -158,13 +216,21 @@ rust_library {
     vendor_available: true,
     product_available: true,
     min_sdk_version: "35",
+}
+
+genrule {
+    name: "libcom_sdv_google_diagnostics_security_access_security_access_service_rpc_rs_src",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_diagnostics_v1_catalog_files"],
+    out: ["lib.rs"],
+    cmd: "$(location extract_catalog_zip) $(in) --rpc com.sdv.google.diagnostics DiagnosticsManager security_access.SecurityAccessService",
 }
 
 rust_library {
     name: "libcom_sdv_google_diagnostics_security_access_security_access_service_rpc_rs",
     crate_name: "com_sdv_google_diagnostics_security_access_security_access_service_rpc",
     srcs: [
-        "security_access_security_access_service/lib.rs",
+        ":libcom_sdv_google_diagnostics_security_access_security_access_service_rpc_rs_src",
     ],
     rustlibs: [
         "libsdv_rs",
@@ -180,13 +246,21 @@ rust_library {
     vendor_available: true,
     product_available: true,
     min_sdk_version: "35",
+}
+
+genrule {
+    name: "libcom_sdv_google_diagnostics_authentication_authentication_service_rpc_rs_src",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_diagnostics_v1_catalog_files"],
+    out: ["lib.rs"],
+    cmd: "$(location extract_catalog_zip) $(in) --rpc com.sdv.google.diagnostics DiagnosticsManager authentication.AuthenticationService",
 }
 
 rust_library {
     name: "libcom_sdv_google_diagnostics_authentication_authentication_service_rpc_rs",
     crate_name: "com_sdv_google_diagnostics_authentication_authentication_service_rpc",
     srcs: [
-        "authentication_authentication_service/lib.rs",
+        ":libcom_sdv_google_diagnostics_authentication_authentication_service_rpc_rs_src",
     ],
     rustlibs: [
         "libsdv_rs",
@@ -204,11 +278,19 @@ rust_library {
     min_sdk_version: "35",
 }
 
+genrule {
+    name: "libcom_sdv_google_diagnostics_file_transfer_file_transfer_service_rpc_rs_src",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_diagnostics_v1_catalog_files"],
+    out: ["lib.rs"],
+    cmd: "$(location extract_catalog_zip) $(in) --rpc com.sdv.google.diagnostics DiagnosticsManager file_transfer.FileTransferService",
+}
+
 rust_library {
     name: "libcom_sdv_google_diagnostics_file_transfer_file_transfer_service_rpc_rs",
     crate_name: "com_sdv_google_diagnostics_file_transfer_file_transfer_service_rpc",
     srcs: [
-        "file_transfer_file_transfer_service/lib.rs",
+        ":libcom_sdv_google_diagnostics_file_transfer_file_transfer_service_rpc_rs_src",
     ],
     rustlibs: [
         "libsdv_rs",
