@@ -41,3 +41,8 @@ prebuilt_etc {
     filename: "sdv_service_bundles_manifest.textproto",
     installable: false,
 }
+
+filegroup {
+    name: "catalog_cuj_apex_020_apex_v2",
+    srcs: ["**/*"],
+}
