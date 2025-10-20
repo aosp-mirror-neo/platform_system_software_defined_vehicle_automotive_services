@@ -1,0 +1,12 @@
+# Copyright 2025 Google LLC
+# proto-file:
+# system/software_defined_vehicle/core_services/orchestration/distributed_config/src/protos/service_bundle_config.proto
+# proto-message: ServiceBundleConfig
+
+# Service bundle FQIN with instance.
+package_name: "com.sdv.oem.user_preferences"
+service_bundle_name: "CarSeatsService"
+instance: "default"
+
+## Group of service bundles to be started on boot.
+group_mapping { group: "car_seats_service_auto_start" instance: "default" }

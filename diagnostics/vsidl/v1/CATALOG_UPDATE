@@ -3,3 +3,4 @@
 # proto-message: Catalog
 
 output_path: ".."
+vsidlc_gen_args: "--genrule"

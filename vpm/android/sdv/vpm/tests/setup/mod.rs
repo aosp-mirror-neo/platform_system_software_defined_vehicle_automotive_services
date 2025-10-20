@@ -14,7 +14,7 @@ use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateReportListener::{
 };
 use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
 use google_sdv_vpm_aidl::binder;
-use rustutils::system_properties::read;
+use rustutils::android::system_properties::read;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;
 use sdv_mw_rs_comms::ClientOptions;

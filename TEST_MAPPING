@@ -29,6 +29,8 @@
       "name": "sdv_core_automotive_services_unit_concal_server_sample_test"
     }
   ],
+  // Since the list of tests is empty the CI config is disabled.
+  // Please enable the CI config if you want to run the tests in this list.
   "sdv_automotive_service_postsubmit": [],
   "sdv_automotive_service_integration_presubmit": [
     {

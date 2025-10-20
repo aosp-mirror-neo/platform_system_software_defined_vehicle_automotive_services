@@ -49,7 +49,7 @@ vsidlc --catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/autom
 
     ```bash
 
-    adb shell sdv_hvac_service_stable
+    adb shell sdv_service_bundle start local-vm:com.sdv.oem.user_preferences.HvacService/default
 
     ```
 
@@ -57,20 +57,9 @@ vsidlc --catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/autom
 
     ```bash
 
-    adb shell sdv_hmi_service_stable
+    adb shell sdv_service_bundle start local-vm:com.sdv.oem.user_preferences.HmiService/default
 
     ```
-
-### Retrieving User Preferences service logs
-
-As opposed to the sample hmi_service & hvac_service, the User Preferences
-service does not log to standard output. To retrieve the logs use the following
-command
-
-```bash
-adb logcat -b main | grep sdv_user_preferences
-```
-
 ### Expected output
 
 #### HMI Service output

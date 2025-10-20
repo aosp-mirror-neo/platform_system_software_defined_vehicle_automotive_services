@@ -4,19 +4,19 @@
 
 package: "test.sdv.vpm"
 
-sdv_service_bundle {
+service_bundle {
     name: "VpmSystemClient"
 
     subscriber {
-        type:  "com.sdv.google.vpm.vehicle.VehicleStateChange"
+        message:  "com.sdv.google.vpm.vehicle.VehicleStateChange"
     }
 
     server {
-        interface: "com.sdv.google.vpm.client.PowerNotificationService"
+        service: "com.sdv.google.vpm.client.PowerNotificationService"
     }
 
     client {
-        interface: "com.sdv.google.vpm.VpmSystemService"
+        service: "com.sdv.google.vpm.VpmSystemService"
     }
 
 }

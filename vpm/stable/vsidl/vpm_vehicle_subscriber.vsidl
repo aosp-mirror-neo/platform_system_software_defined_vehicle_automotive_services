@@ -4,10 +4,10 @@
 
 package: "com.sdv.google.vpm.vehicle.client.subscriber"
 
-sdv_service_bundle {
+service_bundle {
     name: "VehicleStateSubscriber"
     # Subscriber to the vehicle state updates.
     subscriber {
-        type: "com.sdv.google.vpm.vehicle.VehicleStateChange"
+        message: "com.sdv.google.vpm.vehicle.VehicleStateChange"
     }
 }

@@ -4,53 +4,53 @@
 
 # This manifest will be used by a config-only APEX for the User Preferences.
 sdv_service_bundle_metadata {
-    # This name must match the agent's Bundle Name
-    name: "UserPreferencesServiceBundle"
-    version_number: 1
-    version_name: "1"
+  # This name must match the agent's Bundle Name
+  name: "UserPreferencesServiceBundle"
+  version_number: 1
+  version_name: "1"
 
-    native_library_path: "lib64/libuser_preferences_service_stable.so"
+  native_library_path: "lib64/libuser_preferences_service_stable.so"
 
-    orchestration_config_path: "etc/orchestration.textproto"
+  orchestration_config_path: "etc/user_preferences_service_bundle/orchestration.textproto"
 
-    access_control_list_policy_path: "etc/user_preferences_service_bundle/acl.textproto"
+  access_control_list_policy_path: "etc/user_preferences_service_bundle/acl.textproto"
 }
 
 sdv_service_bundle_metadata {
-    # This name must match the agent's Bundle Name
-    name: "HvacService"
-    version_number: 1
-    version_name: "1"
+  # This name must match the agent's Bundle Name
+  name: "HvacService"
+  version_number: 1
+  version_name: "1"
 
-    native_library_path: "lib64/libuser_preferences_service_stable.so"
+  native_library_path: "lib64/libsdv_hvac_service.so"
 
-    orchestration_config_path: "etc/orchestration.textproto"
+  orchestration_config_path: "etc/hvac_service/orchestration.textproto"
 
-    access_control_list_policy_path: "etc/hvac_service/acl.textproto"
+  access_control_list_policy_path: "etc/hvac_service/acl.textproto"
 }
 
 sdv_service_bundle_metadata {
-    # This name must match the agent's Bundle Name
-    name: "HmiService"
-    version_number: 1
-    version_name: "1"
+  # This name must match the agent's Bundle Name
+  name: "HmiService"
+  version_number: 1
+  version_name: "1"
 
-    native_library_path: "lib64/libuser_preferences_service_stable.so"
+  native_library_path: "lib64/libsdv_hmi_service.so"
 
-    orchestration_config_path: "etc/orchestration.textproto"
+  orchestration_config_path: "etc/hmi_service/orchestration.textproto"
 
-    access_control_list_policy_path: "etc/hmi_service/acl.textproto"
+  access_control_list_policy_path: "etc/hmi_service/acl.textproto"
 }
 
 sdv_service_bundle_metadata {
-    # This name must match the agent's Bundle Name
-    name: "CarSeatsService"
-    version_number: 1
-    version_name: "1"
+  # This name must match the agent's Bundle Name
+  name: "CarSeatsService"
+  version_number: 1
+  version_name: "1"
 
-    native_library_path: "lib64/libuser_preferences_service_stable.so"
+  native_library_path: "lib64/libsdv_car_seats_service.so"
 
-    orchestration_config_path: "etc/orchestration.textproto"
+  orchestration_config_path: "etc/car_seats_service/orchestration.textproto"
 
-    access_control_list_policy_path: "etc/car_seats_service/acl.textproto"
+  access_control_list_policy_path: "etc/car_seats_service/acl.textproto"
 }

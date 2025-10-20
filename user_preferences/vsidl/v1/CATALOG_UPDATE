@@ -3,3 +3,4 @@
 # proto-message: Catalog
 # This is the catalog update file for User Preferences
 output_path: "../../../samples/user_preferences/v1"
+vsidlc_gen_args: "--genrule"

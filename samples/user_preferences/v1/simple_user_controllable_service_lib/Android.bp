@@ -7,6 +7,7 @@ rust_library {
     rustlibs: [
         "libtokio",
         "libfutures",
+        "liblog_rust",
         "libprotobuf",
         "libitertools",
         "libsdv_comms_rs",

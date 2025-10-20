@@ -4,42 +4,42 @@
 
 package: "com.sdv.google.sample.combined"
 
-sdv_service_bundle {
+service_bundle {
     name: "SampleServiceWithAllDependencies"
 
     # Dependency on Diagnostics
     server {
-        interface: "com.sdv.google.diagnostics.data_item.DataItemService"
+        service: "com.sdv.google.diagnostics.data_item.DataItemService"
     }
 
     # Dependency on ConCal
     server {
-        interface: "com.sdv.google.concal.calib.client.CalibratableService"
+        service: "com.sdv.google.concal.calib.client.CalibratableService"
     }
 
     # Dependency on User Preferences.
     server {
-        interface: "com.sdv.google.user_preferences.view.ChangeNotifier"
+        service: "com.sdv.google.user_preferences.view.ChangeNotifier"
     }
 
     # Dependency on VPM.
     server {
-        interface: "com.sdv.google.vpm.VpmSystemService"
+        service: "com.sdv.google.vpm.VpmSystemService"
     }
 
     # Dependency on Health.
     server {
-        interface: "com.sdv.google.health.HealthMonitorRegistrationService"
+        service: "com.sdv.google.health.HealthMonitorRegistrationService"
     }
 
     # Dependency on Orchestration.
     server {
-        interface: "com.sdv.google.orchestrator.CustomStateService"
+        service: "com.sdv.google.orchestrator.CustomStateService"
     }
 
     # Dependency on Update Manager.
     server {
-        interface: "com.sdv.google.update_manager.client.UpdateManagerListenerService"
+        service: "com.sdv.google.update_manager.client.UpdateManagerListenerService"
     }
 
     diagnostics_declaration {

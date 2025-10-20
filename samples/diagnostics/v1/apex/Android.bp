@@ -13,6 +13,8 @@ apex {
     native_shared_libs: [
         "liboem_diagnostics_sample_with_data_item",
         "liboem_diagnostics_sample_with_event",
+        "libdiag_v1_provider1_sample",
+        "libdiag_v1_provider2_sample",
     ],
     prebuilts: [
         // SDV Manifest - used by SBR
@@ -37,6 +39,10 @@ apex {
         "com.sdv.oem.sample.diagnostics.linker_config",
         // ACL Policy
         "com.sdv.oem.sample.diagnostics.provider1.acl_policy",
+        // Orchestration config
+        "com.sdv.oem.sample.diagnostics.provider1.orchestration",
+        // ACL Policy
+        "com.sdv.oem.sample.diagnostics.provider2.acl_policy",
         // ACL Policy
         "com.sdv.oem.sample.diagnostics.sample_bundle.acl_policy",
     ],
@@ -101,6 +107,32 @@ prebuilt_etc {
     name: "com.sdv.oem.sample.diagnostics.provider1.acl_policy",
     src: "configuration/provider1/acl.textproto",
     sub_dir: "provider1",
+    filename: "acl.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// File with the Orchestration configuration of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.sdv.oem.sample.diagnostics.provider1.orchestration",
+    src: "configuration/provider1/orchestration.textproto",
+    sub_dir: "provider1",
+    filename: "orchestration.textproto",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// File with the ACL policy of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.sdv.oem.sample.diagnostics.provider2.acl_policy",
+    src: "configuration/provider2/acl.textproto",
+    sub_dir: "provider2",
     filename: "acl.textproto",
     // Disable direct installation of the manifest to one of the partitions.
     // The manifest will be used only inside of service bundles registry apexes.

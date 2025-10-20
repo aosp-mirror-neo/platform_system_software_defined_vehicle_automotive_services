@@ -1,0 +1,31 @@
+// Copyright 2025 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+}
+
+genrule {
+    name: "vsidlc_catalog_cuj_apex_020_apex_v2",
+    srcs: [
+        ":catalog_cuj_apex_020_apex_v2",
+        ":sdv_vsidl_v1_protos",
+        ":libdiagnostics_v1_protos",
+        ":diagnostics_v1_catalog_files",
+        ":sample_diagnostics_common_protos_bp",
+    ],
+    tools: [
+        "vsidlc",
+        "soong_zip",
+        "generate_zip_catalog",
+    ],
+    out: [
+        "generated_rs.zip",
+    ],
+    cmd: "bash $(location generate_zip_catalog) " +
+        "$(location vsidlc) " +
+        "$(location soong_zip) " +
+        "'$(locations :catalog_cuj_apex_020_apex_v2)' " +
+        "$(genDir) " +
+        "$(out)" +
+        " '$(locations :libdiagnostics_v1_protos) $(locations :diagnostics_v1_catalog_files) $(locations :sample_diagnostics_common_protos_bp)'",
+}

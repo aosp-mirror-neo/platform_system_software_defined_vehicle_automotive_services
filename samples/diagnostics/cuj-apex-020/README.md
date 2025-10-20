@@ -137,7 +137,7 @@ m com.sdv.google.sample.diagnostics_update.v2
 ```
 
 Build output, the built apex, should reside in:
-`${ROOT_DIR}/out/target/product/sdv_core_cf/product/apex/`
+`${ANDROID_BUILD_TOP}/out/target/product/sdv_core_cf/product/apex/`
 
 ### Update service bundle to v2
 
@@ -152,11 +152,11 @@ adb root
 ```
 
 ```bash
-adb mkdir data/mydir
+adb shell mkdir data/mydir
 ```
 
 ```bash
-adb push <${ROOT_DIR}/out/target/product/sdv_core_cf/product/apex/com.sdv.google.sample.diagnostics_update.v2.apex /data/mydir/
+adb push ${ANDROID_BUILD_TOP}/out/target/product/sdv_core_cf/product/apex/com.sdv.google.sample.diagnostics_update.v2.apex /data/mydir/
 ```
 
 ```bash
@@ -183,8 +183,16 @@ adb shell sdv_service_bundle start instance1:com.sdv.google.sample.diagnostics_u
 
 ### Inspect DiagnosticManager logcat output post update
 
-Proving that the updated diagnostics definition is detected TODO
+Inspect logs of diagnostic manager:
 
+```bash
+adb logcat | grep sdv_diagnostics_agent
+```
+
+Following log entries prove successful apex update, and correct diagnostics
+behaviour post update:
+
+```bash
 03-20 09:23:08.673 396 453 I sdv_diagnostics_agent: main: (TEST RELEVANT LOG)
 For start method of routine: tire_pressurization, typed response: DynamicMessage
 { descriptor: MessageDescriptor { .. }, fields: [Singular(DynamicOptional {
@@ -200,5 +208,4 @@ DynamicMessage { descriptor: MessageDescriptor { .. }, fields:
 Singular(DynamicOptional { elem: F32, value: Some(F32(68.0)) })],
 special_fields: SpecialFields { unknown_fields: UnknownFields { fields: None },
 cached_size: CachedSize { size: 0 } } }
-
-The logs above prove that TODO
+```

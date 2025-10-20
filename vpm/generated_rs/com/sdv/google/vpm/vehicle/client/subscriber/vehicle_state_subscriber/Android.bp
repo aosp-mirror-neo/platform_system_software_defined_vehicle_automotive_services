@@ -7,11 +7,21 @@ package {
     default_applicable_licenses: ["sdv_license"],
 }
 
+genrule {
+    name: "libsdv_mw_rs_com_sdv_google_vpm_vehicle_client_subscriber_vehicle_state_subscriber_rs",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_vpm_v1_catalog_files"],
+    out: [
+        "service_bundle.rs",
+    ],
+    cmd: "$(location extract_catalog_zip) $(in) --service-bundle com.sdv.google.vpm.vehicle.client.subscriber VehicleStateSubscriber",
+}
+
 rust_library {
     name: "libsdv_mw_rs_com_sdv_google_vpm_vehicle_client_subscriber_vehicle_state_subscriber",
     crate_name: "sdv_mw_rs_com_sdv_google_vpm_vehicle_client_subscriber_vehicle_state_subscriber",
     srcs: [
-        "service_bundle.rs",
+        ":libsdv_mw_rs_com_sdv_google_vpm_vehicle_client_subscriber_vehicle_state_subscriber_rs{service_bundle.rs}",
     ],
     rustlibs: [
         "libprotobuf",

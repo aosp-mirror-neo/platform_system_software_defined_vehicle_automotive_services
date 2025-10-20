@@ -7,11 +7,21 @@ package {
     default_applicable_licenses: ["sdv_license"],
 }
 
+genrule {
+    name: "libsdv_mw_rs_test_sdv_vpm_vpm_system_client_rs",
+    tools: ["extract_catalog_zip"],
+    srcs: [":vsidlc_vpm_v1_catalog_files"],
+    out: [
+        "service_bundle.rs",
+    ],
+    cmd: "$(location extract_catalog_zip) $(in) --service-bundle test.sdv.vpm VpmSystemClient",
+}
+
 rust_library {
     name: "libsdv_mw_rs_test_sdv_vpm_vpm_system_client",
     crate_name: "sdv_mw_rs_test_sdv_vpm_vpm_system_client",
     srcs: [
-        "service_bundle.rs",
+        ":libsdv_mw_rs_test_sdv_vpm_vpm_system_client_rs{service_bundle.rs}",
     ],
     rustlibs: [
         "libprotobuf",

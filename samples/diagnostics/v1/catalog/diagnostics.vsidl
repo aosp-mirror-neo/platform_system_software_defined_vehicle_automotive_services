@@ -4,20 +4,20 @@
 
 package: "com.sdv.oem.sample.diagnostics"
 
-sdv_service_bundle {
+service_bundle {
     name: "DiagnosticsProvider1"
 
     server {
-        interface: "com.sdv.google.diagnostics.data_item.DataItemService"
+        service: "com.sdv.google.diagnostics.data_item.DataItemService"
     }
     server {
-        interface: "com.sdv.google.diagnostics.routine_control.RoutineControlService"
+        service: "com.sdv.google.diagnostics.routine_control.RoutineControlService"
     }
     server {
-        interface: "com.sdv.google.diagnostics.io_control.IoControlService"
+        service: "com.sdv.google.diagnostics.io_control.IoControlService"
     }
     server {
-        interface: "com.sdv.google.diagnostics.fault.FaultListenerService"
+        service: "com.sdv.google.diagnostics.fault.FaultListenerService"
     }
 
     diagnostics_declaration {
@@ -58,7 +58,7 @@ sdv_service_bundle {
     }
 }
 
-sdv_service_bundle {
+service_bundle {
     name: "DiagnosticsProvider2"
 
     diagnostics_declaration {
@@ -69,12 +69,12 @@ sdv_service_bundle {
     }
 }
 
-sdv_service_bundle {
+service_bundle {
     name: "DiagnosticsSampleWithDataItem"
 
     # Declare server of a DataItemService
     server {
-        interface: "com.sdv.google.diagnostics.data_item.DataItemService"
+        service: "com.sdv.google.diagnostics.data_item.DataItemService"
     }
 
     diagnostics_declaration {
@@ -86,21 +86,21 @@ sdv_service_bundle {
     }
 }
 
-sdv_service_bundle {
+service_bundle {
     name: "DiagnosticsSampleWithEvent"
 
     publisher {
-        type: "com.sdv.google.diagnostics.event.EnableCondition"
+        message: "com.sdv.google.diagnostics.event.EnableCondition"
         service_unit_name: "enable-conditions"
     }
 
     publisher {
-        type: "com.sdv.google.diagnostics.event.OperationCycle"
+        message: "com.sdv.google.diagnostics.event.OperationCycle"
         service_unit_name: "operation-cycles"
     }
 
     server {
-        interface: "com.sdv.google.diagnostics.fault.FaultListenerService"
+        service: "com.sdv.google.diagnostics.fault.FaultListenerService"
         service_unit_name: "overheating-fault"
     }
 
@@ -114,77 +114,77 @@ sdv_service_bundle {
     }
 }
 
-sdv_service_bundle {
+service_bundle {
     name: "DiagnosticsSampleWithEcuReset"
 
     server {
-        interface: "com.sdv.google.diagnostics.ecu_reset.EcuResetService"
+        service: "com.sdv.google.diagnostics.ecu_reset.EcuResetService"
     }
 
     client {
-        interface: "com.sdv.google.diagnostics.DiagnosticsManagerService"
+        service: "com.sdv.google.diagnostics.DiagnosticsManagerService"
     }
 }
 
-sdv_service_bundle {
+service_bundle {
     name: "DiagnosticsSampleWithAuthentication"
 
     server {
-        interface: "com.sdv.google.diagnostics.authentication.AuthenticationService"
+        service: "com.sdv.google.diagnostics.authentication.AuthenticationService"
     }
 
     client {
-        interface: "com.sdv.google.diagnostics.DiagnosticsManagerService"
+        service: "com.sdv.google.diagnostics.DiagnosticsManagerService"
     }
 }
 
-sdv_service_bundle {
+service_bundle {
     name: "DiagnosticsSampleWithSecurityAccess"
 
     server {
-        interface: "com.sdv.google.diagnostics.security_access.SecurityAccessService"
+        service: "com.sdv.google.diagnostics.security_access.SecurityAccessService"
     }
 
     client {
-        interface: "com.sdv.google.diagnostics.DiagnosticsManagerService"
+        service: "com.sdv.google.diagnostics.DiagnosticsManagerService"
     }
 }
 
-sdv_service_bundle {
+service_bundle {
     name: "DiagnosticsSampleWithFileTransfer"
 
     server {
-        interface: "com.sdv.google.diagnostics.file_transfer.FileTransferService"
+        service: "com.sdv.google.diagnostics.file_transfer.FileTransferService"
     }
 
     client {
-        interface: "com.sdv.google.diagnostics.DiagnosticsManagerService"
+        service: "com.sdv.google.diagnostics.DiagnosticsManagerService"
     }
 }
 
-sdv_service_bundle {
+service_bundle {
     name: "DiagnosticsGenerationTestWithManyServersAndHandlers"
 
     server {
-        interface: "com.sdv.google.diagnostics.data_item.DataItemService"
+        service: "com.sdv.google.diagnostics.data_item.DataItemService"
     }
     server {
-        interface: "com.sdv.google.diagnostics.routine_control.RoutineControlService"
+        service: "com.sdv.google.diagnostics.routine_control.RoutineControlService"
     }
     server {
-        interface: "com.sdv.google.diagnostics.io_control.IoControlService"
+        service: "com.sdv.google.diagnostics.io_control.IoControlService"
     }
     server {
-        interface: "com.sdv.google.diagnostics.fault.FaultListenerService"
+        service: "com.sdv.google.diagnostics.fault.FaultListenerService"
     }
     server {
-        interface: "com.sdv.google.diagnostics.file_transfer.FileTransferService"
+        service: "com.sdv.google.diagnostics.file_transfer.FileTransferService"
     }
     server {
-        interface: "com.sdv.google.diagnostics.security_access.SecurityAccessService"
+        service: "com.sdv.google.diagnostics.security_access.SecurityAccessService"
     }
     server {
-        interface: "com.sdv.google.diagnostics.authentication.AuthenticationService"
+        service: "com.sdv.google.diagnostics.authentication.AuthenticationService"
     }
 
     diagnostics_declaration {
@@ -223,11 +223,11 @@ sdv_service_bundle {
     }
 }
 
-sdv_service_bundle {
+service_bundle {
     name: "DiagnosticsGenerationTestForEventNameSupport"
 
     server {
-        interface: "com.sdv.google.diagnostics.fault.FaultListenerService"
+        service: "com.sdv.google.diagnostics.fault.FaultListenerService"
     }
 
     diagnostics_declaration {

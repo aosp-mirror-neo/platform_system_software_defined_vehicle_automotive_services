@@ -24,18 +24,18 @@ rust_protobuf {
 }
 
 filegroup {
-    name: "libuser_preferences_protos_stable",
-    srcs: [
-        "*.proto",
-    ],
-}
-
-filegroup {
     name: "user_preferences_v1_catalog_files",
     srcs: [
         ":libuser_preferences_protos_stable",
         "*.vsidl",
         "Android.bp",
+    ],
+}
+
+filegroup {
+    name: "libuser_preferences_protos_stable",
+    srcs: [
+        "*.proto",
     ],
 }
 
