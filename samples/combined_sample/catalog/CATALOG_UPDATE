@@ -12,3 +12,4 @@ dependency_catalog_paths: "../../../../core_services/orchestration/engine/stable
 dependency_catalog_paths: "../../../../core_services/update_manager/catalog"
 prebuilts_output_path: "../generated/Android.bp"
 prebuilts_filegroup: "combined_sample_v1_catalog_files"
+vsidlc_gen_args: "--genrule"
