@@ -9,16 +9,6 @@ package: "com.sdv.google.vpm"
 service_bundle {
     name: "VpmSystemServiceBundle"
 
-    # Unit type for the vehicle state change.
-    unit_type {
-        type: "vehicle.VehicleStateChange"
-    }
-
-    # Unit type for the VPM system service.
-    unit_type {
-        type: "VpmSystemService"
-    }
-
     # OEM-facing RPC server that allows the OEM to set the vehicle state [Not to third party applications and services].
     server {
       service: "com.sdv.google.vpm.VpmSystemService"

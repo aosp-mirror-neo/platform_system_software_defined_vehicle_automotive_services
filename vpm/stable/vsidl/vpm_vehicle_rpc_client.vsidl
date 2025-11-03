@@ -7,11 +7,6 @@ package: "com.sdv.google.vpm.client"
 service_bundle {
     name: "VpmSystemClient"
 
-    # Unit type for power notification service.
-    unit_type {
-        type: "PowerNotificationService"
-    }
-
     # Client for VPM system interface.
     client {
         service: "com.sdv.google.vpm.VpmSystemService"
