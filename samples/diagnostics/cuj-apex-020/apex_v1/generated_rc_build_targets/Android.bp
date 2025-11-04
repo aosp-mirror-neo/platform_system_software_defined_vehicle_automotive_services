@@ -5,6 +5,34 @@
 //! This file was generated using the following command:
 //! vsidl_rc_generator --catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/samples/diagnostics/cuj-apex-020/apex_v1 --output-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/samples/diagnostics/cuj-apex-020/apex_v1/generated_rc_build_targets/Android.bp --variant runtime-config-prebuilts  --dependency-catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1 --dependency-catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/samples/diagnostics/cuj-apex-020/common/proto    --filegroup libdiagnostics_update_sample_catalog_files
 
+prebuilt_etc {
+    name: "com.sdv.google.sample.diagnostics_update-vsidl-config.binpb",
+    filename: "vsidl-config.binpb",
+    sub_dir: "vsidl_provider",
+    src: ":generate_vsidl_files_single_apex_com.sdv.google.sample.diagnostics_update{vsidl-config.binpb}",
+    installable: false,
+}
+
+genrule {
+    name: "generate_vsidl_files_single_apex_com.sdv.google.sample.diagnostics_update",
+    tools: ["vsidl_rc_generator"],
+    srcs: [
+        ":sdv_v1_catalog_files",
+        ":sdv_vsidl_v1_protos",
+        ":libdiagnostics_update_sample_catalog_files",
+    ],
+    cmd: "$(location vsidl_rc_generator) " +
+        " --vsidl-path  system/software_defined_vehicle/core_services/vsidl/protos" +
+        " --catalog-path system/software_defined_vehicle/automotive_services/samples/diagnostics/cuj-apex-020/apex_v1" +
+        " --output-path $(genDir) " +
+        " --dependency-catalog-path system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1" +
+        " --dependency-catalog-path system/software_defined_vehicle/automotive_services/samples/diagnostics/cuj-apex-020/common/proto" +
+        " --package-name com.sdv.google.sample.diagnostics_update",
+    out: [
+        "vsidl-config.binpb",
+    ],
+}
+
 // Pre-compiled file with Diagnostics declaration for com.sdv.google.sample.diagnostics_update.UpdatableDiagnosticsBundle.
 //
 // Usage: add the following line to com.sdv.google.sample.diagnostics_update.UpdatableDiagnosticsBundle manifest declaration:
@@ -19,6 +47,7 @@ prebuilt_etc {
 
 // Pre-compiled file with VSIDL schemas for com.sdv.google.sample.diagnostics_update.UpdatableDiagnosticsBundle.
 //
+// DEPRECATED: you should use "com.sdv.google.sample.diagnostics_update-vsidl-config.binpb" prebuilt_etc instead
 // Usage: add the following line to com.sdv.google.sample.diagnostics_update.UpdatableDiagnosticsBundle manifest declaration:
 // + vsidl_schemas_path: "etc/vsidl_provider/UpdatableDiagnosticsBundle-vsidl-config.binpb"
 prebuilt_etc {
