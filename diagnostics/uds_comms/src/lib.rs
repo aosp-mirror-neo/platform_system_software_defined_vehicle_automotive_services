@@ -9,3 +9,6 @@ pub mod models;
 
 /// Transport layer abstractions for UDS communication.
 pub mod traits;
+
+/// DoIP (Diagnostics over IP) transport layer implementation.
+pub mod doip;

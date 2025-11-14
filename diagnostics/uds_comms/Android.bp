@@ -16,10 +16,12 @@ rust_defaults {
         // keep-sorted start
         "libautomotive_diag",
         "libbytes",
+        "libdoip_definitions",
         "liblog_rust",
         "libsdv_comms_rs",
         "libsdv_rs",
         "libthiserror",
+        "libtokio_util",
         "libtower",
         // keep-sorted end
     ],
@@ -46,7 +48,9 @@ rust_test {
     defaults: [
         "sdv_uds_comms@rust_defaults",
     ],
-    rustlibs: [],
+    rustlibs: [
+        "libgoogletest_rust",
+    ],
     test_options: {
         unit_test: true,
     },
