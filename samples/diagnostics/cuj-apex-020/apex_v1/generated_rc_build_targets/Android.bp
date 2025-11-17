@@ -5,6 +5,11 @@
 //! This file was generated using the following command:
 //! vsidl_rc_generator --catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/samples/diagnostics/cuj-apex-020/apex_v1 --output-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/samples/diagnostics/cuj-apex-020/apex_v1/generated_rc_build_targets/Android.bp --variant runtime-config-prebuilts  --dependency-catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1 --dependency-catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/samples/diagnostics/cuj-apex-020/common/proto    --filegroup libdiagnostics_update_sample_catalog_files
 
+// Pre-compiled file with VSIDL schemas for com.sdv.google.sample.diagnostics_update.
+//
+// Usage: add the following line to com.sdv.google.sample.diagnostics_update manifest declaration
+// for each service bundle that is using this shared file:
+// + vsidl_schemas_path: "etc/vsidl_provider/vsidl-config.binpb"
 prebuilt_etc {
     name: "com.sdv.google.sample.diagnostics_update-vsidl-config.binpb",
     filename: "vsidl-config.binpb",
