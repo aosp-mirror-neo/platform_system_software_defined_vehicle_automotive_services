@@ -1,0 +1,57 @@
+// Copyright 2025 Google LLC
+
+package {
+    default_applicable_licenses: ["sdv_license"],
+    default_team: "trendy_team_automotive",
+}
+
+rust_defaults {
+    name: "sdv_uds_comms@rust_defaults",
+    srcs: ["src/lib.rs"],
+    defaults: [
+        "sdv@rust_defaults",
+        "sdv_tracing@rust_defaults",
+    ],
+    rustlibs: [
+        // keep-sorted start
+        "libautomotive_diag",
+        "libbytes",
+        "liblog_rust",
+        "libsdv_comms_rs",
+        "libsdv_rs",
+        "libthiserror",
+        "libtower",
+        // keep-sorted end
+    ],
+    proc_macros: [
+        "libasync_trait",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
+    edition: "2021",
+    lints: "android",
+}
+
+rust_library {
+    name: "libsdv_uds_comms",
+    crate_name: "sdv_uds_comms",
+    defaults: [
+        "sdv_uds_comms@rust_defaults",
+    ],
+    product_available: true,
+    vendor_available: true,
+}
+
+rust_test {
+    name: "sdv_uds_comms_tests",
+    defaults: [
+        "sdv_uds_comms@rust_defaults",
+    ],
+    rustlibs: [],
+    test_options: {
+        unit_test: true,
+    },
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+}
