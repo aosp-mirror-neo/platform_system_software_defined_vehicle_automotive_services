@@ -10,7 +10,7 @@ use std::pin::Pin;
 use tower::Service;
 
 /// A boxed future that can be sent across threads.
-type BoxFuture<T, E> = Pin<Box<dyn Future<Output = Result<T, E>> + Send + 'static>>;
+pub type BoxFuture<T, E> = Pin<Box<dyn Future<Output = Result<T, E>> + Send + 'static>>;
 
 /// An abstraction over a transport mechanism for establishing and managing
 /// an outbound channel for sending and receiving message payloads.

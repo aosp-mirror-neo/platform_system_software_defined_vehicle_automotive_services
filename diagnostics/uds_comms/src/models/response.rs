@@ -1,6 +1,6 @@
 // Copyright 2025 Google LLC
 
-use automotive_diag::uds::{UdsCommand as UdsService, UdsError as NegativeResponseCode};
+pub use automotive_diag::uds::{UdsCommand as UdsService, UdsError as NegativeResponseCode};
 use std::convert::TryFrom;
 
 const NEGATIVE_RESPONSE_SID: u8 = 0x7F;
@@ -140,8 +140,8 @@ mod tests {
     #[test]
     fn test_positive_response_serialization_deserialization() {
         let response = UdsResponse::PositiveResponse {
-            service: UdsService::ReadDataByIdentifier,
-            payload: vec![0xF1, 0x90, 0xAA, 0xBB], // DIDs F190, AABB
+            service: UdsService::ReadDataByIdentifier, // SID 0x22
+            payload: vec![0xF1, 0x90, 0xAA, 0xBB],     // DIDs 0xF190, 0xAABB
         };
         let bytes: Vec<u8> = response.clone().into();
         // Response SID for 0x22 is 0x62

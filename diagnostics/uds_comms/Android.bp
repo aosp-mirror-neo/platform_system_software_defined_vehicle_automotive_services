@@ -17,10 +17,12 @@ rust_defaults {
         "libautomotive_diag",
         "libbytes",
         "libdoip_definitions",
+        "libfutures",
         "liblog_rust",
         "libsdv_comms_rs",
         "libsdv_rs",
         "libthiserror",
+        "libtokio",
         "libtokio_util",
         "libtower",
         // keep-sorted end
