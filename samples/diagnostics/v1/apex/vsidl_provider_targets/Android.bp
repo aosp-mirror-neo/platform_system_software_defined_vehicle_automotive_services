@@ -5,6 +5,11 @@
 //! This file was generated using the following command:
 //! vsidl_rc_generator --catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/samples/diagnostics/v1/catalog --output-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/samples/diagnostics/v1/apex/vsidl_provider_targets/Android.bp --variant runtime-config-prebuilts  --dependency-catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1    --filegroup libdiagnostics_v1_sample_catalog_files
 
+// Pre-compiled file with VSIDL schemas for com.sdv.oem.diagnostics.
+//
+// Usage: add the following line to com.sdv.oem.diagnostics manifest declaration
+// for each service bundle that is using this shared file:
+// + vsidl_schemas_path: "etc/vsidl_provider/vsidl-config.binpb"
 prebuilt_etc {
     name: "com.sdv.oem.diagnostics-vsidl-config.binpb",
     filename: "vsidl-config.binpb",
@@ -32,6 +37,11 @@ genrule {
     ],
 }
 
+// Pre-compiled file with VSIDL schemas for com.sdv.oem.sample.diagnostics.
+//
+// Usage: add the following line to com.sdv.oem.sample.diagnostics manifest declaration
+// for each service bundle that is using this shared file:
+// + vsidl_schemas_path: "etc/vsidl_provider/vsidl-config.binpb"
 prebuilt_etc {
     name: "com.sdv.oem.sample.diagnostics-vsidl-config.binpb",
     filename: "vsidl-config.binpb",
