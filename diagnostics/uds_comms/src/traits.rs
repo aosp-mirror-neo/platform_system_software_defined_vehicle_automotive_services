@@ -6,6 +6,7 @@ use crate::models::response::UdsResponse;
 use async_trait::async_trait;
 use std::error::Error;
 use std::future::Future;
+use std::net::SocketAddr;
 use std::pin::Pin;
 use tower::Service;
 
@@ -56,7 +57,7 @@ where
 #[async_trait]
 pub trait UdsRequestHandler: Send + Sync {
     /// The error type that can be returned when handling a request.
-    type Error: Error + Send + 'static;
+    type Error: Error + Send + Sync + 'static;
 
     /// Handles an incoming request and returns a response.
     ///
@@ -66,4 +67,10 @@ pub trait UdsRequestHandler: Send + Sync {
     /// # Returns
     /// A `Result` containing the raw response as bytes or an error.
     async fn handle_request(&self, request: UdsRequest) -> Result<UdsResponse, Self::Error>;
+
+    /// Callback for the handler when a client disconnects.
+    async fn on_disconnect(&self, client_addr: SocketAddr);
+
+    /// Callback for the handler when a client connection fails.
+    async fn on_connection_failure(&self, client_addr: SocketAddr, error: UdsCommsError);
 }

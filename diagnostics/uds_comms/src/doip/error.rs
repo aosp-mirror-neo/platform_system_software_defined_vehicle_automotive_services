@@ -30,6 +30,9 @@ pub enum DoipTransportError {
     /// Received a negative acknowledgement for a diagnostic message.
     #[error("Received DiagnosticMessageNack: {0:?}")]
     DiagnosticNack(DiagnosticMessageNack),
+    /// A diagnostic message was received for a different logical address.
+    #[error("Received DiagnosticMessage for wrong target address 0x{1:04X}, expected 0x{0:04X}")]
+    WrongTargetAddress(u16, u16),
     /// Underlying I/O error.
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
