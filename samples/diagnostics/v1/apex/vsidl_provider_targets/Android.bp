@@ -5,6 +5,70 @@
 //! This file was generated using the following command:
 //! vsidl_rc_generator --catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/samples/diagnostics/v1/catalog --output-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/samples/diagnostics/v1/apex/vsidl_provider_targets/Android.bp --variant runtime-config-prebuilts  --dependency-catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1    --filegroup libdiagnostics_v1_sample_catalog_files
 
+// Pre-compiled file with VSIDL schemas for com.sdv.oem.diagnostics.
+//
+// Usage: add the following line to com.sdv.oem.diagnostics manifest declaration
+// for each service bundle that is using this shared file:
+// + vsidl_schemas_path: "etc/vsidl_provider/vsidl-config.binpb"
+prebuilt_etc {
+    name: "com.sdv.oem.diagnostics-vsidl-config.binpb",
+    filename: "vsidl-config.binpb",
+    sub_dir: "vsidl_provider",
+    src: ":generate_vsidl_files_single_apex_com.sdv.oem.diagnostics{vsidl-config.binpb}",
+    installable: false,
+}
+
+genrule {
+    name: "generate_vsidl_files_single_apex_com.sdv.oem.diagnostics",
+    tools: ["vsidl_rc_generator"],
+    srcs: [
+        ":sdv_v1_catalog_files",
+        ":sdv_vsidl_v1_protos",
+        ":libdiagnostics_v1_sample_catalog_files",
+    ],
+    cmd: "$(location vsidl_rc_generator) " +
+        " --vsidl-path  system/software_defined_vehicle/core_services/vsidl/protos" +
+        " --catalog-path system/software_defined_vehicle/automotive_services/samples/diagnostics/v1/catalog" +
+        " --output-path $(genDir) " +
+        " --dependency-catalog-path system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1" +
+        " --package-name com.sdv.oem.diagnostics",
+    out: [
+        "vsidl-config.binpb",
+    ],
+}
+
+// Pre-compiled file with VSIDL schemas for com.sdv.oem.sample.diagnostics.
+//
+// Usage: add the following line to com.sdv.oem.sample.diagnostics manifest declaration
+// for each service bundle that is using this shared file:
+// + vsidl_schemas_path: "etc/vsidl_provider/vsidl-config.binpb"
+prebuilt_etc {
+    name: "com.sdv.oem.sample.diagnostics-vsidl-config.binpb",
+    filename: "vsidl-config.binpb",
+    sub_dir: "vsidl_provider",
+    src: ":generate_vsidl_files_single_apex_com.sdv.oem.sample.diagnostics{vsidl-config.binpb}",
+    installable: false,
+}
+
+genrule {
+    name: "generate_vsidl_files_single_apex_com.sdv.oem.sample.diagnostics",
+    tools: ["vsidl_rc_generator"],
+    srcs: [
+        ":sdv_v1_catalog_files",
+        ":sdv_vsidl_v1_protos",
+        ":libdiagnostics_v1_sample_catalog_files",
+    ],
+    cmd: "$(location vsidl_rc_generator) " +
+        " --vsidl-path  system/software_defined_vehicle/core_services/vsidl/protos" +
+        " --catalog-path system/software_defined_vehicle/automotive_services/samples/diagnostics/v1/catalog" +
+        " --output-path $(genDir) " +
+        " --dependency-catalog-path system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1" +
+        " --package-name com.sdv.oem.sample.diagnostics",
+    out: [
+        "vsidl-config.binpb",
+    ],
+}
+
 // Pre-compiled file with Diagnostics declaration for com.sdv.oem.sample.diagnostics.DiagnosticsProvider1.
 //
 // Usage: add the following line to com.sdv.oem.sample.diagnostics.DiagnosticsProvider1 manifest declaration:
@@ -19,6 +83,7 @@ prebuilt_etc {
 
 // Pre-compiled file with VSIDL schemas for com.sdv.oem.sample.diagnostics.DiagnosticsProvider1.
 //
+// DEPRECATED: you should use "com.sdv.oem.sample.diagnostics-vsidl-config.binpb" prebuilt_etc instead
 // Usage: add the following line to com.sdv.oem.sample.diagnostics.DiagnosticsProvider1 manifest declaration:
 // + vsidl_schemas_path: "etc/vsidl_provider/DiagnosticsProvider1-vsidl-config.binpb"
 prebuilt_etc {
@@ -64,6 +129,7 @@ prebuilt_etc {
 
 // Pre-compiled file with VSIDL schemas for com.sdv.oem.sample.diagnostics.DiagnosticsProvider2.
 //
+// DEPRECATED: you should use "com.sdv.oem.sample.diagnostics-vsidl-config.binpb" prebuilt_etc instead
 // Usage: add the following line to com.sdv.oem.sample.diagnostics.DiagnosticsProvider2 manifest declaration:
 // + vsidl_schemas_path: "etc/vsidl_provider/DiagnosticsProvider2-vsidl-config.binpb"
 prebuilt_etc {
@@ -109,6 +175,7 @@ prebuilt_etc {
 
 // Pre-compiled file with VSIDL schemas for com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithDataItem.
 //
+// DEPRECATED: you should use "com.sdv.oem.sample.diagnostics-vsidl-config.binpb" prebuilt_etc instead
 // Usage: add the following line to com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithDataItem manifest declaration:
 // + vsidl_schemas_path: "etc/vsidl_provider/DiagnosticsSampleWithDataItem-vsidl-config.binpb"
 prebuilt_etc {
@@ -154,6 +221,7 @@ prebuilt_etc {
 
 // Pre-compiled file with VSIDL schemas for com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithEvent.
 //
+// DEPRECATED: you should use "com.sdv.oem.sample.diagnostics-vsidl-config.binpb" prebuilt_etc instead
 // Usage: add the following line to com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithEvent manifest declaration:
 // + vsidl_schemas_path: "etc/vsidl_provider/DiagnosticsSampleWithEvent-vsidl-config.binpb"
 prebuilt_etc {
@@ -187,6 +255,7 @@ genrule {
 
 // Pre-compiled file with VSIDL schemas for com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithEcuReset.
 //
+// DEPRECATED: you should use "com.sdv.oem.sample.diagnostics-vsidl-config.binpb" prebuilt_etc instead
 // Usage: add the following line to com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithEcuReset manifest declaration:
 // + vsidl_schemas_path: "etc/vsidl_provider/DiagnosticsSampleWithEcuReset-vsidl-config.binpb"
 prebuilt_etc {
@@ -219,6 +288,7 @@ genrule {
 
 // Pre-compiled file with VSIDL schemas for com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithAuthentication.
 //
+// DEPRECATED: you should use "com.sdv.oem.sample.diagnostics-vsidl-config.binpb" prebuilt_etc instead
 // Usage: add the following line to com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithAuthentication manifest declaration:
 // + vsidl_schemas_path: "etc/vsidl_provider/DiagnosticsSampleWithAuthentication-vsidl-config.binpb"
 prebuilt_etc {
@@ -251,6 +321,7 @@ genrule {
 
 // Pre-compiled file with VSIDL schemas for com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithSecurityAccess.
 //
+// DEPRECATED: you should use "com.sdv.oem.sample.diagnostics-vsidl-config.binpb" prebuilt_etc instead
 // Usage: add the following line to com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithSecurityAccess manifest declaration:
 // + vsidl_schemas_path: "etc/vsidl_provider/DiagnosticsSampleWithSecurityAccess-vsidl-config.binpb"
 prebuilt_etc {
@@ -283,6 +354,7 @@ genrule {
 
 // Pre-compiled file with VSIDL schemas for com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithFileTransfer.
 //
+// DEPRECATED: you should use "com.sdv.oem.sample.diagnostics-vsidl-config.binpb" prebuilt_etc instead
 // Usage: add the following line to com.sdv.oem.sample.diagnostics.DiagnosticsSampleWithFileTransfer manifest declaration:
 // + vsidl_schemas_path: "etc/vsidl_provider/DiagnosticsSampleWithFileTransfer-vsidl-config.binpb"
 prebuilt_etc {
@@ -327,6 +399,7 @@ prebuilt_etc {
 
 // Pre-compiled file with VSIDL schemas for com.sdv.oem.sample.diagnostics.DiagnosticsGenerationTestWithManyServersAndHandlers.
 //
+// DEPRECATED: you should use "com.sdv.oem.sample.diagnostics-vsidl-config.binpb" prebuilt_etc instead
 // Usage: add the following line to com.sdv.oem.sample.diagnostics.DiagnosticsGenerationTestWithManyServersAndHandlers manifest declaration:
 // + vsidl_schemas_path: "etc/vsidl_provider/DiagnosticsGenerationTestWithManyServersAndHandlers-vsidl-config.binpb"
 prebuilt_etc {
@@ -372,6 +445,7 @@ prebuilt_etc {
 
 // Pre-compiled file with VSIDL schemas for com.sdv.oem.sample.diagnostics.DiagnosticsGenerationTestForEventNameSupport.
 //
+// DEPRECATED: you should use "com.sdv.oem.sample.diagnostics-vsidl-config.binpb" prebuilt_etc instead
 // Usage: add the following line to com.sdv.oem.sample.diagnostics.DiagnosticsGenerationTestForEventNameSupport manifest declaration:
 // + vsidl_schemas_path: "etc/vsidl_provider/DiagnosticsGenerationTestForEventNameSupport-vsidl-config.binpb"
 prebuilt_etc {
@@ -405,6 +479,7 @@ genrule {
 
 // Pre-compiled file with VSIDL schemas for com.sdv.oem.diagnostics.DiagnosticsAgent.
 //
+// DEPRECATED: you should use "com.sdv.oem.diagnostics-vsidl-config.binpb" prebuilt_etc instead
 // Usage: add the following line to com.sdv.oem.diagnostics.DiagnosticsAgent manifest declaration:
 // + vsidl_schemas_path: "etc/vsidl_provider/DiagnosticsAgent-vsidl-config.binpb"
 prebuilt_etc {

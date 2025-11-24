@@ -5,6 +5,44 @@
 //! This file was generated using the following command:
 //! vsidl_rc_generator --catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/samples/combined_sample/catalog --output-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/samples/combined_sample/generated/Android.bp --variant runtime-config-prebuilts  --dependency-catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/concal/catalog --dependency-catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1 --dependency-catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/user_preferences/vsidl/v1 --dependency-catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/automotive_services/vpm/stable/vsidl --dependency-catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/core_services/health_monitor/catalog --dependency-catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/core_services/orchestration/engine/stable/vsidl --dependency-catalog-path ${ANDROID_BUILD_TOP}/system/software_defined_vehicle/core_services/update_manager/catalog    --filegroup combined_sample_v1_catalog_files
 
+// Pre-compiled file with VSIDL schemas for com.sdv.google.sample.combined.
+//
+// Usage: add the following line to com.sdv.google.sample.combined manifest declaration
+// for each service bundle that is using this shared file:
+// + vsidl_schemas_path: "etc/vsidl_provider/vsidl-config.binpb"
+prebuilt_etc {
+    name: "com.sdv.google.sample.combined-vsidl-config.binpb",
+    filename: "vsidl-config.binpb",
+    sub_dir: "vsidl_provider",
+    src: ":generate_vsidl_files_single_apex_com.sdv.google.sample.combined{vsidl-config.binpb}",
+    installable: false,
+}
+
+genrule {
+    name: "generate_vsidl_files_single_apex_com.sdv.google.sample.combined",
+    tools: ["vsidl_rc_generator"],
+    srcs: [
+        ":sdv_v1_catalog_files",
+        ":sdv_vsidl_v1_protos",
+        ":combined_sample_v1_catalog_files",
+    ],
+    cmd: "$(location vsidl_rc_generator) " +
+        " --vsidl-path  system/software_defined_vehicle/core_services/vsidl/protos" +
+        " --catalog-path system/software_defined_vehicle/automotive_services/samples/combined_sample/catalog" +
+        " --output-path $(genDir) " +
+        " --dependency-catalog-path system/software_defined_vehicle/automotive_services/concal/catalog" +
+        " --dependency-catalog-path system/software_defined_vehicle/automotive_services/diagnostics/vsidl/v1" +
+        " --dependency-catalog-path system/software_defined_vehicle/automotive_services/user_preferences/vsidl/v1" +
+        " --dependency-catalog-path system/software_defined_vehicle/automotive_services/vpm/stable/vsidl" +
+        " --dependency-catalog-path system/software_defined_vehicle/core_services/health_monitor/catalog" +
+        " --dependency-catalog-path system/software_defined_vehicle/core_services/orchestration/engine/stable/vsidl" +
+        " --dependency-catalog-path system/software_defined_vehicle/core_services/update_manager/catalog" +
+        " --package-name com.sdv.google.sample.combined",
+    out: [
+        "vsidl-config.binpb",
+    ],
+}
+
 // Pre-compiled file with Diagnostics declaration for com.sdv.google.sample.combined.SampleServiceWithAllDependencies.
 //
 // Usage: add the following line to com.sdv.google.sample.combined.SampleServiceWithAllDependencies manifest declaration:
@@ -19,6 +57,7 @@ prebuilt_etc {
 
 // Pre-compiled file with VSIDL schemas for com.sdv.google.sample.combined.SampleServiceWithAllDependencies.
 //
+// DEPRECATED: you should use "com.sdv.google.sample.combined-vsidl-config.binpb" prebuilt_etc instead
 // Usage: add the following line to com.sdv.google.sample.combined.SampleServiceWithAllDependencies manifest declaration:
 // + vsidl_schemas_path: "etc/vsidl_provider/SampleServiceWithAllDependencies-vsidl-config.binpb"
 prebuilt_etc {
