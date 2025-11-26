@@ -1,7 +1,7 @@
 // Copyright 2024 Google LLC
 //! Vehicle Mode and Power Management Agent.
 
-use google_sdv_vpm_aidl::binder;
+use google_sdv_vpm::binder;
 use log::error;
 use sdv_vpm::Agent;
 use tokio::task;

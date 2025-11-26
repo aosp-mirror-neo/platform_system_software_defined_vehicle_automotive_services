@@ -4,7 +4,7 @@
 mod setup;
 mod tests {
     use crate::setup::TestContext;
-    use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
+    use google_sdv_vpm::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
     use sdv_vpm_api::power::PowerStateReport;
     use sdv_vpm_api::vehicle::VpmVehicleState;
     use sdv_vpm_api::vpm::PowerStateChangeRequest;

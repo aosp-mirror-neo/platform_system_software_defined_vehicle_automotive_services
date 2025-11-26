@@ -1,20 +1,20 @@
 // Copyright 2024 Google LLC
 //! Power state management client
 use crate::binder::BinderFeatures;
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateClientApi::IPowerStateClientApiAsync;
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateClientApi::{
+use google_sdv_vpm::aidl::google::sdv::vpm::IPowerStateClientApi::IPowerStateClientApiAsync;
+use google_sdv_vpm::aidl::google::sdv::vpm::IPowerStateClientApi::{
     BpPowerStateClientApi, IPowerStateClientApi,
 };
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateReportListener::{
+use google_sdv_vpm::aidl::google::sdv::vpm::IPowerStateReportListener::{
     BnPowerStateReportListener, IPowerStateReportListenerAsyncServer,
 };
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport;
+use google_sdv_vpm::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport;
 
 use async_trait::async_trait;
 use binder_tokio::Tokio;
 use binder_tokio::TokioRuntime;
-use google_sdv_vpm_aidl::binder;
-use google_sdv_vpm_aidl::binder::Strong;
+use google_sdv_vpm::binder;
+use google_sdv_vpm::binder::Strong;
 use std::future;
 use tokio::runtime::Handle;
 use tracing::instrument;

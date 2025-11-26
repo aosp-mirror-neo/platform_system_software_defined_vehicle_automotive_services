@@ -13,7 +13,7 @@ rust_binary {
     ],
     prefer_rlib: true,
     rustlibs: [
-        "google.sdv.vpm-aidl-V1-rust",
+        "google.sdv.vpm-V1-rust",
         "liblog_rust",
         "libanyhow",
         "libsdv_log_rust",
