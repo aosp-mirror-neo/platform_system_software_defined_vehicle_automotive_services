@@ -1,6 +1,6 @@
 // Copyright 2025 Google LLC
 
-use automotive_diag::uds::UdsCommand as UdsService;
+pub use automotive_diag::uds::UdsCommand as UdsService;
 use std::convert::TryFrom;
 
 /// Represents a generic UDS request with a specific service and payload.

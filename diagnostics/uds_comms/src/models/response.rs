@@ -1,10 +1,19 @@
 // Copyright 2025 Google LLC
 
-use automotive_diag::uds::{UdsCommand as UdsService, UdsError as NegativeResponseCode};
+pub use automotive_diag::uds::{UdsCommand as UdsService, UdsError as NegativeResponseCode};
 use std::convert::TryFrom;
 
 const NEGATIVE_RESPONSE_SID: u8 = 0x7F;
 const POSITIVE_RESPONSE_SID_OFFSET: u8 = 0x40;
+
+/// Wrapper to handle supported and unsupported service identifiers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RequestedService {
+    /// A known, valid service defined in the UdsService enum.
+    Known(UdsService),
+    /// An unknown or unsupported service identifier (raw byte).
+    Unknown(u8),
+}
 
 /// Represents a generic UDS response, which can be positive or negative.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,7 +28,7 @@ pub enum UdsResponse {
     /// A negative response (failure)
     NegativeResponse {
         /// The UDS service that failed
-        service: UdsService,
+        service: RequestedService,
         /// The Negative Response Code (NRC)
         code: NegativeResponseCode,
     },
@@ -28,11 +37,13 @@ pub enum UdsResponse {
 impl UdsResponse {
     /// UDS service identifier (SID) of the original request.
     pub fn request_sid(&self) -> u8 {
-        let service = match self {
-            UdsResponse::PositiveResponse { service, .. } => service,
-            UdsResponse::NegativeResponse { service, .. } => service,
-        };
-        *service as u8
+        match self {
+            UdsResponse::PositiveResponse { service, .. } => *service as u8,
+            UdsResponse::NegativeResponse { service, .. } => match service {
+                RequestedService::Known(service) => *service as u8,
+                RequestedService::Unknown(sid) => *sid,
+            },
+        }
     }
 
     /// UDS service identifier (SID) of this response.
@@ -86,9 +97,11 @@ impl TryFrom<&[u8]> for UdsResponse {
                 return Err(UdsResponseTranslationError::IncorrectMessageLength);
             }
             let request_sid_byte = bytes[1];
-            let service = UdsService::try_from(request_sid_byte).map_err(|_| {
-                UdsResponseTranslationError::UnsupportedRequestServiceId(request_sid_byte)
-            })?;
+
+            let service = match UdsService::try_from(request_sid_byte) {
+                Ok(known_service) => RequestedService::Known(known_service),
+                Err(_) => RequestedService::Unknown(request_sid_byte),
+            };
 
             let nrc_byte = bytes[2];
             let code = NegativeResponseCode::try_from(nrc_byte).map_err(|_| {
@@ -140,8 +153,8 @@ mod tests {
     #[test]
     fn test_positive_response_serialization_deserialization() {
         let response = UdsResponse::PositiveResponse {
-            service: UdsService::ReadDataByIdentifier,
-            payload: vec![0xF1, 0x90, 0xAA, 0xBB], // DIDs F190, AABB
+            service: UdsService::ReadDataByIdentifier, // SID 0x22
+            payload: vec![0xF1, 0x90, 0xAA, 0xBB],     // DIDs 0xF190, 0xAABB
         };
         let bytes: Vec<u8> = response.clone().into();
         // Response SID for 0x22 is 0x62
@@ -154,12 +167,26 @@ mod tests {
     #[test]
     fn test_negative_response_serialization_deserialization() {
         let response = UdsResponse::NegativeResponse {
-            service: UdsService::DiagnosticSessionControl,
+            service: RequestedService::Known(UdsService::DiagnosticSessionControl),
             code: NegativeResponseCode::SubFunctionNotSupported,
         };
         let bytes: Vec<u8> = response.clone().into();
         // Negative response format: 0x7F <Request SID> <NRC>
         assert_eq!(bytes, vec![0x7F, 0x10, 0x12]);
+
+        let parsed_response = UdsResponse::try_from(bytes.as_slice()).unwrap();
+        assert_eq!(response, parsed_response);
+    }
+
+    #[test]
+    fn test_negative_response_unknown_sid_serialization_deserialization() {
+        let response = UdsResponse::NegativeResponse {
+            service: RequestedService::Unknown(0x00),
+            code: NegativeResponseCode::ServiceNotSupported,
+        };
+        let bytes: Vec<u8> = response.clone().into();
+        // Negative response format: 0x7F <Request SID> <NRC>
+        assert_eq!(bytes, vec![0x7F, 0x00, 0x11]);
 
         let parsed_response = UdsResponse::try_from(bytes.as_slice()).unwrap();
         assert_eq!(response, parsed_response);
@@ -196,7 +223,7 @@ mod tests {
     #[test]
     fn test_negative_response_sid_methods() {
         let neg_response = UdsResponse::NegativeResponse {
-            service: UdsService::ReadDataByIdentifier,
+            service: RequestedService::Known(UdsService::ReadDataByIdentifier),
             code: NegativeResponseCode::RequestOutOfRange,
         };
         assert_eq!(neg_response.request_sid(), 0x22);
