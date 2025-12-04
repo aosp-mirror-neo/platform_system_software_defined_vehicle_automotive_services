@@ -74,7 +74,7 @@ fn field_size(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::translator::runtime_message_descriptor::*;
+    use crate::runtime_message_descriptor::*;
     use crate::translator::TranslatorError;
 
     #[test]

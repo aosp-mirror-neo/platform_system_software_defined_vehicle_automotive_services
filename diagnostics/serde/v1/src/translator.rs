@@ -117,7 +117,7 @@ pub enum TranslatorError {
 
 #[cfg(test)]
 mod tests {
-    use crate::translator::runtime_message_descriptor::get_message_descriptor;
+    use crate::runtime_message_descriptor::get_message_descriptor;
     use crate::translator::{Translator, TranslatorError, TranslatorImpl};
     use std::vec::Vec;
 
@@ -428,41 +428,5 @@ mod tests {
         let proto_bytes =
             translator.translate_from_uds_to_protobuf(&uds_bytes, &message_descriptor).unwrap();
         assert_eq!(&proto_bytes, &expected_proto_bytes);
-    }
-}
-
-#[cfg(test)]
-pub mod runtime_message_descriptor {
-    use protobuf::reflect::{FileDescriptor, MessageDescriptor};
-    use std::fs;
-    use vsidl_v1::{annotations, diagnostics};
-
-    pub fn get_file_descriptor(proto_text: &str) -> FileDescriptor {
-        let temp_dir = tempfile::tempdir().unwrap();
-
-        let tempfile = temp_dir.path().join("test_proto.proto");
-        fs::write(&tempfile, proto_text).unwrap();
-
-        let file_descriptor_proto = protobuf_parse::Parser::new()
-            .pure()
-            .include(&temp_dir)
-            // current folder includes VSIDL syntax definitions that might be required
-            // to properly parse test proto file.
-            .include(".")
-            .input(&tempfile)
-            .file_descriptor_set()
-            .unwrap()
-            .file[0]
-            .clone();
-
-        FileDescriptor::new_dynamic(
-            file_descriptor_proto.clone(),
-            &[annotations::file_descriptor().clone(), diagnostics::file_descriptor().clone()],
-        )
-        .unwrap()
-    }
-
-    pub fn get_message_descriptor(proto_text: &str, message_name: &str) -> MessageDescriptor {
-        get_file_descriptor(proto_text).message_by_full_name(message_name).unwrap()
     }
 }

@@ -376,9 +376,7 @@ impl Serialize for RepeatedValueSerialize<'_> {
 #[cfg(test)]
 mod tests {
     use crate::protobuf_serialize::MessageSerialize;
-    use crate::translator::runtime_message_descriptor::{
-        get_file_descriptor, get_message_descriptor,
-    };
+    use crate::runtime_message_descriptor::{get_file_descriptor, get_message_descriptor};
     use protobuf::reflect::{MessageRef, ReflectValueBox::*};
     use serde_test::{assert_ser_tokens, assert_ser_tokens_error, Token};
 
