@@ -1,3 +1,0 @@
-# Copyright 2024 Google LLC
-
-(/.*)?                          u:object_r:system_file:s0

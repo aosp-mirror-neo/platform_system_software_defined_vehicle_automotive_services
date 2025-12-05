@@ -11,9 +11,6 @@
       "name": "sdv_uds_serde_v1_core_tests"
     },
     {
-      "name": "sdv_vpm_agent_unit_tests"
-    },
-    {
       "name": "sdv_core_automotive_services_unit_user_pref_test"
     },
     {
@@ -39,21 +36,6 @@
   // Please enable the CI config if you want to run the tests in this list.
   "sdv_automotive_service_postsubmit": [],
   "sdv_automotive_service_integration_presubmit": [
-    {
-      "name": "sdv_core_automotive_services_integration_vpm_agent_test"
-    },
-    {
-      "name": "sdv_core_automotive_services_integration_vpm_agent_power_cancellation_test"
-    },
-    {
-      "name": "sdv_core_automotive_services_integration_vpm_agent_power_prepare_interruption_test"
-    },
-    {
-      "name": "sdv_core_automotive_services_integration_vpm_agent_power_timeout_test"
-    },
-    {
-      "name": "sdv_core_automotive_services_integration_vpm_agent_power_interruption_test"
-    },
     {
       "name": "sdv_core_core_services_integration_orch_tests"
     },
