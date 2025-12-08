@@ -37,7 +37,7 @@ rust_defaults {
         "libsdv_vpm_power_persistency_tags",
         "libcom_sdv_google_vpm_vpm_system_service_rpc_rs",
         "libcom_sdv_google_vpm_client_power_notification_service_rpc_rs",
-        "google.sdv.vpm-aidl-V1-rust",
+        "google.sdv.vpm-V1-rust",
     ],
     proc_macros: [
         "libasync_trait",

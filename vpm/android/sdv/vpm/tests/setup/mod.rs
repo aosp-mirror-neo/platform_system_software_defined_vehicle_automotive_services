@@ -6,14 +6,14 @@ use crate::setup::binder::Strong;
 use com_sdv_google_vpm_client_power_notification_service_rpc::Interface as NotificationInterface;
 use com_sdv_google_vpm_vpm_system_service_rpc::Client;
 use futures_util::StreamExt;
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateClientApi::{
+use google_sdv_vpm::aidl::google::sdv::vpm::IPowerStateClientApi::{
     BpPowerStateClientApi, IPowerStateClientApi,
 };
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateReportListener::{
+use google_sdv_vpm::aidl::google::sdv::vpm::IPowerStateReportListener::{
     BnPowerStateReportListener, IPowerStateReportListener,
 };
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
-use google_sdv_vpm_aidl::binder;
+use google_sdv_vpm::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
+use google_sdv_vpm::binder;
 use rustutils::android::system_properties::read;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::ContextRef;

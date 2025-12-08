@@ -11,15 +11,15 @@ use binder::{DeathRecipient, IBinder};
 use binder_tokio::Tokio;
 use binder_tokio::TokioRuntime;
 use com_sdv_google_vpm_client_power_notification_service_rpc::Client;
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateClientApi::IPowerStateClientApiAsyncServer;
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateClientApi::{
+use google_sdv_vpm::aidl::google::sdv::vpm::IPowerStateClientApi::IPowerStateClientApiAsyncServer;
+use google_sdv_vpm::aidl::google::sdv::vpm::IPowerStateClientApi::{
     BnPowerStateClientApi, BpPowerStateClientApi, IPowerStateClientApi,
 };
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateReportListener::IPowerStateReportListener;
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateReportListener::IPowerStateReportListenerAsync;
-use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
-use google_sdv_vpm_aidl::binder;
-use google_sdv_vpm_aidl::binder::{Interface, Result as BinderResult, Strong};
+use google_sdv_vpm::aidl::google::sdv::vpm::IPowerStateReportListener::IPowerStateReportListener;
+use google_sdv_vpm::aidl::google::sdv::vpm::IPowerStateReportListener::IPowerStateReportListenerAsync;
+use google_sdv_vpm::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
+use google_sdv_vpm::binder;
+use google_sdv_vpm::binder::{Interface, Result as BinderResult, Strong};
 use log::{debug, error, info};
 use mockall::automock;
 use sdv_mw_rs_comms::{ClientAttributes, ClientOptions, Communicate, RpcClient, UnitName};
@@ -362,10 +362,10 @@ mod tests {
     use crate::power_state::PowerOffExit;
     use crate::power_state_notifier::binder::BinderFeatures;
     use futures::Stream;
-    use google_sdv_vpm_aidl::aidl::google::sdv::vpm::IPowerStateReportListener::{
+    use google_sdv_vpm::aidl::google::sdv::vpm::IPowerStateReportListener::{
         BnPowerStateReportListener, MockIPowerStateReportListener,
     };
-    use google_sdv_vpm_aidl::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
+    use google_sdv_vpm::aidl::google::sdv::vpm::PowerStateReport::PowerStateReport as PowerStateReportAidl;
     use sdv_mw_rs_comms::{ClientTransport, MockCommunicate};
     use sdv_status_rs::SdvResult;
     use sdv_status_rs::SdvStatus;
