@@ -19,8 +19,6 @@ rust_defaults {
         "libdoip_definitions",
         "libfutures",
         "liblog_rust",
-        "libsdv_comms_rs",
-        "libsdv_rs",
         "libthiserror",
         "libtokio",
         "libtokio_util",
@@ -43,6 +41,7 @@ rust_library {
     ],
     product_available: true,
     vendor_available: true,
+    host_supported: true,
 }
 
 rust_test {
