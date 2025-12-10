@@ -301,7 +301,7 @@ where
                     listener.accept().await.map_err(DoipTransportError::from)?;
 
                 info!("Accepted client connection from {}", client_addr);
-                self.handler.on_connection_accepted(self.config.socket_addr).await;
+                self.handler.on_connection_accepted(client_addr).await;
 
                 let config = self.config.clone();
                 let handler = self.handler.clone();
@@ -379,12 +379,12 @@ mod tests {
             *self.connection_failure_called.lock().unwrap() = true
         }
 
-        async fn on_listening(&self, _socket_addr: SocketAddr) {
-            *self.listening_called.lock().unwrap() = true
+        async fn on_listening(&self, _: SocketAddr) {
+            *self.listening_called.lock().unwrap() = true;
         }
 
-        async fn on_connection_accepted(&self, _client_addr: SocketAddr) {
-            *self.connection_accepted_called.lock().unwrap() = true
+        async fn on_connection_accepted(&self, _: SocketAddr) {
+            *self.connection_accepted_called.lock().unwrap() = true;
         }
     }
 
@@ -688,6 +688,7 @@ mod tests {
     #[tokio::test]
     async fn test_on_listening_is_called() {
         let (doip_listener, _, handler) = create_listener().await;
+
         let listener_handle = tokio::spawn(doip_listener.start());
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
