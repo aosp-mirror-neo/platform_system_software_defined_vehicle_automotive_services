@@ -1,0 +1,34 @@
+// Copyright 2024 Google LLC
+//! UDS serde library
+//!
+//! Implements serialization/deserialization between UDS and protobuf formats
+
+/// Protobuf <-> UDS translator
+pub mod translator;
+
+/// serde::Deserialize implementation for protobuf message
+mod protobuf_deserialize;
+/// serde::Serialize implementation for protobuf message
+mod protobuf_serialize;
+
+/// serde::Deserializer implementation for UDS format
+mod uds_deserializer;
+/// serde::Serializer implementation for UDS format
+mod uds_serializer;
+
+/// Utilities for retrieving proto field's options that affect
+/// serialization/deserialization.
+mod field_options;
+
+/// Utilities for retrieving proto enum's options that affect
+/// serialization/deserialization.
+mod enum_options;
+
+/// Utilities for serialization/deserialization of three-byte integers.
+mod integer_utils;
+
+/// Calculation of size of message representation in diagnostics format.
+mod message_size;
+
+#[cfg(test)]
+pub mod runtime_message_descriptor;

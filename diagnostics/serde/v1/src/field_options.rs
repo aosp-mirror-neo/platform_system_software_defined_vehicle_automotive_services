@@ -96,7 +96,7 @@ impl FieldOptions for FieldDescriptor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::translator::runtime_message_descriptor::get_message_descriptor;
+    use crate::runtime_message_descriptor::get_message_descriptor;
 
     #[test]
     fn test_mistyped_option() {

@@ -783,7 +783,7 @@ impl<'de> DeserializeSeed<'de> for ValueDeserializeSeed<'_> {
 #[cfg(test)]
 mod tests {
     use crate::protobuf_deserialize::MessageDeserializeSeed;
-    use crate::translator::runtime_message_descriptor::get_file_descriptor;
+    use crate::runtime_message_descriptor::get_file_descriptor;
     use lazy_static::lazy_static;
     use protobuf::reflect::{
         FileDescriptor,
