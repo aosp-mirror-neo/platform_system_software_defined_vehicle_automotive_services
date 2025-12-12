@@ -8,3 +8,6 @@ pub mod response;
 
 /// uds_comms errors.
 pub mod error;
+
+/// Typed UDS service request and response modles.
+pub mod services;
