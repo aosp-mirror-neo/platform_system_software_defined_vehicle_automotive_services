@@ -5,6 +5,9 @@
       "name": "sdv_uds_serde_v1_tests"
     },
     {
+      "name": "sdv_uds_serde_v1_core_tests"
+    },
+    {
       "name": "sdv_vpm_agent_unit_tests"
     },
     {

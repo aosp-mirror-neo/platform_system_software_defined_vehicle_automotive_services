@@ -153,7 +153,7 @@ pub enum DiagnosticsTranslatorError {
 mod tests {
     use crate::diagnostics_translator::{DiagnosticsTranslator, DiagnosticsTranslatorError::*};
     use crate::entity_id::*;
-    use crate::translator::runtime_message_descriptor::get_file_descriptor;
+    use crate::runtime_message_descriptor::get_file_descriptor;
     use crate::translator::MockTranslator;
     use googletest::assert_that;
     use googletest::matchers::{eq, matches_pattern, ok};
