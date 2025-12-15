@@ -2,6 +2,9 @@
 {
   "sdv_automotive_services_presubmit": [
     {
+      "name": "sdv_compliance_diagnostics_manager_test"
+    },
+    {
       "name": "sdv_uds_comms_tests"
     },
     {
