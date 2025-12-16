@@ -1,6 +1,6 @@
 # Copyright 2025 Google LLC
 # proto-file:
-# system/software_defined_vehicle/core_services/orchestration/distributed_config/src/protos/service_bundle_config.proto
+# system/software_defined_vehicle/orchestration/distributed_config/src/protos/service_bundle_config.proto
 # proto-message: ServiceBundleConfig
 
 # Service bundle FQIN with instance.
