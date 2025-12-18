@@ -32,6 +32,7 @@ rust_defaults {
         "liblog_rust",
         "libbinder_rs",
         "libsdv_comms_rs",
+        "libsdv_diag_compliance_id",
         "libsdv_status_rs",
         "libtokio",
         "libfutures",
