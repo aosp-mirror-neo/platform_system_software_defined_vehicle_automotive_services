@@ -238,7 +238,6 @@ where
             Ok(request) => request,
             Err(e) => {
                 warn!("UDS request parsing failed: {}", e);
-
                 // Helper to decide if it's an Unknown Service or Invalid Format
                 let (service, code) = match payload.first() {
                     Some(service_id_byte) => match UdsService::try_from(*service_id_byte) {
@@ -256,7 +255,6 @@ where
                         NegativeResponseCode::IncorrectMessageLengthOrInvalidFormat,
                     ),
                 };
-
                 return UdsResponse::NegativeResponse { service, code };
             }
         };
@@ -267,7 +265,6 @@ where
             Ok(response) => response,
             Err(e) => {
                 warn!("UDS request handling failed: {}", e);
-
                 UdsResponse::NegativeResponse {
                     service: RequestedService::Known(service_id),
                     code: NegativeResponseCode::GeneralReject,
@@ -297,12 +294,14 @@ where
                 .map_err(DoipTransportError::from)?;
 
             info!("Listening for connections on {}", self.config.socket_addr);
+            self.handler.on_listening(self.config.socket_addr).await;
 
             loop {
                 let (stream, client_addr) =
                     listener.accept().await.map_err(DoipTransportError::from)?;
 
                 info!("Accepted client connection from {}", client_addr);
+                self.handler.on_connection_accepted(self.config.socket_addr).await;
 
                 let config = self.config.clone();
                 let handler = self.handler.clone();
@@ -335,6 +334,8 @@ mod tests {
         response: Arc<Mutex<Option<Result<UdsResponse, MockError>>>>,
         disconnect_called: Arc<Mutex<bool>>,
         connection_failure_called: Arc<Mutex<bool>>,
+        listening_called: Arc<Mutex<bool>>,
+        connection_accepted_called: Arc<Mutex<bool>>,
     }
 
     impl MockUdsHandler {
@@ -343,6 +344,8 @@ mod tests {
                 response: Arc::new(Mutex::new(None)),
                 disconnect_called: Arc::new(Mutex::new(false)),
                 connection_failure_called: Arc::new(Mutex::new(false)),
+                listening_called: Arc::new(Mutex::new(false)),
+                connection_accepted_called: Arc::new(Mutex::new(false)),
             }
         }
 
@@ -360,12 +363,10 @@ mod tests {
     #[async_trait]
     impl UdsRequestHandler for MockUdsHandler {
         type Error = MockError;
-
         async fn handle_request(&self, request: UdsRequest) -> Result<UdsResponse, MockError> {
             if let Some(response) = self.response.lock().unwrap().take() {
                 return response;
             }
-
             // Default echo implementation for testing
             Ok(UdsResponse::PositiveResponse { service: request.service, payload: request.payload })
         }
@@ -376,6 +377,14 @@ mod tests {
 
         async fn on_connection_failure(&self, _: SocketAddr, _: UdsCommsError) {
             *self.connection_failure_called.lock().unwrap() = true
+        }
+
+        async fn on_listening(&self, _socket_addr: SocketAddr) {
+            *self.listening_called.lock().unwrap() = true
+        }
+
+        async fn on_connection_accepted(&self, _client_addr: SocketAddr) {
+            *self.connection_accepted_called.lock().unwrap() = true
         }
     }
 
@@ -394,6 +403,19 @@ mod tests {
         // Pre-activate routing for most tests
         conn.client_logical_addr = Some(CLIENT_LOGICAL_ADDR);
         (conn, handler)
+    }
+
+    async fn create_listener() -> (DoipListener<MockUdsHandler>, SocketAddr, MockUdsHandler) {
+        // Bind to a random available port
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        drop(listener); // Drop listener so the DoipListener can bind to it.
+
+        let config = create_test_config(addr);
+        let handler = MockUdsHandler::new();
+        let doip_listener = DoipListener::new(config, handler.clone());
+
+        (doip_listener, addr, handler)
     }
 
     #[tokio::test]
@@ -487,7 +509,7 @@ mod tests {
     async fn verify_diagnostic_uds_message_processing(
         request_payload: Vec<u8>,
         expected_response: Vec<u8>,
-        handler_error: Option<MockError>,
+        handler_response: Option<UdsResponse>,
     ) {
         let diag_message = DoipPayload::DiagnosticMessage(DiagnosticMessage {
             source_address: *CLIENT_LOGICAL_ADDR.as_bytes(),
@@ -499,8 +521,8 @@ mod tests {
         let (client_stream, server_stream) = duplex(4096);
         let (mut server_connection, _) = create_server_connection(server_stream);
 
-        if let Some(error) = handler_error {
-            server_connection.handler.set_response(Err(error));
+        if let Some(handler_response) = handler_response {
+            server_connection.handler.set_response(Ok(handler_response));
         }
 
         let client_logic = async {
@@ -542,16 +564,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_handle_diagnostic_message_with_handler_error() {
+    async fn test_handle_diagnostic_message_with_handler_response() {
         verify_diagnostic_uds_message_processing(
             // Valid UDS request: ReadDataByIdentifier DID F190
             vec![0x22, 0xF1, 0x90],
-            // The message should be a UDS Negative Response:
+            // The message should be the raw negative UDS response from below:
             // 0x7F (Negative Response SID)
-            // 0x22 (Original SID)
+            // 0x22 (ReadDataByIdentifier SID)
             // 0x10 (GeneralReject)
             vec![0x7F, 0x22, 0x10],
-            Some(MockError { message: "UDS handler failed".to_string() }),
+            Some(UdsResponse::NegativeResponse {
+                service: RequestedService::Known(UdsService::ReadDataByIdentifier),
+                code: NegativeResponseCode::GeneralReject,
+            }),
         )
         .await;
     }
@@ -588,14 +613,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_full_listener_flow() {
-        // Bind to a random available port
-        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let addr = listener.local_addr().unwrap();
-        drop(listener); // Drop listener so the DoipListener can bind to it.
-
-        let config = create_test_config(addr);
-        let handler = MockUdsHandler::new();
-        let doip_listener = DoipListener::new(config, handler);
+        let (doip_listener, addr, _) = create_listener().await;
 
         // Start the listener in the background
         tokio::spawn(doip_listener.start());
@@ -665,5 +683,34 @@ mod tests {
 
         assert!(*handler.connection_failure_called.lock().unwrap());
         assert!(!*handler.disconnect_called.lock().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_on_listening_is_called() {
+        let (doip_listener, _, handler) = create_listener().await;
+        let listener_handle = tokio::spawn(doip_listener.start());
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+        assert!(*handler.listening_called.lock().unwrap(), "on_listening should be called");
+        listener_handle.abort();
+    }
+
+    #[tokio::test]
+    async fn test_on_connection_accepted_is_called() {
+        let (doip_listener, addr, handler) = create_listener().await;
+
+        // Start the listener in the background and wait for the callbacks to be triggered
+        let listener_handle = tokio::spawn(doip_listener.start());
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+        // Connect a client to trigger on_connection_accepted
+        let _stream = TcpStream::connect(addr).await.unwrap();
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+        assert!(
+            *handler.connection_accepted_called.lock().unwrap(),
+            "on_connection_accepted should be called"
+        );
+        listener_handle.abort();
     }
 }
