@@ -235,7 +235,8 @@ mod tests {
     use protobuf::reflect::{FileDescriptor, MessageDescriptor};
     use protobuf::EnumOrUnknown;
     use protobuf::MessageDyn;
-    use protobuf::{well_known_types, MessageFull};
+    use protobuf::MessageFull;
+    use protobuf::{well_known_types, Message};
     use sdv_comms::{
         id::ServiceFqin,
         sd::{ServiceDiscoveryManager, UnitNameDiscoveryArgs},

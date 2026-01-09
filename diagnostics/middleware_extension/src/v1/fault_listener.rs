@@ -1,13 +1,13 @@
 // Copyright 2024 Google LLC
 
 use diagnostics_v1_api::fault_listener_service::OnFaultStatusChangeResponse;
-use protobuf::MessageFull;
+use protobuf::Message;
 
 /// Typed trait that corresponds to FaultListener server
 ///
 /// See com.sdv.google.diagnostics.fault.FaultListener service.
 #[async_trait::async_trait]
-pub trait FaultListenerHandler<T: MessageFull>: Send + Sync {
+pub trait FaultListenerHandler<T: Message>: Send + Sync {
     /// See com.sdv.google.diagnostics.fault.FaultListener::OnFaultStatusChange.
     async fn on_fault_status_change(&self, status: u8, extended_data: Option<T>);
 

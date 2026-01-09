@@ -5,13 +5,13 @@ use diagnostics_v1_api::data_item_service::{ReadDataItemResponse, WriteDataItemR
 use diagnostics_v1_api::response_code::ResponseCode;
 use diagnostics_v1_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
 use diagnostics_v1_api::response_code::ResponseCode::POSITIVE_RESPONSE;
-use protobuf::MessageFull;
+use protobuf::Message;
 
 /// Typed trait that corresponds to read-only data item server
 ///
 /// See com.sdv.google.diagnostics.data_item.DataItemService service.
 #[async_trait::async_trait]
-pub trait ReadOnlyDataItemHandler<T: MessageFull>: Send + Sync {
+pub trait ReadOnlyDataItemHandler<T: Message>: Send + Sync {
     /// Reads current data item value.
     async fn read(&self) -> DiagnosticsResult<T>;
 
@@ -21,7 +21,7 @@ pub trait ReadOnlyDataItemHandler<T: MessageFull>: Send + Sync {
     }
 }
 
-fn to_read_response<T: MessageFull>(result: DiagnosticsResult<T>) -> ReadDataItemResponse {
+fn to_read_response<T: Message>(result: DiagnosticsResult<T>) -> ReadDataItemResponse {
     match result {
         Ok(data_item) => {
             let value_bytes = data_item.write_to_bytes();
@@ -54,7 +54,7 @@ fn to_read_response<T: MessageFull>(result: DiagnosticsResult<T>) -> ReadDataIte
 #[async_trait::async_trait]
 pub trait DataItemHandler<T>: Send + Sync
 where
-    T: MessageFull,
+    T: Message,
 {
     /// Reads current data item value.
     async fn read(&self) -> DiagnosticsResult<T>;
