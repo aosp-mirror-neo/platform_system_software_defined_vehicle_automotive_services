@@ -68,9 +68,26 @@ pub trait UdsRequestHandler: Send + Sync {
     /// A `Result` containing the raw response as bytes or an error.
     async fn handle_request(&self, request: UdsRequest) -> Result<UdsResponse, Self::Error>;
 
-    /// Callback for the handler when a client disconnects.
-    async fn on_disconnect(&self, client_addr: SocketAddr);
+    // --- Lifecycle Callbacks ---
 
-    /// Callback for the handler when a client connection fails.
-    async fn on_connection_failure(&self, client_addr: SocketAddr, error: UdsCommsError);
+    /// Callback triggered when the TCP listener is bound and ready to accept connections.
+    async fn on_listening(&self, _socket_addr: SocketAddr) {
+        // Default implementation: do nothing
+    }
+
+    /// Callback triggered immediately when a new TCP connection is accepted,
+    /// before the connection handler loop spawns.
+    async fn on_connection_accepted(&self, _client_addr: SocketAddr) {
+        // Default implementation: do nothing
+    }
+
+    /// Callback for the handler when a client disconnects (socket closed cleanly).
+    async fn on_disconnect(&self, _client_addr: SocketAddr) {
+        // Default implementation: do nothing
+    }
+
+    /// Callback for the handler when a client connection fails (socket error).
+    async fn on_connection_failure(&self, _client_addr: SocketAddr, _error: UdsCommsError) {
+        // Default implementation: do nothing
+    }
 }

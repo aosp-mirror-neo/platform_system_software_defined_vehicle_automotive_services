@@ -21,7 +21,6 @@ rust_defaults {
         "libsdv_vsidl_common",
         "libmockall",
     ],
-    ld_flags: ["-Wl,--no-as-needed"],
     edition: "2021",
     lints: "android",
     clippy_lints: "android",
@@ -38,6 +37,7 @@ rust_defaults {
         "libsdv_comms_rs",
         "libsdv_uds_serde_v1_core",
     ],
+    ld_flags: ["-Wl,--no-as-needed"],
 }
 
 rust_library {
@@ -117,8 +117,4 @@ rust_test_host {
     test_options: {
         unit_test: true,
     },
-    test_suites: [
-        "automotive-sdv-tests",
-        "general-tests",
-    ],
 }
