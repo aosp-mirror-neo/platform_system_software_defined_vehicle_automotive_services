@@ -5,12 +5,12 @@ use diagnostics_v1_api::response_code::ResponseCode::{
     INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT, POSITIVE_RESPONSE, SUB_FUNCTION_NOT_SUPPORTED,
 };
 use diagnostics_v1_api::routine_control_service::RoutineControlResponse;
-use protobuf::MessageFull;
+use protobuf::Message;
 use std::future::Future;
 
 /// Typed routine response.
 #[derive(Clone, Default)]
-pub struct RoutineResponse<T: MessageFull> {
+pub struct RoutineResponse<T: Message> {
     /// See com.sdv.google.diagnostics.routine_control.RoutineControlResponse::routine_info.
     pub routine_info: i8,
     /// See com.sdv.google.diagnostics.routine_control.RoutineControlResponse::response.
@@ -25,12 +25,12 @@ pub type RoutineResult<T> = DiagnosticsResult<RoutineResponse<T>>;
 /// See com.sdv.google.diagnostics.routine_control.RoutineControl service.
 #[async_trait::async_trait]
 pub trait RoutineHandler<
-    StartRequest: MessageFull,
-    StartResponse: MessageFull,
-    StopRequest: MessageFull,
-    StopResponse: MessageFull,
-    ResultRequest: MessageFull,
-    ResultResponse: MessageFull,
+    StartRequest: Message,
+    StartResponse: Message,
+    StopRequest: Message,
+    StopResponse: Message,
+    ResultRequest: Message,
+    ResultResponse: Message,
 >: Send + Sync
 {
     /// See com.sdv.google.diagnostics.routine_control.RoutineControl::Start.
@@ -62,7 +62,7 @@ pub trait RoutineHandler<
     }
 }
 
-async fn handle_routine_request<Request: MessageFull, Response: MessageFull, F, Fut>(
+async fn handle_routine_request<Request: Message, Response: Message, F, Fut>(
     handler: F,
     request_bytes: &[u8],
 ) -> RoutineControlResponse

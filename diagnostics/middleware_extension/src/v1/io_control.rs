@@ -4,13 +4,13 @@ use crate::DiagnosticsResult;
 use diagnostics_v1_api::io_control_service::IoControlResponse;
 use diagnostics_v1_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
 use diagnostics_v1_api::response_code::ResponseCode::POSITIVE_RESPONSE;
-use protobuf::MessageFull;
+use protobuf::Message;
 
 /// Typed trait that corresponds to IoControl server
 ///
 /// See com.sdv.google.diagnostics.io_control.IoControl service.
 #[async_trait::async_trait]
-pub trait IoControlHandler<T: MessageFull>: Send + Sync {
+pub trait IoControlHandler<T: Message>: Send + Sync {
     /// See com.sdv.google.diagnostics.io_control.IoControl::ReturnControlToEcu.
     async fn return_control_to_ecu(&self, mask: &[u8]) -> DiagnosticsResult<T>;
 
@@ -58,7 +58,7 @@ pub trait IoControlHandler<T: MessageFull>: Send + Sync {
     }
 }
 
-fn to_io_control_response<T: MessageFull>(result: DiagnosticsResult<T>) -> IoControlResponse {
+fn to_io_control_response<T: Message>(result: DiagnosticsResult<T>) -> IoControlResponse {
     match result {
         Ok(value) => {
             let value_bytes = value.write_to_bytes();
