@@ -1,16 +1,30 @@
-// Copyright 2024 Google LLC
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 use crate::DiagnosticsResult;
 use diagnostics_v1_api::response_code::ResponseCode::{
     INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT, POSITIVE_RESPONSE, SUB_FUNCTION_NOT_SUPPORTED,
 };
 use diagnostics_v1_api::routine_control_service::RoutineControlResponse;
-use protobuf::MessageFull;
+use protobuf::Message;
 use std::future::Future;
 
 /// Typed routine response.
 #[derive(Clone, Default)]
-pub struct RoutineResponse<T: MessageFull> {
+pub struct RoutineResponse<T: Message> {
     /// See com.sdv.google.diagnostics.routine_control.RoutineControlResponse::routine_info.
     pub routine_info: i8,
     /// See com.sdv.google.diagnostics.routine_control.RoutineControlResponse::response.
@@ -25,12 +39,12 @@ pub type RoutineResult<T> = DiagnosticsResult<RoutineResponse<T>>;
 /// See com.sdv.google.diagnostics.routine_control.RoutineControl service.
 #[async_trait::async_trait]
 pub trait RoutineHandler<
-    StartRequest: MessageFull,
-    StartResponse: MessageFull,
-    StopRequest: MessageFull,
-    StopResponse: MessageFull,
-    ResultRequest: MessageFull,
-    ResultResponse: MessageFull,
+    StartRequest: Message,
+    StartResponse: Message,
+    StopRequest: Message,
+    StopResponse: Message,
+    ResultRequest: Message,
+    ResultResponse: Message,
 >: Send + Sync
 {
     /// See com.sdv.google.diagnostics.routine_control.RoutineControl::Start.
@@ -62,7 +76,7 @@ pub trait RoutineHandler<
     }
 }
 
-async fn handle_routine_request<Request: MessageFull, Response: MessageFull, F, Fut>(
+async fn handle_routine_request<Request: Message, Response: Message, F, Fut>(
     handler: F,
     request_bytes: &[u8],
 ) -> RoutineControlResponse

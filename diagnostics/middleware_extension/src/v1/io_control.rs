@@ -1,16 +1,30 @@
-// Copyright 2024 Google LLC
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 use crate::DiagnosticsResult;
 use diagnostics_v1_api::io_control_service::IoControlResponse;
 use diagnostics_v1_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
 use diagnostics_v1_api::response_code::ResponseCode::POSITIVE_RESPONSE;
-use protobuf::MessageFull;
+use protobuf::Message;
 
 /// Typed trait that corresponds to IoControl server
 ///
 /// See com.sdv.google.diagnostics.io_control.IoControl service.
 #[async_trait::async_trait]
-pub trait IoControlHandler<T: MessageFull>: Send + Sync {
+pub trait IoControlHandler<T: Message>: Send + Sync {
     /// See com.sdv.google.diagnostics.io_control.IoControl::ReturnControlToEcu.
     async fn return_control_to_ecu(&self, mask: &[u8]) -> DiagnosticsResult<T>;
 
@@ -58,7 +72,7 @@ pub trait IoControlHandler<T: MessageFull>: Send + Sync {
     }
 }
 
-fn to_io_control_response<T: MessageFull>(result: DiagnosticsResult<T>) -> IoControlResponse {
+fn to_io_control_response<T: Message>(result: DiagnosticsResult<T>) -> IoControlResponse {
     match result {
         Ok(value) => {
             let value_bytes = value.write_to_bytes();

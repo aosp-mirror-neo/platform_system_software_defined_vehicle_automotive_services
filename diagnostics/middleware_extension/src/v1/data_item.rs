@@ -1,17 +1,31 @@
-// Copyright 2024 Google LLC
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 use crate::DiagnosticsResult;
 use diagnostics_v1_api::data_item_service::{ReadDataItemResponse, WriteDataItemResponse};
 use diagnostics_v1_api::response_code::ResponseCode;
 use diagnostics_v1_api::response_code::ResponseCode::INCORRECT_MESSAGE_LENGTH_OR_INVALID_FORMAT;
 use diagnostics_v1_api::response_code::ResponseCode::POSITIVE_RESPONSE;
-use protobuf::MessageFull;
+use protobuf::Message;
 
 /// Typed trait that corresponds to read-only data item server
 ///
 /// See com.sdv.google.diagnostics.data_item.DataItemService service.
 #[async_trait::async_trait]
-pub trait ReadOnlyDataItemHandler<T: MessageFull>: Send + Sync {
+pub trait ReadOnlyDataItemHandler<T: Message>: Send + Sync {
     /// Reads current data item value.
     async fn read(&self) -> DiagnosticsResult<T>;
 
@@ -21,7 +35,7 @@ pub trait ReadOnlyDataItemHandler<T: MessageFull>: Send + Sync {
     }
 }
 
-fn to_read_response<T: MessageFull>(result: DiagnosticsResult<T>) -> ReadDataItemResponse {
+fn to_read_response<T: Message>(result: DiagnosticsResult<T>) -> ReadDataItemResponse {
     match result {
         Ok(data_item) => {
             let value_bytes = data_item.write_to_bytes();
@@ -54,7 +68,7 @@ fn to_read_response<T: MessageFull>(result: DiagnosticsResult<T>) -> ReadDataIte
 #[async_trait::async_trait]
 pub trait DataItemHandler<T>: Send + Sync
 where
-    T: MessageFull,
+    T: Message,
 {
     /// Reads current data item value.
     async fn read(&self) -> DiagnosticsResult<T>;
