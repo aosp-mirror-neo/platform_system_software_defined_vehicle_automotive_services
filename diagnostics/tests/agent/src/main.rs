@@ -36,6 +36,8 @@ use sdv_comms::ContextRef;
 use sdv_config_provider::{vsidl_provider, vsidl_provider_api::VsidlConfigProviderV1};
 use sdv_dump::DumpBinderConnection;
 use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
+use sdv_uds_comms::doip::listener::DoipListener;
+use sdv_uds_comms::traits::Listener;
 use sdv_uds_serde::{diagnostics_translator::DiagnosticsTranslator, entity_id::*};
 use std::fmt;
 use std::fmt::Display;
@@ -46,7 +48,9 @@ use std::sync::Mutex;
 use std::time::Duration;
 use tracing::Instrument;
 
+mod uds;
 mod unit_types;
+use crate::uds::server::UdsServer;
 use crate::unit_types::*;
 
 use tracing::instrument;
@@ -88,12 +92,17 @@ async fn main() -> anyhow::Result<()> {
     let dumpsys_logger = Arc::new(Logger::new());
     dm.add_reporter("Log", &dumpsys_logger);
 
-    // Emulate opening external connection
-    create_tcp_connection().await;
-    info!("sdv_diagnostics_agent accepts external connections");
+    let dumpsys_logger_uds_server = dumpsys_logger.clone();
+    let server = UdsServer::new().with_on_listening_callback(move |_addr| {
+        let msg = "sdv_diagnostics_agent accepts external connections";
 
-    dumpsys_logger.add_line("sdv_diagnostics_agent accepts external connections".to_owned());
-    tracing::event!(tracing::Level::DEBUG, "sdv_diagnostics_agent accepts external connections");
+        info!("{msg}");
+        dumpsys_logger_uds_server.add_line(msg.to_owned());
+        tracing::event!(tracing::Level::DEBUG, "{msg}");
+    });
+
+    tokio::spawn(start_uds_server(server.clone()));
+
     sdv_comms::wait_for_agents()
         .unwrap_or_else(|err| panic!("Error waiting for Comms Stack agents: {err}"));
 
@@ -107,6 +116,9 @@ async fn main() -> anyhow::Result<()> {
     info!("sdv_diagnostics_agent VSIDL provider initialized");
     dumpsys_logger.add_line("sdv_diagnostics_agent VSIDL provider initialized".to_owned());
     tracing::event!(tracing::Level::DEBUG, "sdv_diagnostics_agent VSIDL provider initialized");
+
+    let data_item_service = uds::create_data_item_service(context, vsidl_provider.clone());
+    server.set_data_item_service(data_item_service);
 
     dumpsys_logger.add_line("Starting Diagnostics Agent".to_owned());
 
@@ -846,13 +858,25 @@ fn decode_with_len<T: MessageFull>(message_bytes: &[u8]) -> Result<T, protobuf::
     T::parse_from(&mut input_stream)
 }
 
-async fn create_tcp_connection() {
-    let result = tokio::net::TcpListener::bind("127.0.0.1:8080").await;
+#[instrument(skip_all)]
+async fn start_uds_server(server: UdsServer) {
+    const RETRY_DELAY: Duration = Duration::from_millis(10);
+    info!("Starting UDS server...");
 
-    if result.is_err() {
-        tokio::time::sleep(Duration::from_millis(10)).await;
-        debug!("Retry creating TCP connection {result:#?}");
-        Box::pin(create_tcp_connection()).await;
+    loop {
+        let config = uds::create_doip_config();
+        let listener = DoipListener::new(config, server.clone());
+
+        match listener.start().await {
+            Ok(_) => {
+                info!("UDS Server finished running.");
+                break;
+            }
+            Err(e) => {
+                debug!("UDS Server failed to start - retrying in {RETRY_DELAY:?}. Error: {e:#?}");
+                tokio::time::sleep(RETRY_DELAY).await;
+            }
+        }
     }
 }
 

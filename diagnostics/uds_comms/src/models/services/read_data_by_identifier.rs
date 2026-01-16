@@ -17,6 +17,7 @@
 use super::{UdsServiceRequest, UdsServiceResponse};
 use crate::models::request::{UdsRequest, UdsService};
 use crate::models::response::UdsResponse;
+use std::mem;
 
 /// ReadDataByIdentifier request models.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -135,15 +136,15 @@ impl ReadDataByIdentifierResponseBuilder {
         Self::default()
     }
 
-    /// Adds a data record for a specific DID.
-    pub fn add_record(mut self, data_id: u16, data: impl Into<Vec<u8>>) -> Self {
-        self.records.push(DataRecord { data_id, data: data.into() });
+    /// Adds the provided data record.
+    pub fn add_record(&mut self, record: DataRecord) -> &mut Self {
+        self.records.push(record);
         self
     }
 
-    /// Consumes the builder and returns the final Response.
-    pub fn build(self) -> ReadDataByIdentifierResponse {
-        ReadDataByIdentifierResponse { data_records: self.records }
+    /// Consumes the records and returns the final Response.
+    pub fn build(&mut self) -> ReadDataByIdentifierResponse {
+        ReadDataByIdentifierResponse { data_records: mem::take(&mut self.records) }
     }
 }
 
@@ -205,8 +206,8 @@ mod tests {
     fn test_response_builder_construction() {
         // Test that the builder correctly assembles the internal struct
         let response = ReadDataByIdentifierResponseBuilder::new()
-            .add_record(0x1234, vec![0xAA])
-            .add_record(0x5678, vec![0xBB, 0xCC])
+            .add_record(DataRecord { data_id: 0x1234, data: vec![0xAA] })
+            .add_record(DataRecord { data_id: 0x5678, data: vec![0xBB, 0xCC] })
             .build();
 
         assert_eq!(response.data_records.len(), 2);
