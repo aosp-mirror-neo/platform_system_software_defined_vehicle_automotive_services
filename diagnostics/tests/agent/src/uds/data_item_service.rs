@@ -3,12 +3,14 @@
 use crate::uds::compliance_client::ComplianceClient;
 use async_trait::async_trait;
 use log::{error, warn};
-use sdv_diag_compliance_id::DiagComplianceId;
 use sdv_uds_comms::models::request::UdsRequest;
 use sdv_uds_comms::models::response::{NegativeResponseCode, RequestedService, UdsResponse};
 use sdv_uds_comms::models::services::{
     DataRecord, ReadDataByIdentifierRequest, ReadDataByIdentifierResponseBuilder, UdsServiceRequest,
 };
+use std::ops::RangeInclusive;
+
+const GOOGLE_RESERVED_RANGE: RangeInclusive<u16> = 0xF0F0..=0xF0FF;
 
 /// Trait for handling UDS data item requests.
 #[async_trait]
@@ -27,25 +29,30 @@ impl DataItemService {
     }
 
     async fn read_data_by_id(&self, data_id: u16) -> Result<DataRecord, NegativeResponseCode> {
-        let identifier = DiagComplianceId::from_u16(data_id)
-            .ok_or(NegativeResponseCode::RequestOutOfRange)?
-            .to_string();
+        if !GOOGLE_RESERVED_RANGE.contains(&data_id) {
+            return Err(NegativeResponseCode::RequestOutOfRange);
+        }
 
-        let data_item = self.compliance_client.read_data_item(&identifier).await.map_err(|e| {
+        // Resolve DataItem IDs for the Compliance Service Bundle
+        // The mapping is specified in the SDV Diagnostics requirements.
+        let identifier = match data_id {
+            0xF0F0 => "reserved_0",
+            _ => "default_id",
+        };
+
+        let data_item = self.compliance_client.read_data_item(identifier).await.map_err(|e| {
             error!("Read failed for DID {:#06X} (id: {}): {:?}", data_id, identifier, e);
             NegativeResponseCode::GeneralReject
         })?;
 
         let uds_bytes =
-            self.compliance_client.translate_to_uds(&identifier, &data_item).await.map_err(
-                |e| {
-                    error!(
-                        "UDS translation failed for DID {:#06X} (id: {}): {:?}",
-                        data_id, identifier, e
-                    );
-                    NegativeResponseCode::GeneralReject
-                },
-            )?;
+            self.compliance_client.translate_to_uds(identifier, &data_item).await.map_err(|e| {
+                error!(
+                    "UDS translation failed for DID {:#06X} (id: {}): {:?}",
+                    data_id, identifier, e
+                );
+                NegativeResponseCode::GeneralReject
+            })?;
 
         Ok(DataRecord { data_id, data: uds_bytes })
     }
@@ -144,9 +151,7 @@ mod tests {
     #[tokio::test]
     async fn test_read_data_by_id_translate_fails() {
         let mut client = MockComplianceClient::default();
-        client
-            .read_results
-            .insert(DiagComplianceId::Reserved0.to_string(), ReadDataItemResponse::new());
+        client.read_results.insert("reserved_0".into(), ReadDataItemResponse::new());
         let service = DataItemService::new(Box::new(client));
         let result = service.read_data_by_id(0xF0F0).await;
         assert_eq!(result, Err(NegativeResponseCode::GeneralReject));
@@ -155,10 +160,8 @@ mod tests {
     #[tokio::test]
     async fn test_read_data_by_id_success() {
         let mut client = MockComplianceClient::default();
-        client
-            .read_results
-            .insert(DiagComplianceId::Reserved0.to_string(), ReadDataItemResponse::new());
-        client.translate_results.insert(DiagComplianceId::Reserved0.to_string(), vec![1, 2, 3]);
+        client.read_results.insert("reserved_0".into(), ReadDataItemResponse::new());
+        client.translate_results.insert("reserved_0".into(), vec![1, 2, 3]);
         let service = DataItemService::new(Box::new(client));
         let result = service.read_data_by_id(0xF0F0).await;
         assert_eq!(result, Ok(DataRecord { data_id: 0xF0F0, data: vec![1, 2, 3] }));
@@ -186,12 +189,10 @@ mod tests {
     async fn test_read_data_one_id_fails() {
         let mut client = MockComplianceClient::default();
         // F0F0 will succeed
-        client
-            .read_results
-            .insert(DiagComplianceId::Reserved0.to_string(), ReadDataItemResponse::new());
-        client.translate_results.insert(DiagComplianceId::Reserved0.to_string(), vec![1, 2, 3]);
+        client.read_results.insert("reserved_0".into(), ReadDataItemResponse::new());
+        client.translate_results.insert("reserved_0".into(), vec![1, 2, 3]);
         // F0F1 will fail on read
-        // no value inserted for the corresponding identifier
+        // no value inserted for mapped "default_id" identifier
 
         let service = DataItemService::new(Box::new(client));
         let req = ReadDataByIdentifierRequest { data_ids: vec![0xF0F0, 0xF0F1] };
@@ -208,10 +209,8 @@ mod tests {
     #[tokio::test]
     async fn test_read_data_success() {
         let mut client = MockComplianceClient::default();
-        client
-            .read_results
-            .insert(DiagComplianceId::Reserved0.to_string(), ReadDataItemResponse::new());
-        client.translate_results.insert(DiagComplianceId::Reserved0.to_string(), vec![1, 2, 3]);
+        client.read_results.insert("reserved_0".into(), ReadDataItemResponse::new());
+        client.translate_results.insert("reserved_0".into(), vec![1, 2, 3]);
 
         let service = DataItemService::new(Box::new(client));
         let req = ReadDataByIdentifierRequest { data_ids: vec![0xF0F0] };
