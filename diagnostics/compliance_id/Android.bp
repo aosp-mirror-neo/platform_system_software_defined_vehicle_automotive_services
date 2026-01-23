@@ -1,0 +1,53 @@
+// Copyright 2026 Google LLC
+
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+    default_team: "trendy_team_automotive",
+}
+
+rust_defaults {
+    name: "sdv_diag_compliance_id@rust_defaults",
+    srcs: ["src/lib.rs"],
+    defaults: [
+        "sdv@rust_defaults",
+        "sdv_tracing@rust_defaults",
+    ],
+    rustlibs: [
+        "libstrum",
+    ],
+    proc_macros: [
+        "libstrum_macros",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
+    edition: "2021",
+    lints: "android",
+}
+
+// Rust Library for SDV Diagnostic Compliance Id Mapping
+rust_library {
+    name: "libsdv_diag_compliance_id",
+    crate_name: "sdv_diag_compliance_id",
+    defaults: [
+        "sdv_diag_compliance_id@rust_defaults",
+    ],
+    product_available: true,
+    vendor_available: true,
+    host_supported: true,
+    min_sdk_version: "apex_inherit",
+}
+
+// Unit Tests
+rust_test {
+    name: "libsdv_diag_compliance_id_tests",
+    defaults: [
+        "sdv_diag_compliance_id@rust_defaults",
+    ],
+    test_options: {
+        unit_test: true,
+    },
+    test_suites: [
+        "general-tests",
+        "automotive-sdv-tests",
+    ],
+    auto_gen_config: true,
+}
