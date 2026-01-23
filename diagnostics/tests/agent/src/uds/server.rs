@@ -77,6 +77,7 @@ impl UdsRequestHandler for UdsServer {
 
         match req.service {
             UdsService::ReadDataByIdentifier => Ok(data_item_service.read_data(req).await),
+            UdsService::WriteDataByIdentifier => Ok(data_item_service.write_data(req).await),
             service => {
                 warn!("Received unsupported UDS request: {}", service);
                 Ok(UdsResponse::NegativeResponse {
@@ -97,7 +98,9 @@ impl UdsRequestHandler for UdsServer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sdv_uds_comms::models::services::ReadDataByIdentifierResponseBuilder;
+    use sdv_uds_comms::models::services::{
+        ReadDataByIdentifierResponseBuilder, WriteDataByIdentifierResponse,
+    };
 
     struct MockDataItemService {
         response: UdsResponse,
@@ -106,6 +109,10 @@ mod tests {
     #[async_trait]
     impl DataItemRequestHandler for MockDataItemService {
         async fn read_data(&self, _req: UdsRequest) -> UdsResponse {
+            self.response.clone()
+        }
+
+        async fn write_data(&self, _req: UdsRequest) -> UdsResponse {
             self.response.clone()
         }
     }
@@ -131,6 +138,20 @@ mod tests {
         server.set_data_item_service(Box::new(mock_service));
 
         let req = UdsRequest { service: UdsService::ReadDataByIdentifier, payload: vec![] };
+
+        let response = server.handle_request(req).await.unwrap();
+        assert_eq!(response, expected_response);
+    }
+
+    #[tokio::test]
+    async fn write_data_request_succeeds() {
+        let expected_response: UdsResponse =
+            WriteDataByIdentifierResponse { data_id: 0x1234 }.into();
+        let mock_service = MockDataItemService { response: expected_response.clone() };
+        let server = UdsServer::new();
+        server.set_data_item_service(Box::new(mock_service));
+
+        let req = UdsRequest { service: UdsService::WriteDataByIdentifier, payload: vec![] };
 
         let response = server.handle_request(req).await.unwrap();
         assert_eq!(response, expected_response);
