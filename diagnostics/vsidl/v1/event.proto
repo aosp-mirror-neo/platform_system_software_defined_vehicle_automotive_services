@@ -1,0 +1,134 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package com.sdv.google.diagnostics.event;
+
+import "sdv/vsidl/v1/annotations.proto";
+
+// Status of the event.
+//
+// Corresponds to the monitor's test result associated with the event.
+//
+// See AUTOSAR Diagnostics Event Manager specification, section 8.6.1.9.
+enum Status {
+  // Unspecified value.
+  UNSPECIFIED = 0;
+
+  // Test associated with the event has passed.
+  //
+  // No further debouncing by diagnostics manager required.
+  PASS = 1;
+
+  // Test associated with the event has failed.
+  //
+  // No further debouncing by diagnostics manager required.
+  FAIL = 2;
+
+  // Test associated with the event has passed.
+  //
+  // Debouncing should be handled by diagnostics manager.
+  PRE_PASS = 3;
+
+  // Test associated with the event has failed.
+  //
+  // Debouncing should be handled by diagnostics manager.
+  PRE_FAIL = 4;
+}
+
+// Message to report the status of an event via data tunnel.
+//
+// Id of the event being reported is defined by the data tunnel topic being used.
+message Event {
+  // Required. Status of the event.
+  Status status = 1;
+
+  // Optional event-specific data related to this status update.
+  //
+  // Format of this field corresponds to the related DiagnosticsDeclaration
+  // (see "sdv/diagnostics/v1/diagnostics_syntax.proto")
+  //
+  // E.g. in case of fail status it may contain additional information on the type of
+  // failure.
+  optional bytes extended_data = 2;
+}
+
+// Message to set the state of enable condition via data tunnel.
+//
+// SDV service defines a topic to be used for all enabled condition state updates.
+//
+// If the enable condition is not fulfilled, reports of the events linked to the
+// condition are discarded. Links between the enable condition and events are defined
+// by the configuration of a diagnostics manager implementation.
+//
+// See AUTOSAR Diagnostics Event Manager spec, section 7.7.6.
+message EnableCondition {
+  option (.sdv.vsidl.v1.publication) = {
+    model: MULTI_PUB
+    message_count: 2
+  };
+
+  // Required. Id of the enable condition.
+  string id = 1 [(.sdv.vsidl.v1.variable_type_max_size) = 64];
+
+  // Required. True if the enable condition is fulfilled, false otherwise.
+  bool enabled = 2;
+}
+
+// Message to issue an operation cycle command via data tunnel.
+//
+// SDV service defines a topic to be used for all operation cycle commands.
+//
+// Operation cycle generally defines a time period of interest, e.g.:
+// - ignition on/off cycle
+// - power up / power down cycle
+// - engine warm up cycle
+// An event can be linked to operation cycle. An operation cycle then serves as the
+// basis for calculation of cycle-dependent event status information.
+//
+// See AUTOSAR Diagnostics Event Manager spec, section 7.6.
+// See ISO 14229-1:2020, table D.2.
+message OperationCycle {
+  option (.sdv.vsidl.v1.publication) = {
+    model: MULTI_PUB
+    message_count: 2
+  };
+
+  // Commands for the operation cycle.
+  enum Command {
+    // Unspecified value.
+    UNSPECIFIED = 0;
+
+    // Command to trigger operation cycle start.
+    START = 1;
+
+    // Command to trigger operation cycle stop.
+    STOP = 2;
+
+    // Command to trigger operation cycle restart.
+    //
+    // If this command is issued, any events reported in parallel will be on the
+    // operation cycle (before or after restart).
+    RESTART = 3;
+  }
+
+  // Required. Id of the operation cycle.
+  string id = 1 [(.sdv.vsidl.v1.variable_type_max_size) = 64];
+
+  // Required. Command to be issued.
+  Command command = 2;
+}

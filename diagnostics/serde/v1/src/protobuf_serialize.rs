@@ -1,0 +1,1652 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+use crate::enum_options::EnumOptions;
+use crate::field_options::FieldOptions;
+use crate::integer_utils;
+use protobuf::reflect::{
+    FieldDescriptor, MessageDescriptor, MessageRef,
+    ReflectFieldRef::{self, *},
+    ReflectRepeatedRef,
+    ReflectValueRef::{self, *},
+    RuntimeFieldType, RuntimeType,
+};
+use serde::ser::{Error, SerializeSeq, SerializeTuple};
+use serde::{Serialize, Serializer};
+use std::ops::Deref;
+use vsidl_v1::diagnostics::{ByteSize, FixedPointEncoding};
+
+pub(crate) struct MessageSerialize<'lt> {
+    descriptor: &'lt MessageDescriptor,
+    message: &'lt MessageRef<'lt>,
+}
+
+impl<'lt> MessageSerialize<'lt> {
+    pub fn new(descriptor: &'lt MessageDescriptor, message: &'lt MessageRef<'lt>) -> Self {
+        Self { descriptor, message }
+    }
+}
+
+impl Serialize for MessageSerialize<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let skip_count = self.descriptor.fields().filter(|field| field.skip_for_diag()).count();
+
+        let mut struct_serializer =
+            serializer.serialize_tuple(self.descriptor.fields().count() - skip_count)?;
+
+        for field_descriptor in self.descriptor.fields() {
+            if field_descriptor.skip_for_diag() {
+                continue;
+            }
+
+            let field = field_descriptor.get_reflect((*self.message).deref());
+            struct_serializer.serialize_element(&FieldSerialize::new(field_descriptor, field))?;
+        }
+
+        struct_serializer.end()
+    }
+}
+
+struct FieldSerialize<'lt> {
+    descriptor: FieldDescriptor,
+    field: ReflectFieldRef<'lt>,
+}
+
+impl<'lt> FieldSerialize<'lt> {
+    fn new(descriptor: FieldDescriptor, field: ReflectFieldRef<'lt>) -> Self {
+        Self { descriptor, field }
+    }
+}
+
+impl Serialize for FieldSerialize<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match &self.field {
+            Optional(optional_field) => match optional_field.value() {
+                Some(value) => {
+                    serializer.serialize_some(&ValueSerialize::new(&self.descriptor, value))
+                }
+                None => match self.descriptor.runtime_field_type() {
+                    RuntimeFieldType::Singular(runtime_type) => serializer.serialize_some(
+                        &DefaultValueSerialize::new(&self.descriptor, &runtime_type),
+                    ),
+                    _ => serializer.serialize_none(),
+                },
+            },
+            Repeated(repeated_field) => {
+                RepeatedValueSerialize::new(&self.descriptor, repeated_field).serialize(serializer)
+            }
+            Map(_) => todo!("map fields are not supported yet"),
+        }
+    }
+}
+
+struct DefaultValueSerialize<'lt> {
+    options: &'lt dyn FieldOptions,
+    runtime_type: &'lt RuntimeType,
+}
+
+impl<'lt> DefaultValueSerialize<'lt> {
+    fn new(options: &'lt dyn FieldOptions, runtime_type: &'lt RuntimeType) -> Self {
+        Self { options, runtime_type }
+    }
+}
+
+impl Serialize for DefaultValueSerialize<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let default_field_value = match self.runtime_type {
+            RuntimeType::I32 => ReflectValueRef::I32(0),
+            RuntimeType::I64 => ReflectValueRef::I64(0),
+            RuntimeType::U32 => ReflectValueRef::U32(0),
+            RuntimeType::U64 => ReflectValueRef::U64(0),
+            RuntimeType::F32 => ReflectValueRef::F32(0.0),
+            RuntimeType::F64 => ReflectValueRef::F64(0.0),
+            RuntimeType::Bool => ReflectValueRef::Bool(false),
+            RuntimeType::String => ReflectValueRef::String(""),
+            RuntimeType::VecU8 => ReflectValueRef::Bytes(&[]),
+            RuntimeType::Enum(descriptor) => ReflectValueRef::Enum(descriptor.clone(), 0),
+            RuntimeType::Message(descriptor) => {
+                ReflectValueRef::Message(MessageRef::default_instance(descriptor))
+            }
+        };
+
+        ValueSerialize::new(self.options, default_field_value).serialize(serializer)
+    }
+}
+
+struct ValueSerialize<'lt> {
+    options: &'lt dyn FieldOptions,
+    value: ReflectValueRef<'lt>,
+}
+
+impl<'lt> ValueSerialize<'lt> {
+    fn new(options: &'lt dyn FieldOptions, value: ReflectValueRef<'lt>) -> Self {
+        Self { options, value }
+    }
+
+    fn serialize_fixed_size_bytes<S>(
+        &self,
+        serializer: S,
+        size: usize,
+        value: &[u8],
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if size != value.len() {
+            Err(S::Error::custom(format!(
+                "Fixed-size bytes field size mismatch: expected {}, actual {}",
+                size,
+                value.len()
+            )))
+        } else {
+            let mut tuple = serializer.serialize_tuple(size)?;
+
+            for byte in value {
+                tuple.serialize_element(&byte)?;
+            }
+
+            tuple.end()
+        }
+    }
+
+    fn serialize_fixed_size_str<S>(
+        &self,
+        serializer: S,
+        size: usize,
+        value: &str,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if size < value.len() {
+            Err(S::Error::custom(format!(
+                "Fixed-size string field size mismatch: expected {} bytes, actual {} bytes",
+                size,
+                value.len()
+            )))
+        } else {
+            let mut tuple = serializer.serialize_tuple(size)?;
+
+            for byte in value.bytes() {
+                tuple.serialize_element(&byte)?;
+            }
+
+            // pad the value with the appropriate number of '\0' chars
+            let padding_size = size - value.len();
+
+            let padding: u8 = 0;
+            for _ in 0..padding_size {
+                tuple.serialize_element(&padding)?;
+            }
+
+            tuple.end()
+        }
+    }
+
+    fn fixed_point_f64<E>(value: f64, encoding: FixedPointEncoding) -> Result<i64, E>
+    where
+        E: serde::ser::Error,
+    {
+        let value = ((value - encoding.offset) / encoding.scale).ceil();
+
+        if value > i64::MAX as f64 || value < i64::MIN as f64 {
+            return Err(E::custom(
+                "i64 overflow when converting f64 to fixed point representation",
+            ));
+        }
+
+        Ok(value as i64)
+    }
+
+    fn fixed_point_f32<E>(value: f32, encoding: FixedPointEncoding) -> Result<i32, E>
+    where
+        E: serde::ser::Error,
+    {
+        let value: f64 = (((value as f64) - encoding.offset) / encoding.scale).ceil();
+
+        if value > i32::MAX as f64 || value < i32::MIN as f64 {
+            return Err(E::custom(
+                "i32 overflow when converting f32 to fixed point representation",
+            ));
+        }
+
+        Ok(value as i32)
+    }
+
+    fn serialize_i32<S>(
+        value: i32,
+        primitive_byte_size: Option<ByteSize>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match primitive_byte_size {
+            Some(ByteSize::ONE) => serializer
+                .serialize_i8(value.try_into().map_err(|_| S::Error::custom("i8 overflow"))?),
+            Some(ByteSize::TWO) => serializer
+                .serialize_i16(value.try_into().map_err(|_| S::Error::custom("i16 overflow"))?),
+            Some(ByteSize::THREE) => integer_utils::serialize_i24(value, serializer),
+            _ => serializer.serialize_i32(value),
+        }
+    }
+}
+
+impl Serialize for ValueSerialize<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match &self.value {
+            U32(value) => match self.options.primitive_byte_size() {
+                Some(ByteSize::ONE) => serializer.serialize_u8(
+                    (*value).try_into().map_err(|_| S::Error::custom("u8 overflow"))?,
+                ),
+                Some(ByteSize::TWO) => serializer.serialize_u16(
+                    (*value).try_into().map_err(|_| S::Error::custom("u16 overflow"))?,
+                ),
+                Some(ByteSize::THREE) => integer_utils::serialize_u24(*value, serializer),
+                _ => serializer.serialize_u32(*value),
+            },
+            U64(value) => serializer.serialize_u64(*value),
+            I32(value) => {
+                Self::serialize_i32(*value, self.options.primitive_byte_size(), serializer)
+            }
+            I64(value) => serializer.serialize_i64(*value),
+            F32(value) => {
+                if let Some((fixed_point_encoding, primitive_byte_size)) =
+                    self.options.float_encoding()
+                {
+                    Self::fixed_point_f32(*value, fixed_point_encoding).and_then(|value| {
+                        Self::serialize_i32(value, primitive_byte_size, serializer)
+                    })
+                } else {
+                    serializer.serialize_f32(*value)
+                }
+            }
+            F64(value) => {
+                if let Some(encoding) = self.options.fixed_point_encoding() {
+                    Self::fixed_point_f64(*value, encoding)
+                        .and_then(|value| serializer.serialize_i64(value))
+                } else {
+                    serializer.serialize_f64(*value)
+                }
+            }
+            Bytes(value) => {
+                if let Some(size) = self.options.variable_type_size().map_err(S::Error::custom)? {
+                    self.serialize_fixed_size_bytes(serializer, size, value)
+                } else {
+                    serializer.serialize_bytes(value)
+                }
+            }
+            Bool(value) => serializer.serialize_bool(*value),
+            String(value) => {
+                if let Some(size) = self.options.variable_type_size().map_err(S::Error::custom)? {
+                    self.serialize_fixed_size_str(serializer, size, value)
+                } else {
+                    serializer.serialize_str(value)
+                }
+            }
+            Enum(enum_descriptor, value) => match enum_descriptor.enum_byte_size() {
+                Some(ByteSize::ONE) => serializer.serialize_u8(
+                    (*value).try_into().map_err(|_| S::Error::custom("enum u8 overflow"))?,
+                ),
+                Some(ByteSize::TWO) => serializer.serialize_u16(
+                    (*value).try_into().map_err(|_| S::Error::custom("enum u16 overflow"))?,
+                ),
+                Some(ByteSize::THREE) => integer_utils::serialize_u24(
+                    (*value).try_into().map_err(|_| S::Error::custom("enum u24 overflow"))?,
+                    serializer,
+                ),
+                _ => serializer.serialize_i32(*value),
+            },
+            Message(value) => {
+                MessageSerialize::new(&value.descriptor_dyn(), value).serialize(serializer)
+            }
+        }
+    }
+}
+
+struct RepeatedValueSerialize<'lt> {
+    descriptor: &'lt FieldDescriptor,
+    value: &'lt ReflectRepeatedRef<'lt>,
+}
+
+impl<'lt> RepeatedValueSerialize<'lt> {
+    fn new(descriptor: &'lt FieldDescriptor, value: &'lt ReflectRepeatedRef<'lt>) -> Self {
+        Self { descriptor, value }
+    }
+
+    fn serialize_as_sequence<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut seq = serializer.serialize_seq(Some(self.value.len()))?;
+
+        for element_value in self.value {
+            seq.serialize_element(&ValueSerialize::new(self.descriptor, element_value))?;
+        }
+
+        seq.end()
+    }
+
+    fn serialize_as_tuple<S>(&self, size: usize, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if size != self.value.len() {
+            return Err(S::Error::custom(format!(
+                "Repeated field {} is a fixed-size repeated field with expected size {}, actually had size {}",
+                self.descriptor.name(),
+                size,
+                self.value.len()
+            )));
+        }
+
+        let mut tuple = serializer.serialize_tuple(size)?;
+
+        for element_value in self.value {
+            tuple.serialize_element(&ValueSerialize::new(self.descriptor, element_value))?;
+        }
+
+        tuple.end()
+    }
+}
+
+impl Serialize for RepeatedValueSerialize<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        if let Some(count) = self.descriptor.repeated_field_count().map_err(S::Error::custom)? {
+            self.serialize_as_tuple(count, serializer)
+        } else {
+            self.serialize_as_sequence(serializer)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::protobuf_serialize::MessageSerialize;
+    use crate::runtime_message_descriptor::{get_file_descriptor, get_message_descriptor};
+    use protobuf::reflect::{MessageRef, ReflectValueBox::*};
+    use serde_test::{assert_ser_tokens, assert_ser_tokens_error, Token};
+
+    #[test]
+    fn serialize_proto_with_supported_primitive_fields() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            message TestProto {
+                int64 my_i64 = 1;
+                int32 my_i32 = 2;
+                uint64 my_u64 = 3;
+                uint32 my_u32 = 4;
+                double my_f64 = 5;
+                float my_f32 = 6;
+                bool my_bool = 7;
+                TestEnum my_enum = 8;
+            }
+
+            enum TestEnum {
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+        let enum_descriptor = file_descriptor.enum_by_full_name(".TestEnum").unwrap();
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => I64(-64),
+                1 => I32(-32),
+                2 => U64(64),
+                3 => U32(32),
+                4 => F64(6.4),
+                5 => F32(3.2),
+                6 => Bool(false),
+                7 => Enum(enum_descriptor.clone(), 1),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 8 },
+                Token::Some,
+                Token::I64(-64),
+                Token::Some,
+                Token::I32(-32),
+                Token::Some,
+                Token::U64(64),
+                Token::Some,
+                Token::U32(32),
+                Token::Some,
+                Token::F64(6.4),
+                Token::Some,
+                Token::F32(3.2),
+                Token::Some,
+                Token::Bool(false),
+                Token::Some,
+                Token::I32(1),
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_variable_type_fields() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            message TestProto {
+                bytes my_bytes = 1;
+                string my_string = 2;
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => Bytes(vec![1, 2, 3, 4, 5]),
+                1 => String("hello".to_string()),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 2 },
+                Token::Some,
+                Token::Bytes(&[1, 2, 3, 4, 5]),
+                Token::Some,
+                Token::String("hello"),
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_fixed_size_variable_type_fields() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/vsidl/v1/annotations.proto";
+
+            message TestProto {
+                bytes my_bytes = 1 [(sdv.vsidl.v1.variable_type_max_size) = 3];
+                string my_string = 2 [(sdv.vsidl.v1.variable_type_max_size) = 10];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => Bytes(vec![1, 2, 3]),
+                1 => String("hello❤".to_string()),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 2 },
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(1),
+                Token::U8(2),
+                Token::U8(3),
+                Token::TupleEnd,
+                Token::Some,
+                Token::Tuple { len: 10 },
+                Token::U8(b'h'),
+                Token::U8(b'e'),
+                Token::U8(b'l'),
+                Token::U8(b'l'),
+                Token::U8(b'o'),
+                Token::U8(b'\xE2'),
+                Token::U8(b'\x9D'),
+                Token::U8(b'\xA4'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_fixed_size_string_field_overflow() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/vsidl/v1/annotations.proto";
+
+            message TestProto {
+                string my_string = 1 [(sdv.vsidl.v1.variable_type_max_size) = 10];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => String("hello world!".to_string()),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens_error(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 1 },
+                Token::Some,
+                // serialization should fail at this point
+            ],
+            "Fixed-size string field size mismatch: expected 10 bytes, actual 12 bytes",
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_fixed_size_bytes_field_too_long() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/vsidl/v1/annotations.proto";
+
+            message TestProto {
+                bytes my_bytes = 1 [(sdv.vsidl.v1.variable_type_max_size) = 5];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => Bytes(vec![1, 2, 3, 4, 5, 6]),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens_error(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 1 },
+                Token::Some,
+                // serialization should fail at this point
+            ],
+            "Fixed-size bytes field size mismatch: expected 5, actual 6",
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_fixed_size_bytes_field_too_short() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/vsidl/v1/annotations.proto";
+
+            message TestProto {
+                bytes my_bytes = 1 [(sdv.vsidl.v1.variable_type_max_size) = 9];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => Bytes(vec![1, 2, 3, 4, 5, 6]),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens_error(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 1 },
+                Token::Some,
+                // serialization should fail at this point
+            ],
+            "Fixed-size bytes field size mismatch: expected 9, actual 6",
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_nested_messages() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            message OuterProto {
+                uint64 my_u64 = 1;
+                InnerProto my_msg = 2;
+            }
+
+            message InnerProto {
+                InnermostProto my_msg = 1;
+                int64 my_i64 = 2;
+            }
+
+            message InnermostProto {
+                float my_f32 = 1;
+            }
+            "#,
+        );
+
+        let outer_descriptor = file_descriptor.message_by_full_name(".OuterProto").unwrap();
+        let inner_descriptor = file_descriptor.message_by_full_name(".InnerProto").unwrap();
+        let innermost_descriptor = file_descriptor.message_by_full_name(".InnermostProto").unwrap();
+
+        let mut outer_message = outer_descriptor.new_instance();
+        for (index, field) in outer_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => U64(64),
+                1 => {
+                    let mut inner_message = inner_descriptor.new_instance();
+                    for (index, field) in inner_descriptor.fields().enumerate() {
+                        let value = match index {
+                            1 => I64(10064),
+                            0 => {
+                                let mut innermost_message = innermost_descriptor.new_instance();
+                                for (index, field) in innermost_descriptor.fields().enumerate() {
+                                    let value = match index {
+                                        0 => F32(100.32),
+                                        _ => unreachable!(),
+                                    };
+
+                                    field.set_singular_field(&mut *innermost_message, value);
+                                }
+                                Message(innermost_message)
+                            }
+                            _ => unreachable!(),
+                        };
+
+                        field.set_singular_field(&mut *inner_message, value);
+                    }
+                    Message(inner_message)
+                }
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *outer_message, value);
+        }
+
+        let outer_message = &MessageRef::new(&*outer_message);
+        let message_serialize = MessageSerialize::new(&outer_descriptor, outer_message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 2 },
+                Token::Some,
+                Token::U64(64),
+                Token::Some,
+                Token::Tuple { len: 2 },
+                Token::Some,
+                Token::Tuple { len: 1 },
+                Token::Some,
+                Token::F32(100.32),
+                Token::TupleEnd,
+                Token::Some,
+                Token::I64(10064),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_repeated_fields() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            message TestProto {
+                repeated int64 my_i64 = 1;
+                repeated TestEnum my_enum = 2;
+                repeated double my_f64 = 3;
+            }
+
+            enum TestEnum {
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+        let enum_descriptor = file_descriptor.enum_by_full_name(".TestEnum").unwrap();
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let values = match index {
+                0 => {
+                    vec![]
+                }
+                1 => {
+                    vec![Enum(enum_descriptor.clone(), 1)]
+                }
+                2 => {
+                    vec![F64(-6.4), F64(-64.0), F64(-0.001)]
+                }
+                _ => unreachable!(),
+            };
+
+            for value in values {
+                field.mut_repeated(&mut *message).push(value);
+            }
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 3 },
+                Token::Seq { len: Some(0) },
+                Token::SeqEnd,
+                Token::Seq { len: Some(1) },
+                Token::I32(1),
+                Token::SeqEnd,
+                Token::Seq { len: Some(3) },
+                Token::F64(-6.4),
+                Token::F64(-64.0),
+                Token::F64(-0.001),
+                Token::SeqEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_fixed_size_repeated_fields() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/vsidl/v1/annotations.proto";
+
+            message TestProto {
+                repeated double my_f64 = 1 [(sdv.vsidl.v1.repeated_field_max_count) = 3];
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let values = match index {
+                0 => {
+                    vec![F64(-6.4), F64(-64.0), F64(-0.001)]
+                }
+                _ => unreachable!(),
+            };
+
+            for value in values {
+                field.mut_repeated(&mut *message).push(value);
+            }
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 1 },
+                Token::Tuple { len: 3 },
+                Token::F64(-6.4),
+                Token::F64(-64.0),
+                Token::F64(-0.001),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_fixed_size_repeated_field_too_long() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/vsidl/v1/annotations.proto";
+
+            message TestProto {
+                repeated int64 my_i64 = 1 [(sdv.vsidl.v1.repeated_field_max_count) = 1];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let values = match index {
+                0 => {
+                    vec![I64(1), I64(2)]
+                }
+                _ => unreachable!(),
+            };
+
+            for value in values {
+                field.mut_repeated(&mut *message).push(value);
+            }
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens_error(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 1 },
+                // serialization should fail at this point
+            ],
+            "Repeated field my_i64 is a fixed-size repeated field with expected size 1, actually had size 2",
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_fixed_size_repeated_field_too_short() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/vsidl/v1/annotations.proto";
+
+            message TestProto {
+                repeated int64 my_i64 = 1 [(sdv.vsidl.v1.repeated_field_max_count) = 3];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let values = match index {
+                0 => {
+                    vec![I64(1), I64(2)]
+                }
+                _ => unreachable!(),
+            };
+
+            for value in values {
+                field.mut_repeated(&mut *message).push(value);
+            }
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens_error(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 1 },
+                // serialization should fail at this point
+            ],
+            "Repeated field my_i64 is a fixed-size repeated field with expected size 3, actually had size 2",
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_variable_type_repeated_fields() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/vsidl/v1/annotations.proto";
+
+            message TestProto {
+                repeated string my_string = 1
+                    [(sdv.vsidl.v1.variable_type_max_size) = 10, (sdv.vsidl.v1.repeated_field_max_count) = 2];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let values = match index {
+                0 => vec![String("hello".to_string()), String("world!".to_string())],
+                _ => unreachable!(),
+            };
+
+            for value in values {
+                field.mut_repeated(&mut *message).push(value);
+            }
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 1 },
+                Token::Tuple { len: 2 },
+                Token::Tuple { len: 10 },
+                Token::U8(b'h'),
+                Token::U8(b'e'),
+                Token::U8(b'l'),
+                Token::U8(b'l'),
+                Token::U8(b'o'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
+                Token::TupleEnd,
+                Token::Tuple { len: 10 },
+                Token::U8(b'w'),
+                Token::U8(b'o'),
+                Token::U8(b'r'),
+                Token::U8(b'l'),
+                Token::U8(b'd'),
+                Token::U8(b'!'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
+                Token::U8(b'\0'),
+                Token::TupleEnd,
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_int_fields_with_byte_size_options() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/diagnostics/v1/diagnostics.proto";
+
+            message TestProto {
+                uint32 one_byte_u32 = 1 [(sdv.diagnostics.v1.primitive_byte_size) = ONE];
+                uint32 two_bytes_u32 = 2 [(sdv.diagnostics.v1.primitive_byte_size) = TWO];
+                uint32 three_bytes_u32 = 3 [(sdv.diagnostics.v1.primitive_byte_size) = THREE];
+                int32 one_byte_i32 = 4 [(sdv.diagnostics.v1.primitive_byte_size) = ONE];
+                int32 two_bytes_i32 = 5 [(sdv.diagnostics.v1.primitive_byte_size) = TWO];
+                int32 three_bytes_i32 = 6 [(sdv.diagnostics.v1.primitive_byte_size) = THREE];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => U32(128),
+                1 => U32(1024),
+                2 => U32(16_000_000),
+                3 => I32(-120),
+                4 => I32(-510),
+                5 => I32(-8_388_608),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 6 },
+                Token::Some,
+                Token::U8(128),
+                Token::Some,
+                Token::U16(1024),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(0xF4),
+                Token::U8(0x24),
+                Token::U8(0x00),
+                Token::TupleEnd,
+                Token::Some,
+                Token::I8(-120),
+                Token::Some,
+                Token::I16(-510),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(0x80),
+                Token::U8(0x00),
+                Token::U8(0x00),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_float_fields_with_fixed_point_options() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/diagnostics/v1/diagnostics.proto";
+            import "sdv/vsidl/v1/annotations.proto";
+
+            message TestProto {
+                repeated float my_fixed_float = 1 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }, (sdv.vsidl.v1.repeated_field_max_count) = 2];
+                repeated double my_fixed_double = 2 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.0001
+                    offset: 0
+                }, (sdv.vsidl.v1.repeated_field_max_count) = 2];
+                repeated float my_one_byte_fixed_float = 3 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }, (sdv.vsidl.v1.repeated_field_max_count) = 2,
+                (sdv.diagnostics.v1.primitive_byte_size) = ONE];
+                repeated float my_two_byte_fixed_float = 4 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 20
+                }, (sdv.vsidl.v1.repeated_field_max_count) = 2,
+                (sdv.diagnostics.v1.primitive_byte_size) = TWO];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let values = match index {
+                0 | 2 | 3 => [F32(20.0132), F32(19.8947)],
+                1 => [F64(0.12345), F64(-0.12345)],
+                _ => unreachable!(),
+            };
+
+            for value in values {
+                field.mut_repeated(&mut *message).push(value);
+            }
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 4 },
+                Token::Tuple { len: 2 },
+                Token::I32(14),
+                Token::I32(-105),
+                Token::TupleEnd,
+                Token::Tuple { len: 2 },
+                Token::I64(1235),
+                Token::I64(-1234),
+                Token::TupleEnd,
+                Token::Tuple { len: 2 },
+                Token::I8(14),
+                Token::I8(-105),
+                Token::TupleEnd,
+                Token::Tuple { len: 2 },
+                Token::I16(14),
+                Token::I16(-105),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_float_field_with_fixed_point_overflow() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/diagnostics/v1/diagnostics.proto";
+
+            message TestProto {
+                float my_fixed_float = 1 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 1
+                    offset: 0
+                }];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => F32(i32::MAX as f32 + 1.0),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens_error(
+            &message_serialize,
+            &[Token::Tuple { len: 1 }, Token::Some],
+            "i32 overflow when converting f32 to fixed point representation",
+        )
+    }
+
+    #[test]
+    fn serialize_double_field_with_fixed_point_overflow() {
+        let message_descriptor = get_message_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/diagnostics/v1/diagnostics.proto";
+
+            message TestProto {
+                double my_fixed_double = 1 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 1
+                    offset: 0
+                }];
+            }
+            "#,
+            ".TestProto",
+        );
+
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => F64(i64::MIN as f64 - 10000.0),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens_error(
+            &message_serialize,
+            &[Token::Tuple { len: 1 }, Token::Some],
+            "i64 overflow when converting f64 to fixed point representation",
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_enum_with_byte_size() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/diagnostics/v1/diagnostics.proto";
+
+            message TestProto {
+                TestEnumOne my_1_byte_enum = 1;
+                TestEnumTwo my_2_byte_enum = 2;
+                TestEnumThree my_3_byte_enum = 3;
+            }
+
+            enum TestEnumOne {
+                option (sdv.diagnostics.v1.enum_byte_size) = ONE;
+
+                A = 0;
+            }
+
+            enum TestEnumTwo {
+                option (sdv.diagnostics.v1.enum_byte_size) = TWO;
+
+                A = 0;
+            }
+
+            enum TestEnumThree {
+                option (sdv.diagnostics.v1.enum_byte_size) = THREE;
+
+                A = 0;
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+        let enum_descriptor1 = file_descriptor.enum_by_full_name(".TestEnumOne").unwrap();
+        let enum_descriptor2 = file_descriptor.enum_by_full_name(".TestEnumTwo").unwrap();
+        let enum_descriptor3 = file_descriptor.enum_by_full_name(".TestEnumThree").unwrap();
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => Enum(enum_descriptor1.clone(), 0),
+                1 => Enum(enum_descriptor2.clone(), 0),
+                2 => Enum(enum_descriptor3.clone(), 0),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 3 },
+                Token::Some,
+                Token::U8(0),
+                Token::Some,
+                Token::U16(0),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(0),
+                Token::U8(0),
+                Token::U8(0),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_enum_with_byte_size_and_max_value() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/diagnostics/v1/diagnostics.proto";
+
+            message TestProto {
+                TestEnumOne my_1_byte_enum = 1;
+                TestEnumTwo my_2_byte_enum = 2;
+                TestEnumThree my_3_byte_enum = 3;
+            }
+
+            enum TestEnumOne {
+                option (sdv.diagnostics.v1.enum_byte_size) = ONE;
+
+                B = 255;
+                A = 0;
+            }
+
+            enum TestEnumTwo {
+                option (sdv.diagnostics.v1.enum_byte_size) = TWO;
+
+                B = 65535;
+                A = 0;
+            }
+
+            enum TestEnumThree {
+                option (sdv.diagnostics.v1.enum_byte_size) = THREE;
+
+                B = 16777215;
+                A = 0;
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+        let enum_descriptor1 = file_descriptor.enum_by_full_name(".TestEnumOne").unwrap();
+        let enum_descriptor2 = file_descriptor.enum_by_full_name(".TestEnumTwo").unwrap();
+        let enum_descriptor3 = file_descriptor.enum_by_full_name(".TestEnumThree").unwrap();
+        let mut message = message_descriptor.new_instance();
+        for (index, field) in message_descriptor.fields().enumerate() {
+            let value = match index {
+                0 => Enum(enum_descriptor1.clone(), 255),
+                1 => Enum(enum_descriptor2.clone(), 65535),
+                2 => Enum(enum_descriptor3.clone(), 16777215),
+                _ => unreachable!(),
+            };
+
+            field.set_singular_field(&mut *message, value);
+        }
+
+        let message = &MessageRef::new(&*message);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 3 },
+                Token::Some,
+                Token::U8(255),
+                Token::Some,
+                Token::U16(65535),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(255),
+                Token::U8(255),
+                Token::U8(255),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_default_values() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/vsidl/v1/annotations.proto";
+            import "sdv/diagnostics/v1/diagnostics.proto";
+
+            message TestProto {
+                int64 my_i64 = 1;
+                int32 my_i32 = 2;
+                uint64 my_u64 = 3;
+                uint32 my_u32 = 4;
+                double my_f64 = 5;
+                float my_f32 = 6;
+                bool my_bool = 7;
+                InnerProto my_inner_proto = 8;
+                int32 my_one_byte_i32 = 9 [(sdv.diagnostics.v1.primitive_byte_size) = ONE];
+                uint32 my_two_bytes_u32 = 10 [(sdv.diagnostics.v1.primitive_byte_size) = TWO];
+                float my_fixed_f32 = 12 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 12
+                }];
+                double my_fixed_f64 = 13 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.0001
+                    offset: -13
+                }];
+                OneByteEnum my_one_byte_enum = 14;
+                float my_one_byte_fixed_float = 15 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.1
+                    offset: 1.5
+                }, (sdv.diagnostics.v1.primitive_byte_size) = ONE];
+                float my_two_byte_fixed_float = 16 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.1
+                    offset: -16
+                }, (sdv.diagnostics.v1.primitive_byte_size) = TWO];
+                float my_three_byte_fixed_float = 17 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.1
+                    offset: -1600
+                }, (sdv.diagnostics.v1.primitive_byte_size) = THREE];
+            }
+
+            message InnerProto {
+                repeated bool my_fixed_array = 1 [(sdv.vsidl.v1.repeated_field_max_count) = 0];
+                string my_fixed_string = 2 [(sdv.vsidl.v1.variable_type_max_size) = 0];
+                TestEnum my_enum = 3;
+            }
+
+            enum OneByteEnum {
+                option (sdv.diagnostics.v1.enum_byte_size) = ONE;
+
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+
+            enum TestEnum {
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+
+        let message = &MessageRef::default_instance(&message_descriptor);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 16 },
+                Token::Some,
+                Token::I64(0),
+                Token::Some,
+                Token::I32(0),
+                Token::Some,
+                Token::U64(0),
+                Token::Some,
+                Token::U32(0),
+                Token::Some,
+                Token::F64(0.0),
+                Token::Some,
+                Token::F32(0.0),
+                Token::Some,
+                Token::Bool(false),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::Tuple { len: 0 },
+                Token::TupleEnd,
+                Token::Some,
+                Token::Tuple { len: 0 },
+                Token::TupleEnd,
+                Token::Some,
+                Token::I32(0),
+                Token::TupleEnd,
+                Token::Some,
+                Token::I8(0),
+                Token::Some,
+                Token::U16(0),
+                Token::Some,
+                Token::I32(-12000),
+                Token::Some,
+                Token::I64(130000),
+                Token::Some,
+                Token::U8(0),
+                Token::Some,
+                Token::I8(-15),
+                Token::Some,
+                Token::I16(160),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::U8(0),
+                Token::U8(0x3E),
+                Token::U8(0x80),
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_optional_fields_with_default_values() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/vsidl/v1/annotations.proto";
+            import "sdv/diagnostics/v1/diagnostics.proto";
+
+            message TestProto {
+                optional int64 my_i64 = 1;
+                optional int32 my_i32 = 2;
+                optional uint64 my_u64 = 3;
+                optional uint32 my_u32 = 4;
+                optional double my_f64 = 5;
+                optional float my_f32 = 6;
+                optional bool my_bool = 7;
+                optional InnerProto my_inner_proto = 8;
+                optional int32 my_one_byte_i32 = 9 [(sdv.diagnostics.v1.primitive_byte_size) = ONE];
+                optional uint32 my_two_bytes_u32 = 10 [(sdv.diagnostics.v1.primitive_byte_size) = TWO];
+                optional float my_fixed_f32 = 12 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.001
+                    offset: 12
+                }];
+                optional double my_fixed_f64 = 13 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.0001
+                    offset: -13
+                }];
+                optional OneByteEnum my_one_byte_enum = 14;
+                optional float my_one_byte_fixed_float = 15 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.1
+                    offset: 1.5
+                }, (sdv.diagnostics.v1.primitive_byte_size) = ONE];
+                optional float my_two_byte_fixed_float = 16 [(sdv.diagnostics.v1.fixed_point_encoding) = {
+                    scale: 0.1
+                    offset: -16
+                }, (sdv.diagnostics.v1.primitive_byte_size) = TWO];
+            }
+
+            message InnerProto {
+                repeated bool my_fixed_array = 1 [(sdv.vsidl.v1.repeated_field_max_count) = 0];
+                optional string my_fixed_string = 2 [(sdv.vsidl.v1.variable_type_max_size) = 0];
+                optional TestEnum my_enum = 3;
+            }
+
+            enum OneByteEnum {
+                option (sdv.diagnostics.v1.enum_byte_size) = ONE;
+
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+
+            enum TestEnum {
+                A = 0;
+                B = 1;
+                C = 2;
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+
+        let message = &MessageRef::default_instance(&message_descriptor);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 15 },
+                Token::Some,
+                Token::I64(0),
+                Token::Some,
+                Token::I32(0),
+                Token::Some,
+                Token::U64(0),
+                Token::Some,
+                Token::U32(0),
+                Token::Some,
+                Token::F64(0.0),
+                Token::Some,
+                Token::F32(0.0),
+                Token::Some,
+                Token::Bool(false),
+                Token::Some,
+                Token::Tuple { len: 3 },
+                Token::Tuple { len: 0 },
+                Token::TupleEnd,
+                Token::Some,
+                Token::Tuple { len: 0 },
+                Token::TupleEnd,
+                Token::Some,
+                Token::I32(0),
+                Token::TupleEnd,
+                Token::Some,
+                Token::I8(0),
+                Token::Some,
+                Token::U16(0),
+                Token::Some,
+                Token::I32(-12000),
+                Token::Some,
+                Token::I64(130000),
+                Token::Some,
+                Token::U8(0),
+                Token::Some,
+                Token::I8(-15),
+                Token::Some,
+                Token::I16(160),
+                Token::TupleEnd,
+            ],
+        )
+    }
+
+    #[test]
+    fn serialize_proto_with_skipped_fields() {
+        let file_descriptor = get_file_descriptor(
+            r#"syntax = 'proto3';
+
+            import "sdv/vsidl/v1/annotations.proto";
+            import "sdv/diagnostics/v1/diagnostics.proto";
+
+            message TestProto {
+                int64 my_i64 = 1 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                int32 my_i32 = 2 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                uint64 my_u64 = 3 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                uint32 my_u32 = 4 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                double my_f64 = 5 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                float my_f32 = 6 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                bool my_bool = 7 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                InnerProto my_not_skipped_inner_proto = 8;
+                InnerProto my_skipped_inner_proto = 9 [(sdv.diagnostics.v1.skip_for_diag) = true];
+                repeated bool my_fixed_array = 10 [(sdv.vsidl.v1.repeated_field_max_count) = 0, (sdv.diagnostics.v1.skip_for_diag) = true];
+            }
+
+            message InnerProto {
+                optional string my_string = 2 [(sdv.diagnostics.v1.skip_for_diag) = true];
+            }
+            "#,
+        );
+
+        let message_descriptor = file_descriptor.message_by_full_name(".TestProto").unwrap();
+
+        let message = &MessageRef::default_instance(&message_descriptor);
+        let message_serialize = MessageSerialize::new(&message_descriptor, message);
+
+        assert_ser_tokens(
+            &message_serialize,
+            &[
+                Token::Tuple { len: 1 },
+                Token::Some,
+                Token::Tuple { len: 0 },
+                Token::TupleEnd,
+                Token::TupleEnd,
+            ],
+        )
+    }
+}

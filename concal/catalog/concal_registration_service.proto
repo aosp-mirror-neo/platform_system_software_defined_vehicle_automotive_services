@@ -1,0 +1,94 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// This API might change when MW implementation is provided.
+
+syntax = "proto3";
+
+package com.sdv.google.concal;
+
+import "configuration.proto";
+
+// Generally available Configuration/Calibration Service Bundle (ConCal) APIs for use by
+// SDV-Services.
+// ConCal delivers customized verhicle-specific service bundles' configurations.
+// ConCal interface providing capabilities to register configuration and retrieve the current
+// version of a config.
+service ConCalRegistrationService {
+  // Retrieves service configuration.
+  // Returns an error if multiple configs matching the request or requested config is not available
+  // at ConCal.
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse) {}
+
+  // Registers configuration schema with default config.
+  // If the metadata for this version already exists the metadata is not
+  // rewritten.
+  rpc RegisterConfigMetadata(RegisterConfigMetadataRequest)
+      returns (RegisterConfigMetadataResponse) {}
+
+  // Returns the config metadata for the defined config.
+  rpc GetConfigMetadata(GetConfigMetadataRequest) returns (GetConfigMetadataResponse) {}
+}
+
+message GetConfigRequest {
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message GetConfigResponse {
+  // Required.
+  // Serialized config.
+  bytes config = 1;
+
+  // Required.
+  // Version identifier for the config.
+  string config_version = 2;
+}
+
+message RegisterConfigMetadataRequest {
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 1;
+
+  // Required.
+  // Config schema and default message.
+  ConfigMetadata metadata = 2;
+
+  // Required.
+  // Version identifier for the service package.
+  // Required to support binary updates.
+  string config_version = 3;
+}
+
+message RegisterConfigMetadataResponse {}
+
+message GetConfigMetadataRequest {
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 1;
+
+  // Required.
+  // Version identifier for the config.
+  // If not provided, the current config schema is returned.
+  string config_version = 2;
+}
+
+message GetConfigMetadataResponse {
+  // Required.
+  // Service config schema and default message.
+  ConfigMetadata metadata = 1;
+}

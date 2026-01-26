@@ -1,0 +1,152 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// This API might change when MW implementation is provided.
+
+syntax = "proto3";
+
+package com.sdv.google.concal;
+
+import "configuration.proto";
+import "config_override.proto";
+
+// Generally available Configuration/Calibration Service Bundle (ConCal) APIs for use by
+// SDV-Services.
+// ConCal delivers customized verhicle-specific service bundles' configurations.
+// Concal interface providing capabilities to execute configuration updates and override service
+// bundles' configs.
+service ConCalUpdateService {
+  // Starts a configuration update.
+  // No updates can run in parallel.
+  // The method will return error if another update session is in progress.
+  // Each update can include multiple overrides.
+  // This API should be only available to the privileged service bundles.
+  // This API can be changed when update story is defined.
+  rpc StartConfigUpdate(StartConfigUpdateRequest) returns (StartConfigUpdateResponse) {}
+
+  // Adds or updates a config override.
+  // Dependent on the sender of the message, configuration service should assign
+  // a priority to it. Executed before StartConfigUpdate() and FinishConfigUpdate(). This API
+  // should be only available to the privileged service bundles.
+  // This API can be changed when update story is defined.
+  rpc AddOrUpdateConfigOverride(AddOrUpdateConfigOverrideRequest)
+      returns (AddOrUpdateConfigOverrideResponse) {}
+
+  // Removes a config override.
+  // This API should be only available to the privileged service bundles.
+  // This API can be changed when update story is defined.
+  rpc RemoveConfigOverride(RemoveConfigOverrideRequest) returns (RemoveConfigOverrideResponse) {}
+
+  // Cancels an update. All ConfigOverrides sent after the last
+  // StartConfigUpdate() and now are reverted.
+  // This API should be only available to the privileged service bundles.
+  // This API can be changed when update story is defined.
+  rpc CancelConfigUpdate(CancelConfigUpdateRequest) returns (CancelConfigUpdateResponse) {}
+
+  // Marks the end of configuration update.
+  // A new configuration snapshot is calculated and stored persistently.
+  // This API should be only available to the privileged service bundles.
+  // This API can be changed when update story is defined.
+  rpc FinishConfigUpdate(FinishConfigUpdateRequest) returns (FinishConfigUpdateResponse) {}
+
+  // Rolls back the last update to the previous configuration snapshot.
+  // This API should be only available to the privileged service bundles.
+  // Can't be performed while another update is in progress.
+  // This API can be changed when update story is defined.
+  rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
+
+  // Removes all configuration updates and default configurations.
+  // This API should be only available to the privileged service bundles.
+  // Cleans all services up to the factory state. Can't be
+  // performed while another update is in progress.
+  // This API can be changed when update story is defined.
+  rpc Reset(ResetRequest) returns (ResetResponse) {}
+
+  // Removes a configuration.
+  // Called when a service is uninstalled.
+  // This API should be only available to the privileged service bundles.
+  // Can't be performed while another update is in progress.
+  // This API can be changed when update story is defined.
+  rpc UninstallConfig(UninstallConfigRequest) returns (UninstallConfigResponse) {}
+}
+
+message StartConfigUpdateRequest {}
+
+message StartConfigUpdateResponse {
+  // Required.
+  // Random number which exists only during the update transaction.
+  int64 update_id = 1;
+}
+
+message AddOrUpdateConfigOverrideRequest {
+  // Required.
+  // Random number which exists only during the update transaction.
+  int64 update_id = 1;
+
+  // Required.
+  // At least one value should be provided.
+  repeated ConfigOverride configOverride = 2;
+}
+
+message AddOrUpdateConfigOverrideResponse {}
+
+message RemoveConfigOverrideRequest {
+  // Required.
+  // Random number which exists only during the update transaction.
+  int64 update_id = 1;
+
+  // Required.
+  // Override identifier defined by the caller.
+  // Unique per caller.
+  string override_id = 2;
+}
+
+message RemoveConfigOverrideResponse {}
+
+message CancelConfigUpdateRequest {
+  // Required.
+  // Random number which exists only during the update transaction.
+  int64 update_id = 1;
+}
+
+message CancelConfigUpdateResponse {}
+
+message FinishConfigUpdateRequest {
+  // Required.
+  // Random number which exists only during the update transaction.
+  int64 update_id = 1;
+}
+
+message FinishConfigUpdateResponse {}
+
+message RollbackRequest {}
+
+message RollbackResponse {}
+
+message ResetRequest {
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+message ResetResponse {}
+
+message UninstallConfigRequest {
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message UninstallConfigResponse {}

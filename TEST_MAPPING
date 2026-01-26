@@ -1,0 +1,56 @@
+//
+// Copyright (C) 2026 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+{
+  "sdv_automotive_services_presubmit": [
+    {
+      "name": "sdv_compliance_diagnostics_manager_test"
+    },
+    {
+      "name": "sdv_uds_comms_tests"
+    },
+    {
+      "name": "sdv_uds_serde_v1_tests"
+    },
+    {
+      "name": "sdv_uds_serde_v1_core_tests"
+    },
+    {
+      "name": "sdv_core_automotive_services_unit_user_pref_test"
+    },
+    {
+      "name": "sdv_mw_rs_diag_tests"
+    },
+    {
+      "name": "sdv_core_automotive_services_unit_diagnostics_agent_test"
+    },
+    {
+      "name": "sdv_combined_sample_generation_test"
+    },
+    {
+      "name": "sdv_combined_sample_per_bundle_generation_test"
+    },
+    {
+      "name": "sdv_core_automotive_services_unit_concal_override_test"
+    },
+    {
+      "name": "sdv_core_automotive_services_unit_concal_server_sample_test"
+    }
+  ],
+  // Since the list of tests is empty the CI config is disabled.
+  // Please enable the CI config if you want to run the tests in this list.
+  "sdv_automotive_service_postsubmit": [],
+  "sdv_automotive_service_integration_presubmit": []
+}

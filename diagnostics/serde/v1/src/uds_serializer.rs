@@ -1,0 +1,398 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+use byteorder::BigEndian;
+use byteorder::WriteBytesExt;
+use serde::ser::{Impossible, SerializeStruct, SerializeTuple};
+use serde::{Serialize, Serializer};
+
+pub(crate) struct UdsSerializer<'buffer_lt> {
+    output: &'buffer_lt mut Vec<u8>,
+}
+
+impl<'buffer_lt> UdsSerializer<'buffer_lt> {
+    pub fn new(output: &'buffer_lt mut Vec<u8>) -> Self {
+        UdsSerializer { output }
+    }
+}
+
+impl<'ser_lt, 'buffer_lt> Serializer for &'ser_lt mut UdsSerializer<'buffer_lt> {
+    type Ok = ();
+    type Error = UdsSerializerError;
+    type SerializeSeq = Impossible<(), UdsSerializerError>;
+    type SerializeTuple = UdsTupleSerializer<'ser_lt, 'buffer_lt>;
+    type SerializeTupleStruct = Impossible<(), UdsSerializerError>;
+    type SerializeTupleVariant = Impossible<(), UdsSerializerError>;
+    type SerializeMap = Impossible<(), UdsSerializerError>;
+    type SerializeStruct = UdsTupleSerializer<'ser_lt, 'buffer_lt>;
+    type SerializeStructVariant = Impossible<(), UdsSerializerError>;
+
+    fn serialize_bool(self, value: bool) -> Result<Self::Ok, Self::Error> {
+        if value {
+            self.output.write_u8(0x01)?;
+        } else {
+            self.output.write_u8(0x00)?;
+        }
+
+        Ok(())
+    }
+
+    fn serialize_i8(self, value: i8) -> Result<Self::Ok, Self::Error> {
+        self.output.write_i8(value)?;
+        Ok(())
+    }
+
+    fn serialize_i16(self, value: i16) -> Result<Self::Ok, Self::Error> {
+        self.output.write_i16::<BigEndian>(value)?;
+        Ok(())
+    }
+
+    fn serialize_i32(self, value: i32) -> Result<Self::Ok, Self::Error> {
+        self.output.write_i32::<BigEndian>(value)?;
+        Ok(())
+    }
+
+    fn serialize_i64(self, value: i64) -> Result<Self::Ok, Self::Error> {
+        self.output.write_i64::<BigEndian>(value)?;
+        Ok(())
+    }
+
+    fn serialize_u8(self, value: u8) -> Result<Self::Ok, Self::Error> {
+        self.output.write_u8(value)?;
+        Ok(())
+    }
+
+    fn serialize_u16(self, value: u16) -> Result<Self::Ok, Self::Error> {
+        self.output.write_u16::<BigEndian>(value)?;
+        Ok(())
+    }
+
+    fn serialize_u32(self, value: u32) -> Result<Self::Ok, Self::Error> {
+        self.output.write_u32::<BigEndian>(value)?;
+        Ok(())
+    }
+
+    fn serialize_u64(self, value: u64) -> Result<Self::Ok, Self::Error> {
+        self.output.write_u64::<BigEndian>(value)?;
+        Ok(())
+    }
+
+    fn serialize_f32(self, value: f32) -> Result<Self::Ok, Self::Error> {
+        self.output.write_f32::<BigEndian>(value)?;
+        Ok(())
+    }
+
+    fn serialize_f64(self, value: f64) -> Result<Self::Ok, Self::Error> {
+        self.output.write_f64::<BigEndian>(value)?;
+        Ok(())
+    }
+
+    fn serialize_char(self, _value: char) -> Result<Self::Ok, Self::Error> {
+        Err(Self::Error::UnsupportedType("Char (use u8 instead)".to_string()))
+    }
+
+    fn serialize_str(self, _: &str) -> Result<Self::Ok, Self::Error> {
+        Err(Self::Error::UnsupportedType("Variable-size string".to_string()))
+    }
+
+    fn serialize_bytes(self, _: &[u8]) -> Result<Self::Ok, Self::Error> {
+        Err(Self::Error::UnsupportedType("Variable-size byte array".to_string()))
+    }
+
+    fn serialize_none(self) -> Result<Self::Ok, Self::Error> {
+        Err(Self::Error::UnsupportedType("Empty optional value".to_string()))
+    }
+
+    fn serialize_some<T>(self, value: &T) -> Result<Self::Ok, Self::Error>
+    where
+        T: Serialize + ?Sized,
+    {
+        value.serialize(self)
+    }
+
+    fn serialize_unit(self) -> Result<Self::Ok, Self::Error> {
+        unimplemented!()
+    }
+
+    fn serialize_unit_struct(self, _: &'static str) -> Result<Self::Ok, Self::Error> {
+        unimplemented!()
+    }
+
+    fn serialize_unit_variant(
+        self,
+        _: &'static str,
+        _: u32,
+        _: &'static str,
+    ) -> Result<Self::Ok, Self::Error> {
+        Err(Self::Error::UnsupportedType("Unit variant".to_string()))
+    }
+
+    fn serialize_newtype_struct<T>(self, _: &'static str, _: &T) -> Result<Self::Ok, Self::Error>
+    where
+        T: Serialize + ?Sized,
+    {
+        unimplemented!()
+    }
+
+    fn serialize_newtype_variant<T>(
+        self,
+        _: &'static str,
+        _: u32,
+        _: &'static str,
+        _: &T,
+    ) -> Result<Self::Ok, Self::Error>
+    where
+        T: Serialize + ?Sized,
+    {
+        Err(Self::Error::UnsupportedType("Newtype variant".to_string()))
+    }
+
+    fn serialize_seq(
+        self,
+        _: std::option::Option<usize>,
+    ) -> Result<Self::SerializeSeq, Self::Error> {
+        Err(Self::Error::UnsupportedType("Variable-size sequence".to_string()))
+    }
+
+    fn serialize_tuple(self, _: usize) -> Result<Self::SerializeTuple, Self::Error> {
+        Ok(UdsTupleSerializer { serializer: self })
+    }
+
+    fn serialize_tuple_struct(
+        self,
+        _: &'static str,
+        _: usize,
+    ) -> Result<Self::SerializeTupleStruct, Self::Error> {
+        unimplemented!()
+    }
+
+    fn serialize_tuple_variant(
+        self,
+        _: &'static str,
+        _: u32,
+        _: &'static str,
+        _: usize,
+    ) -> Result<Self::SerializeTupleVariant, Self::Error> {
+        Err(Self::Error::UnsupportedType("Tuple variant".to_string()))
+    }
+
+    fn serialize_map(
+        self,
+        _: std::option::Option<usize>,
+    ) -> Result<Self::SerializeMap, Self::Error> {
+        unimplemented!()
+    }
+
+    fn serialize_struct(
+        self,
+        _: &'static str,
+        size: usize,
+    ) -> Result<Self::SerializeStruct, Self::Error> {
+        self.serialize_tuple(size)
+    }
+
+    fn serialize_struct_variant(
+        self,
+        _: &'static str,
+        _: u32,
+        _: &'static str,
+        _: usize,
+    ) -> Result<Self::SerializeStructVariant, Self::Error> {
+        Err(Self::Error::UnsupportedType("Struct variant".to_string()))
+    }
+}
+
+pub struct UdsTupleSerializer<'ser_lt, 'buffer_lt> {
+    serializer: &'ser_lt mut UdsSerializer<'buffer_lt>,
+}
+
+impl SerializeTuple for UdsTupleSerializer<'_, '_> {
+    type Ok = ();
+    type Error = UdsSerializerError;
+
+    fn serialize_element<T>(&mut self, element_value: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize + ?Sized,
+    {
+        element_value.serialize(&mut *self.serializer)
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        Ok(())
+    }
+}
+
+impl SerializeStruct for UdsTupleSerializer<'_, '_> {
+    type Ok = ();
+    type Error = UdsSerializerError;
+
+    fn serialize_field<T>(&mut self, _: &'static str, field_value: &T) -> Result<(), Self::Error>
+    where
+        T: Serialize + ?Sized,
+    {
+        field_value.serialize(&mut *self.serializer)
+    }
+
+    fn end(self) -> Result<Self::Ok, Self::Error> {
+        Ok(())
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum UdsSerializerError {
+    /// Custom serialization error
+    #[error("Custom serialization error: {0}")]
+    CustomError(String),
+    /// Error serializing `char` as UTF-16
+    #[error("Char is not a UTF-16 character: {0}")]
+    CharEncodingError(char),
+    /// UDS format doesn't support the type from `serde` type model.
+    #[error("Serde type is not supported: {0}")]
+    UnsupportedType(String),
+}
+impl From<std::io::Error> for UdsSerializerError {
+    fn from(io_error: std::io::Error) -> Self {
+        UdsSerializerError::CustomError(format!(
+            "io_error: {}, kind: {}",
+            io_error,
+            io_error.kind()
+        ))
+    }
+}
+
+impl serde::ser::Error for UdsSerializerError {
+    fn custom<T>(msg: T) -> Self
+    where
+        T: std::fmt::Display,
+    {
+        UdsSerializerError::CustomError(msg.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::uds_serializer::{UdsSerializer, UdsSerializerError};
+    use googletest::prelude::{assert_that, eq, matches_pattern};
+    use serde::Serialize;
+
+    #[test]
+    fn serialize_structure_with_all_supported_fields() {
+        #[derive(Serialize)]
+        struct TestStruct {
+            my_i8: i8,
+            my_i16: i16,
+            my_i32: i32,
+            my_i64: i64,
+            my_u8: u8,
+            my_u16: u16,
+            my_u32: u32,
+            my_u64: u64,
+            my_f32: f32,
+            my_f64: f64,
+            my_bool: bool,
+            my_inner_struct: InnerStruct,
+        }
+
+        #[derive(Serialize)]
+        struct InnerStruct {
+            my_fixed_bytes: [u8; 3],
+            my_fixed_string: [u8; 8],
+        }
+
+        let value = TestStruct {
+            my_i8: -8,
+            my_i16: -16,
+            my_i32: -32,
+            my_i64: -64,
+            my_u8: 8,
+            my_u16: 16,
+            my_u32: 32,
+            my_u64: 64,
+            my_f32: 3.2,
+            my_f64: 6.4,
+            my_bool: false,
+            my_inner_struct: InnerStruct {
+                my_fixed_bytes: [1, 2, 3],
+                my_fixed_string: [b'h', b'e', b'l', b'l', b'o', b'\xE2', b'\x9D', b'\xA4'],
+            },
+        };
+
+        let mut expected_bytes = Vec::<u8>::new();
+        expected_bytes.push(-8i8 as u8);
+        expected_bytes.extend((-16i16).to_be_bytes());
+        expected_bytes.extend((-32i32).to_be_bytes());
+        expected_bytes.extend((-64i64).to_be_bytes());
+        expected_bytes.push(8);
+        expected_bytes.extend(16u16.to_be_bytes());
+        expected_bytes.extend(32u32.to_be_bytes());
+        expected_bytes.extend(64u64.to_be_bytes());
+        expected_bytes.extend(3.2f32.to_be_bytes());
+        expected_bytes.extend(6.4f64.to_be_bytes());
+        expected_bytes.push(0x00);
+        expected_bytes.extend(&[1, 2, 3][..]);
+        expected_bytes.extend("hello❤".as_bytes());
+
+        let mut byte_buffer = Vec::<u8>::new();
+        let mut serializer = UdsSerializer::new(&mut byte_buffer);
+
+        assert_that!(value.serialize(&mut serializer), matches_pattern!(Ok(())));
+        assert_that!(byte_buffer, eq(&expected_bytes));
+    }
+
+    #[test]
+    fn serialize_structure_variable_string_not_supported() {
+        #[derive(Serialize)]
+        struct TestStruct {
+            my_string: String,
+        }
+
+        let value = TestStruct { my_string: "Hello".to_string() };
+
+        let mut expected_bytes = Vec::<u8>::new();
+        for utf16_char in "Hello".encode_utf16() {
+            expected_bytes.extend(utf16_char.to_ne_bytes());
+        }
+
+        let mut byte_buffer = Vec::<u8>::new();
+        let mut serializer = UdsSerializer::new(&mut byte_buffer);
+
+        assert_that!(
+            value.serialize(&mut serializer),
+            matches_pattern!(Err(matches_pattern!(UdsSerializerError::UnsupportedType(eq(
+                "Variable-size string"
+            )))))
+        );
+    }
+
+    #[test]
+    fn serialize_structure_variable_byte_array_not_supported() {
+        #[derive(Serialize)]
+        struct TestStruct {
+            my_bytes: &'static [u8],
+        }
+
+        let value = TestStruct { my_bytes: &[1, 2, 3] };
+
+        let mut byte_buffer = Vec::<u8>::new();
+        let mut serializer = UdsSerializer::new(&mut byte_buffer);
+
+        assert_that!(
+            value.serialize(&mut serializer),
+            matches_pattern!(Err(matches_pattern!(UdsSerializerError::UnsupportedType(eq(
+                "Variable-size sequence"
+            )))))
+        );
+    }
+}

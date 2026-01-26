@@ -1,0 +1,87 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// This API might change when MW implementation is provided.
+
+syntax = "proto3";
+
+package com.sdv.google.concal.calib.server;
+
+import "configuration.proto";
+
+// Generally available Configuration/Calibration Service Bundle (ConCal) APIs for use by
+// SDV-Services.
+// ConCal delivers customized verhicle-specific service bundles' configurations.
+// ConCal interface providing calibration functionalities.
+// Should not be used in the user builds.
+service ConCalCalibrationService {
+  // Before starting calibration, the calibrator needs to get the list of config IDs available for
+  // calibration.
+  rpc GetCalibrationConfigIds(GetCalibrationConfigIdsRequest)
+      returns (GetCalibrationConfigIdsResponse) {}
+
+  // Starts calibration for a specified config.
+  rpc StartCalibration(StartCalibrationRequest) returns (StartCalibrationResponse) {}
+
+  // Updates a calibration config.
+  // New config values are stored in memory.
+  rpc UpdateConfigForCalibration(UpdateConfigForCalibrationRequest)
+      returns (UpdateConfigForCalibrationResponse) {}
+
+  // Finishes calibration for a specified config
+  // and resets the calibration config to the original values.
+  rpc FinishCalibration(FinishCalibrationRequest) returns (FinishCalibrationResponse) {}
+}
+
+message GetCalibrationConfigIdsRequest {}
+
+message GetCalibrationConfigIdsResponse {
+  // Required.
+  // List of unique config identifiers for calibratable configs.
+  repeated ConfigId config_ids = 1;
+}
+
+message StartCalibrationRequest {
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message StartCalibrationResponse {}
+
+message UpdateConfigForCalibrationRequest {
+  // Required.
+  // Unique config identifier, which has to be calibrated.
+  ConfigId config_id = 1;
+
+  // Required.
+  // New calibration values in the form of a serialized calibration config.
+  bytes config = 2;
+}
+
+message UpdateConfigForCalibrationResponse {}
+
+message FinishCalibrationRequest {
+  // Required.
+  // Unique config identifier, whose calibration has to be finished.
+  ConfigId config_id = 1;
+}
+
+message FinishCalibrationResponse {
+  // Required.
+  // The last used calibration values.
+  bytes config = 1;
+}

@@ -1,0 +1,69 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package com.sdv.google.diagnostics.routine_control;
+
+import "response_code.proto";
+
+// Diagnostics interface for RoutineControl (UDS 0x31) service.
+//
+// See ISO 14229-1:2020, section 14.2.
+//
+// ** Common error codes **
+// See ISO 14229-1:2020, section 14.2.4 and "response_code.proto"
+service RoutineControlService {
+  // Start the routine specified in the request.
+  rpc StartRoutine(RoutineControlRequest) returns (RoutineControlResponse) {}
+
+  // Stop the routine specified in the request.
+  rpc StopRoutine(RoutineControlRequest) returns (RoutineControlResponse) {}
+
+  // Retrieve result of the routine specified in the request.
+  rpc RequestResult(RoutineControlRequest) returns (RoutineControlResponse) {}
+}
+
+message RoutineControlRequest {
+  // Required. Routine identifier.
+  string id = 1;
+
+  // Routine-specific parameters of the request.
+  bytes request = 2;
+}
+
+message RoutineControlResponse {
+  // Routine info byte that provides a mechanism for the vehicle manufacturer to support
+  // generic external test equipment handling of all implemented routines (e.g. if
+  // stopRoutine or requestRoutineResults are required) based upon this returned value.
+  //
+  // This parameter is standardized by ISO/SAE specifications (e.g. ISO 27145-3,
+  // SAE J1979-DA, ISO 26021).
+  int32 routine_info = 1;
+
+  // Routine-specific response to the request:
+  // - Start(): information about the state of the service following the start of the
+  // routine.
+  // - Stop(): information about the state of the service following the start of the
+  // routine.
+  // - RequestResult(): results of the routine (available after it has been stopped).
+  bytes response = 2;
+
+  // Response code.
+  //
+  // If not set, request was successful.
+  ResponseCode response_code = 3;
+}

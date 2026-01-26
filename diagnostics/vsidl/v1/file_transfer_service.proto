@@ -1,0 +1,197 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package com.sdv.google.diagnostics.file_transfer;
+
+import "connection.proto";
+import "response_code.proto";
+
+// Diagnostic interface for file transfer related services:
+// - RequestDownload (UDS 0x34)
+// - RequestUpload (UDS 0x35)
+// - TransferData (UDS 0x36)
+// - RequestTransferExit (UDS 0x37)
+// - RequestFileTransfer (UDS 0x38)
+//
+// See ISO 14229-1:2020, sections 15.2, 15.3, 15.4, 15.5, 15.6.
+//
+// ** Common error codes **
+// See ISO 14229-1:2020, section 15.6.4 and "response_code.proto".
+service FileTransferService {
+  // Add the file (download) defined by the file id in the request.
+  //
+  // Responds with a file path to use to write file data for transfer to service.
+  rpc AddFile(AddFileRequest) returns (AddFileResponse) {}
+
+  // Replace the file (download) defined by the file id in the request.
+  //
+  // If the file does not exist it's simply added.
+  //
+  // Responds with a file path to use to write file data for transfer to service.
+  rpc ReplaceFile(ReplaceFileRequest) returns (ReplaceFileResponse) {}
+
+  // Resume writing the file (download) defined by the file id in the request.
+  //
+  // The file specified by the file id must already exist.
+  //
+  // Responds with a file path to use to write file data and file position.
+  rpc ResumeFile(ResumeFileRequest) returns (ResumeFileResponse) {}
+
+  // Read the file (upload) from the location defined by the file id in the request.
+  //
+  // Responds with a file path to use to read file data and file size.
+  rpc ReadFile(ReadFileRequest) returns (ReadFileResponse) {}
+
+  // Delete the file defined by the file id in the request.
+  rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse) {}
+
+  // Finish file transfer operation.
+  //
+  // Called to indicate that the client has finished the read/write operation initiated by one of
+  // the other RPCs (`AddFile`/`ReplaceFile`/`ReadFile`/`ResumeFile`).
+  rpc ExitFileTransfer(ExitFileTransferRequest) returns (ExitFileTransferResponse) {}
+}
+
+message AddFileRequest {
+  // Required. Diagnostic connection id.
+  ConnectionId connection_id = 1;
+
+  // Required. Unique file id that the request operates on.
+  //
+  // Id is scoped to the client-server pair that communicates via this RPC service.
+  string file_id = 2;
+
+  // Required. Size of the file.
+  int64 file_size = 3;
+}
+
+message AddFileResponse {
+  // Required. Path to the file.
+  string path = 1;
+
+  // Response code.
+  //
+  // If not set, request was successful.
+  ResponseCode response_code = 2;
+}
+
+message ReplaceFileRequest {
+  // Required. Diagnostic connection id.
+  ConnectionId connection_id = 1;
+
+  // Required. Unique file id that the request operates on.
+  //
+  // Id is scoped to the client-server pair that communicates via this RPC service.
+  string file_id = 2;
+
+  // Required. Size of the file.
+  int64 file_size = 3;
+}
+
+message ReplaceFileResponse {
+  // Required. Path to the file.
+  string path = 1;
+
+  // Response code.
+  //
+  // If not set, request was successful.
+  ResponseCode response_code = 2;
+}
+
+message ResumeFileRequest {
+  // Required. Diagnostic connection id.
+  ConnectionId connection_id = 1;
+
+  // Required. Unique file id that the request operates on.
+  //
+  // Id is scoped to the client-server pair that communicates via this RPC service.
+  string file_id = 2;
+
+  // Required. Size of the file.
+  int64 file_size = 3;
+}
+
+message ResumeFileResponse {
+  // Required. Path to the file to be written.
+  string file_path = 1;
+
+  // Required. Position in the file to resume writing from.
+  int64 file_position = 2;
+
+  // Response code.
+  //
+  // If not set, request was successful.
+  ResponseCode response_code = 3;
+}
+
+message ReadFileRequest {
+  // Required. Diagnostic connection id.
+  ConnectionId connection_id = 1;
+
+  // Required. Unique file id that the request operates on.
+  //
+  // Id is scoped to the client-server pair that communicates via this RPC service.
+  string file_id = 2;
+}
+
+message ReadFileResponse {
+  // Required. Path to the file to be read.
+  string file_path = 1;
+
+  // Required. Size of the file.
+  int64 file_size = 2;
+
+  // Response code.
+  //
+  // If not set, request was successful.
+  ResponseCode response_code = 3;
+}
+
+message DeleteFileRequest {
+  // Required. Diagnostic connection id.
+  ConnectionId connection_id = 1;
+
+  // Required. Unique file id that the request operates on.
+  //
+  // Id is scoped to the client-server pair that communicates via this RPC service.
+  string file_id = 2;
+}
+
+message DeleteFileResponse {
+  // Response code.
+  //
+  // If not set, request was successful.
+  ResponseCode response_code = 1;
+}
+
+message ExitFileTransferRequest {
+  // Required. Diagnostic connection id.
+  ConnectionId connection_id = 1;
+
+  // Required. Unique file id that the request operates on.
+  //
+  // Id is scoped to the client-server pair that communicates via this RPC service.
+  string file_id = 2;
+}
+
+message ExitFileTransferResponse {
+  // Response code.
+  //
+  // If not set, request was successful.
+  ResponseCode response_code = 1;
+}

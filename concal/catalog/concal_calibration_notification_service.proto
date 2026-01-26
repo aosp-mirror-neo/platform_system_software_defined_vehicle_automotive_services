@@ -1,0 +1,59 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// This API might change when MW implementation is provided.
+
+syntax = "proto3";
+
+package com.sdv.google.concal.calib;
+
+import "configuration.proto";
+
+// Generally available Configuration/Calibration Service Bundle (ConCal) APIs for use by
+// SDV-Services.
+// ConCal delivers customized verhicle-specific service bundles' configurations.
+// ConCal interface allowing to register for notifications about updated calibration values for a
+// specific config.
+service ConCalCalibrationNotificationService {
+  // Allows to register for calibration config update.
+  // Returns an error:
+  // - if this service does not have rights to read the calibration config,
+  // - if the calibration config is not stored in the ConCal,
+  // - if multiple calibration config match the request.
+  // The caller should implement CalibratableService interface.
+  rpc RegisterForCalibrationUpdate(RegisterForCalibrationUpdateRequest)
+      returns (RegisterForCalibrationUpdateResponse) {}
+
+  // Allows to unregister from config calibration.
+  rpc UnregisterFromCalibrationUpdate(UnregisterFromCalibrationUpdateRequest)
+      returns (UnregisterFromCalibrationUpdateResponse) {}
+}
+
+message RegisterForCalibrationUpdateRequest {
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message RegisterForCalibrationUpdateResponse {}
+
+message UnregisterFromCalibrationUpdateRequest {
+  // Required.
+  // Unique config identifier.
+  ConfigId config_id = 1;
+}
+
+message UnregisterFromCalibrationUpdateResponse {}

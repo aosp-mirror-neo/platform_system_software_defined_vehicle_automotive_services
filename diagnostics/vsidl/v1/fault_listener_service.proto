@@ -1,0 +1,89 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package com.sdv.google.diagnostics.fault;
+
+// Diagnostics interface to listen for fault status changes.
+service FaultListenerService {
+  // Callback invoked by Diagnostics Manager when fault status changes.
+  rpc OnFaultStatusChange(OnFaultStatusChangeRequest) returns (OnFaultStatusChangeResponse) {}
+}
+
+message OnFaultStatusChangeRequest {
+  // Bit flags that fault status consists of.
+  //
+  // See ISO 14229-1:2020, section D.2.3.
+  enum StatusMask {
+    // Required by proto syntax.
+    NONE = 0x00;
+
+    // Indicates the most recently performed test has failed.
+    TEST_FAILED = 0x01;
+
+    // Indicates whether or not a test has reported TEST_FAILED at any time during the
+    // current operation cycle.
+    //
+    // This bit is cleared at the beginning of operation cycle.
+    TEST_FAILED_THIS_OPERATION_CYCLE = 0x02;
+
+    // Indicates whether or not a test has reported TEST_FAILED at any time during the
+    // current or last completed operation cycle.
+    //
+    // This bit is cleared when an operation cycle has completed where the test has passed
+    // at least once and never failed.
+    PENDING = 0x04;
+
+    // Indicates whether a malfunction was detected enough times that the fault is desired
+    // to be stored in long-term memory.
+    CONFIRMED = 0x08;
+
+    // Indicates whether a test has ever run and completed since the last time the
+    // diagnostic information has been cleared.
+    TEST_NOT_COMPLETED_SINCE_LAST_CLEAR = 0x10;
+
+    // Indicates whether a test has ever completed with a failed result since the last
+    // time the diagnostic information has been cleared.
+    TEST_FAILED_SINCE_LAST_CLEAR = 0x20;
+
+    // Indicates whether a test has ever run and completed this operation cycle.
+    TEST_NOT_COMPLETED_THIS_OPERATION_CYCLE = 0x40;
+
+    // Indicates that the warning indicators associated with the fault should be enabled.
+    WARNING_INDICATOR_ENABLED = 0x80;
+  }
+
+  // Required. Id of the fault.
+  string id = 1;
+
+  // Required. Current status of the fault.
+  //
+  // Bitwise combination of the constants defined in StatusMask enum.
+  uint32 status = 2;
+
+  // Optional fault-specific data related to this status change.
+  //
+  // E.g. it may contain additional information on the type of failure.
+  //
+  // This corresponds to the extended data of the event that triggered the fault.
+  // Mapping between event ids and corresponding protobuf messages of extended data is defined in
+  // diagnostics declaration of the service bundle (see
+  // "sdv/diagnostics/v1/diagnostics_syntax.proto").
+  optional bytes extended_data = 3;
+}
+
+message OnFaultStatusChangeResponse {}

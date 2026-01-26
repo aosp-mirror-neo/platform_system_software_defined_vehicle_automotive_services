@@ -1,0 +1,46 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.android.sdv.sdvgrpclibrary";
+option java_outer_classname = "UserProto";
+
+package com.sdv.google.user_preferences;
+
+message User {
+  // Required.
+  // A unique ID for the user.
+  int32 id = 1;
+
+  // Bit flags that define properties of user. Integer values have to be powers of 2 as they used as
+  // a bit mask.
+  enum UserFlags {
+    // Due to Protobuff requirement to have the first enum option set to 0,
+    // Assign 0 to an unused flag
+    UNSET = 0x0;
+    // Marks the user as vehicle driver
+    DRIVER = 0x01;
+    // Ephemeral users have non-persistent state, once another user is selected
+    // the profile is deleted automatically
+    EPHEMERAL = 0x02;
+  }
+
+  // Required.
+  // Bitmask for the user flags defined above
+  int32 flags = 2;
+}

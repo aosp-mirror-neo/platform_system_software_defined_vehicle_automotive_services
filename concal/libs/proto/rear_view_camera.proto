@@ -1,0 +1,28 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package android.sdv.demo.config;
+
+message RearViewCamera {
+  string model = 1;
+  uint64 horizontal_resolution = 2;
+  uint64 vertical_resolution = 3;
+  float x_axis_field_of_view = 4;
+  float y_axis_field_of_view = 5;
+  bool is_rgb = 6;
+}

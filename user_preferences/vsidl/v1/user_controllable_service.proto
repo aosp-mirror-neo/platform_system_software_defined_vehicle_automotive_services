@@ -1,0 +1,53 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// APIs that must be implemented by services that contain user customizable settings.
+
+syntax = "proto3";
+
+package com.sdv.google.user_preferences.user_controllable;
+
+import "setting.proto";
+
+service UserControllableService {
+  // Accepts a request to update settings with the provided values.
+  rpc RequestSettingsChange(RequestSettingsChangeRequest) returns (RequestSettingsChangeResponse) {}
+
+  // Resets the service to its default settings.
+  // The service will notify the UserPreferencesRegistryService of the actual setting
+  // values via the UpdateSettings API after the changes are applied.
+  rpc FactoryReset(FactoryResetRequest) returns (FactoryResetResponse) {}
+}
+
+message RequestSettingsChangeRequest {
+  // Required.
+  // The name of the settings group that needs to be updated.
+  string group_name = 1;
+
+  // Required.
+  // The list of settings along with the new values they should be set too.
+  repeated Setting settings = 2;
+}
+
+message RequestSettingsChangeResponse {
+  // The actual value of the settings, this may be different from the values requested by
+  // the caller of RequestSettingsChange due to hardware issues, or invalid requested values.
+  repeated Setting settings = 1;
+}
+
+message FactoryResetRequest {}
+
+message FactoryResetResponse {}

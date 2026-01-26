@@ -1,0 +1,114 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+// User Preferences RPC APIs available to SDV services
+//
+// Allows SDV-Services to manage user configurable settings on per vehicle user basis.
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.android.sdv.sdvgrpclibrary";
+option java_outer_classname = "UserPreferencesManagementServiceProto";
+
+package com.sdv.google.user_preferences;
+
+import "setting.proto";
+import "settings_group.proto";
+
+service UserPreferencesManagementService {
+  // Initiates a request to modify settings of a specific service with the current user's profile.
+  // Note:
+  //   * The service that owns the settings ultimately determines if the change is accepted.
+  //   * This function returns when the request is received, not when the change is applied.
+  //   * Use the SubscribeToSettingsChangeAndGetSettings API to monitor actual setting changes.
+  rpc RequestSettingsChange(RequestSettingsChangeRequest) returns (RequestSettingsChangeResponse) {}
+
+  // Subscribes the caller to receive notifications when settings change, and immediately returns
+  // the current settings. Requirements:
+  //   * The caller must implement the ChangeNotifier interface, including the OnSettingsChange
+  //   method (which will be called upon updates).
+  rpc SubscribeToSettingsChangeAndGetSettings(SubscribeToSettingsChangeAndGetSettingsRequest)
+      returns (SubscribeToSettingsChangeAndGetSettingsResponse) {}
+
+  // Unregisters the caller for setting group change notifications.
+  rpc UnsubscribeFromSettingsChange(UnsubscribeToSettingsChangeRequest)
+      returns (UnsubscribeToSettingsChangeResponse) {}
+}
+
+message RequestSettingsChangeRequest {
+  // Required.
+  // The ID of the settings group to be modified.
+  SettingsGroupId settings_group_id = 1;
+
+  // Required.
+  // The list of settings to update, with their desired new values.
+  repeated Setting settings = 2;
+
+  // Specifies whether the setting change will last beyond the current Vehicle session
+  // or only apply during this session. This parameter is not used for PASSTHROUGH settings,
+  // as they are always temporary.
+  enum ChangePersistencePolicy {
+    PERSISTENT_CHANGE = 0;
+    NON_PERSISTENT_CHANGE = 1;
+  }
+
+  // Optional.
+  // if not specified, all changes will be persisted
+  ChangePersistencePolicy change_persistence_policy = 3;
+}
+
+message RequestSettingsChangeResponse {}
+
+message SubscribeToSettingsChangeAndGetSettingsRequest {
+  // Required.
+  // The ID of the settings group that a service wants to receive callbacks for
+  // when it is updated.
+  SettingsGroupId settings_group_id = 1;
+}
+
+message SubscribeToSettingsChangeAndGetSettingsResponse {
+  // Required.
+  // Schema version of the provided settings
+  string version = 1;
+
+  // Required.
+  // The settings currently applied to User Controllable services, including any constraints.
+  repeated SettingWithConstraints active_settings = 2;
+
+  // Required.
+  // Settings that have been requested but not yet applied by User Controllable services.
+  repeated Setting pending_settings = 3;
+
+  // Required.
+  // These settings reflect the user's persisted setting which my differ from the current setting
+  // applied. This may occur because of ChangePersistencePolicy. Additionally, this maybe occur
+  // if the User Controllable service makes a change to a setting which not of type PASSTHROUGH.
+
+  // These represent the user's stored settings, which could differ from the currently applied ones.
+  // Possible reasons include:
+  //  - ChangePersistencePolicy (e.g., non persistent changes being made)
+  //  - User Controllable service modifying non-PASSTHROUGH settings.
+  repeated Setting persisted_settings = 4;
+}
+
+message UnsubscribeToSettingsChangeRequest {
+  // Required.
+  // The ID of the settings group that a service wants to stop receiving callbacks for.
+  SettingsGroupId settings_group_id = 1;
+}
+
+message UnsubscribeToSettingsChangeResponse {}

@@ -1,0 +1,194 @@
+// Copyright (C) 2026 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+    default_team: "trendy_team_automotive",
+}
+
+rust_protobuf {
+    name: "libuser_preferences_api_stable",
+    crate_name: "user_preferences_api",
+    protos: [
+        ":libuser_preferences_protos_stable",
+    ],
+    rustlibs: ["libvsidl_v1_stdlib_proto_rs"],
+    source_stem: "user_preferences_source_stable",
+    proto_flags: [
+        "-I external/protobuf/src",
+    ],
+    exported_include_dirs: ["."],
+    product_available: true,
+    vendor_available: true,
+    host_supported: true,
+    min_sdk_version: "35",
+}
+
+filegroup {
+    name: "user_preferences_v1_catalog_files",
+    srcs: [
+        ":libuser_preferences_protos_stable",
+        "*.vsidl",
+        "Android.bp",
+    ],
+}
+
+filegroup {
+    name: "libuser_preferences_protos_stable",
+    srcs: [
+        "*.proto",
+    ],
+}
+
+cc_library {
+    name: "user_preferences_protos",
+    vendor: true,
+    host_supported: true,
+    srcs: [
+        ":libuser_preferences_protos_stable",
+    ],
+    proto: {
+        canonical_path_from_root: false,
+        export_proto_headers: true,
+        include_dirs: [
+            "external/protobuf/src",
+            "system/software_defined_vehicle/automotive_services/user_preferences/vsidl/v1",
+        ],
+        type: "full",
+    },
+    shared_libs: [
+        "libprotobuf-cpp-full",
+    ],
+}
+
+genrule_defaults {
+    name: "user-preferences-grpc-gen-defaults",
+    tools: [
+        "aprotoc",
+        "protoc-gen-grpc-cpp-plugin",
+    ],
+    cmd: "$(location aprotoc)" +
+        "    -Isystem/software_defined_vehicle/automotive_services/user_preferences/vsidl/v1" +
+        "    -Iexternal/protobuf/src" +
+        "    --plugin=protoc-gen-grpc=$(location protoc-gen-grpc-cpp-plugin)" +
+        "    --grpc_out=$(genDir)" +
+        "    --cpp_out=$(genDir)" +
+        "    $(locations :libuser_preferences_protos_stable)",
+    srcs: [
+        ":libuser_preferences_protos_stable",
+    ],
+}
+
+genrule {
+    name: "user_preferences_gen_headers",
+    defaults: ["user-preferences-grpc-gen-defaults"],
+    out: [
+        "change_notifier.grpc.pb.h",
+        "user_controllable_service.grpc.pb.h",
+        "user_preferences_admin_service.grpc.pb.h",
+        "user_preferences_management_service.grpc.pb.h",
+        "user_preferences_registry_service.grpc.pb.h",
+    ],
+}
+
+genrule {
+    name: "user_preferences_gen",
+    defaults: ["user-preferences-grpc-gen-defaults"],
+    out: [
+        "change_notifier.grpc.pb.cc",
+        "user_controllable_service.grpc.pb.cc",
+        "user_preferences_admin_service.grpc.pb.cc",
+        "user_preferences_management_service.grpc.pb.cc",
+        "user_preferences_registry_service.grpc.pb.cc",
+    ],
+}
+
+cc_library_static {
+    name: "user_preferences_grpc_stubs",
+    host_supported: true,
+    generated_headers: [
+        "user_preferences_gen_headers",
+    ],
+    export_generated_headers: [
+        "user_preferences_gen_headers",
+    ],
+    generated_sources: [
+        "user_preferences_gen",
+    ],
+    shared_libs: [
+        "libgrpc++",
+        "libprotobuf-cpp-full",
+    ],
+    static_libs: [
+        "user_preferences_protos",
+    ],
+    cflags: [
+        // gRPC++ generated code is full of unused parameters.
+        "-Wno-unused-parameter",
+    ],
+    vendor_available: true,
+    product_available: true,
+}
+
+JAVA_LITE_PROTO_CMD = "mkdir -p $(genDir)/gen && " +
+    "$(location aprotoc) --java_opt=annotate_code=false " +
+    "-Iexternal/protobuf/src " +
+    "-Isystem/software_defined_vehicle/automotive_services/user_preferences/vsidl/v1 " +
+    "--plugin=protoc-gen-grpc-java=$(location protoc-gen-grpc-java-plugin) " +
+    "--grpc-java_out=lite:$(genDir)/gen $(in) && " +
+    "$(location soong_zip) -o $(out) -C $(genDir)/gen -D $(genDir)/gen"
+
+java_genrule {
+    name: "user-preferences-grpc-java-stub-lite",
+    tools: [
+        "aprotoc",
+        "protoc-gen-grpc-java-plugin",
+        "soong_zip",
+    ],
+    cmd: JAVA_LITE_PROTO_CMD,
+    srcs: [
+        "*.proto",
+        ":libprotobuf-internal-protos",
+    ],
+    out: [
+        "protos.srcjar",
+    ],
+}
+
+// TODO(b/323195496): Remove this library once the Java Middleware story is finalized.
+java_library {
+    name: "user-preferences-grpc-java-proto-lite",
+    proto: {
+        type: "lite",
+        include_dirs: [
+            "external/protobuf/src",
+            "external/protobuf/java",
+            "system/software_defined_vehicle/automotive_services/user_preferences/vsidl/v1",
+        ],
+    },
+    srcs: [
+        ":user-preferences-grpc-java-stub-lite",
+        "*.proto",
+        ":libprotobuf-internal-protos",
+    ],
+    libs: ["javax_annotation-api_1.3.2"],
+    static_libs: [
+        "libprotobuf-java-lite",
+        "grpc-java-core-android",
+        "grpc-java-okhttp-client-lite",
+        "guava",
+    ],
+    sdk_version: "current",
+    min_sdk_version: "35",
+}

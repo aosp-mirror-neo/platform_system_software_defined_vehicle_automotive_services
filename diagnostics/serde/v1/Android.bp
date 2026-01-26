@@ -1,0 +1,132 @@
+// Copyright (C) 2026 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+    default_team: "trendy_team_automotive",
+}
+
+rust_defaults {
+    name: "sdv_uds_serde_v1_common@rust_defaults",
+    defaults: [
+        "sdv@rust_defaults",
+        "sdv_tracing@rust_defaults",
+    ],
+    rustlibs: [
+        "libbyteorder",
+        "libthiserror",
+        "libprotobuf",
+        "libserde",
+        "libmockall",
+        "libvsidl_v1_proto_rs",
+        "libsdv_vsidl_common",
+        "libmockall",
+    ],
+    edition: "2021",
+    lints: "android",
+    clippy_lints: "android",
+}
+
+rust_defaults {
+    name: "sdv_uds_serde_v1@rust_defaults",
+    srcs: ["src/lib.rs"],
+    defaults: [
+        "sdv_uds_serde_v1_common@rust_defaults",
+    ],
+    rustlibs: [
+        "libsdv_config_provider",
+        "libsdv_comms_rs",
+        "libsdv_uds_serde_v1_core",
+    ],
+    ld_flags: ["-Wl,--no-as-needed"],
+}
+
+rust_library {
+    name: "libsdv_uds_serde_v1",
+    crate_name: "sdv_uds_serde",
+    defaults: [
+        "sdv_uds_serde_v1@rust_defaults",
+    ],
+    product_available: true,
+    vendor_available: true,
+}
+
+rust_test {
+    name: "sdv_uds_serde_v1_tests",
+    defaults: [
+        "sdv_uds_serde_v1@rust_defaults",
+    ],
+    rustlibs: [
+        "liblazy_static",
+        "libtempfile",
+        "libprotobuf_parse",
+        "libserde_test",
+        "libserde_json",
+        "libgoogletest_rust",
+        "libtokio",
+    ],
+    data: [
+        ":sdv_vsidl_v1_protos",
+        ":sdv_uds_serde_test_fake_protos",
+    ],
+    test_options: {
+        unit_test: true,
+    },
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+}
+
+rust_defaults {
+    name: "sdv_uds_serde_v1_core@rust_defaults",
+    srcs: ["src/core.rs"],
+    defaults: [
+        "sdv_uds_serde_v1_common@rust_defaults",
+    ],
+}
+
+rust_library {
+    name: "libsdv_uds_serde_v1_core",
+    crate_name: "sdv_uds_serde_v1_core",
+    defaults: [
+        "sdv_uds_serde_v1_core@rust_defaults",
+    ],
+    product_available: true,
+    vendor_available: true,
+    host_supported: true,
+}
+
+rust_test_host {
+    name: "sdv_uds_serde_v1_core_tests",
+    defaults: [
+        "sdv_uds_serde_v1_core@rust_defaults",
+    ],
+    rustlibs: [
+        "liblazy_static",
+        "libtempfile",
+        "libprotobuf_parse",
+        "libserde_test",
+        "libserde_json",
+        "libgoogletest_rust",
+        "libtokio",
+    ],
+    data: [
+        ":sdv_vsidl_v1_protos",
+        ":sdv_uds_serde_test_fake_protos",
+    ],
+    test_options: {
+        unit_test: true,
+    },
+}

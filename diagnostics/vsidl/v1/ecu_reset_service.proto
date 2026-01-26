@@ -1,0 +1,96 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package com.sdv.google.diagnostics.ecu_reset;
+
+import "connection.proto";
+import "response_code.proto";
+
+// Diagnostic interface for ECUReset (UDS 0x11) service.
+//
+// See ISO 14229-1:2020, section 10.3.
+//
+// ** Common error codes **
+// See ISO 14229-1:2020, section 10.3.4 and "response_code.proto".
+service EcuResetService {
+  // Perform "hard reset", which simulates the power-on/start-up sequence.
+  rpc HardReset(ResetRequest) returns (ResetResponse) {}
+
+  // Perform reset similar to the driver turning the ignition key off and back on.
+  rpc KeyOnOffReset(ResetRequest) returns (ResetResponse) {}
+
+  // Perform "soft reset", which causes the server to immediately restart the application
+  // program if applicable.
+  rpc SoftReset(ResetRequest) returns (ResetResponse) {}
+
+  // Performs shutdown to a sleep mode rather that a power off.
+  //
+  // Applicable to ECUs which are battery-powered only (i.e. without an ignition circuit).
+  rpc EnableRapidPowerShutdown(ResetRequest) returns (EnableRapidPowerShutdownResponse) {}
+
+  // Request to disable the previously enabled "rapid power shutdown".
+  rpc DisableRapidPowerShutdown(ResetRequest) returns (ResetResponse) {}
+
+  // Perform vehicle manufacturer / system supplier specific ECU reset.
+  rpc CustomReset(CustomResetRequest) returns (CustomResetResponse) {}
+}
+
+message ResetRequest {
+  // Required. Diagnostic connection id.
+  ConnectionId connection_id = 1;
+}
+
+message CustomResetRequest {
+  // Required. Diagnostic connection id.
+  ConnectionId connection_id = 1;
+
+  // Required. Type of the ECU reset to be performed.
+  //
+  // Valid values:
+  //  - 0x40 to 0x5F: vehicle manufacturer specific reset;
+  //  - 0x60 to 0x75: system supplier specific reset.
+  int32 reset_type = 2;
+}
+
+message ResetResponse {
+  // Response code.
+  //
+  // If not set, request was successful.
+  ResponseCode response_code = 1;
+}
+
+message EnableRapidPowerShutdownResponse {
+  // Required. The minimum time of the stand-by sequence the server will remain in the power down.
+  //
+  // The resolution of this parameter is one second per count.
+  // 0x00 to 0xFE: 0 to 254 seconds power down time.
+  // 0xFF: indicates a failure or time not available.
+  int32 powerDownTime = 1;
+
+  // Response code.
+  //
+  // If not set, request was successful.
+  ResponseCode response_code = 2;
+}
+
+message CustomResetResponse {
+  // Response code.
+  //
+  // If not set, request was successful.
+  ResponseCode response_code = 1;
+}

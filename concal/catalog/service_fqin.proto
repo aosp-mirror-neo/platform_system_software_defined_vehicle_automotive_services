@@ -1,0 +1,39 @@
+/*
+ * Copyright (C) 2026 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+package com.sdv.google.sd_common;
+
+// Service Bundle Fully Qualified Instance Name.
+// It mimics behavior of the Service FQIN defined in Service Discovery.
+message ServiceFqin {
+  // Required.
+  // The human readable name of the VM on which this Service Bundle is deployed.
+  string vm_name = 1;
+
+  // Required.
+  // The human readable name of APEX package the Service Bundle is defined in.
+  string package_name = 2;
+
+  // Required.
+  // The human readable name of the Service Bundle.
+  string service_name = 3;
+
+  // Required.
+  // The human readable name of the unique instance of the Service Bundle.
+  string instance_name = 4;
+}
