@@ -39,9 +39,3 @@ filegroup {
     name: "libsdvtestconcal_proto_files",
     srcs: ["*.proto"],
 }
-
-prebuilt_etc {
-    name: "rear_view_camera.proto",
-    sub_dir: "protos",
-    src: "rear_view_camera.proto",
-}
