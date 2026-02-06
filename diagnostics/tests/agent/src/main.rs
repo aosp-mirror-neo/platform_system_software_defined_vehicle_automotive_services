@@ -109,7 +109,7 @@ async fn main() -> anyhow::Result<()> {
     let self_fqin = ServiceFqin::from_str("vm:com.sdv.oem.diagnostics.DiagnosticsAgent/default")?;
     let context: ContextRef = ContextRef::create(self_fqin.clone());
 
-    dm.set_self_fqin(&self_fqin);
+    dm.set_self_fqin(self_fqin.to_string());
 
     let vsidl_provider = Arc::new(vsidl_provider::new_for_diagnostics_agent(context));
 
