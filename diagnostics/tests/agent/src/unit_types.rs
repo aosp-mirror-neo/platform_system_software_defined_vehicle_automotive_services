@@ -59,6 +59,14 @@ impl Method for ReadDataItem {
     type UnitType = DataItem;
 }
 
+pub struct WriteDataItem;
+impl Method for WriteDataItem {
+    const METHOD_NAME: &'static str = "WriteDataItem";
+    type Request = WriteDataItemRequest;
+    type Response = WriteDataItemResponse;
+    type UnitType = DataItem;
+}
+
 pub struct FaultListener;
 impl DiagnosticsUnitType for FaultListener {
     const TYPE_NAME: &'static str = "fault.FaultListenerService";

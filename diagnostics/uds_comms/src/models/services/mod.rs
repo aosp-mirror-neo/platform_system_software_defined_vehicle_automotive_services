@@ -19,10 +19,13 @@ use crate::models::response::UdsResponse;
 
 /// ReadDataByIdentifier service models.
 pub mod read_data_by_identifier;
+/// WriteDataByIdentifier service models.
+pub mod write_data_by_identifier;
 
 // -- Flatten
 
 pub use read_data_by_identifier::*;
+pub use write_data_by_identifier::*;
 
 // -- Service model traits
 

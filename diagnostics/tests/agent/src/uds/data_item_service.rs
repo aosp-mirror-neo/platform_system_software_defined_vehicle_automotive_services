@@ -14,18 +14,21 @@
 
 use crate::uds::compliance_client::ComplianceClient;
 use async_trait::async_trait;
+use diagnostics_v1_api::response_code::ResponseCode;
 use log::{error, warn};
 use sdv_diag_compliance_id::DiagComplianceId;
 use sdv_uds_comms::models::request::UdsRequest;
 use sdv_uds_comms::models::response::{NegativeResponseCode, RequestedService, UdsResponse};
 use sdv_uds_comms::models::services::{
-    DataRecord, ReadDataByIdentifierRequest, ReadDataByIdentifierResponseBuilder, UdsServiceRequest,
+    DataRecord, ReadDataByIdentifierRequest, ReadDataByIdentifierResponseBuilder,
+    UdsServiceRequest, WriteDataByIdentifierRequest, WriteDataByIdentifierResponse,
 };
 
 /// Trait for handling UDS data item requests.
 #[async_trait]
 pub trait DataItemRequestHandler: Send + Sync {
     async fn read_data(&self, request: UdsRequest) -> UdsResponse;
+    async fn write_data(&self, request: UdsRequest) -> UdsResponse;
 }
 
 /// Maps UDS requests to the Compliance Service Bundle.
@@ -60,6 +63,38 @@ impl DataItemService {
             )?;
 
         Ok(DataRecord { data_id, data: uds_bytes })
+    }
+
+    async fn write_data_by_id(
+        &self,
+        data_id: u16,
+        data: &[u8],
+    ) -> Result<(), NegativeResponseCode> {
+        let identifier = DiagComplianceId::from_u16(data_id)
+            .ok_or(NegativeResponseCode::RequestOutOfRange)?
+            .to_string();
+
+        let proto_bytes =
+            self.compliance_client.translate_from_uds(&identifier, data).await.map_err(|e| {
+                error!(
+                    "UDS translation failed for DID {:#06X} (id: {}): {:?}",
+                    data_id, identifier, e
+                );
+                NegativeResponseCode::GeneralReject
+            })?;
+
+        let response =
+            self.compliance_client.write_data_item(&identifier, proto_bytes).await.map_err(
+                |e| {
+                    error!("Write failed for DID {:#06X} (id: {}): {:?}", data_id, identifier, e);
+                    NegativeResponseCode::GeneralReject
+                },
+            )?;
+
+        match response.response_code.enum_value_or_default() {
+            ResponseCode::POSITIVE_RESPONSE => Ok(()),
+            _ => Err(NegativeResponseCode::GeneralReject),
+        }
     }
 }
 
@@ -97,13 +132,34 @@ impl DataItemRequestHandler for DataItemService {
         let response = builder.build();
         response.into()
     }
+
+    async fn write_data(&self, request: UdsRequest) -> UdsResponse {
+        let request = match WriteDataByIdentifierRequest::try_from(request.payload) {
+            Ok(req) => req,
+            Err(err) => {
+                warn!("Could not decode WriteDataByIdentifier request: {:?}", err);
+                return UdsResponse::NegativeResponse {
+                    service: RequestedService::Known(request.service),
+                    code: NegativeResponseCode::IncorrectMessageLengthOrInvalidFormat,
+                };
+            }
+        };
+
+        match self.write_data_by_id(request.data_id, &request.data).await {
+            Ok(_) => WriteDataByIdentifierResponse { data_id: request.data_id }.into(),
+            Err(code) => UdsResponse::NegativeResponse {
+                service: RequestedService::Known(request.service()),
+                code,
+            },
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use async_trait::async_trait;
-    use diagnostics_v1_api::data_item_service::ReadDataItemResponse;
+    use diagnostics_v1_api::data_item_service::{ReadDataItemResponse, WriteDataItemResponse};
     use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
     use sdv_uds_comms::models::request::UdsService;
     use std::collections::HashMap;
@@ -111,7 +167,9 @@ mod tests {
     #[derive(Default)]
     struct MockComplianceClient {
         read_results: HashMap<String, ReadDataItemResponse>,
-        translate_results: HashMap<String, Vec<u8>>,
+        proto_to_uds_translate_results: HashMap<String, Vec<u8>>,
+        uds_to_proto_translate_results: HashMap<String, Vec<u8>>,
+        write_results: HashMap<String, ResponseCode>,
     }
 
     #[async_trait]
@@ -124,13 +182,37 @@ mod tests {
             }
         }
 
-        /// Returns registered result for identifier or error if not found
+        async fn write_data_item(
+            &self,
+            identifier: &str,
+            _value: Vec<u8>,
+        ) -> SdvResult<WriteDataItemResponse> {
+            match self.write_results.get(identifier) {
+                Some(code) => Ok(WriteDataItemResponse {
+                    response_code: ::protobuf::EnumOrUnknown::new(*code),
+                    ..Default::default()
+                }),
+                None => Err(SdvStatus::new(SdvStatusCode::Unknown)),
+            }
+        }
+
         async fn translate_to_uds(
             &self,
             identifier: &str,
             _data_item: &ReadDataItemResponse,
         ) -> SdvResult<Vec<u8>> {
-            match self.translate_results.get(identifier) {
+            match self.proto_to_uds_translate_results.get(identifier) {
+                Some(result) => Ok(result.clone()),
+                None => Err(SdvStatus::new(SdvStatusCode::Unknown)),
+            }
+        }
+
+        async fn translate_from_uds(
+            &self,
+            identifier: &str,
+            _uds_bytes: &[u8],
+        ) -> SdvResult<Vec<u8>> {
+            match self.uds_to_proto_translate_results.get(identifier) {
                 Some(result) => Ok(result.clone()),
                 None => Err(SdvStatus::new(SdvStatusCode::Unknown)),
             }
@@ -170,7 +252,9 @@ mod tests {
         client
             .read_results
             .insert(DiagComplianceId::Reserved0.to_string(), ReadDataItemResponse::new());
-        client.translate_results.insert(DiagComplianceId::Reserved0.to_string(), vec![1, 2, 3]);
+        client
+            .proto_to_uds_translate_results
+            .insert(DiagComplianceId::Reserved0.to_string(), vec![1, 2, 3]);
         let service = DataItemService::new(Box::new(client));
         let result = service.read_data_by_id(0xF0F0).await;
         assert_eq!(result, Ok(DataRecord { data_id: 0xF0F0, data: vec![1, 2, 3] }));
@@ -201,7 +285,9 @@ mod tests {
         client
             .read_results
             .insert(DiagComplianceId::Reserved0.to_string(), ReadDataItemResponse::new());
-        client.translate_results.insert(DiagComplianceId::Reserved0.to_string(), vec![1, 2, 3]);
+        client
+            .proto_to_uds_translate_results
+            .insert(DiagComplianceId::Reserved0.to_string(), vec![1, 2, 3]);
         // F0F1 will fail on read
         // no value inserted for the corresponding identifier
 
@@ -223,7 +309,9 @@ mod tests {
         client
             .read_results
             .insert(DiagComplianceId::Reserved0.to_string(), ReadDataItemResponse::new());
-        client.translate_results.insert(DiagComplianceId::Reserved0.to_string(), vec![1, 2, 3]);
+        client
+            .proto_to_uds_translate_results
+            .insert(DiagComplianceId::Reserved0.to_string(), vec![1, 2, 3]);
 
         let service = DataItemService::new(Box::new(client));
         let req = ReadDataByIdentifierRequest { data_ids: vec![0xF0F0] };
@@ -234,5 +322,64 @@ mod tests {
         let expected_response: UdsResponse = builder.build().into();
 
         assert_eq!(response, expected_response);
+    }
+
+    #[tokio::test]
+    async fn test_write_data_success() {
+        let mut client = MockComplianceClient::default();
+        client
+            .write_results
+            .insert(DiagComplianceId::Reserved0.to_string(), ResponseCode::POSITIVE_RESPONSE);
+        client
+            .uds_to_proto_translate_results
+            .insert(DiagComplianceId::Reserved0.to_string(), vec![1, 2, 3]);
+
+        let service = DataItemService::new(Box::new(client));
+        let req = WriteDataByIdentifierRequest { data_id: 0xF0F0, data: vec![1, 2, 3] };
+        let response = service.write_data(req.into()).await;
+
+        let expected_response: UdsResponse =
+            WriteDataByIdentifierResponse { data_id: 0xF0F0 }.into();
+
+        assert_eq!(response, expected_response);
+    }
+
+    #[tokio::test]
+    async fn test_write_data_failure() {
+        let mut client = MockComplianceClient::default();
+        client
+            .write_results
+            .insert(DiagComplianceId::Reserved0.to_string(), ResponseCode::CONDITIONS_NOT_CORRECT);
+        client
+            .uds_to_proto_translate_results
+            .insert(DiagComplianceId::Reserved0.to_string(), vec![1, 2, 3]);
+
+        let service = DataItemService::new(Box::new(client));
+        let req = WriteDataByIdentifierRequest { data_id: 0xF0F0, data: vec![1, 2, 3] };
+        let response = service.write_data(req.into()).await;
+
+        assert_eq!(
+            response,
+            UdsResponse::NegativeResponse {
+                service: RequestedService::Known(UdsService::WriteDataByIdentifier),
+                code: NegativeResponseCode::GeneralReject,
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_write_data_out_of_range() {
+        let service = DataItemService::new(Box::new(MockComplianceClient::default()));
+        let result = service.write_data_by_id(0x1234, &[]).await;
+        assert_eq!(result, Err(NegativeResponseCode::RequestOutOfRange));
+    }
+
+    #[tokio::test]
+    async fn test_write_data_by_id_translate_from_uds_fails() {
+        let client = MockComplianceClient::default();
+        let service = DataItemService::new(Box::new(client));
+        let result = service.write_data_by_id(0xF0F0, &[1, 2, 3]).await;
+
+        assert_eq!(result, Err(NegativeResponseCode::GeneralReject));
     }
 }
