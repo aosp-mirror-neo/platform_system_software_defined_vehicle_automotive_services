@@ -16,7 +16,7 @@
 
 syntax = "proto3";
 
-package com.sdv.google.concal.calib.client;
+package com.android.sdv.concal.calib.client;
 
 import "configuration.proto";
 
