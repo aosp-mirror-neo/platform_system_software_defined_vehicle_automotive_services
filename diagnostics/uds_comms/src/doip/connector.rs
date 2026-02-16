@@ -23,10 +23,11 @@ use crate::models::response::UdsResponse;
 use crate::traits::{BoxFuture, Connector};
 
 use async_trait::async_trait;
+use bytes::BytesMut;
 use doip_definitions::message::DoipMessage;
 use doip_definitions::payload::{
     ActivationCode, ActivationType, AliveCheckResponse, DiagnosticMessage, DoipPayload,
-    RoutingActivationRequest,
+    RoutingActivationRequest, VehicleIdentificationRequest,
 };
 use futures::{SinkExt, StreamExt};
 use log::info;
@@ -34,25 +35,32 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 use tokio::io::AsyncWriteExt;
-use tokio::net::TcpStream;
+use tokio::net::{TcpStream, UdpSocket};
 use tokio::sync::Mutex;
 use tokio::time::{timeout, Duration};
-use tokio_util::codec::Framed;
+use tokio_util::codec::{Encoder, Framed};
 use tower::Service;
 
 const TIMEOUT: Duration = Duration::from_secs(5);
 
+/// Represents how to reach the DoIP gateway ECU.
+#[derive(Clone, Debug)]
+pub enum DoipConnectionInfo {
+    /// Use when the network broadcast address is known. UDS Vehicle Identification via UDP
+    /// broadcast will be performed on the specified address when connecting to find the gateway.
+    BroadcastAddr(SocketAddr),
+
+    /// Use when the IP address of the gateway ECU is known ahead of time.
+    GatewayEcuAddr(SocketAddr),
+}
+
 /// Configuration for the DoipConnector.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DoipConnectorConfig {
-    /// The socket address of the target ECU with IP and port.
-    ///
-    /// If None, UDP broadcast should be performed - not implemented yet.
-    pub ecu_socket_addr: Option<SocketAddr>,
+    /// How to reach the DoIP gateway.
+    pub connection_info: DoipConnectionInfo,
     /// The logical address of the target ECU.
-    ///
-    /// If None, routing activation will be performed.
-    pub ecu_logical_addr: Option<u16>,
+    pub target_ecu_logical_addr: u16,
     /// The logical address of the client sending the request.
     pub source_logical_addr: u16,
 }
@@ -83,7 +91,7 @@ impl DoipConnector {
     async fn perform_routing_activation(
         &self,
         framed: &Arc<Mutex<Framed<TcpStream, DoipCodec>>>,
-    ) -> Result<u16, UdsCommsError> {
+    ) -> Result<(), UdsCommsError> {
         let request_message =
             build_message(DoipPayload::RoutingActivationRequest(RoutingActivationRequest {
                 source_address: self.config.source_logical_addr.to_be_bytes(),
@@ -108,7 +116,7 @@ impl DoipConnector {
             DoipPayload::RoutingActivationResponse(resp) => {
                 if resp.activation_code == ActivationCode::SuccessfullyActivated {
                     info!("Routing successfully activated for ECU {:?}", resp.source_address);
-                    Ok(u16::from_be_bytes(resp.source_address))
+                    Ok(())
                 } else {
                     Err(DoipTransportError::RoutingActivationFailed(resp.activation_code))?
                 }
@@ -118,6 +126,39 @@ impl DoipConnector {
                 payload: other,
             }))?,
         }
+    }
+
+    /// Performs UDS vehicle identification via UDP broadcast on the specified address.
+    async fn discover_target_via_udp(
+        &self,
+        broadcast_addr: SocketAddr,
+    ) -> Result<SocketAddr, UdsCommsError> {
+        // Set up udp socket to listen for a response
+        let socket = UdpSocket::bind("0.0.0.0:0").await.map_err(DoipTransportError::Io)?;
+        socket.set_broadcast(true).map_err(DoipTransportError::Io)?;
+
+        // Send VehicleIdentificationRequest
+        let request_message = build_message(DoipPayload::VehicleIdentificationRequest(
+            VehicleIdentificationRequest {},
+        ));
+        let mut buffer = BytesMut::new();
+        let mut codec = DoipCodec {};
+        codec.encode(request_message, &mut buffer).map_err(UdsCommsError::from)?;
+        info!("Sending VehicleIdentificationRequest to {:?}", broadcast_addr);
+        socket.send_to(&buffer, broadcast_addr).await.map_err(DoipTransportError::Io)?;
+
+        // Wait for a response with a timeout
+        let mut recv_buffer = [0u8; 1024];
+        let (_len, remote_addr) = timeout(TIMEOUT, socket.recv_from(&mut recv_buffer))
+            .await
+            .map_err(|_| DoipTransportError::TimedOut("Vehicle Identification".to_string()))?
+            .map_err(DoipTransportError::Io)?;
+
+        info!("Discovered vehicle at {:?}", remote_addr);
+        // Use the remote address from UDP but keep the DoIP port (usually 13400)
+        let mut target_socket_addr = remote_addr;
+        target_socket_addr.set_port(broadcast_addr.port());
+        Ok(target_socket_addr)
     }
 
     /// Creates a DoIP Alive Check Response message with the given source address.
@@ -137,11 +178,12 @@ impl Connector for DoipConnector {
             return Err(DoipTransportError::AlreadyConnected)?;
         }
 
-        let socket_addr = self
-            .config
-            .ecu_socket_addr
-            // TODO: Implement UDP discovery when target not configured b/437284420
-            .ok_or(DoipTransportError::EcuTargetNotConfigured)?;
+        let socket_addr = match self.config.connection_info {
+            DoipConnectionInfo::GatewayEcuAddr(addr) => addr,
+            DoipConnectionInfo::BroadcastAddr(broadcast_addr) => {
+                self.discover_target_via_udp(broadcast_addr).await?
+            }
+        };
 
         // Establish the TCP stream with a timeout.
         let stream = timeout(TIMEOUT, TcpStream::connect(socket_addr))
@@ -155,13 +197,13 @@ impl Connector for DoipConnector {
         let framed = Framed::new(stream, DoipCodec {});
         let framed_arc = Arc::new(Mutex::new(framed));
 
-        let ecu_logical_addr = if let Some(logical_addr) = self.config.ecu_logical_addr {
-            logical_addr
-        } else {
-            self.perform_routing_activation(&framed_arc).await?
-        };
+        // Perform routing activation
+        self.perform_routing_activation(&framed_arc).await?;
 
-        self.connection = Some(ActiveConnection { framed: framed_arc, ecu_logical_addr });
+        self.connection = Some(ActiveConnection {
+            framed: framed_arc,
+            ecu_logical_addr: self.config.target_ecu_logical_addr,
+        });
         Ok(())
     }
 
@@ -250,18 +292,18 @@ mod tests {
     use crate::doip::util::build_message;
     use crate::models::request::UdsService;
     use doip_definitions::payload::{
-        ActivationCode, AliveCheckRequest, DiagnosticMessageNack, DiagnosticNackCode,
-        EntityStatusRequest, RoutingActivationResponse,
+        ActionCode, ActivationCode, AliveCheckRequest, DiagnosticMessageNack, DiagnosticNackCode,
+        EntityStatusRequest, RoutingActivationResponse, VehicleAnnouncementMessage,
     };
     use std::io;
     use tokio::net::TcpListener;
+    use tokio_util::codec::Decoder;
     use tower::ServiceExt;
 
     const CLIENT_LOGICAL_ADDR: u16 = 0x0E00;
     const ECU_LOGICAL_ADDR: u16 = 0x1007;
 
     enum RoutingActivationBehavior {
-        Skip,
         Succeed,
         Fail,
     }
@@ -294,7 +336,6 @@ mod tests {
                     handle_routing_activation(&mut framed, false).await.unwrap();
                     return; // Stop if routing activation failed, as client will disconnect.
                 }
-                RoutingActivationBehavior::Skip => {}
             }
 
             if !matches!(diagnostic_message, DiagnosticMessageBehavior::Skip) {
@@ -303,6 +344,38 @@ mod tests {
 
             // Server waits for client to disconnect
             let _ = framed.next().await;
+        });
+
+        addr
+    }
+
+    /// Helper to start a mock UDP server for vehicle discovery.
+    async fn spawn_mock_udp_discovery_server(logical_addr: u16) -> SocketAddr {
+        let socket = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let addr = socket.local_addr().unwrap();
+
+        tokio::spawn(async move {
+            let mut buf = [0u8; 1024];
+            let (len, remote_addr) = socket.recv_from(&mut buf).await.unwrap();
+            let mut bytes = BytesMut::from(&buf[..len]);
+            let mut codec = DoipCodec {};
+            let msg = codec.decode(&mut bytes).unwrap().unwrap();
+
+            if let DoipPayload::VehicleIdentificationRequest(_) = msg.payload {
+                let response = build_message(DoipPayload::VehicleAnnouncementMessage(
+                    VehicleAnnouncementMessage {
+                        vin: [0x30; 17],
+                        logical_address: logical_addr.to_be_bytes(),
+                        eid: [0; 6],
+                        gid: [0; 6],
+                        further_action: ActionCode::NoFurtherActionRequired,
+                        vin_gid_sync: None,
+                    },
+                ));
+                let mut resp_buf = BytesMut::new();
+                codec.encode(response, &mut resp_buf).unwrap();
+                socket.send_to(&resp_buf, remote_addr).await.unwrap();
+            }
         });
 
         addr
@@ -434,18 +507,20 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn connect_fails_if_no_ecu_socket_addr() {
-        let mut connector = DoipConnector::new(DoipConnectorConfig {
-            ecu_socket_addr: None,
-            ecu_logical_addr: None,
+    async fn test_discover_target_via_udp() {
+        let logical_addr = 0x1234;
+        let discovery_addr = spawn_mock_udp_discovery_server(logical_addr).await;
+
+        let connector = DoipConnector::new(DoipConnectorConfig {
+            connection_info: DoipConnectionInfo::BroadcastAddr(discovery_addr),
+            target_ecu_logical_addr: logical_addr,
             source_logical_addr: CLIENT_LOGICAL_ADDR,
         });
-        let result = connector.connect().await;
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            UdsCommsError::DoipTransport(DoipTransportError::EcuTargetNotConfigured)
-        ));
+
+        let addr = connector.discover_target_via_udp(discovery_addr).await.unwrap();
+
+        assert_eq!(addr.ip(), discovery_addr.ip());
+        assert_eq!(addr.port(), discovery_addr.port());
     }
 
     #[tokio::test]
@@ -456,8 +531,8 @@ mod tests {
         )
         .await;
         let mut connector = DoipConnector::new(DoipConnectorConfig {
-            ecu_socket_addr: Some(server_addr),
-            ecu_logical_addr: None,
+            connection_info: DoipConnectionInfo::GatewayEcuAddr(server_addr),
+            target_ecu_logical_addr: ECU_LOGICAL_ADDR,
             source_logical_addr: CLIENT_LOGICAL_ADDR,
         });
         let result = connector.connect().await;
@@ -475,8 +550,8 @@ mod tests {
             spawn_mock_ecu_server(RoutingActivationBehavior::Fail, DiagnosticMessageBehavior::Skip)
                 .await;
         let mut connector = DoipConnector::new(DoipConnectorConfig {
-            ecu_socket_addr: Some(server_addr),
-            ecu_logical_addr: None,
+            connection_info: DoipConnectionInfo::GatewayEcuAddr(server_addr),
+            target_ecu_logical_addr: ECU_LOGICAL_ADDR,
             source_logical_addr: CLIENT_LOGICAL_ADDR,
         });
         let result = connector.connect().await;
@@ -490,32 +565,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn connect_succeeds_with_preconfigured_logical_addr() {
-        let server_addr =
-            spawn_mock_ecu_server(RoutingActivationBehavior::Skip, DiagnosticMessageBehavior::Skip)
-                .await; // Server won't do routing activation
-        let mut connector = DoipConnector::new(DoipConnectorConfig {
-            ecu_socket_addr: Some(server_addr),
-            ecu_logical_addr: Some(ECU_LOGICAL_ADDR + 1),
-            source_logical_addr: CLIENT_LOGICAL_ADDR,
-        });
-        let result = connector.connect().await;
-        assert!(result.is_ok());
-
-        let Some(active_conn) = connector.connection.take() else {
-            panic!("Expected connection to be set");
-        };
-        assert_eq!(active_conn.ecu_logical_addr, ECU_LOGICAL_ADDR + 1);
-    }
-
-    #[tokio::test]
     async fn connect_fails_when_already_connected() {
-        let server_addr =
-            spawn_mock_ecu_server(RoutingActivationBehavior::Skip, DiagnosticMessageBehavior::Skip)
-                .await; // Server won't do routing activation
+        let server_addr = spawn_mock_ecu_server(
+            RoutingActivationBehavior::Succeed,
+            DiagnosticMessageBehavior::Skip,
+        )
+        .await;
         let mut connector = DoipConnector::new(DoipConnectorConfig {
-            ecu_socket_addr: Some(server_addr),
-            ecu_logical_addr: Some(ECU_LOGICAL_ADDR + 1),
+            connection_info: DoipConnectionInfo::GatewayEcuAddr(server_addr),
+            target_ecu_logical_addr: ECU_LOGICAL_ADDR,
             source_logical_addr: CLIENT_LOGICAL_ADDR,
         });
         let success_result = connector.connect().await;
@@ -530,8 +588,10 @@ mod tests {
     #[tokio::test]
     async fn disconnect_fails_when_not_connected() {
         let mut connector = DoipConnector::new(DoipConnectorConfig {
-            ecu_socket_addr: None,
-            ecu_logical_addr: None,
+            connection_info: DoipConnectionInfo::BroadcastAddr(
+                "255.255.255.255:13400".parse().unwrap(),
+            ),
+            target_ecu_logical_addr: ECU_LOGICAL_ADDR,
             source_logical_addr: CLIENT_LOGICAL_ADDR,
         });
         let result = connector.disconnect().await;
@@ -542,12 +602,14 @@ mod tests {
 
     #[tokio::test]
     async fn disconnect_succeeds_when_connected() {
-        let server_addr =
-            spawn_mock_ecu_server(RoutingActivationBehavior::Skip, DiagnosticMessageBehavior::Skip)
-                .await;
+        let server_addr = spawn_mock_ecu_server(
+            RoutingActivationBehavior::Succeed,
+            DiagnosticMessageBehavior::Skip,
+        )
+        .await;
         let mut connector = DoipConnector::new(DoipConnectorConfig {
-            ecu_socket_addr: Some(server_addr),
-            ecu_logical_addr: Some(ECU_LOGICAL_ADDR),
+            connection_info: DoipConnectionInfo::GatewayEcuAddr(server_addr),
+            target_ecu_logical_addr: ECU_LOGICAL_ADDR,
             source_logical_addr: CLIENT_LOGICAL_ADDR,
         });
         connector.connect().await.unwrap();
@@ -561,8 +623,10 @@ mod tests {
     #[tokio::test]
     async fn poll_ready_is_err_when_not_connected() {
         let mut connector = DoipConnector::new(DoipConnectorConfig {
-            ecu_socket_addr: None,
-            ecu_logical_addr: None,
+            connection_info: DoipConnectionInfo::BroadcastAddr(
+                "255.255.255.255:13400".parse().unwrap(),
+            ),
+            target_ecu_logical_addr: ECU_LOGICAL_ADDR,
             source_logical_addr: CLIENT_LOGICAL_ADDR,
         });
         let poll_result = futures::poll!(connector.ready());
@@ -575,13 +639,13 @@ mod tests {
     #[tokio::test]
     async fn call_sends_and_receives_data() {
         let server_addr = spawn_mock_ecu_server(
-            RoutingActivationBehavior::Skip,
+            RoutingActivationBehavior::Succeed,
             DiagnosticMessageBehavior::UdsResponse,
         )
         .await;
         let mut connector = DoipConnector::new(DoipConnectorConfig {
-            ecu_socket_addr: Some(server_addr),
-            ecu_logical_addr: Some(ECU_LOGICAL_ADDR),
+            connection_info: DoipConnectionInfo::GatewayEcuAddr(server_addr),
+            target_ecu_logical_addr: ECU_LOGICAL_ADDR,
             source_logical_addr: CLIENT_LOGICAL_ADDR,
         });
         connector.connect().await.unwrap();
@@ -604,13 +668,13 @@ mod tests {
     #[tokio::test]
     async fn call_handles_diagnostic_nack() {
         let server_addr = spawn_mock_ecu_server(
-            RoutingActivationBehavior::Skip,
+            RoutingActivationBehavior::Succeed,
             DiagnosticMessageBehavior::NotAcknowledged,
         )
         .await;
         let mut connector = DoipConnector::new(DoipConnectorConfig {
-            ecu_socket_addr: Some(server_addr),
-            ecu_logical_addr: Some(ECU_LOGICAL_ADDR),
+            connection_info: DoipConnectionInfo::GatewayEcuAddr(server_addr),
+            target_ecu_logical_addr: ECU_LOGICAL_ADDR,
             source_logical_addr: CLIENT_LOGICAL_ADDR,
         });
         connector.connect().await.unwrap();
@@ -627,13 +691,13 @@ mod tests {
     #[tokio::test]
     async fn call_handles_alive_check_request_and_uds_response() {
         let server_addr = spawn_mock_ecu_server(
-            RoutingActivationBehavior::Skip,
+            RoutingActivationBehavior::Succeed,
             DiagnosticMessageBehavior::AliveCheckThenUdsResponse,
         )
         .await;
         let mut connector = DoipConnector::new(DoipConnectorConfig {
-            ecu_socket_addr: Some(server_addr),
-            ecu_logical_addr: Some(ECU_LOGICAL_ADDR),
+            connection_info: DoipConnectionInfo::GatewayEcuAddr(server_addr),
+            target_ecu_logical_addr: ECU_LOGICAL_ADDR,
             source_logical_addr: CLIENT_LOGICAL_ADDR,
         });
         connector.connect().await.unwrap();
@@ -656,13 +720,13 @@ mod tests {
     #[tokio::test]
     async fn call_fails_on_connection_drop_after_alive_check_request() {
         let server_addr = spawn_mock_ecu_server(
-            RoutingActivationBehavior::Skip,
+            RoutingActivationBehavior::Succeed,
             DiagnosticMessageBehavior::AliveCheckThenConnectionDrop,
         )
         .await;
         let mut connector = DoipConnector::new(DoipConnectorConfig {
-            ecu_socket_addr: Some(server_addr),
-            ecu_logical_addr: Some(ECU_LOGICAL_ADDR),
+            connection_info: DoipConnectionInfo::GatewayEcuAddr(server_addr),
+            target_ecu_logical_addr: ECU_LOGICAL_ADDR,
             source_logical_addr: CLIENT_LOGICAL_ADDR,
         });
         connector.connect().await.unwrap();
@@ -688,8 +752,8 @@ mod tests {
         )
         .await;
         let mut connector = DoipConnector::new(DoipConnectorConfig {
-            ecu_socket_addr: Some(server_addr),
-            ecu_logical_addr: None,
+            connection_info: DoipConnectionInfo::GatewayEcuAddr(server_addr),
+            target_ecu_logical_addr: ECU_LOGICAL_ADDR,
             source_logical_addr: CLIENT_LOGICAL_ADDR,
         });
 

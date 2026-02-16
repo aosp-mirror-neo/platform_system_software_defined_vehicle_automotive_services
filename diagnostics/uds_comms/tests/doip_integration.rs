@@ -15,7 +15,7 @@
  */
 
 use async_trait::async_trait;
-use sdv_uds_comms::doip::connector::{DoipConnector, DoipConnectorConfig};
+use sdv_uds_comms::doip::connector::{DoipConnectionInfo, DoipConnector, DoipConnectorConfig};
 use sdv_uds_comms::doip::listener::{DoipListener, DoipListenerConfig};
 use sdv_uds_comms::doip::logical_address::LogicalAddress;
 use sdv_uds_comms::models::request::{UdsRequest, UdsService};
@@ -62,6 +62,7 @@ async fn setup_listener() -> (DoipListener<MockHandler>, SocketAddr, MockHandler
     let config = DoipListenerConfig {
         socket_addr: addr,
         logical_addr: LogicalAddress::new(ECU_LOGICAL_ADDR),
+        vin: [0; 17],
     };
     let handler = MockHandler::default();
     let doip_listener = DoipListener::new(config, handler.clone());
@@ -70,7 +71,7 @@ async fn setup_listener() -> (DoipListener<MockHandler>, SocketAddr, MockHandler
 
 /// Helper function to set up a DoIP listener and connector for end-to-end tests.
 async fn setup_doip_e2e_test(
-    ecu_logical_addr_config: Option<u16>,
+    perform_vehicle_identification: bool,
 ) -> (
     DoipConnector,
     MockHandler,
@@ -80,9 +81,15 @@ async fn setup_doip_e2e_test(
     let listener_handle = tokio::spawn(listener.start());
     handler.ready.notified().await; // Wait for listener to be ready
 
+    let connection_info = if perform_vehicle_identification {
+        DoipConnectionInfo::BroadcastAddr(addr)
+    } else {
+        DoipConnectionInfo::GatewayEcuAddr(addr)
+    };
+
     let mut connector = DoipConnector::new(DoipConnectorConfig {
-        ecu_socket_addr: Some(addr),
-        ecu_logical_addr: ecu_logical_addr_config,
+        connection_info,
+        target_ecu_logical_addr: ECU_LOGICAL_ADDR,
         source_logical_addr: CLIENT_LOGICAL_ADDR,
     });
 
@@ -103,18 +110,19 @@ async fn teardown_doip_e2e_test(
 }
 
 /// Helper function to run a DoIP end-to-end test with setup and teardown.
-async fn run_doip_e2e_test<F>(ecu_logical_addr: Option<u16>, test_body: F)
+async fn run_doip_e2e_test<F>(use_vehicle_identification: bool, test_body: F)
 where
     F: for<'a> AsyncFn(&'a mut DoipConnector, MockHandler),
 {
-    let (mut connector, handler, listener_handle) = setup_doip_e2e_test(ecu_logical_addr).await;
+    let (mut connector, handler, listener_handle) =
+        setup_doip_e2e_test(use_vehicle_identification).await;
     test_body(&mut connector, handler).await;
     teardown_doip_e2e_test(connector, listener_handle).await;
 }
 
 #[tokio::test]
 async fn test_e2e_with_preconfigured_address() {
-    run_doip_e2e_test(Some(ECU_LOGICAL_ADDR), async |connector, handler| {
+    run_doip_e2e_test(false, async |connector, handler| {
         let request =
             UdsRequest { service: UdsService::ReadDataByIdentifier, payload: vec![0xF1, 0x90] };
         let response = connector.call(request.clone()).await.expect("Call failed");
@@ -131,10 +139,10 @@ async fn test_e2e_with_preconfigured_address() {
 }
 
 #[tokio::test]
-async fn test_e2e_with_routing_activation() {
-    run_doip_e2e_test(None, async |connector, handler| {
+async fn test_e2e_with_vehicle_identification() {
+    run_doip_e2e_test(true, async |connector, handler| {
         let request =
-            UdsRequest { service: UdsService::ReadDataByIdentifier, payload: vec![0xF1, 0x88] };
+            UdsRequest { service: UdsService::ReadDataByIdentifier, payload: vec![0xF1, 0x90] };
         let response = connector.call(request.clone()).await.expect("Call failed");
 
         let last_req =
@@ -175,7 +183,7 @@ async fn assert_uds_service_support(
 
 #[tokio::test]
 async fn test_e2e_supported_uds_services() {
-    run_doip_e2e_test(Some(ECU_LOGICAL_ADDR), async |connector, handler| {
+    run_doip_e2e_test(false, async |connector, handler| {
         let read_request =
             UdsRequest { service: UdsService::ReadDataByIdentifier, payload: vec![0xF1, 0x90] };
         assert_uds_service_support(connector, &handler, read_request, "ReadDataByIdentifier").await;
