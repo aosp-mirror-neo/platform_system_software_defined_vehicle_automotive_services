@@ -25,9 +25,9 @@ use crate::traits::{Listener, UdsRequestHandler};
 use async_trait::async_trait;
 use doip_definitions::message::DoipMessage;
 use doip_definitions::payload::{
-    ActivationCode, AliveCheckResponse, DiagnosticAckCode, DiagnosticMessage, DiagnosticMessageAck,
-    DiagnosticMessageNack, DiagnosticNackCode, DoipPayload, RoutingActivationRequest,
-    RoutingActivationResponse,
+    ActionCode, ActivationCode, AliveCheckResponse, DiagnosticAckCode, DiagnosticMessage,
+    DiagnosticMessageAck, DiagnosticMessageNack, DiagnosticNackCode, DoipPayload,
+    RoutingActivationRequest, RoutingActivationResponse, VehicleAnnouncementMessage,
 };
 use futures::{Future, SinkExt, StreamExt};
 use log::{debug, error, info, warn};
@@ -36,7 +36,9 @@ use std::pin::Pin;
 use std::sync::Arc;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::TcpListener;
+use tokio::net::UdpSocket;
 use tokio_util::codec::Framed;
+use tokio_util::udp::UdpFramed;
 
 /// Configuration for the `DoipListener`.
 #[derive(Clone, Debug)]
@@ -45,6 +47,8 @@ pub struct DoipListenerConfig {
     pub socket_addr: SocketAddr,
     /// The logical address of this ECU.
     pub logical_addr: LogicalAddress,
+    /// The Vehicle Identification Number
+    pub vin: [u8; 17],
 }
 
 /// Manages inbound DoIP communication, implementing the `Listener` trait.
@@ -288,6 +292,73 @@ where
     }
 }
 
+impl<H> DoipListener<H>
+where
+    H: UdsRequestHandler + Send + Sync + 'static,
+{
+    async fn handle_udp_datagrams(socket: UdpSocket, config: DoipListenerConfig) {
+        info!("handle_udp_datagrams started with config: {:?}", config);
+        let mut framed = UdpFramed::new(socket, DoipCodec {});
+        while let Some(result) = framed.next().await {
+            match result {
+                Ok((message, addr)) => {
+                    if let DoipPayload::VehicleIdentificationRequest(_) = message.payload {
+                        let response = Self::create_announcement_response(&config);
+                        if let Err(e) = framed.send((response, addr)).await {
+                            error!(
+                                "Error responding to Identification Request from {}: {}",
+                                addr, e
+                            );
+                        }
+                    }
+                }
+                Err(e) => {
+                    error!("Error decoding DoIP packet: {}", e);
+                }
+            }
+        }
+        error!("UDP stream closed.");
+    }
+
+    fn create_announcement_response(config: &DoipListenerConfig) -> DoipMessage {
+        let announcement = VehicleAnnouncementMessage {
+            vin: config.vin,
+            logical_address: *config.logical_addr.as_bytes(),
+            eid: [0x00; 6],
+            gid: [0x00; 6],
+            further_action: ActionCode::NoFurtherActionRequired,
+            vin_gid_sync: None,
+        };
+
+        let payload = DoipPayload::VehicleAnnouncementMessage(announcement);
+        build_message(payload)
+    }
+
+    async fn handle_tcp_connections(
+        &self,
+        listener: TcpListener,
+    ) -> Result<(), DoipTransportError> {
+        loop {
+            match listener.accept().await {
+                Ok((stream, client_addr)) => {
+                    info!("Accepted client connection from {}", client_addr);
+                    self.handler.on_connection_accepted(client_addr).await;
+
+                    let config = self.config.clone();
+                    let handler = self.handler.clone();
+
+                    tokio::spawn(async move {
+                        ConnectionHandler::new(stream, client_addr, config, handler).run().await;
+                    });
+                }
+                Err(e) => {
+                    error!("Error accepting TCP connection: {}", e);
+                }
+            }
+        }
+    }
+}
+
 #[async_trait]
 impl<H> Listener<H> for DoipListener<H>
 where
@@ -303,27 +374,29 @@ where
 
     fn start(self) -> Self::StartFuture {
         Box::pin(async move {
-            let listener = TcpListener::bind(self.config.socket_addr)
+            // Initialize UDP and TCP transports
+            let tcp_listener = TcpListener::bind(self.config.socket_addr)
                 .await
                 .map_err(DoipTransportError::from)?;
 
-            info!("Listening for connections on {}", self.config.socket_addr);
+            let udp_socket =
+                UdpSocket::bind(self.config.socket_addr).await.map_err(DoipTransportError::from)?;
+            udp_socket.set_broadcast(true).map_err(DoipTransportError::from)?;
+
+            // Announce that we are listening
+            info!("DoIP Listener started. TCP: {0}, UDP: {0}", self.config.socket_addr);
             self.handler.on_listening(self.config.socket_addr).await;
 
-            loop {
-                let (stream, client_addr) =
-                    listener.accept().await.map_err(DoipTransportError::from)?;
+            // Handle UDP datagrams
+            let cloned_config = self.config.clone();
+            tokio::spawn(async move {
+                Self::handle_udp_datagrams(udp_socket, cloned_config).await;
+            });
 
-                info!("Accepted client connection from {}", client_addr);
-                self.handler.on_connection_accepted(client_addr).await;
+            // Handle TCP connections
+            self.handle_tcp_connections(tcp_listener).await?;
 
-                let config = self.config.clone();
-                let handler = self.handler.clone();
-
-                tokio::spawn(async move {
-                    ConnectionHandler::new(stream, client_addr, config, handler).run().await;
-                });
-            }
+            Ok(())
         })
     }
 }
@@ -403,7 +476,7 @@ mod tests {
     }
 
     fn create_test_config(addr: SocketAddr) -> DoipListenerConfig {
-        DoipListenerConfig { socket_addr: addr, logical_addr: ECU_LOGICAL_ADDR }
+        DoipListenerConfig { socket_addr: addr, logical_addr: ECU_LOGICAL_ADDR, vin: [0; 17] }
     }
 
     fn create_server_connection(

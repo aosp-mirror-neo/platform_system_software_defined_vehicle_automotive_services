@@ -22,6 +22,9 @@
       "name": "sdv_uds_comms_tests"
     },
     {
+      "name": "sdv_uds_comms_integration_tests"
+    },
+    {
       "name": "sdv_uds_serde_v1_tests"
     },
     {

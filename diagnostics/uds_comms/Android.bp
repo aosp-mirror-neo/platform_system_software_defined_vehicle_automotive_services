@@ -19,7 +19,6 @@ package {
 
 rust_defaults {
     name: "sdv_uds_comms@rust_defaults",
-    srcs: ["src/lib.rs"],
     defaults: [
         "sdv@rust_defaults",
         "sdv_tracing@rust_defaults",
@@ -51,6 +50,7 @@ rust_library {
     defaults: [
         "sdv_uds_comms@rust_defaults",
     ],
+    srcs: ["src/lib.rs"],
     product_available: true,
     vendor_available: true,
     host_supported: true,
@@ -61,11 +61,32 @@ rust_test {
     defaults: [
         "sdv_uds_comms@rust_defaults",
     ],
+    srcs: ["src/lib.rs"],
     rustlibs: [
         "libgoogletest_rust",
     ],
     test_options: {
         unit_test: true,
+    },
+    test_suites: [
+        "automotive-sdv-tests",
+        "general-tests",
+    ],
+}
+
+rust_test {
+    name: "sdv_uds_comms_integration_tests",
+    defaults: [
+        "sdv_uds_comms@rust_defaults",
+    ],
+    srcs: [
+        "tests/doip_integration.rs",
+    ],
+    rustlibs: [
+        "libsdv_uds_comms",
+    ],
+    test_options: {
+        unit_test: false,
     },
     test_suites: [
         "automotive-sdv-tests",

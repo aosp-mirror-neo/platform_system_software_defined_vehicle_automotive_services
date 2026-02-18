@@ -31,14 +31,16 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 
 static DEFAULT_DOIP_PORT: u16 = 13400;
-static LOCALHOST_IP_ADDR: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+static LOCALHOST_IP_ADDR: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
 static ECU_LOGICAL_ADDR: u16 = 0x1000;
+static FALLBACK_VIN: [u8; 17] = [0x30; 17];
 
 /// Creates a default config for the `DoipListener`.
 pub fn create_doip_config() -> DoipListenerConfig {
     DoipListenerConfig {
         socket_addr: SocketAddr::new(LOCALHOST_IP_ADDR, DEFAULT_DOIP_PORT),
         logical_addr: LogicalAddress::new(ECU_LOGICAL_ADDR),
+        vin: FALLBACK_VIN,
     }
 }
 
