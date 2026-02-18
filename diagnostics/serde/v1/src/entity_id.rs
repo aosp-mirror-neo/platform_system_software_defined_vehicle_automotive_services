@@ -37,11 +37,11 @@ pub enum EntityId {
 /// Routine control method.
 #[derive(Debug)]
 pub enum RoutineMethod {
-    /// See com.sdv.google.diagnostics.routine_control.RoutineControl::Start.
+    /// See com.android.sdv.diagnostics.routine_control.RoutineControl::Start.
     Start,
-    /// See com.sdv.google.diagnostics.routine_control.RoutineControl::Stop.
+    /// See com.android.sdv.diagnostics.routine_control.RoutineControl::Stop.
     Stop,
-    /// See com.sdv.google.diagnostics.routine_control.RoutineControl::RequestResult.
+    /// See com.android.sdv.diagnostics.routine_control.RoutineControl::RequestResult.
     RequestResult,
 }
 

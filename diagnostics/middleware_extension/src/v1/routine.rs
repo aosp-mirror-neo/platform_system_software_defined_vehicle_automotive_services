@@ -25,9 +25,9 @@ use std::future::Future;
 /// Typed routine response.
 #[derive(Clone, Default)]
 pub struct RoutineResponse<T: Message> {
-    /// See com.sdv.google.diagnostics.routine_control.RoutineControlResponse::routine_info.
+    /// See com.android.sdv.diagnostics.routine_control.RoutineControlResponse::routine_info.
     pub routine_info: i8,
-    /// See com.sdv.google.diagnostics.routine_control.RoutineControlResponse::response.
+    /// See com.android.sdv.diagnostics.routine_control.RoutineControlResponse::response.
     pub response: T,
 }
 
@@ -36,7 +36,7 @@ pub type RoutineResult<T> = DiagnosticsResult<RoutineResponse<T>>;
 
 /// Typed trait that corresponds to RoutineControl server
 ///
-/// See com.sdv.google.diagnostics.routine_control.RoutineControl service.
+/// See com.android.sdv.diagnostics.routine_control.RoutineControl service.
 #[async_trait::async_trait]
 pub trait RoutineHandler<
     StartRequest: Message,
@@ -47,7 +47,7 @@ pub trait RoutineHandler<
     ResultResponse: Message,
 >: Send + Sync
 {
-    /// See com.sdv.google.diagnostics.routine_control.RoutineControl::Start.
+    /// See com.android.sdv.diagnostics.routine_control.RoutineControl::Start.
     async fn start(&self, req: StartRequest) -> RoutineResult<StartResponse>;
 
     /// Untyped version of `start`.
@@ -55,7 +55,7 @@ pub trait RoutineHandler<
         handle_routine_request(|request| self.start(request), request_bytes).await
     }
 
-    /// See com.sdv.google.diagnostics.routine_control.RoutineControl::Stop.
+    /// See com.android.sdv.diagnostics.routine_control.RoutineControl::Stop.
     async fn stop(&self, _req: StopRequest) -> RoutineResult<StopResponse> {
         RoutineResult::Err(SUB_FUNCTION_NOT_SUPPORTED)
     }
@@ -65,7 +65,7 @@ pub trait RoutineHandler<
         handle_routine_request(|request| self.stop(request), request_bytes).await
     }
 
-    /// See com.sdv.google.diagnostics.routine_control.RoutineControl::RequestResult.
+    /// See com.android.sdv.diagnostics.routine_control.RoutineControl::RequestResult.
     async fn request_result(&self, _req: ResultRequest) -> RoutineResult<ResultResponse> {
         RoutineResult::Err(SUB_FUNCTION_NOT_SUPPORTED)
     }

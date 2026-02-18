@@ -16,7 +16,7 @@
 
 syntax = "proto3";
 
-package com.sdv.google.diagnostics.routine_control;
+package com.android.sdv.diagnostics.routine_control;
 
 import "response_code.proto";
 

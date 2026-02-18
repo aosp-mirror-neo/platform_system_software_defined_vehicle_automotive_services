@@ -16,7 +16,7 @@
 
 syntax = "proto3";
 
-package com.sdv.google.diagnostics.fault;
+package com.android.sdv.diagnostics.fault;
 
 // Diagnostics interface to listen for fault status changes.
 service FaultListenerService {
