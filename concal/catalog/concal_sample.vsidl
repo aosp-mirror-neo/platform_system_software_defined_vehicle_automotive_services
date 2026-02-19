@@ -14,30 +14,30 @@
 # proto-file: //system/software_defined_vehicle/vsidl/language/src/protos/sdv/vsidl/v1/syntax.proto
 # proto-message: VsidlEntry
 
-package: "com.sdv.oem.sample.concal"
+package: "com.android.sdv.sample.oem.concal"
 
 service_bundle {
   name: "SampleOemConCalServiceBundle"
   server {
-    service: "com.sdv.google.concal.ConCalRegistrationService"
+    service: "com.android.sdv.concal.ConCalRegistrationService"
   }
   server {
-    service: "com.sdv.google.concal.ConCalUpdateService"
+    service: "com.android.sdv.concal.ConCalUpdateService"
   }
   server {
-    service: "com.sdv.google.concal.calib.server.ConCalCalibrationService"
+    service: "com.android.sdv.concal.calib.server.ConCalCalibrationService"
   }
   server {
-    service: "com.sdv.google.concal.calib.ConCalCalibrationNotificationService"
+    service: "com.android.sdv.concal.calib.ConCalCalibrationNotificationService"
   }
 }
 
 service_bundle {
   name: "SampleOemConCalClientServiceBundle"
   client {
-    service: "com.sdv.google.concal.ConCalRegistrationService"
+    service: "com.android.sdv.concal.ConCalRegistrationService"
   }
   client {
-    service: "com.sdv.google.concal.ConCalUpdateService"
+    service: "com.android.sdv.concal.ConCalUpdateService"
   }
 }
