@@ -16,7 +16,7 @@
 
 syntax = "proto3";
 
-package com.sdv.google.diagnostics.file_transfer;
+package com.android.sdv.diagnostics.file_transfer;
 
 import "connection.proto";
 import "response_code.proto";

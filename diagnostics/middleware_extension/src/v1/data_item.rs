@@ -23,7 +23,7 @@ use protobuf::Message;
 
 /// Typed trait that corresponds to read-only data item server
 ///
-/// See com.sdv.google.diagnostics.data_item.DataItemService service.
+/// See com.android.sdv.diagnostics.data_item.DataItemService service.
 #[async_trait::async_trait]
 pub trait ReadOnlyDataItemHandler<T: Message>: Send + Sync {
     /// Reads current data item value.
@@ -59,7 +59,7 @@ fn to_read_response<T: Message>(result: DiagnosticsResult<T>) -> ReadDataItemRes
 
 /// Typed trait that corresponds to writable data item server
 ///
-/// See com.sdv.google.diagnostics.data_item.DataItemService service.
+/// See com.android.sdv.diagnostics.data_item.DataItemService service.
 ///
 /// Ideally, this trait should extend ReadOnlyDataItemHandler<T>, but since Rust does not
 /// support casting from `dyn DerivedTrait` to `dyn BaseTrait`, it's easier to simply

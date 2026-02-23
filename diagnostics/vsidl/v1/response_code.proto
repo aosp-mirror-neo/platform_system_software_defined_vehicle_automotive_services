@@ -16,7 +16,7 @@
 
 syntax = "proto3";
 
-package com.sdv.google.diagnostics;
+package com.android.sdv.diagnostics;
 
 // Response code, returned as part of a RPC response for most Diagnostics APIs.
 //

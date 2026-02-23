@@ -58,7 +58,7 @@ impl<M: Message> EventPublisher<M> {
                     .publication_name(options.get_publication_name())
                     .type_name(
                         TypeName::builder()
-                            .package_name("com.sdv.google.diagnostics")
+                            .package_name("com.android.sdv.diagnostics")
                             .bundle_name("DiagnosticsManager")
                             .type_name("event.Event")
                             .build()?,
@@ -180,7 +180,7 @@ impl EventPublisherOptionsBuilder {
 
 fn event_message_metadata() -> MessageMetadata {
     MessageMetadata {
-        message_full_name: ".com.sdv.google.diagnostics.event.Event".to_string(),
+        message_full_name: ".com.android.sdv.diagnostics.event.Event".to_string(),
         file_descriptors: vec![
             event::file_descriptor().proto().clone(),
             annotations::file_descriptor().proto().clone(),
@@ -193,7 +193,7 @@ fn encode_event_extended_data<M: Message>(data: &M) -> SdvResult<Vec<u8>> {
     data.write_to_bytes().map_err(|_| SdvStatus::new(SdvStatusCode::InvalidArgument))
 }
 
-// Compute size of com.sdv.google.diagnostics.event.Event size, based on exteded data max size.
+// Compute size of com.android.sdv.diagnostics.event.Event size, based on exteded data max size.
 fn compute_event_message_size(extended_data_max_size: u32) -> u32 {
     let mut result = 0;
 
@@ -305,7 +305,7 @@ mod tests {
             .find_publication(&UnitQuery::Name(
                 UnitName::builder()
                     .vm_name("")
-                    .package_name("com.sdv.oem.sample.diagnostics")
+                    .package_name("com.android.sdv.sample.oem.diagnostics")
                     .bundle_name("DiagnosticsProvider1")
                     .service_unit_name("event1")
                     .build()
@@ -346,7 +346,7 @@ mod tests {
             .find_publication(&UnitQuery::Name(
                 UnitName::builder()
                     .vm_name("")
-                    .package_name("com.sdv.oem.sample.diagnostics")
+                    .package_name("com.android.sdv.sample.oem.diagnostics")
                     .bundle_name("DiagnosticsProvider1")
                     .service_unit_name("sdv-diagnostics-event-event1")
                     .build()
@@ -433,7 +433,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_event_message_metadata_is_set() {
-        // Note: ACLs for this test are in the respective acl textproto file of the com.sdv.oem.sample.diagnostics apex
+        // Note: ACLs for this test are in the respective acl textproto file of the com.android.sdv.sample.oem.diagnostics apex
         // GIVEN event publication where register_reflection_metadata is true
         const REGISTER_REFLECTION_METADATA: bool = true;
         const USE_NEW_WITH_OPTIONS: bool = true;
@@ -458,7 +458,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_event_message_metadata_is_not_set() {
-        // Note: ACLs for this test are in the respective acl textproto file of the com.sdv.oem.sample.diagnostics apex
+        // Note: ACLs for this test are in the respective acl textproto file of the com.android.sdv.sample.oem.diagnostics apex
         // GIVEN event publication where register_reflection_metadata is false
         const REGISTER_REFLECTION_METADATA: bool = false;
         const USE_NEW_WITH_OPTIONS: bool = true;
@@ -475,7 +475,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_event_message_metadata_is_not_set_for_legacy_ctor() {
-        // Note: ACLs for this test are in the respective acl textproto file of the com.sdv.oem.sample.diagnostics apex
+        // Note: ACLs for this test are in the respective acl textproto file of the com.android.sdv.sample.oem.diagnostics apex
         // GIVEN event publication created with legacy 'new()' ctor
         const REGISTER_REFLECTION_METADATA: bool = true;
         const USE_NEW_WITH_OPTIONS: bool = false;
@@ -499,7 +499,7 @@ mod tests {
         // create event publisher
         let context = ContextRef::create(
             ServiceFqin::from_str(&format!(
-                "vm:com.sdv.oem.sample.diagnostics.SampleBundle/{instance_name}",
+                "vm:com.android.sdv.sample.oem.diagnostics.SampleBundle/{instance_name}",
             ))
             .expect("ContextRef creation failed."),
         );
@@ -525,7 +525,7 @@ mod tests {
         // discover event publisher service unit
         let sd = ServiceDiscoveryManager::new(context);
         let discovery_args = UnitNameDiscoveryArgs::new_builder()
-            .set_sdv_package_name("com.sdv.oem.sample.diagnostics")
+            .set_sdv_package_name("com.android.sdv.sample.oem.diagnostics")
             .set_service_bundle_name("SampleBundle")
             .set_service_unit_name("event")
             .build()

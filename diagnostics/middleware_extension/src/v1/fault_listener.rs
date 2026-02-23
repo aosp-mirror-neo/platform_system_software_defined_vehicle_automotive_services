@@ -19,10 +19,10 @@ use protobuf::Message;
 
 /// Typed trait that corresponds to FaultListener server
 ///
-/// See com.sdv.google.diagnostics.fault.FaultListener service.
+/// See com.android.sdv.diagnostics.fault.FaultListener service.
 #[async_trait::async_trait]
 pub trait FaultListenerHandler<T: Message>: Send + Sync {
-    /// See com.sdv.google.diagnostics.fault.FaultListener::OnFaultStatusChange.
+    /// See com.android.sdv.diagnostics.fault.FaultListener::OnFaultStatusChange.
     async fn on_fault_status_change(&self, status: u8, extended_data: Option<T>);
 
     /// Untyped version of `on_fault_status_change`.
