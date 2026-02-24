@@ -16,7 +16,7 @@
 
 syntax = "proto3";
 
-package com.sdv.google.diagnostics.security_access;
+package com.android.sdv.diagnostics.security_access;
 
 import "connection.proto";
 import "response_code.proto";

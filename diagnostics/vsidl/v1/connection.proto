@@ -16,7 +16,7 @@
 
 syntax = "proto3";
 
-package com.sdv.google.diagnostics;
+package com.android.sdv.diagnostics;
 
 // Unique id of diagnostic connection.
 message ConnectionId {

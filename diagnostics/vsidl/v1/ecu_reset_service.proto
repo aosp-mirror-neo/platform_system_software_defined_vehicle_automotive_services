@@ -16,7 +16,7 @@
 
 syntax = "proto3";
 
-package com.sdv.google.diagnostics.ecu_reset;
+package com.android.sdv.diagnostics.ecu_reset;
 
 import "connection.proto";
 import "response_code.proto";

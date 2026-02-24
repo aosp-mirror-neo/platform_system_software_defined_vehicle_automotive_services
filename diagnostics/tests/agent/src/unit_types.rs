@@ -25,7 +25,7 @@ pub trait DiagnosticsUnitType {
     const TYPE_NAME: &'static str;
     fn unit_type() -> UnitType {
         UnitType::builder()
-            .set_sdv_package_name("com.sdv.google.diagnostics")
+            .set_sdv_package_name("com.android.sdv.diagnostics")
             .set_service_bundle_name("DiagnosticsManager")
             .set_unit_type_name(Self::TYPE_NAME)
             .build()

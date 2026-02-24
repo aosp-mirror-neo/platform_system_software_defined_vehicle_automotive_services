@@ -16,7 +16,7 @@
 
 syntax = "proto3";
 
-package com.sdv.google.diagnostics.event;
+package com.android.sdv.diagnostics.event;
 
 import "sdv/vsidl/v1/annotations.proto";
 
