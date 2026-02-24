@@ -18,7 +18,7 @@
 
 syntax = "proto3";
 
-package com.sdv.google.user_preferences.view;
+package com.android.sdv.user_preferences.view;
 import "settings_group.proto";
 import "setting.proto";
 

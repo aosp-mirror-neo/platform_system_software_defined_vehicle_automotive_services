@@ -19,51 +19,51 @@ package: "com.sdv.oem.user_preferences"
 service_bundle {
     name: "UserPreferencesServiceBundle"
     server {
-        service: "com.sdv.google.user_preferences.UserPreferencesAdminService"
+        service: "com.android.sdv.user_preferences.UserPreferencesAdminService"
     }
     server {
-        service: "com.sdv.google.user_preferences.UserPreferencesManagementService"
+        service: "com.android.sdv.user_preferences.UserPreferencesManagementService"
     }
     server {
-        service: "com.sdv.google.user_preferences.UserPreferencesRegistryService"
+        service: "com.android.sdv.user_preferences.UserPreferencesRegistryService"
     }
     client {
-        service: "com.sdv.google.user_preferences.view.ChangeNotifier"
+        service: "com.android.sdv.user_preferences.view.ChangeNotifier"
     }
     client {
-        service: "com.sdv.google.user_preferences.user_controllable.UserControllableService"
+        service: "com.android.sdv.user_preferences.user_controllable.UserControllableService"
     }
 }
 
 service_bundle {
     name: "HMIService"
     server {
-        service: "com.sdv.google.user_preferences.view.ChangeNotifier"
+        service: "com.android.sdv.user_preferences.view.ChangeNotifier"
     }
     client {
-        service: "com.sdv.google.user_preferences.UserPreferencesManagementService"
+        service: "com.android.sdv.user_preferences.UserPreferencesManagementService"
     }
     client {
-        service:  "com.sdv.google.user_preferences.UserPreferencesAdminService"
+        service:  "com.android.sdv.user_preferences.UserPreferencesAdminService"
     }
 }
 
 service_bundle {
     name: "HVACService"
     server {
-        service: "com.sdv.google.user_preferences.user_controllable.UserControllableService"
+        service: "com.android.sdv.user_preferences.user_controllable.UserControllableService"
     }
     client {
-        service: "com.sdv.google.user_preferences.UserPreferencesRegistryService"
+        service: "com.android.sdv.user_preferences.UserPreferencesRegistryService"
     }
 }
 
 service_bundle {
     name: "CarSeatsService"
     server {
-        service: "com.sdv.google.user_preferences.user_controllable.UserControllableService"
+        service: "com.android.sdv.user_preferences.user_controllable.UserControllableService"
     }
     client {
-        service: "com.sdv.google.user_preferences.UserPreferencesRegistryService"
+        service: "com.android.sdv.user_preferences.UserPreferencesRegistryService"
     }
 }
