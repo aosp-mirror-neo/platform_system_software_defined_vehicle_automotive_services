@@ -18,38 +18,23 @@
 # ACL policies for User Preferences Unit Types.
 
 acls {
-    name: "Internal"
-    include: "com.sdv.google.user_preferences.UserPreferencesServiceBundle"
-    include: "com.sdv.oem.user_preferences.UserPreferencesServiceBundle"
+  name: "Internal"
+  include: "com.android.sdv.user_preferences.UserPreferencesServiceBundle"
+  include: "com.sdv.oem.user_preferences.UserPreferencesServiceBundle"
 }
 
 acls {
-    name: "Public"
-    include: "com.sdv.oem.user_preferences.*"
-    include: "com.android.testapp.sdvcarmonitor.SdvCarMonitorTestApp"
+  name: "Public"
+  include: "com.sdv.oem.user_preferences.*"
+  include: "com.android.testapp.sdvcarmonitor.SdvCarMonitorTestApp"
 }
 
-unit_types {
-    name: "UserPreferencesAdminService"
-    acl_names: "Internal"
-}
+unit_types { name: "UserPreferencesAdminService" acl_names: "Internal" }
 
-unit_types {
-    name: "UserPreferencesManagementService"
-    acl_names: "Internal"
-}
+unit_types { name: "UserPreferencesManagementService" acl_names: "Internal" }
 
-unit_types {
-    name: "UserPreferencesRegistryService"
-    acl_names: "Internal"
-}
+unit_types { name: "UserPreferencesRegistryService" acl_names: "Internal" }
 
-unit_types {
-    name: "user_controllable.UserControllableService"
-    acl_names: "Public"
-}
+unit_types { name: "user_controllable.UserControllableService" acl_names: "Public" }
 
-unit_types {
-    name: "view.ChangeNotifier"
-    acl_names: "Public"
-}
+unit_types { name: "view.ChangeNotifier" acl_names: "Public" }

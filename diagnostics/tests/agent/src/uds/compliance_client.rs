@@ -30,7 +30,7 @@ use sdv_uds_serde::{diagnostics_translator::DiagnosticsTranslator, entity_id::*}
 use std::sync::Arc;
 use tokio::sync::OnceCell;
 
-const COMPLIANCE_PACKAGE: &str = "com.sdv.google.compliance.diagnostics";
+const COMPLIANCE_PACKAGE: &str = "com.android.sdv.compliance.diagnostics";
 const COMPLIANCE_BUNDLE: &str = "DiagnosticsProvider";
 
 /// A client for interacting with the Compliance Service Bundle via the SDV Diagnostics API.

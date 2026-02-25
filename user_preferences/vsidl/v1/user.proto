@@ -20,7 +20,7 @@ option java_multiple_files = true;
 option java_package = "com.android.sdv.sdvgrpclibrary";
 option java_outer_classname = "UserProto";
 
-package com.sdv.google.user_preferences;
+package com.android.sdv.user_preferences;
 
 message User {
   // Required.

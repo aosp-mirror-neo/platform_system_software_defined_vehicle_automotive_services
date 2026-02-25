@@ -14,5 +14,5 @@
 # proto-file: //system/software_defined_vehicle/tools/regenerator/proto/catalog.proto
 # proto-message: Catalog
 
-output_path: "../../../samples/concal/src"
+output_path: ".."
 vsidlc_gen_args: "--genrule"
