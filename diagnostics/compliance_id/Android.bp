@@ -49,7 +49,7 @@ rust_library {
 }
 
 // Unit Tests
-rust_test {
+rust_test_host {
     name: "libsdv_diag_compliance_id_tests",
     defaults: [
         "sdv_diag_compliance_id@rust_defaults",
