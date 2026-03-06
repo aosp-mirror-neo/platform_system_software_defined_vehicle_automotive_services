@@ -15,4 +15,4 @@
 # proto-message: Catalog
 # This is the catalog update file for User Preferences
 output_path: ".."
-vsidlc_gen_args: "--genrule"
+vsidlc_gen_args: "--genrule --target-api latest"

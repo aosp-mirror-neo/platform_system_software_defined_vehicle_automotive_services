@@ -41,5 +41,5 @@ genrule {
         "$(genDir) " +
         "$(out)" +
         " '$(locations :libuser_preferences_protos_stable)'" +
-        " -- --target-api pdk29",
+        " -- --target-api latest",
 }
