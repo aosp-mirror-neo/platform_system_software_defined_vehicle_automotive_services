@@ -14,7 +14,7 @@
 # proto-file: //system/software_defined_vehicle/vsidl/language/src/protos/sdv/vsidl/v1/syntax.proto
 # proto-message: VsidlEntry
 
-package: "com.sdv.oem.user_preferences"
+package: "com.android.sdv.sample.user_preferences"
 
 service_bundle {
     name: "UserPreferencesServiceBundle"
