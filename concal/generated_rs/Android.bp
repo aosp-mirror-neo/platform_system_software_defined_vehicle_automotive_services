@@ -41,5 +41,5 @@ genrule {
         "$(genDir) " +
         "$(out)" +
         " '$(locations :libconcal_protos)'" +
-        " -- --target-api pdk29",
+        " -- --target-api latest",
 }

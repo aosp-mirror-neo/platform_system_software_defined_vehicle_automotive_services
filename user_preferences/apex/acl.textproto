@@ -20,12 +20,12 @@
 acls {
   name: "Internal"
   include: "com.android.sdv.user_preferences.UserPreferencesServiceBundle"
-  include: "com.sdv.oem.user_preferences.UserPreferencesServiceBundle"
+  include: "com.android.sdv.sample.user_preferences.UserPreferencesServiceBundle"
 }
 
 acls {
   name: "Public"
-  include: "com.sdv.oem.user_preferences.*"
+  include: "com.android.sdv.sample.user_preferences.*"
   include: "com.android.testapp.sdvcarmonitor.SdvCarMonitorTestApp"
 }
 
