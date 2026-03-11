@@ -14,5 +14,5 @@
 # proto-file: //system/software_defined_vehicle/tools/regenerator/proto/catalog.proto
 # proto-message: Catalog
 # This is the catalog update file for User Preferences
-output_path: "../../../../samples/user_preferences/v1"
-vsidlc_gen_args: "--genrule"
+output_path: ".."
+vsidlc_gen_args: "--genrule --target-api latest"
