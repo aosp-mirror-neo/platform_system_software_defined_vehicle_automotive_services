@@ -18,15 +18,16 @@ use diagnostics_v1_api::data_item_service::{
     ReadDataItemRequest, ReadDataItemResponse, WriteDataItemRequest, WriteDataItemResponse,
 };
 use futures::StreamExt;
-use log::{debug, info};
-use protobuf::{Message, MessageFull};
+use log::info;
+use protobuf::reflect::MessageDescriptor;
+use protobuf::Message;
+use protobuf::MessageFull;
 use sdv_comms::id::ServiceFqin;
 use sdv_comms::rpc::{Client, ClientOptions};
 use sdv_comms::sd::{ServiceDiscoveryManager, ServiceUnitDefinition, UnitNameDiscoveryArgs};
 use sdv_comms::ContextRef;
 use sdv_config_provider::vsidl_provider_api::VsidlConfigProviderV1;
 use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
-use sdv_uds_serde::{diagnostics_translator::DiagnosticsTranslator, entity_id::*};
 use std::sync::Arc;
 use tokio::sync::OnceCell;
 
@@ -45,16 +46,6 @@ pub trait ComplianceClient: Send + Sync {
         identifier: &str,
         value: Vec<u8>,
     ) -> SdvResult<WriteDataItemResponse>;
-
-    /// Translates a DataItem value to UDS byte format.
-    async fn translate_to_uds(
-        &self,
-        identifier: &str,
-        data_item: &ReadDataItemResponse,
-    ) -> SdvResult<Vec<u8>>;
-
-    /// Translates UDS byte format to a DataItem value (protobuf bytes).
-    async fn translate_from_uds(&self, identifier: &str, uds_bytes: &[u8]) -> SdvResult<Vec<u8>>;
 }
 
 /// Proxy to wrap an inner lazy loaded SdvComplianceClient.
@@ -68,7 +59,7 @@ pub struct ProxyComplianceClient {
 pub struct SdvComplianceClient {
     rpc_client: Client,
     service_unit: ServiceUnitDefinition,
-    translator: DiagnosticsTranslator,
+    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
 }
 
 // -- SdvComplianceClient
@@ -106,10 +97,8 @@ impl SdvComplianceClient {
             Client::create(context, service_unit.get_unit_identifier(), &ClientOptions::default())
                 .await?;
 
-        let translator = DiagnosticsTranslator::new(vsidl_provider.clone());
-
         info!("ComplianceClient connected successfully.");
-        Ok(Self { rpc_client, service_unit, translator })
+        Ok(Self { rpc_client, service_unit, vsidl_provider })
     }
 
     /// Get the Compliance Service Bundle's fully qualified instance name.
@@ -120,12 +109,64 @@ impl SdvComplianceClient {
     fn decode<T: MessageFull>(message_bytes: &[u8]) -> Result<T, protobuf::Error> {
         T::parse_from_bytes(message_bytes)
     }
+
+    async fn get_message_name(&self, id: &str) -> SdvResult<String> {
+        let service_fqin = self.service_bundle_fqin();
+        let diagnostics_declaration =
+            self.vsidl_provider.get_diagnostics_declaration(&service_fqin).await.ok_or_else(
+                || {
+                    SdvStatus::with_message(
+                        SdvStatusCode::NotFound,
+                        format!("Diagnostics declaration not found for {service_fqin}"),
+                    )
+                },
+            )?;
+        let item = diagnostics_declaration.data_item.iter().find(|item| item.id == id).ok_or_else(
+            || {
+                SdvStatus::with_message(
+                    SdvStatusCode::NotFound,
+                    format!("DataItem {id} not found in diagnostics declaration"),
+                )
+            },
+        )?;
+
+        Ok(item.message_name.clone())
+    }
+
+    async fn get_message_descriptor(&self, id: &str) -> SdvResult<(MessageDescriptor, String)> {
+        let message_name = self.get_message_name(id).await?;
+        let service_fqin = self.service_bundle_fqin();
+        let descriptor = self
+            .vsidl_provider
+            .get_message_descriptor(&service_fqin, &message_name)
+            .await
+            .ok_or_else(|| {
+                SdvStatus::with_message(
+                    SdvStatusCode::NotFound,
+                    format!("Message descriptor not found: {message_name}"),
+                )
+            })?;
+        Ok((descriptor, message_name))
+    }
+
+    async fn validate_payload(&self, id: &str, payload: &[u8]) -> SdvResult<()> {
+        let (descriptor, message_name) = self.get_message_descriptor(id).await?;
+
+        descriptor.parse_from_bytes(payload).map_err(|e| {
+            SdvStatus::with_message(
+                SdvStatusCode::InvalidArgument,
+                format!("Invalid proto bytes for {message_name}: {e:?}"),
+            )
+        })?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
 impl ComplianceClient for SdvComplianceClient {
     async fn read_data_item(&self, id: &str) -> SdvResult<ReadDataItemResponse> {
-        info!("Reading DataItem: {}", id);
+        info!("Reading DataItem: {id}");
 
         let request = ReadDataItemRequest { id: id.to_string(), ..Default::default() };
 
@@ -139,16 +180,22 @@ impl ComplianceClient for SdvComplianceClient {
         let response_bytes =
             self.rpc_client.unary_call(ReadDataItem::METHOD_NAME, &encoded_req).await?;
 
-        Self::decode::<ReadDataItemResponse>(&response_bytes).map_err(|e| {
+        let response = Self::decode::<ReadDataItemResponse>(&response_bytes).map_err(|e| {
             SdvStatus::with_message(
                 SdvStatusCode::Internal,
                 format!("Failed to decode response: {e:?}"),
             )
-        })
+        })?;
+
+        self.validate_payload(id, &response.value).await?;
+
+        Ok(response)
     }
 
     async fn write_data_item(&self, id: &str, value: Vec<u8>) -> SdvResult<WriteDataItemResponse> {
-        info!("Writing DataItem: {}", id);
+        info!("Writing DataItem: {id}");
+
+        self.validate_payload(id, &value).await?;
 
         let request = WriteDataItemRequest { id: id.to_string(), value, ..Default::default() };
 
@@ -168,66 +215,6 @@ impl ComplianceClient for SdvComplianceClient {
                 format!("Failed to decode response: {e:?}"),
             )
         })
-    }
-
-    async fn translate_to_uds(
-        &self,
-        id: &str,
-        data_item: &ReadDataItemResponse,
-    ) -> SdvResult<Vec<u8>> {
-        let service_fqin = self.service_bundle_fqin();
-
-        let translation_result = self
-            .translator
-            .translate_from_protobuf_to_uds(
-                &service_fqin,
-                EntityId::DataItem(id.to_owned()),
-                &data_item.value,
-            )
-            .await
-            .map_err(|e| {
-                SdvStatus::with_message(
-                    SdvStatusCode::Internal,
-                    format!("Failed to translate DataItem value to UDS: {e:?}"),
-                )
-            });
-
-        if let Ok(ref uds_bytes) = translation_result {
-            debug!(
-                "Translated DataItem: {}#{}, proto_value: {:?} to uds_value {:?}",
-                &service_fqin, id, data_item.value, uds_bytes
-            );
-        }
-
-        translation_result
-    }
-
-    async fn translate_from_uds(&self, id: &str, uds_bytes: &[u8]) -> SdvResult<Vec<u8>> {
-        let service_fqin = self.service_bundle_fqin();
-
-        let translation_result = self
-            .translator
-            .translate_from_uds_to_protobuf(
-                &service_fqin,
-                EntityId::DataItem(id.to_owned()),
-                uds_bytes,
-            )
-            .await
-            .map_err(|e| {
-                SdvStatus::with_message(
-                    SdvStatusCode::Internal,
-                    format!("Failed to translate UDS value to DataItem value: {e:?}"),
-                )
-            });
-
-        if let Ok(ref proto_bytes) = translation_result {
-            debug!(
-                "Translated DataItem: {}#{}, uds_value: {:?} to proto_value {:?}",
-                &service_fqin, id, uds_bytes, proto_bytes
-            );
-        }
-
-        translation_result
     }
 }
 
@@ -259,17 +246,5 @@ impl ComplianceClient for ProxyComplianceClient {
         value: Vec<u8>,
     ) -> SdvResult<WriteDataItemResponse> {
         self.get_inner_client().await?.write_data_item(identifier, value).await
-    }
-
-    async fn translate_to_uds(
-        &self,
-        identifier: &str,
-        data_item: &ReadDataItemResponse,
-    ) -> SdvResult<Vec<u8>> {
-        self.get_inner_client().await?.translate_to_uds(identifier, data_item).await
-    }
-
-    async fn translate_from_uds(&self, identifier: &str, uds_bytes: &[u8]) -> SdvResult<Vec<u8>> {
-        self.get_inner_client().await?.translate_from_uds(identifier, uds_bytes).await
     }
 }
