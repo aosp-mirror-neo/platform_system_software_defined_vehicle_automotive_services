@@ -38,3 +38,10 @@ unit_types { name: "UserPreferencesRegistryService" acl_names: "Internal" }
 unit_types { name: "user_controllable.UserControllableService" acl_names: "Public" }
 
 unit_types { name: "view.ChangeNotifier" acl_names: "Public" }
+
+# Permissions
+
+server {
+  service: "com.android.sdv.user_preferences.UserPreferencesManagementService"
+  channel: "com-android-sdv-user-preferences-user-preferences-management-service"
+}
