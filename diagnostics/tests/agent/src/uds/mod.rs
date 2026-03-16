@@ -34,6 +34,7 @@ static DEFAULT_DOIP_PORT: u16 = 13400;
 static LOCALHOST_IP_ADDR: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
 static ECU_LOGICAL_ADDR: u16 = 0x1000;
 static FALLBACK_VIN: [u8; 17] = [0x30; 17];
+static DEFAULT_GOOGLE_RESERVED_DID_RANGE_START: u16 = 0xF0F0;
 
 /// Creates a default config for the `DoipListener`.
 pub fn create_doip_config() -> DoipListenerConfig {
@@ -50,6 +51,7 @@ pub fn create_data_item_service(
     vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
 ) -> Box<dyn DataItemRequestHandler> {
     let compliance_client = ProxyComplianceClient::new(context, vsidl_provider);
-    let data_item_service = DataItemService::new(Box::new(compliance_client));
+    let data_item_service =
+        DataItemService::new(Box::new(compliance_client), DEFAULT_GOOGLE_RESERVED_DID_RANGE_START);
     Box::new(data_item_service)
 }
