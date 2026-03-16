@@ -35,16 +35,20 @@ pub trait DataItemRequestHandler: Send + Sync {
 /// Maps UDS requests to the Compliance Service Bundle.
 pub struct DataItemService {
     compliance_client: Box<dyn ComplianceClient>,
+    google_reserved_range_start_data_id: u16,
 }
 
 impl DataItemService {
-    pub fn new(compliance_client: Box<dyn ComplianceClient>) -> Self {
-        Self { compliance_client }
+    pub fn new(
+        compliance_client: Box<dyn ComplianceClient>,
+        google_reserved_range_start_data_id: u16,
+    ) -> Self {
+        Self { compliance_client, google_reserved_range_start_data_id }
     }
 
     async fn read_data_by_id(&self, data_id: u16) -> Result<DataRecord, NegativeResponseCode> {
-        let diag_id =
-            DiagComplianceId::from_u16(data_id).ok_or(NegativeResponseCode::RequestOutOfRange)?;
+        let diag_id = DiagComplianceId::from_u16(data_id, self.google_reserved_range_start_data_id)
+            .ok_or(NegativeResponseCode::RequestOutOfRange)?;
 
         if diag_id == DiagComplianceId::Default {
             warn!("read_data_by_id:  rejecting 'default' identifier");
@@ -70,8 +74,8 @@ impl DataItemService {
         data_id: u16,
         data: &[u8],
     ) -> Result<(), NegativeResponseCode> {
-        let diag_id =
-            DiagComplianceId::from_u16(data_id).ok_or(NegativeResponseCode::RequestOutOfRange)?;
+        let diag_id = DiagComplianceId::from_u16(data_id, self.google_reserved_range_start_data_id)
+            .ok_or(NegativeResponseCode::RequestOutOfRange)?;
 
         if diag_id == DiagComplianceId::Default {
             warn!("write_data_by_id: rejecting 'default' identifier");
@@ -165,6 +169,8 @@ mod tests {
     use sdv_uds_comms::models::request::UdsService;
     use std::collections::HashMap;
 
+    const GOOGLE_RESERVED_DID_RANGE_START_TEST: u16 = 0xF0F0;
+
     #[derive(Default)]
     struct MockComplianceClient {
         read_results: HashMap<String, ReadDataItemResponse>,
@@ -199,7 +205,7 @@ mod tests {
     #[tokio::test]
     async fn test_read_data_by_id_out_of_range() {
         let client = MockComplianceClient::default();
-        let service = DataItemService::new(Box::new(client));
+        let service = DataItemService::new(Box::new(client), GOOGLE_RESERVED_DID_RANGE_START_TEST);
         let result = service.read_data_by_id(0x1234).await;
         assert_eq!(result, Err(NegativeResponseCode::RequestOutOfRange));
     }
@@ -207,7 +213,7 @@ mod tests {
     #[tokio::test]
     async fn test_read_data_by_id_reject_default() {
         let client = MockComplianceClient::default();
-        let service = DataItemService::new(Box::new(client));
+        let service = DataItemService::new(Box::new(client), GOOGLE_RESERVED_DID_RANGE_START_TEST);
         let result = service.read_data_by_id(0xF0FF).await;
         assert_eq!(result, Err(NegativeResponseCode::GeneralReject));
     }
@@ -215,7 +221,7 @@ mod tests {
     #[tokio::test]
     async fn test_read_data_by_id_read_fails() {
         let client = MockComplianceClient::default();
-        let service = DataItemService::new(Box::new(client));
+        let service = DataItemService::new(Box::new(client), GOOGLE_RESERVED_DID_RANGE_START_TEST);
         let result = service.read_data_by_id(0xF0F0).await;
         assert_eq!(result, Err(NegativeResponseCode::GeneralReject));
     }
@@ -226,7 +232,7 @@ mod tests {
         let mut response = ReadDataItemResponse::new();
         response.value = vec![1, 2, 3];
         client.read_results.insert(DiagComplianceId::Reserved0.to_string(), response);
-        let service = DataItemService::new(Box::new(client));
+        let service = DataItemService::new(Box::new(client), GOOGLE_RESERVED_DID_RANGE_START_TEST);
         let result = service.read_data_by_id(0xF0F0).await;
         assert_eq!(result, Ok(DataRecord { data_id: 0xF0F0, data: vec![1, 2, 3] }));
     }
@@ -234,7 +240,7 @@ mod tests {
     #[tokio::test]
     async fn test_read_data_invalid_payload() {
         let client = MockComplianceClient::default();
-        let service = DataItemService::new(Box::new(client));
+        let service = DataItemService::new(Box::new(client), GOOGLE_RESERVED_DID_RANGE_START_TEST);
         let request = UdsRequest {
             service: UdsService::ReadDataByIdentifier,
             payload: vec![0x12], // Invalid length
@@ -259,7 +265,7 @@ mod tests {
         // F0F1 will fail on read
         // no value inserted for the corresponding identifier
 
-        let service = DataItemService::new(Box::new(client));
+        let service = DataItemService::new(Box::new(client), GOOGLE_RESERVED_DID_RANGE_START_TEST);
         let req = ReadDataByIdentifierRequest { data_ids: vec![0xF0F0, 0xF0F1] };
         let response = service.read_data(req.into()).await;
         assert_eq!(
@@ -278,7 +284,7 @@ mod tests {
         response.value = vec![1, 2, 3];
         client.read_results.insert(DiagComplianceId::Reserved0.to_string(), response);
 
-        let service = DataItemService::new(Box::new(client));
+        let service = DataItemService::new(Box::new(client), GOOGLE_RESERVED_DID_RANGE_START_TEST);
         let req = ReadDataByIdentifierRequest { data_ids: vec![0xF0F0] };
         let response = service.read_data(req.into()).await;
 
@@ -296,7 +302,7 @@ mod tests {
             .write_results
             .insert(DiagComplianceId::Reserved0.to_string(), ResponseCode::POSITIVE_RESPONSE);
 
-        let service = DataItemService::new(Box::new(client));
+        let service = DataItemService::new(Box::new(client), GOOGLE_RESERVED_DID_RANGE_START_TEST);
         let req = WriteDataByIdentifierRequest { data_id: 0xF0F0, data: vec![1, 2, 3] };
         let response = service.write_data(req.into()).await;
 
@@ -313,7 +319,7 @@ mod tests {
             .write_results
             .insert(DiagComplianceId::Reserved0.to_string(), ResponseCode::CONDITIONS_NOT_CORRECT);
 
-        let service = DataItemService::new(Box::new(client));
+        let service = DataItemService::new(Box::new(client), GOOGLE_RESERVED_DID_RANGE_START_TEST);
         let req = WriteDataByIdentifierRequest { data_id: 0xF0F0, data: vec![1, 2, 3] };
         let response = service.write_data(req.into()).await;
 
@@ -328,15 +334,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_write_data_out_of_range() {
-        let service = DataItemService::new(Box::new(MockComplianceClient::default()));
+        let service = DataItemService::new(
+            Box::new(MockComplianceClient::default()),
+            GOOGLE_RESERVED_DID_RANGE_START_TEST,
+        );
         let result = service.write_data_by_id(0x1234, &[]).await;
         assert_eq!(result, Err(NegativeResponseCode::RequestOutOfRange));
     }
 
     #[tokio::test]
     async fn test_write_data_reject_default() {
-        let service = DataItemService::new(Box::new(MockComplianceClient::default()));
+        let service = DataItemService::new(
+            Box::new(MockComplianceClient::default()),
+            GOOGLE_RESERVED_DID_RANGE_START_TEST,
+        );
         let result = service.write_data_by_id(0xF0FF, &[]).await;
+
         assert_eq!(result, Err(NegativeResponseCode::GeneralReject));
     }
 }
