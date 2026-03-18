@@ -1,0 +1,64 @@
+# Copyright (C) 2026 The Android Open Source Project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# proto-file:
+# //system/software_defined_vehicle/middleware/service_authz/proto/sdv/authz/policy/authz_policy.proto
+# proto-message: AuthzPolicy
+
+server { service: "com.android.sdv.diagnostics.DiagnosticsManagerService" allow_all_channels: true }
+
+client { service: "com.android.sdv.diagnostics.data_item.DataItemService" allow_all_channels: true }
+
+client {
+  service: "com.android.sdv.diagnostics.routine_control.RoutineControlService"
+  allow_all_channels: true
+}
+
+client {
+  service: "com.android.sdv.diagnostics.io_control.IoControlService"
+  allow_all_channels: true
+}
+
+client {
+  service: "com.android.sdv.diagnostics.fault.FaultListenerService"
+  allow_all_channels: true
+}
+
+client { service: "com.android.sdv.diagnostics.ecu_reset.EcuResetService" allow_all_channels: true }
+
+client {
+  service: "com.android.sdv.diagnostics.security_access.SecurityAccessService"
+  allow_all_channels: true
+}
+
+client {
+  service: "com.android.sdv.diagnostics.authentication.AuthenticationService"
+  allow_all_channels: true
+}
+
+client {
+  service: "com.android.sdv.diagnostics.file_transfer.FileTransferService"
+  allow_all_channels: true
+}
+
+subscriber { message: "com.android.sdv.diagnostics.event.Event" allow_all_topics: true }
+
+subscriber { message: "com.android.sdv.diagnostics.event.OperationCycle" allow_all_topics: true }
+
+subscriber { message: "com.android.sdv.diagnostics.event.EnableCondition" allow_all_topics: true }
+
+client {
+  service: "com.android.sdv.vsidl_provider.VsidlProviderService"
+  channel: "vsidl-provider-server"
+}
