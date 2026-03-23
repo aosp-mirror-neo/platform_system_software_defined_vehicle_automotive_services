@@ -58,6 +58,7 @@ rust_binary {
     defaults: [
         "sdv_diagnostics_agent@rust_defaults",
     ],
+    required: ["com.sdv.oem.diagnostics"],
     ld_flags: ["-Wl,--no-as-needed"],
     product_specific: true,
 }
