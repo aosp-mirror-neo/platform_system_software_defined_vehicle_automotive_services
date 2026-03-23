@@ -38,9 +38,11 @@ impl<M: Message> EventPublisher<M> {
         data_size: u32,
         comms: Arc<dyn Communicate>,
         publication_name: String,
+        topic: String,
     ) -> SdvResult<Self> {
         let options = EventPublisherOptions::builder()
             .publication_name(publication_name)
+            .topic(topic)
             .data_size(data_size)
             .build()?;
 
@@ -56,6 +58,7 @@ impl<M: Message> EventPublisher<M> {
             .create_publish(
                 &PublisherAttributes::builder()
                     .publication_name(options.get_publication_name())
+                    .topic_name(options.get_topic())
                     .type_name(
                         TypeName::builder()
                             .package_name("com.android.sdv.diagnostics")
@@ -104,6 +107,8 @@ impl<M: Message> EventPublisher<M> {
 pub struct EventPublisherOptions {
     /// publication name
     publication_name: String,
+    /// topic name
+    topic: String,
     /// event data size
     data_size: u32,
     /// true if metadata for message reflection shall be registered
@@ -119,6 +124,11 @@ impl EventPublisherOptions {
     /// publication name
     pub fn get_publication_name(&self) -> &str {
         &self.publication_name
+    }
+
+    /// topic name
+    pub fn get_topic(&self) -> &str {
+        &self.topic
     }
 
     /// event data size
@@ -137,6 +147,8 @@ impl EventPublisherOptions {
 pub struct EventPublisherOptionsBuilder {
     /// publication name
     publication_name: String,
+    /// topic name
+    topic: String,
     /// event data size
     data_size: u32,
     /// true if metadata for message reflection shall be registered
@@ -147,6 +159,12 @@ impl EventPublisherOptionsBuilder {
     /// set publication name
     pub fn publication_name(mut self, publication_name: impl Into<String>) -> Self {
         self.publication_name = publication_name.into();
+        self
+    }
+
+    /// set topic name
+    pub fn topic(mut self, topic: impl Into<String>) -> Self {
+        self.topic = topic.into();
         self
     }
 
@@ -172,6 +190,7 @@ impl EventPublisherOptionsBuilder {
         }
         Ok(EventPublisherOptions {
             publication_name: self.publication_name,
+            topic: self.topic,
             data_size: self.data_size,
             register_reflection_metadata: self.register_reflection_metadata,
         })
@@ -286,8 +305,13 @@ mod tests {
     #[tokio::test]
     async fn test_new() {
         let comms = LocalComms::default();
-        let event_publisher =
-            EventPublisher::<TestProto>::new(1, Arc::new(comms), "event1".to_string()).await;
+        let event_publisher = EventPublisher::<TestProto>::new(
+            1,
+            Arc::new(comms),
+            "event1".to_string(),
+            "com-android-sdv-diagnosticsevent-event-unique".to_string(),
+        )
+        .await;
 
         assert!(event_publisher.is_ok());
     }
@@ -296,10 +320,14 @@ mod tests {
     async fn test_publish() {
         // GIVEN event publication and subscription
         let comms = Arc::new(LocalComms::default());
-        let event_publisher =
-            EventPublisher::<TestProto>::new(10, comms.clone(), "event1".to_string())
-                .await
-                .unwrap();
+        let event_publisher = EventPublisher::<TestProto>::new(
+            10,
+            comms.clone(),
+            "event1".to_string(),
+            "com-android-sdv-diagnosticsevent-event-unique".to_string(),
+        )
+        .await
+        .unwrap();
 
         let event_publication = comms
             .find_publication(&UnitQuery::Name(
@@ -338,6 +366,7 @@ mod tests {
             10,
             comms.clone(),
             "sdv-diagnostics-event-event1".to_string(),
+            "com-android-sdv-diagnosticsevent-event-unique".to_string(),
         )
         .await
         .unwrap();
@@ -387,6 +416,7 @@ mod tests {
             1,
             comms.clone(),
             "sdv-diagnostics-event-event1".to_string(),
+            "com-android-sdv-diagnosticsevent-event-unique".to_string(),
         )
         .await
         .unwrap();
@@ -511,6 +541,7 @@ mod tests {
                 comms.clone(),
                 &EventPublisherOptions::builder()
                     .publication_name("event")
+                    .topic("com-android-sdv-diagnosticsevent-event-unique")
                     .data_size(10)
                     .register_reflection_metadata(register_reflection_metadata)
                     .build()
@@ -519,7 +550,14 @@ mod tests {
             .await
             .unwrap()
         } else {
-            EventPublisher::<TestProto>::new(10, comms.clone(), "event".to_string()).await.unwrap()
+            EventPublisher::<TestProto>::new(
+                10,
+                comms.clone(),
+                "event".to_string(),
+                "com-android-sdv-diagnosticsevent-event-unique".to_string(),
+            )
+            .await
+            .unwrap()
         };
 
         // discover event publisher service unit
@@ -575,11 +613,13 @@ mod tests {
     #[test]
     fn test_event_publisher_options_builder() {
         let publication_name = "some-name";
+        let topic = "some-topic";
         let data_size = 18;
         let register_reflection_metadata = true;
 
         // GIVEN publication_name is not set.
         let result = EventPublisherOptions::builder()
+            .topic(topic)
             .data_size(data_size)
             .register_reflection_metadata(register_reflection_metadata)
             .build();
@@ -590,6 +630,7 @@ mod tests {
         // GIVEN all values are valid
         let result = EventPublisherOptions::builder()
             .publication_name(publication_name)
+            .topic(topic)
             .data_size(data_size)
             .register_reflection_metadata(register_reflection_metadata)
             .build();
@@ -597,6 +638,7 @@ mod tests {
         // THEN the correcct attributes are set
         let event_publisher_options = result.unwrap();
         assert_that!(event_publisher_options.get_publication_name(), eq(publication_name));
+        assert_that!(event_publisher_options.get_topic(), eq(topic));
         assert_that!(event_publisher_options.get_data_size(), eq(data_size));
         assert_that!(
             event_publisher_options.register_reflection_metadata(),
