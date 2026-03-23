@@ -29,8 +29,9 @@ apex {
     prebuilts: [
         // SDV Manifest - used by SBR
         "com.android.sdv.user_preferences.manifest",
-        // ACL Policy
-        "com.android.sdv.user_preferences.acl_policy",
+        // Authz Policy
+        "com.android.sdv.user_preferences.UserPreferencesServiceBundle.permissions",
+        "com.android.sdv.user_preferences.UserPreferencesAdminServiceClient.permissions",
     ],
     product_specific: true,
     min_sdk_version: "35",
@@ -62,12 +63,27 @@ prebuilt_etc {
     visibility: ["//visibility:private"],
 }
 
-// File with the ACL policy of service bundle is stored in the apex.
+// File with the Authz policy of service bundle is stored in the apex.
 prebuilt_etc {
-    name: "com.android.sdv.user_preferences.acl_policy",
+    name: "com.android.sdv.user_preferences.UserPreferencesServiceBundle.permissions",
     // The source name of the manifest file.
-    src: "acl.textproto",
-    filename: "acl.textproto",
+    src: "permissions/UserPreferencesServiceBundle.textproto",
+    filename: "UserPreferencesServiceBundle.textproto",
+    sub_dir: "permissions",
+    // Disable direct installation of the manifest to one of the partitions.
+    // The manifest will be used only inside of service bundles registry apexes.
+    installable: false,
+    // Reduce prebuilt visibility to avoid adding it in another APEX.
+    visibility: ["//visibility:private"],
+}
+
+// File with the Authz policy of service bundle is stored in the apex.
+prebuilt_etc {
+    name: "com.android.sdv.user_preferences.UserPreferencesAdminServiceClient.permissions",
+    // The source name of the manifest file.
+    src: "permissions/UserPreferencesAdminServiceClient.textproto",
+    filename: "UserPreferencesAdminServiceClient.textproto",
+    sub_dir: "permissions",
     // Disable direct installation of the manifest to one of the partitions.
     // The manifest will be used only inside of service bundles registry apexes.
     installable: false,
