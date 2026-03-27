@@ -24,7 +24,7 @@ mod compliance_client;
 use crate::uds::compliance_client::ProxyComplianceClient;
 use crate::uds::data_item_service::{DataItemRequestHandler, DataItemService};
 use sdv_comms::ContextRef;
-use sdv_config_provider::vsidl_provider_api::VsidlConfigProviderV1;
+use sdv_config_provider::vsidl_provider_api::VsidlConfigProvider;
 use sdv_uds_comms::doip::listener::DoipListenerConfig;
 use sdv_uds_comms::doip::logical_address::LogicalAddress;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -48,7 +48,7 @@ pub fn create_doip_config() -> DoipListenerConfig {
 /// Creates a service for communication with the Compliance Service Bundle via comms stack.
 pub fn create_data_item_service(
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
 ) -> Box<dyn DataItemRequestHandler> {
     let compliance_client = ProxyComplianceClient::new(context, vsidl_provider);
     let data_item_service =

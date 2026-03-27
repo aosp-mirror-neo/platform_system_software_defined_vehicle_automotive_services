@@ -49,6 +49,9 @@ rust_defaults {
         "libsdv_comms_rs",
         "libsdv_uds_serde_v1_core",
     ],
+    proc_macros: [
+        "libasync_trait",
+    ],
     ld_flags: ["-Wl,--no-as-needed"],
 }
 
