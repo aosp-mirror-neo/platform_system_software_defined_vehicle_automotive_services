@@ -30,12 +30,9 @@ server {
   channel: "com-android-sdv-user-preferences-user-preferences-registry-service"
 }
 
-client {
-  service: "com.android.sdv.user_preferences.view.ChangeNotifier"
-  channel: "com-android-sdv-user-preferences-view-change-notifier"
-}
+client { service: "com.android.sdv.user_preferences.view.ChangeNotifier" allow_all_channels: true }
 
 client {
   service: "com.android.sdv.user_preferences.user_controllable.UserControllableService"
-  channel: "com-android-sdv-user-preferences-user-controllable-user-controllable-service"
+  allow_all_channels: true
 }
