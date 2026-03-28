@@ -33,7 +33,7 @@ use sdv_comms::rpc::{Client, ClientOptions};
 use sdv_comms::sd::ServiceUnitChangeEvent;
 use sdv_comms::sd::{ServiceDiscoveryManager, ServiceUnitDefinition, UnitType};
 use sdv_comms::ContextRef;
-use sdv_config_provider::{vsidl_provider, vsidl_provider_api::VsidlConfigProviderV1};
+use sdv_config_provider::{vsidl_provider, vsidl_provider_api::VsidlConfigProvider};
 use sdv_dump::DumpBinderConnection;
 use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
 use sdv_uds_comms::doip::listener::DoipListener;
@@ -193,8 +193,8 @@ async fn main() -> anyhow::Result<()> {
 
 async fn listen_to_all_publications_of_type<T: PublicationUnitType>(
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
-    handler: impl Fn(ServiceUnitDefinition, Arc<dyn VsidlConfigProviderV1>, T::Message, Arc<Logger>)
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
+    handler: impl Fn(ServiceUnitDefinition, Arc<dyn VsidlConfigProvider>, T::Message, Arc<Logger>)
         + Send
         + Sync
         + Clone
@@ -280,7 +280,7 @@ async fn listen_to_all_publications_of_type<T: PublicationUnitType>(
 
 async fn listen_to_events(
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
     dumpsys_logger: Arc<Logger>,
 ) {
     dumpsys_logger.add_line("Starting interaction with Events".to_owned());
@@ -295,7 +295,7 @@ async fn listen_to_events(
 
 async fn listen_to_enable_conditions(
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
     dumpsys_logger: Arc<Logger>,
 ) {
     dumpsys_logger.add_line("Starting interaction with EnableConditions".to_owned());
@@ -310,7 +310,7 @@ async fn listen_to_enable_conditions(
 
 async fn listen_to_operation_cycles(
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
     dumpsys_logger: Arc<Logger>,
 ) {
     dumpsys_logger.add_line("Starting interaction with OperationCycles".to_owned());
@@ -326,12 +326,12 @@ async fn listen_to_operation_cycles(
 #[instrument(skip_all)]
 async fn read_data_items(
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
     service_unit: ServiceUnitDefinition,
     dumpsys_logger: Arc<Logger>,
 ) {
     let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
-    let translator = DiagnosticsTranslator::new(vsidl_provider.clone());
+    let translator = DiagnosticsTranslator::new_with_provider(vsidl_provider.clone());
 
     let diagnostics_declaration = vsidl_provider
         .get_diagnostics_declaration(&service_fqin)
@@ -391,7 +391,7 @@ async fn read_data_items(
 }
 
 async fn print_typed_routine_start_response(
-    vsidl_provider: &Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: &Arc<dyn VsidlConfigProvider>,
     diag_server_fqin: &ServiceFqin,
     routine_id: &str,
     response: &RoutineControlResponse,
@@ -423,14 +423,14 @@ async fn print_typed_routine_start_response(
 #[instrument(skip_all)]
 async fn start_routines(
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
     service_unit: ServiceUnitDefinition,
     dumpsys_logger: Arc<Logger>,
 ) {
     let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
     let diagnostics_declaration =
         vsidl_provider.get_diagnostics_declaration(&service_fqin).await.unwrap_or_default();
-    let translator = DiagnosticsTranslator::new(vsidl_provider.clone());
+    let translator = DiagnosticsTranslator::new_with_provider(vsidl_provider.clone());
 
     dumpsys_logger.add_line(format!(
         "RoutinControls diagnostics declaration of a {} : {:#?}",
@@ -453,7 +453,7 @@ async fn start_routines(
         };
 
         print_typed_routine_start_response(
-            &vsidl_provider,
+            &vsidl_provider.clone(),
             &service_fqin,
             &routine.id,
             &response,
@@ -490,14 +490,14 @@ async fn start_routines(
 #[instrument(skip_all)]
 async fn freeze_current_state(
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
     service_unit: ServiceUnitDefinition,
     dumpsys_logger: Arc<Logger>,
 ) {
     let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
     let diagnostics_declaration =
         vsidl_provider.get_diagnostics_declaration(&service_fqin).await.unwrap_or_default();
-    let translator = DiagnosticsTranslator::new(vsidl_provider.clone());
+    let translator = DiagnosticsTranslator::new_with_provider(vsidl_provider.clone());
 
     dumpsys_logger.add_line(format!(
         "IoControls diagnostics declaration of a {} : {:#?}",
@@ -544,7 +544,7 @@ async fn freeze_current_state(
 #[instrument(skip_all)]
 async fn update_faults_status(
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
     service_unit: ServiceUnitDefinition,
     dumpsys_logger: Arc<Logger>,
 ) {
@@ -580,7 +580,7 @@ async fn update_faults_status(
 #[instrument(skip_all)]
 fn handle_event(
     service_unit: ServiceUnitDefinition,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
     event: Event,
     dumpsys_logger: Arc<Logger>,
 ) {
@@ -591,7 +591,7 @@ fn handle_event(
 
         let unit_name = service_unit.get_unit_identifier().get_unit_name().to_string();
 
-        let translator = DiagnosticsTranslator::new(vsidl_provider.clone());
+        let translator = DiagnosticsTranslator::new_with_provider(vsidl_provider.clone());
 
         let service_fqin = service_unit.get_service_bundle_identity().get_fqin().clone();
         let diagnostics_declaration =
@@ -623,7 +623,7 @@ fn handle_event(
 #[instrument(skip_all)]
 fn handle_enable_condition(
     _service_unit: ServiceUnitDefinition,
-    _vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    _vsidl_provider: Arc<dyn VsidlConfigProvider>,
     enable_condition: EnableCondition,
     dumpsys_logger: Arc<Logger>,
 ) {
@@ -632,7 +632,7 @@ fn handle_enable_condition(
 
 fn handle_operation_cycle(
     _service_unit: ServiceUnitDefinition,
-    _vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    _vsidl_provider: Arc<dyn VsidlConfigProvider>,
     operation_cycle: OperationCycle,
     dumpsys_logger: Arc<Logger>,
 ) {
@@ -641,7 +641,7 @@ fn handle_operation_cycle(
 
 async fn data_item_interaction(
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
     dumpsys_logger: Arc<Logger>,
 ) {
     dumpsys_logger.add_line("Starting interaction with DataItems".to_owned());
@@ -668,7 +668,7 @@ async fn data_item_interaction(
 #[instrument(skip_all)]
 async fn io_control_interaction(
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
     dumpsys_logger: Arc<Logger>,
 ) {
     dumpsys_logger.add_line("Starting interaction with IoControls".to_owned());
@@ -695,7 +695,7 @@ async fn io_control_interaction(
 #[instrument(skip_all)]
 async fn routine_control_interaction(
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
     dumpsys_logger: Arc<Logger>,
 ) {
     dumpsys_logger.add_line("Starting interaction with RoutineControls".to_owned());
@@ -722,7 +722,7 @@ async fn routine_control_interaction(
 #[instrument(skip_all)]
 async fn fault_listener_interaction(
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
     dumpsys_logger: Arc<Logger>,
 ) {
     dumpsys_logger.add_line("Starting interaction with FaultListeners".to_owned());

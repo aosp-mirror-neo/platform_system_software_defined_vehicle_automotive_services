@@ -26,7 +26,7 @@ use sdv_comms::id::ServiceFqin;
 use sdv_comms::rpc::{Client, ClientOptions};
 use sdv_comms::sd::{ServiceDiscoveryManager, ServiceUnitDefinition, UnitNameDiscoveryArgs};
 use sdv_comms::ContextRef;
-use sdv_config_provider::vsidl_provider_api::VsidlConfigProviderV1;
+use sdv_config_provider::vsidl_provider_api::VsidlConfigProvider;
 use sdv_status_rs::{SdvResult, SdvStatus, SdvStatusCode};
 use std::sync::Arc;
 use tokio::sync::OnceCell;
@@ -51,7 +51,7 @@ pub trait ComplianceClient: Send + Sync {
 /// Proxy to wrap an inner lazy loaded SdvComplianceClient.
 pub struct ProxyComplianceClient {
     context: ContextRef,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
     inner_client: OnceCell<SdvComplianceClient>,
 }
 
@@ -59,7 +59,7 @@ pub struct ProxyComplianceClient {
 pub struct SdvComplianceClient {
     rpc_client: Client,
     service_unit: ServiceUnitDefinition,
-    vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+    vsidl_provider: Arc<dyn VsidlConfigProvider>,
 }
 
 // -- SdvComplianceClient
@@ -69,7 +69,7 @@ impl SdvComplianceClient {
     /// Returns a SdvComplianceClient instance on success.
     pub async fn connect(
         context: ContextRef,
-        vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+        vsidl_provider: Arc<dyn VsidlConfigProvider>,
     ) -> SdvResult<Self> {
         // Discover the Service Unit
         let name_args = UnitNameDiscoveryArgs::new_builder()
@@ -113,14 +113,12 @@ impl SdvComplianceClient {
     async fn get_message_name(&self, id: &str) -> SdvResult<String> {
         let service_fqin = self.service_bundle_fqin();
         let diagnostics_declaration =
-            self.vsidl_provider.get_diagnostics_declaration(&service_fqin).await.ok_or_else(
-                || {
-                    SdvStatus::with_message(
-                        SdvStatusCode::NotFound,
-                        format!("Diagnostics declaration not found for {service_fqin}"),
-                    )
-                },
-            )?;
+            self.vsidl_provider.get_diagnostics_declaration(&service_fqin).await.map_err(|_| {
+                SdvStatus::with_message(
+                    SdvStatusCode::NotFound,
+                    format!("Diagnostics declaration not found for {service_fqin}"),
+                )
+            })?;
         let item = diagnostics_declaration.data_item.iter().find(|item| item.id == id).ok_or_else(
             || {
                 SdvStatus::with_message(
@@ -140,13 +138,13 @@ impl SdvComplianceClient {
             .vsidl_provider
             .get_message_descriptor(&service_fqin, &message_name)
             .await
-            .ok_or_else(|| {
+            .map_err(|_| {
                 SdvStatus::with_message(
                     SdvStatusCode::NotFound,
                     format!("Message descriptor not found: {message_name}"),
                 )
             })?;
-        Ok((descriptor, message_name))
+        Ok((descriptor.clone(), message_name))
     }
 
     async fn validate_payload(&self, id: &str, payload: &[u8]) -> SdvResult<()> {
@@ -221,7 +219,7 @@ impl ComplianceClient for SdvComplianceClient {
 // -- Proxy
 
 impl ProxyComplianceClient {
-    pub fn new(context: ContextRef, vsidl_provider: Arc<dyn VsidlConfigProviderV1>) -> Self {
+    pub fn new(context: ContextRef, vsidl_provider: Arc<dyn VsidlConfigProvider>) -> Self {
         Self { context, vsidl_provider, inner_client: OnceCell::new() }
     }
 

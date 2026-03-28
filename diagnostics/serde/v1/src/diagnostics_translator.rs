@@ -22,7 +22,7 @@ use crate::entity_id::RoutineMethod::*;
 use crate::translator::{self, Translator, TranslatorError};
 use protobuf::reflect::MessageDescriptor;
 use sdv_comms::id::ServiceFqin;
-use sdv_config_provider::vsidl_provider_api::VsidlConfigProviderV1;
+use sdv_config_provider::vsidl_provider_api::*;
 use std::sync::Arc;
 use tracing::instrument;
 use vsidl_v1::diagnostics_syntax::DiagnosticsDeclaration;
@@ -37,15 +37,16 @@ pub struct DiagnosticsTranslator {
 
 impl DiagnosticsTranslator {
     /// Creates new instance.
+    #[deprecated(
+        note = "Use constructor fn new_with_provider (with new trait VsidlConfigProvider) instead."
+    )]
     pub fn new(vsidl_provider: Arc<dyn VsidlConfigProviderV1>) -> Self {
-        Self::init(vsidl_provider, translator::new())
+        Self { vsidl_provider, translator: translator::new() }
     }
 
-    fn init(
-        vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
-        translator: Arc<dyn Translator>,
-    ) -> Self {
-        Self { vsidl_provider, translator }
+    /// Creates new instance using the standard VsidlConfigProvider.
+    pub fn new_with_provider(vsidl_provider: Arc<dyn VsidlConfigProvider>) -> Self {
+        Self { vsidl_provider: to_v1_provider(vsidl_provider), translator: translator::new() }
     }
 
     /// Translates serialized protobuf message `proto_bytes` to UDS message.
@@ -163,6 +164,17 @@ pub enum DiagnosticsTranslatorError {
     TranslationError(#[from] TranslatorError),
 }
 
+impl DiagnosticsTranslator {
+    #[cfg(test)]
+    /// Creates a new instance for tests.
+    fn new_for_test(
+        vsidl_provider: Arc<dyn VsidlConfigProviderV1>,
+        translator: Arc<dyn Translator>,
+    ) -> Self {
+        Self { vsidl_provider, translator }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::diagnostics_translator::{DiagnosticsTranslator, DiagnosticsTranslatorError::*};
@@ -234,7 +246,10 @@ mod tests {
             .with(mock_eq(MESSAGE_BYTES), always())
             .returning(|_, descriptor| Ok(proto_bytes_for_message(descriptor.name())));
 
-        DiagnosticsTranslator::init(Arc::new(mock_vsidl_provider), Arc::new(mock_translator))
+        DiagnosticsTranslator::new_for_test(
+            Arc::new(mock_vsidl_provider),
+            Arc::new(mock_translator),
+        )
     }
 
     fn proto_bytes_for_message(message_name: &str) -> Vec<u8> {
